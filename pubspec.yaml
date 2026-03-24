@@ -1,0 +1,72 @@
+name: my_anime
+description: "MyAnime!!!!! — Your anime tracking companion"
+publish_to: 'none'
+
+version: 0.1.0+1
+
+environment:
+  sdk: ^3.11.3
+
+dependencies:
+  flutter:
+    sdk: flutter
+  flutter_localizations:
+    sdk: flutter
+
+  # State management
+  flutter_riverpod: ^1.0.4
+
+  # Navigation
+  go_router: ^14.8.1
+
+  # Theming
+  flex_color_scheme: ^8.2.0
+
+  # Icons
+  cupertino_icons: ^1.0.8
+
+  # i18n
+  intl: ^0.20.2
+
+  # Utilities
+  uuid: ^4.5.1
+  path: ^1.9.0
+  path_provider: ^2.1.5
+  file_picker: ^9.2.1
+  package_info_plus: ^9.0.0
+  device_preview: ^1.2.0
+
+  # HTTP (WebDAV sync)
+  http: ^1.4.0
+
+  # Archive (ZIP export/import)
+  archive: ^4.0.9
+
+  # Calendar
+  table_calendar: ^3.2.0
+
+  # URL launcher
+  url_launcher: ^6.3.1
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^6.0.0
+  flutter_launcher_icons: ^0.14.4
+  msix: ^3.16.8
+
+flutter:
+  generate: true
+  uses-material-design: true
+
+  assets:
+    - assets/icon/
+
+msix_config:
+  display_name: MyAnime!!!!!
+  publisher_display_name: yuanzhe
+  identity_name: com.yuanzhe.myanime
+  msix_version: 0.3.0.0
+  logo_path: assets/icon/app_icon.png
+  capabilities: internetClient
+  install_certificate: false
