@@ -9,12 +9,14 @@ permissions:
   contents: write
 
 env:
-  FLUTTER_VERSION: '3.32.1'
+  FLUTTER_VERSION: '3.41.6'
 
 jobs:
   # ── Android APK (full) + AAB (store) ──
   android:
     runs-on: ubuntu-latest
+    env:
+      HAS_KEYSTORE: ${{ secrets.KEYSTORE_BASE64 != '' }}
     steps:
       - uses: actions/checkout@v4
 
@@ -29,6 +31,18 @@ jobs:
           channel: stable
 
       - run: flutter pub get
+
+      - name: Setup Android signing
+        if: ${{ env.HAS_KEYSTORE == 'true' }}
+        env:
+          KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
+          STORE_PASSWORD: ${{ secrets.STORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
+        run: |
+          echo "$KEYSTORE_BASE64" | base64 -d > android/app/upload-keystore.jks
+          printf 'storeFile=upload-keystore.jks\nstorePassword=%s\nkeyAlias=%s\nkeyPassword=%s\n' \
+            "$STORE_PASSWORD" "$KEY_ALIAS" "$KEY_PASSWORD" > android/key.properties
 
       - name: Build APK (full)
         run: flutter build apk --release --dart-define=FLAVOR=full
@@ -99,16 +113,6 @@ jobs:
         with:
           name: ios-ipa-full-sideload
           path: build/ios/ipa/MyAnime_sideload.ipa
-
-      - name: Build iOS IPA (store)
-        run: flutter build ipa --release --dart-define=FLAVOR=store --no-codesign
-        continue-on-error: true
-
-      - uses: actions/upload-artifact@v4
-        if: success()
-        with:
-          name: ios-ipa-store
-          path: build/ios/ipa/*.ipa
 
   # ── macOS DMG (full) ──
   macos:
