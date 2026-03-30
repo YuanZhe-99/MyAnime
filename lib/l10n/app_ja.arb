@@ -79,6 +79,9 @@
   "settingsThemeDark": "ダーク",
   "settingsLanguage": "言語",
   "settingsLanguageSystem": "システム",
+  "settingsReminder": "毎日リマインダー",
+  "settingsReminderOff": "オフ",
+  "settingsReminderTime": "リマインダー時刻",
   "settingsGeneral": "一般",
   "settingsData": "データ",
   "settingsAbout": "バージョン情報",
@@ -135,5 +138,6 @@
   "settingsResetDefaultLocation": "保存場所をデフォルトにリセットしました",
   "settingsStoragePathUpdated": "保存場所を更新しました",
   "dataMigration": "データフォルダを開く",
-  "dataMigrationDesc": "アプリケーションデータディレクトリを開く"
+  "dataMigrationDesc": "アプリケーションデータディレクトリを開く",
+  "homeCalendarJst": "カレンダーの日付は JST（UTC+9）"
 }

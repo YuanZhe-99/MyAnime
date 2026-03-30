@@ -83,6 +83,9 @@
   "settingsThemeDark": "Dark",
   "settingsLanguage": "Language",
   "settingsLanguageSystem": "System",
+  "settingsReminder": "Daily Reminder",
+  "settingsReminderOff": "Off",
+  "settingsReminderTime": "Reminder Time",
   "settingsGeneral": "General",
   "settingsData": "Data",
   "settingsAbout": "About",
@@ -141,5 +144,6 @@
   "settingsResetDefaultLocation": "Storage location reset to default",
   "settingsStoragePathUpdated": "Storage location updated",
   "dataMigration": "Open Data Folder",
-  "dataMigrationDesc": "Open the application data directory"
+  "dataMigrationDesc": "Open the application data directory",
+  "homeCalendarJst": "Calendar dates in JST (UTC+9)"
 }

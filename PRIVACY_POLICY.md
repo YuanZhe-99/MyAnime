@@ -14,14 +14,14 @@ All data you enter in the app — anime information, watch history, cover images
 
 MyAnime!!!!! accesses the internet only in the following situations:
 
-- **Searching for anime information**: When you actively search for anime, the app sends requests to bangumi.tv, MyAnimeList (Jikan API), acgsecrets.hk, anime1.me and filmarks.com to retrieve publicly available anime information such as titles, summaries, cover art, and episode counts.
+- **Searching for anime information** *(full flavor only)*: When you actively search for anime, the app sends requests to bangumi.tv, MyAnimeList (Jikan API), acgsecrets.hk, anime1.me and filmarks.com to retrieve publicly available anime information such as titles, summaries, cover art, and episode counts. **This feature is not included in versions distributed through the App Store or Google Play.**
 - **WebDAV sync**: If you enable WebDAV cloud sync, the app sends your data to a WebDAV server that you configure yourself. The app does not send data to any other server.
 
 No other network communication takes place.
 
 ## Third-Party Services
 
-The app uses the following third-party data sources for anime search:
+The full-featured version of the app uses the following third-party data sources for anime search:
 
 - bangumi.tv
 - MyAnimeList (via Jikan API)
@@ -30,6 +30,8 @@ The app uses the following third-party data sources for anime search:
 - filmarks.com
 
 These services have their own privacy policies, which we encourage you to review. MyAnime!!!!! only retrieves publicly available anime information and does not send any of your personal data to these services.
+
+**Note:** Versions distributed through the App Store and Google Play (store flavor) do not include the online search feature and do not connect to these third-party services.
 
 ## Data Backup
 

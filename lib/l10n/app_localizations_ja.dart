@@ -230,6 +230,15 @@ class AppLocalizationsJa extends AppLocalizations {
   String get settingsLanguageSystem => 'システム';
 
   @override
+  String get settingsReminder => '毎日リマインダー';
+
+  @override
+  String get settingsReminderOff => 'オフ';
+
+  @override
+  String get settingsReminderTime => 'リマインダー時刻';
+
+  @override
   String get settingsGeneral => '一般';
 
   @override
@@ -398,4 +407,7 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get dataMigrationDesc => 'アプリケーションデータディレクトリを開く';
+
+  @override
+  String get homeCalendarJst => 'カレンダーの日付は JST（UTC+9）';
 }

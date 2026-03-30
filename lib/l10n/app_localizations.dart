@@ -527,6 +527,24 @@ abstract class AppLocalizations {
   /// **'System'**
   String get settingsLanguageSystem;
 
+  /// No description provided for @settingsReminder.
+  ///
+  /// In en, this message translates to:
+  /// **'Daily Reminder'**
+  String get settingsReminder;
+
+  /// No description provided for @settingsReminderOff.
+  ///
+  /// In en, this message translates to:
+  /// **'Off'**
+  String get settingsReminderOff;
+
+  /// No description provided for @settingsReminderTime.
+  ///
+  /// In en, this message translates to:
+  /// **'Reminder Time'**
+  String get settingsReminderTime;
+
   /// No description provided for @settingsGeneral.
   ///
   /// In en, this message translates to:
@@ -856,6 +874,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Open the application data directory'**
   String get dataMigrationDesc;
+
+  /// No description provided for @homeCalendarJst.
+  ///
+  /// In en, this message translates to:
+  /// **'Calendar dates in JST (UTC+9)'**
+  String get homeCalendarJst;
 }
 
 class _AppLocalizationsDelegate

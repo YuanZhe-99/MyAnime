@@ -32,7 +32,7 @@ class AnimeSearchResult {
 }
 
 class AnimeSearchService {
-  static const _userAgent = 'MyAnime/0.1 (anime tracker)';
+  static const _userAgent = 'MyAnime/0.1.1 (anime tracker)';
 
   /// Search all sources in parallel and return combined results.
   /// Automatically tries S↔T Chinese variants on Chinese-language sources.

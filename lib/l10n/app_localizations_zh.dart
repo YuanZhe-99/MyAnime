@@ -230,6 +230,15 @@ class AppLocalizationsZh extends AppLocalizations {
   String get settingsLanguageSystem => '跟随系统';
 
   @override
+  String get settingsReminder => '每日提醒';
+
+  @override
+  String get settingsReminderOff => '已关闭';
+
+  @override
+  String get settingsReminderTime => '提醒时间';
+
+  @override
   String get settingsGeneral => '通用';
 
   @override
@@ -397,6 +406,9 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get dataMigrationDesc => '打开应用数据文件夹';
+
+  @override
+  String get homeCalendarJst => '日历日期为 JST（日本标准时间 UTC+9）';
 }
 
 /// The translations for Chinese, as used in Taiwan (`zh_TW`).
@@ -625,6 +637,15 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
   String get settingsLanguageSystem => '跟隨系統';
 
   @override
+  String get settingsReminder => '每日提醒';
+
+  @override
+  String get settingsReminderOff => '已關閉';
+
+  @override
+  String get settingsReminderTime => '提醒時間';
+
+  @override
   String get settingsGeneral => '一般';
 
   @override
@@ -792,4 +813,7 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
 
   @override
   String get dataMigrationDesc => '開啟應用程式資料夾';
+
+  @override
+  String get homeCalendarJst => '日曆日期為 JST（日本標準時間 UTC+9）';
 }

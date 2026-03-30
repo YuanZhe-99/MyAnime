@@ -79,6 +79,9 @@
   "settingsThemeDark": "深色",
   "settingsLanguage": "语言",
   "settingsLanguageSystem": "跟随系统",
+  "settingsReminder": "每日提醒",
+  "settingsReminderOff": "已关闭",
+  "settingsReminderTime": "提醒时间",
   "settingsGeneral": "通用",
   "settingsData": "数据",
   "settingsAbout": "关于",
@@ -135,5 +138,6 @@
   "settingsResetDefaultLocation": "存储位置已恢复默认",
   "settingsStoragePathUpdated": "存储位置已更新",
   "dataMigration": "打开数据目录",
-  "dataMigrationDesc": "打开应用数据文件夹"
+  "dataMigrationDesc": "打开应用数据文件夹",
+  "homeCalendarJst": "日历日期为 JST（日本标准时间 UTC+9）"
 }

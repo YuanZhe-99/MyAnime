@@ -168,6 +168,18 @@ class _HomePageState extends State<HomePage> {
                 ),
               ),
             ),
+            Padding(
+              padding: const EdgeInsets.only(right: 16, bottom: 4),
+              child: Align(
+                alignment: Alignment.centerRight,
+                child: Text(
+                  l10n.homeCalendarJst,
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: theme.colorScheme.onSurfaceVariant,
+                  ),
+                ),
+              ),
+            ),
 
             // Selected day episodes
             if (selectedEvents.isNotEmpty) ...[

@@ -1,0 +1,170 @@
+name: Build All Platforms
+
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+env:
+  FLUTTER_VERSION: '3.32.1'
+
+jobs:
+  # ── Android APK (full) + AAB (store) ──
+  android:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          channel: stable
+
+      - run: flutter pub get
+
+      - name: Build APK (full)
+        run: flutter build apk --release --dart-define=FLAVOR=full
+
+      - name: Build AAB (store)
+        run: flutter build appbundle --release --dart-define=FLAVOR=store
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: android-apk-full
+          path: build/app/outputs/flutter-apk/app-release.apk
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: android-aab-store
+          path: build/app/outputs/bundle/release/app-release.aab
+
+  # ── Windows installer (full) ──
+  windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          channel: stable
+
+      - run: flutter pub get
+
+      - name: Build Windows (full)
+        run: flutter build windows --release --dart-define=FLAVOR=full
+
+      - name: Install Inno Setup
+        run: choco install innosetup -y
+
+      - name: Build installer
+        run: iscc installer.iss
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: windows-installer-full
+          path: build/installer/*.exe
+
+  # ── iOS IPA (full sideload + store) ──
+  ios:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          channel: stable
+
+      - run: flutter pub get
+
+      - name: Build iOS (full, no codesign)
+        run: flutter build ios --release --no-codesign --dart-define=FLAVOR=full
+
+      - name: Package sideload IPA
+        run: |
+          mkdir -p build/ios/ipa/Payload
+          cp -r build/ios/iphoneos/Runner.app build/ios/ipa/Payload/
+          cd build/ios/ipa && zip -r MyAnime_sideload.ipa Payload
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ios-ipa-full-sideload
+          path: build/ios/ipa/MyAnime_sideload.ipa
+
+      - name: Build iOS IPA (store)
+        run: flutter build ipa --release --dart-define=FLAVOR=store --no-codesign
+        continue-on-error: true
+
+      - uses: actions/upload-artifact@v4
+        if: success()
+        with:
+          name: ios-ipa-store
+          path: build/ios/ipa/*.ipa
+
+  # ── macOS DMG (full) ──
+  macos:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          channel: stable
+
+      - run: flutter pub get
+
+      - name: Add macOS platform if missing
+        run: |
+          if [ ! -d macos ]; then
+            flutter create --platforms=macos .
+          fi
+
+      - name: Build macOS (full)
+        run: flutter build macos --release --dart-define=FLAVOR=full
+
+      - name: Install create-dmg
+        run: brew install create-dmg
+
+      - name: Create DMG
+        run: |
+          APP_PATH=$(find build/macos/Build/Products/Release -name "*.app" -maxdepth 1 | head -1)
+          create-dmg \
+            --volname "MyAnime!!!!!" \
+            --app-drop-link 400 150 \
+            "build/macos/MyAnime.dmg" \
+            "$APP_PATH" || true
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: macos-dmg-full
+          path: build/macos/MyAnime.dmg
+
+  # ── Create GitHub Release on tag push ──
+  release:
+    if: startsWith(github.ref, 'refs/tags/')
+    needs: [android, windows, ios, macos]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+
+      - name: Flatten artifacts
+        run: |
+          mkdir -p release
+          find artifacts -type f \( -name "*.apk" -o -name "*.aab" -o -name "*.exe" -o -name "*.ipa" -o -name "*.dmg" \) -exec cp {} release/ \;
+
+      - uses: softprops/action-gh-release@v2
+        with:
+          files: release/*
+          generate_release_notes: true

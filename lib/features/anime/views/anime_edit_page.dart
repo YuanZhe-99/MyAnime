@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 
+import '../../../app/flavor.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../../shared/services/image_service.dart';
 import '../models/anime.dart';
@@ -246,11 +247,12 @@ class _AnimeEditPageState extends State<AnimeEditPage> {
       appBar: AppBar(
         title: Text(_isEdit ? l10n.animeEdit : l10n.animeAdd),
         actions: [
-          IconButton(
-            icon: const Icon(Icons.travel_explore),
-            tooltip: l10n.searchAnimeInfo,
-            onPressed: _showSearchDialog,
-          ),
+          if (AppFlavor.isFull)
+            IconButton(
+              icon: const Icon(Icons.travel_explore),
+              tooltip: l10n.searchAnimeInfo,
+              onPressed: _showSearchDialog,
+            ),
           TextButton(
             onPressed: _save,
             child: Text(l10n.save),
@@ -449,11 +451,13 @@ class _AnimeEditPageState extends State<AnimeEditPage> {
                 hintText: 'https://',
                 border: const OutlineInputBorder(),
                 prefixIcon: const Icon(Icons.link),
-                suffixIcon: IconButton(
-                  icon: const Icon(Icons.search),
-                  tooltip: l10n.searchWatchUrl,
-                  onPressed: _searchWatchUrl,
-                ),
+                suffixIcon: AppFlavor.isFull
+                    ? IconButton(
+                        icon: const Icon(Icons.search),
+                        tooltip: l10n.searchWatchUrl,
+                        onPressed: _searchWatchUrl,
+                      )
+                    : null,
               ),
               keyboardType: TextInputType.url,
             ),

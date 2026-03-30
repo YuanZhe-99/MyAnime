@@ -12,6 +12,7 @@ import '../../../l10n/app_localizations.dart';
 import '../../../shared/utils/jst_time.dart';
 import '../../../shared/providers/app_settings.dart';
 import '../../../shared/services/import_export_service.dart';
+import '../../../shared/services/reminder_service.dart';
 import '../../../shared/views/webdav_config_page.dart';
 import '../../anime/services/anime_storage.dart';
 import 'backup_page.dart';
@@ -28,12 +29,15 @@ class SettingsPage extends ConsumerStatefulWidget {
 class _SettingsPageState extends ConsumerState<SettingsPage> {
   String _version = '';
   String _storagePath = '';
+  bool _reminderEnabled = false;
+  TimeOfDay _reminderTime = const TimeOfDay(hour: 18, minute: 0);
 
   @override
   void initState() {
     super.initState();
     _loadVersion();
     _loadStoragePath();
+    _loadReminder();
   }
 
   Future<void> _loadVersion() async {
@@ -131,6 +135,46 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
   Future<void> _loadStoragePath() async {
     final path = await AnimeStorage.getStoragePath();
     if (mounted) setState(() => _storagePath = path);
+  }
+
+  Future<void> _loadReminder() async {
+    final config = await AnimeStorage.readConfig();
+    if (!mounted) return;
+    setState(() {
+      _reminderEnabled = config['reminderEnabled'] as bool? ?? false;
+      final ts = config['reminderTime'] as String?;
+      if (ts != null) {
+        final p = ts.split(':');
+        _reminderTime = TimeOfDay(
+          hour: int.tryParse(p[0]) ?? 18,
+          minute: int.tryParse(p[1]) ?? 0,
+        );
+      }
+    });
+  }
+
+  Future<void> _setReminderEnabled(bool v) async {
+    setState(() => _reminderEnabled = v);
+    final config = await AnimeStorage.readConfig();
+    config['reminderEnabled'] = v;
+    await AnimeStorage.writeConfig(config);
+    if (v) ReminderService.startPeriodicCheck();
+  }
+
+  Future<void> _pickReminderTime() async {
+    final picked = await showTimePicker(
+      context: context,
+      initialTime: _reminderTime,
+    );
+    if (picked == null || !mounted) return;
+    setState(() => _reminderTime = picked);
+    final config = await AnimeStorage.readConfig();
+    config['reminderTime'] =
+        '${picked.hour.toString().padLeft(2, '0')}:${picked.minute.toString().padLeft(2, '0')}';
+    // Reset lastReminderDate so the new time takes effect today.
+    config.remove('lastReminderDate');
+    await AnimeStorage.writeConfig(config);
+    if (_reminderEnabled) ReminderService.startPeriodicCheck();
   }
 
   Future<void> _showStoragePathDialog() async {
@@ -262,6 +306,26 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
                 onChanged: (locale) => notifier.setLocale(locale),
               ),
             ),
+            SwitchListTile(
+              secondary: const Icon(Icons.notifications_outlined),
+              title: Text(l10n.settingsReminder),
+              subtitle: Text(
+                _reminderEnabled
+                    ? _reminderTime.format(context)
+                    : l10n.settingsReminderOff,
+              ),
+              value: _reminderEnabled,
+              onChanged: _setReminderEnabled,
+            ),
+            if (_reminderEnabled)
+              ListTile(
+                leading: const SizedBox(width: 24),
+                title: Text(l10n.settingsReminderTime),
+                trailing: TextButton(
+                  onPressed: _pickReminderTime,
+                  child: Text(_reminderTime.format(context)),
+                ),
+              ),
           ]),
 
           // ── Data ──
