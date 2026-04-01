@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 
+import '../../features/anime/models/anime.dart';
 import '../../l10n/app_localizations.dart';
+import '../services/sync_merge.dart';
 import '../services/webdav_service.dart';
 
 class WebDAVConfigPage extends StatefulWidget {
@@ -91,6 +93,11 @@ class _WebDAVConfigPageState extends State<WebDAVConfigPage> {
     if (!mounted) return;
     setState(() => _syncing = false);
 
+    if (result.hasConflicts) {
+      await _resolveConflicts(result.pending!);
+      return;
+    }
+
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(result.success
@@ -98,6 +105,41 @@ class _WebDAVConfigPageState extends State<WebDAVConfigPage> {
             : AppLocalizations.of(context)!.settingsWebDAVSyncFailed),
       ),
     );
+  }
+
+  Future<void> _resolveConflicts(PendingSync pending) async {
+    final resolutions = <String, Anime>{};
+
+    for (final conflict in pending.allConflicts) {
+      if (!mounted) return;
+      final chosen = await showDialog<Anime>(
+        context: context,
+        barrierDismissible: false,
+        builder: (ctx) => _ConflictDialog(conflict: conflict),
+      );
+      if (chosen != null) {
+        resolutions[conflict.id] = chosen;
+      } else {
+        // User cancelled — use local by default
+        resolutions[conflict.id] = conflict.localRecord;
+      }
+    }
+
+    final ok = await WebDAVService.finalizePendingSync(
+      _currentConfig,
+      pending,
+      resolutions,
+    );
+
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(ok
+              ? AppLocalizations.of(context)!.settingsWebDAVSyncSuccess
+              : AppLocalizations.of(context)!.settingsWebDAVSyncFailed),
+        ),
+      );
+    }
   }
 
   Future<void> _disconnect() async {
@@ -241,6 +283,58 @@ class _WebDAVConfigPageState extends State<WebDAVConfigPage> {
                 ],
               ],
             ),
+    );
+  }
+}
+
+class _ConflictDialog extends StatelessWidget {
+  final RecordConflict<Anime> conflict;
+
+  const _ConflictDialog({required this.conflict});
+
+  @override
+  Widget build(BuildContext context) {
+    final local = conflict.localRecord;
+    final remote = conflict.remoteRecord;
+
+    return AlertDialog(
+      title: Text('Sync Conflict: ${conflict.displayName}'),
+      content: SizedBox(
+        width: double.maxFinite,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('This anime was modified on both devices since last sync.'),
+            const SizedBox(height: 16),
+            Text('Local version:',
+                style: TextStyle(fontWeight: FontWeight.bold)),
+            Text('Modified: ${local.modifiedAt.toLocal()}'),
+            if (local.endEpisode != null)
+              Text('Episodes: ${local.startEpisode}–${local.endEpisode}'),
+            Text(
+                'Watched: ${local.episodeStatuses.values.where((s) => s == EpisodeStatus.watched).length}'),
+            const SizedBox(height: 12),
+            Text('Remote version:',
+                style: TextStyle(fontWeight: FontWeight.bold)),
+            Text('Modified: ${remote.modifiedAt.toLocal()}'),
+            if (remote.endEpisode != null)
+              Text('Episodes: ${remote.startEpisode}–${remote.endEpisode}'),
+            Text(
+                'Watched: ${remote.episodeStatuses.values.where((s) => s == EpisodeStatus.watched).length}'),
+          ],
+        ),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.of(context).pop(local),
+          child: const Text('Keep Local'),
+        ),
+        FilledButton(
+          onPressed: () => Navigator.of(context).pop(remote),
+          child: const Text('Keep Remote'),
+        ),
+      ],
     );
   }
 }

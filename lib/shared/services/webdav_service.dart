@@ -5,7 +5,9 @@ import 'dart:typed_data';
 import 'package:http/http.dart' as http;
 import 'package:path/path.dart' as p;
 
+import '../../features/anime/models/anime.dart';
 import '../../features/anime/services/anime_storage.dart';
+import 'sync_merge.dart';
 
 /// Persisted WebDAV configuration.
 class WebDAVConfig {
@@ -63,18 +65,37 @@ class WebDAVConfig {
 class SyncResult {
   final bool success;
   final String? error;
+  final PendingSync? pending;
 
   const SyncResult({
     required this.success,
     this.error,
+    this.pending,
   });
+
+  bool get hasConflicts => pending != null;
+}
+
+/// Holds pending merge results that contain per-record conflicts.
+class PendingSync {
+  final AnimeMergeResult? animeMerge;
+
+  const PendingSync({this.animeMerge});
+
+  List<RecordConflict<Anime>> get allConflicts => [
+        ...?animeMerge?.conflicts,
+      ];
 }
 
 class WebDAVService {
   static const _configFileName = 'webdav_config.json';
+  static const _syncBaseDirName = '.sync_base';
   static const _dataFileNames = [
     'anime_data.json',
   ];
+
+  /// Global lock to prevent concurrent syncs.
+  static bool _syncing = false;
 
   // ── Config persistence ──
 
@@ -101,6 +122,32 @@ class WebDAVService {
     final dir = await AnimeStorage.getAppDir();
     final file = File('${dir.path}/$_configFileName');
     if (await file.exists()) await file.delete();
+  }
+
+  // ── Base (last-synced) file management ──
+
+  static Future<Directory> _getBaseDir() async {
+    final appDir = await AnimeStorage.getAppDir();
+    final dir = Directory('${appDir.path}/$_syncBaseDirName');
+    if (!await dir.exists()) await dir.create();
+    return dir;
+  }
+
+  static Future<String?> _readBase(String fileName) async {
+    try {
+      final dir = await _getBaseDir();
+      final file = File('${dir.path}/$fileName');
+      if (!await file.exists()) return null;
+      return await file.readAsString();
+    } catch (_) {
+      return null;
+    }
+  }
+
+  static Future<void> _saveBase(String fileName, String content) async {
+    final dir = await _getBaseDir();
+    final file = File('${dir.path}/$fileName');
+    await file.writeAsString(content);
   }
 
   // ── HTTP helpers ──
@@ -317,13 +364,30 @@ class WebDAVService {
     }
   }
 
-  // ── Last-write-wins file sync ──
+  // ── Per-record merge sync ──
 
-  /// Sync data with WebDAV using last-write-wins strategy.
-  static Future<SyncResult> sync(WebDAVConfig config) async {
+  /// Sync data files with the remote server using per-record three-way merge.
+  ///
+  /// For each data file:
+  /// - Reads local, remote, and base (last-synced) versions
+  /// - Merges per-record using `modifiedAt` timestamps
+  /// - Auto-resolves when only one side changed
+  /// - Returns conflicts when both sides modified the same record
+  ///
+  /// When [autoResolve] is true, conflicts are resolved automatically using
+  /// last-writer-wins per record. Used by auto-sync to prevent blocking.
+  static Future<SyncResult> sync(WebDAVConfig config,
+      {bool autoResolve = false}) async {
+    if (_syncing) {
+      return const SyncResult(
+          success: false, error: 'Sync already in progress');
+    }
+    _syncing = true;
     try {
       await _ensureRemoteDir(config);
       final appDir = await AnimeStorage.getAppDir();
+
+      AnimeMergeResult? pendingAnime;
 
       for (final name in _dataFileNames) {
         final localFile = File('${appDir.path}/$name');
@@ -332,65 +396,92 @@ class WebDAVService {
 
         if (!localExists && remoteRaw == null) continue;
 
-        // Remote exists, local doesn't
         if (!localExists && remoteRaw != null) {
+          // Only on remote → download
           await localFile.writeAsString(remoteRaw);
+          await _saveBase(name, remoteRaw);
           continue;
         }
 
         final localRaw = await localFile.readAsString();
 
-        // Local exists, remote doesn't
         if (localExists && remoteRaw == null) {
+          // Only on local → upload
           await _upload(config, name, localRaw);
+          await _saveBase(name, localRaw);
           continue;
         }
 
-        // Both exist: LWW compare
-        if (localRaw == remoteRaw) continue;
+        // Both exist → per-record merge
+        if (localRaw == remoteRaw) {
+          await _saveBase(name, localRaw);
+          continue;
+        }
 
-        final localTime = _extractModifiedAt(localRaw);
-        final remoteTime = _extractModifiedAt(remoteRaw!);
+        final baseJson = await _readBase(name);
 
-        if (remoteTime != null &&
-            (localTime == null || remoteTime.isAfter(localTime))) {
-          // Remote wins
-          await localFile.writeAsString(remoteRaw);
-        } else {
-          // Local wins
-          await _upload(config, name, localRaw);
+        switch (name) {
+          case 'anime_data.json':
+            final result = mergeAnimeData(
+              localRaw,
+              remoteRaw!,
+              baseJson,
+              autoResolve: autoResolve,
+            );
+            if (result.hasConflicts) {
+              pendingAnime = result;
+            } else {
+              final mergedData =
+                  AnimeData(animes: result.merged);
+              final mergedJson = jsonEncode(mergedData.toJson());
+              await localFile.writeAsString(mergedJson);
+              await _upload(config, name, mergedJson);
+              await _saveBase(name, mergedJson);
+            }
         }
       }
 
-      // Sync images
+      // Sync images (additive, no conflict)
       await _syncImages(config, appDir);
+
+      if (pendingAnime != null) {
+        return SyncResult(
+          success: true,
+          pending: PendingSync(animeMerge: pendingAnime),
+        );
+      }
 
       return const SyncResult(success: true);
     } catch (e) {
       return SyncResult(success: false, error: e.toString());
+    } finally {
+      _syncing = false;
     }
   }
 
-  static DateTime? _extractModifiedAt(String json) {
+  /// Finalize sync by applying user's conflict resolutions.
+  ///
+  /// [resolutions] maps anime ID → the chosen Anime record.
+  static Future<bool> finalizePendingSync(
+    WebDAVConfig config,
+    PendingSync pending,
+    Map<String, Anime> resolutions,
+  ) async {
     try {
-      final data = jsonDecode(json) as Map<String, dynamic>;
-      DateTime? latest;
-      for (final key in ['animes']) {
-        final list = data[key] as List<dynamic>?;
-        if (list == null) continue;
-        for (final item in list) {
-          if (item is Map<String, dynamic> &&
-              item.containsKey('modifiedAt')) {
-            final t = DateTime.tryParse(item['modifiedAt'] as String);
-            if (t != null && (latest == null || t.isAfter(latest))) {
-              latest = t;
-            }
-          }
-        }
+      final appDir = await AnimeStorage.getAppDir();
+
+      if (pending.animeMerge != null) {
+        final mergedData = pending.animeMerge!.buildResolved(resolutions);
+        final mergedJson = jsonEncode(mergedData.toJson());
+        await File('${appDir.path}/anime_data.json')
+            .writeAsString(mergedJson);
+        await _upload(config, 'anime_data.json', mergedJson);
+        await _saveBase('anime_data.json', mergedJson);
       }
-      return latest;
+
+      return true;
     } catch (_) {
-      return null;
+      return false;
     }
   }
 }

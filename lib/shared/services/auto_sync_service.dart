@@ -50,7 +50,7 @@ class AutoSyncService with WidgetsBindingObserver {
     if (config == null || !config.isConfigured || !config.autoSync) return;
     _syncing = true;
     try {
-      await WebDAVService.sync(config);
+      await WebDAVService.sync(config, autoResolve: true);
     } catch (_) {
       // Auto-sync failures are silent.
     } finally {
