@@ -83,7 +83,7 @@ class _AnimeDetailPageState extends State<AnimeDetailPage> {
     }
     final updated = _anime!.copyWith(
       episodeStatuses: Map.of(_anime!.episodeStatuses)..[ep] = next,
-      modifiedAt: DateTime.now(),
+      modifiedAt: DateTime.now().toUtc(),
     );
     await AnimeStorage.addOrUpdate(updated);
     await _load();
@@ -98,7 +98,7 @@ class _AnimeDetailPageState extends State<AnimeDetailPage> {
     if (offsets[ep] == 0) offsets.remove(ep);
     final updated = _anime!.copyWith(
       episodeWeekOffsets: offsets,
-      modifiedAt: DateTime.now(),
+      modifiedAt: DateTime.now().toUtc(),
     );
     await AnimeStorage.addOrUpdate(updated);
     await _load();
@@ -354,7 +354,7 @@ class _AnimeDetailPageState extends State<AnimeDetailPage> {
     }
     final updated = _anime!.copyWith(
       episodeStatuses: newStatuses,
-      modifiedAt: DateTime.now(),
+      modifiedAt: DateTime.now().toUtc(),
     );
     await AnimeStorage.addOrUpdate(updated);
     await _load();
@@ -395,7 +395,7 @@ class _AnimeDetailPageState extends State<AnimeDetailPage> {
     }
     final updated = _anime!.copyWith(
       episodeStatuses: newStatuses,
-      modifiedAt: DateTime.now(),
+      modifiedAt: DateTime.now().toUtc(),
     );
     await AnimeStorage.addOrUpdate(updated);
     await _load();
@@ -411,7 +411,7 @@ class _AnimeDetailPageState extends State<AnimeDetailPage> {
     }
     final updated = _anime!.copyWith(
       episodeStatuses: newStatuses,
-      modifiedAt: DateTime.now(),
+      modifiedAt: DateTime.now().toUtc(),
     );
     await AnimeStorage.addOrUpdate(updated);
     await _load();

@@ -1,7 +1,9 @@
 import 'dart:async';
 import 'dart:io';
 
+import 'package:android_alarm_manager_plus/android_alarm_manager_plus.dart';
 import 'package:flutter/foundation.dart';
+import 'package:flutter/widgets.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:local_notifier/local_notifier.dart';
 
@@ -9,11 +11,24 @@ import '../../features/anime/models/anime.dart';
 import '../../features/anime/services/anime_storage.dart';
 import '../utils/jst_time.dart';
 
+/// Top-level function for AndroidAlarmManager callback.
+/// Must be a top-level or static function.
+@pragma('vm:entry-point')
+Future<void> _androidAlarmCallback() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await ReminderService.init();
+  await ReminderService.checkAndNotify();
+}
+
 /// Daily reminder notification service.
 ///
 /// At app startup, checks whether the configured reminder time (local
 /// timezone) has passed today. If so, and if there are episodes airing
 /// today (JST) or unwatched episodes, a local notification is shown.
+///
+/// On Android, uses AndroidAlarmManager to schedule daily alarms that fire
+/// even when the app process is killed. On other platforms, uses
+/// Timer.periodic as a fallback (works while app is in foreground).
 ///
 /// Mobile (Android/iOS): flutter_local_notifications
 /// Desktop (Windows/macOS/Linux): local_notifier
@@ -26,6 +41,7 @@ class ReminderService {
   static const _channelId = 'my_anime_reminder';
   static const _channelName = 'Anime Reminder';
   static const _notificationId = 1;
+  static const _alarmId = 0;
 
   static bool _isDesktop = false;
   static bool _isMobile = false;
@@ -46,6 +62,10 @@ class ReminderService {
 
     // Mobile path: Android / iOS
     _isMobile = true;
+
+    if (Platform.isAndroid) {
+      await AndroidAlarmManager.initialize();
+    }
 
     const androidSettings =
         AndroidInitializationSettings('@mipmap/ic_launcher');
@@ -80,9 +100,54 @@ class ReminderService {
     }
   }
 
-  /// Start periodic reminder checks (every 60 seconds).
-  /// Safe to call multiple times — restarts the timer.
+  /// Schedule or reschedule the Android alarm for the configured reminder time.
+  /// On non-Android platforms, this is a no-op (Timer.periodic is used instead).
+  static Future<void> _scheduleAndroidAlarm() async {
+    if (!Platform.isAndroid) return;
+
+    final config = await AnimeStorage.readConfig();
+    final enabled = config['reminderEnabled'] as bool? ?? false;
+
+    if (!enabled) {
+      await AndroidAlarmManager.cancel(_alarmId);
+      return;
+    }
+
+    final timeStr = config['reminderTime'] as String? ?? '18:00';
+    final parts = timeStr.split(':');
+    final rHour = int.parse(parts[0]);
+    final rMinute = int.parse(parts[1]);
+
+    final now = DateTime.now();
+    var scheduledTime = DateTime(now.year, now.month, now.day, rHour, rMinute);
+    // If the time has already passed today, schedule for tomorrow.
+    if (scheduledTime.isBefore(now)) {
+      scheduledTime = scheduledTime.add(const Duration(days: 1));
+    }
+
+    await AndroidAlarmManager.periodic(
+      const Duration(days: 1),
+      _alarmId,
+      _androidAlarmCallback,
+      startAt: scheduledTime,
+      exact: true,
+      wakeup: true,
+      rescheduleOnReboot: true,
+    );
+  }
+
+  /// Start periodic reminder checks.
+  /// On Android: schedules an exact daily alarm via AndroidAlarmManager.
+  /// On other platforms: uses Timer.periodic (every 60 seconds).
+  /// Safe to call multiple times.
   static void startPeriodicCheck() {
+    if (!kIsWeb && Platform.isAndroid) {
+      _scheduleAndroidAlarm();
+      // Also check immediately in case we're past the time.
+      checkAndNotify();
+      return;
+    }
+
     _timer?.cancel();
     _timer = Timer.periodic(const Duration(seconds: 60), (_) {
       checkAndNotify();

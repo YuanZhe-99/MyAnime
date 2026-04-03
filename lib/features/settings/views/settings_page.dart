@@ -158,7 +158,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
     final config = await AnimeStorage.readConfig();
     config['reminderEnabled'] = v;
     await AnimeStorage.writeConfig(config);
-    if (v) ReminderService.startPeriodicCheck();
+    ReminderService.startPeriodicCheck();
   }
 
   Future<void> _pickReminderTime() async {

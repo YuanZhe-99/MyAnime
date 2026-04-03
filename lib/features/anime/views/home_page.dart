@@ -89,7 +89,7 @@ class _HomePageState extends State<HomePage> {
     final updated = ep.anime.copyWith(
       episodeStatuses: Map.of(ep.anime.episodeStatuses)
         ..[ep.episode] = newStatus,
-      modifiedAt: DateTime.now(),
+      modifiedAt: DateTime.now().toUtc(),
     );
     await AnimeStorage.addOrUpdate(updated);
     await _load();

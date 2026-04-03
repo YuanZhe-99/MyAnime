@@ -183,7 +183,15 @@ class _AnimeEditPageState extends State<AnimeEditPage> {
     if (!_formKey.currentState!.validate()) return;
 
     final startEp = int.tryParse(_startEpController.text) ?? 1;
-    final endEp = int.tryParse(_endEpController.text) ?? 12;
+    var endEp = int.tryParse(_endEpController.text) ?? 12;
+
+    // If startEpisode > endEpisode, adjust endEpisode to preserve episode count.
+    if (startEp > endEp) {
+      final originalEnd = _isEdit && _existing != null
+          ? (_existing!.endEpisode ?? endEp)
+          : endEp;
+      endEp = originalEnd - 1 + startEp;
+    }
 
     if (_isEdit && _existing != null) {
       final updated = _existing!.copyWith(
@@ -207,7 +215,7 @@ class _AnimeEditPageState extends State<AnimeEditPage> {
         notes: _notesController.text.trim().isEmpty
             ? null
             : _notesController.text.trim(),
-        modifiedAt: DateTime.now(),
+        modifiedAt: DateTime.now().toUtc(),
       );
       await AnimeStorage.addOrUpdate(updated);
     } else {
