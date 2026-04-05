@@ -177,6 +177,12 @@ class AppLocalizationsZh extends AppLocalizations {
   String get animeMarkAllUnwatched => '全部取消';
 
   @override
+  String get animeResetSchedule => '重置日程';
+
+  @override
+  String get animeResetScheduleConfirm => '将所有集数的日期调整重置为按首播日期计算的原始日程？';
+
+  @override
   String get animeAbandon => '放弃番剧';
 
   @override
@@ -582,6 +588,12 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
 
   @override
   String get animeMarkAllUnwatched => '全部取消';
+
+  @override
+  String get animeResetSchedule => '重設日程';
+
+  @override
+  String get animeResetScheduleConfirm => '將所有集數的日期調整重設為按首播日期計算的原始日程？';
 
   @override
   String get animeAbandon => '放棄番劇';

@@ -101,6 +101,15 @@ class _HomePageState extends State<HomePage> {
     final theme = Theme.of(context);
     final selectedEvents =
         _selectedDay != null ? _getEventsForDay(_selectedDay!) : <_AiringEpisode>[];
+    // Sort: skipped episodes go to the end
+    selectedEvents.sort((a, b) {
+      final aSkipped = (a.anime.episodeStatuses[a.episode] ?? EpisodeStatus.unwatched) ==
+          EpisodeStatus.skippedThisWeek;
+      final bSkipped = (b.anime.episodeStatuses[b.episode] ?? EpisodeStatus.unwatched) ==
+          EpisodeStatus.skippedThisWeek;
+      if (aSkipped != bSkipped) return aSkipped ? 1 : -1;
+      return 0;
+    });
     final unwatched = _getUnwatchedEpisodes();
 
     return Scaffold(
@@ -243,58 +252,83 @@ class _HomePageState extends State<HomePage> {
     final status =
         ep.anime.episodeStatuses[ep.episode] ?? EpisodeStatus.unwatched;
     final isWatched = status == EpisodeStatus.watched;
+    final isSkipped = status == EpisodeStatus.skippedThisWeek;
     final airDate = ep.anime.getEpisodeAirDate(ep.episode);
     final airStr = airDate != null ? DateFormat.MMMd().format(airDate) : '';
 
-    return ListTile(
-      leading: ep.anime.coverImage != null
-          ? FutureBuilder<File>(
-              future: ImageService.resolve(ep.anime.coverImage!),
-              builder: (context, snap) {
-                if (snap.hasData && snap.data!.existsSync()) {
-                  return ClipRRect(
-                    borderRadius: BorderRadius.circular(4),
-                    child: Image.file(snap.data!,
-                        width: 40, height: 56, fit: BoxFit.cover),
-                  );
-                }
-                return const SizedBox(
-                    width: 40, height: 56, child: Icon(Icons.movie));
-              },
-            )
-          : const SizedBox(width: 40, height: 56, child: Icon(Icons.movie)),
-      title: Text(
-        ep.anime.displayTitle,
-        maxLines: 1,
-        overflow: TextOverflow.ellipsis,
-      ),
-      subtitle: Text('${l10n.animeEpisodeShort(ep.episode)}  $airStr'),
-      trailing: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          if (ep.anime.watchUrl != null)
-            IconButton(
-              icon: Icon(Icons.open_in_browser,
-                  color: theme.colorScheme.tertiary),
-              tooltip: l10n.animeOpenUrl,
-              onPressed: () => launchUrl(
-                Uri.parse(ep.anime.watchUrl!),
-                mode: LaunchMode.externalApplication,
+    return Opacity(
+      opacity: isSkipped ? 0.5 : 1.0,
+      child: ListTile(
+        leading: ep.anime.coverImage != null
+            ? FutureBuilder<File>(
+                future: ImageService.resolve(ep.anime.coverImage!),
+                builder: (context, snap) {
+                  if (snap.hasData && snap.data!.existsSync()) {
+                    return ClipRRect(
+                      borderRadius: BorderRadius.circular(4),
+                      child: Image.file(snap.data!,
+                          width: 40, height: 56, fit: BoxFit.cover),
+                    );
+                  }
+                  return const SizedBox(
+                      width: 40, height: 56, child: Icon(Icons.movie));
+                },
+              )
+            : const SizedBox(width: 40, height: 56, child: Icon(Icons.movie)),
+        title: Text(
+          ep.anime.displayTitle,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+        ),
+        subtitle: Row(
+          children: [
+            Text('${l10n.animeEpisodeShort(ep.episode)}  $airStr'),
+            if (isSkipped) ...[
+              const SizedBox(width: 6),
+              Icon(Icons.skip_next, size: 16, color: theme.colorScheme.tertiary),
+              const SizedBox(width: 2),
+              Text(l10n.animeSkipped,
+                style: theme.textTheme.bodySmall?.copyWith(
+                  color: theme.colorScheme.tertiary,
+                )),
+            ],
+          ],
+        ),
+        trailing: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            if (ep.anime.watchUrl != null)
+              IconButton(
+                icon: Icon(Icons.open_in_browser,
+                    color: theme.colorScheme.tertiary),
+                tooltip: l10n.animeOpenUrl,
+                onPressed: () => launchUrl(
+                  Uri.parse(ep.anime.watchUrl!),
+                  mode: LaunchMode.externalApplication,
+                ),
               ),
+            IconButton(
+              icon: Icon(
+                isSkipped
+                    ? Icons.skip_next
+                    : isWatched
+                        ? Icons.check_circle
+                        : Icons.radio_button_unchecked,
+                color: isSkipped
+                    ? theme.colorScheme.tertiary
+                    : isWatched
+                        ? theme.colorScheme.primary
+                        : null,
+              ),
+              onPressed: () => _toggleWatched(ep),
             ),
-          IconButton(
-            icon: Icon(
-              isWatched ? Icons.check_circle : Icons.radio_button_unchecked,
-              color: isWatched ? theme.colorScheme.primary : null,
-            ),
-            onPressed: () => _toggleWatched(ep),
-          ),
-        ],
+          ],
+        ),
+        onTap: () async {
+          await context.push('/anime/detail/${ep.anime.id}');
+          await _load();
+        },
       ),
-      onTap: () async {
-        await context.push('/anime/detail/${ep.anime.id}');
-        await _load();
-      },
     );
   }
 }

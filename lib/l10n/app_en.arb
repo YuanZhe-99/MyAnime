@@ -62,6 +62,8 @@
   "animeShiftBackward": "Move backward 1 week (this ep and after)",
   "animeMarkAllWatched": "All Watched",
   "animeMarkAllUnwatched": "Unmark All",
+  "animeResetSchedule": "Reset Schedule",
+  "animeResetScheduleConfirm": "Reset all episode date adjustments to the original schedule based on the first air date?",
   "animeAbandon": "Drop",
   "animeResume": "Resume",
   "animePrevSeason": "Prev Season",

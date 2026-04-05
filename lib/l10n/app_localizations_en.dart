@@ -177,6 +177,13 @@ class AppLocalizationsEn extends AppLocalizations {
   String get animeMarkAllUnwatched => 'Unmark All';
 
   @override
+  String get animeResetSchedule => 'Reset Schedule';
+
+  @override
+  String get animeResetScheduleConfirm =>
+      'Reset all episode date adjustments to the original schedule based on the first air date?';
+
+  @override
   String get animeAbandon => 'Drop';
 
   @override

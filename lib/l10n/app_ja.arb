@@ -59,6 +59,8 @@
   "animeShiftBackward": "1週後に移動（この話以降）",
   "animeMarkAllWatched": "全て視聴済み",
   "animeMarkAllUnwatched": "全て未読",
+  "animeResetSchedule": "スケジュールリセット",
+  "animeResetScheduleConfirm": "すべてのエピソードの日程調整を初回放送日に基づくオリジナルスケジュールにリセットしますか？",
   "animeAbandon": "視聴中止",
   "animeResume": "視聴再開",
   "animePrevSeason": "前シーズン",

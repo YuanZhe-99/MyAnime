@@ -59,6 +59,8 @@
   "animeShiftBackward": "向後移動一週（本集及之後）",
   "animeMarkAllWatched": "全部已看",
   "animeMarkAllUnwatched": "全部取消",
+  "animeResetSchedule": "重設日程",
+  "animeResetScheduleConfirm": "將所有集數的日期調整重設為按首播日期計算的原始日程？",
   "animeAbandon": "放棄番劇",
   "animeResume": "繼續追番",
   "animePrevSeason": "上一季",

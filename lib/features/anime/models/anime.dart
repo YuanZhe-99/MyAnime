@@ -163,10 +163,6 @@ class Anime {
     return (year, 4);
   }
 
-  /// Number of "skipped this week" episodes (delays the schedule).
-  int get skipWeekCount =>
-      episodeStatuses.values.where((s) => s == EpisodeStatus.skippedThisWeek).length;
-
   /// Get the total week offset for a specific episode from [episodeWeekOffsets].
   int weekOffsetFor(int episodeNumber) {
     int offset = 0;
@@ -187,15 +183,7 @@ class Anime {
     final episodeOffset = episodeNumber - startEpisode;
     if (episodeOffset < 0) return null;
 
-    // Count skip weeks before this episode
-    int skips = 0;
-    for (int ep = startEpisode; ep < episodeNumber; ep++) {
-      if (episodeStatuses[ep] == EpisodeStatus.skippedThisWeek) {
-        skips++;
-      }
-    }
-
-    final totalWeeks = episodeOffset + skips + weekOffsetFor(episodeNumber);
+    final totalWeeks = episodeOffset + weekOffsetFor(episodeNumber);
     final baseDate = firstAirDate!.add(Duration(days: totalWeeks * 7));
 
     // Adjust to the correct day of week
@@ -238,14 +226,7 @@ class Anime {
     final episodeOffset = episodeNumber - startEpisode;
     if (episodeOffset < 0) return null;
 
-    int skips = 0;
-    for (int ep = startEpisode; ep < episodeNumber; ep++) {
-      if (episodeStatuses[ep] == EpisodeStatus.skippedThisWeek) {
-        skips++;
-      }
-    }
-
-    final totalWeeks = episodeOffset + skips + weekOffsetFor(episodeNumber);
+    final totalWeeks = episodeOffset + weekOffsetFor(episodeNumber);
     final baseDate = firstAirDate!.add(Duration(days: totalWeeks * 7));
 
     final currentDow = baseDate.weekday;

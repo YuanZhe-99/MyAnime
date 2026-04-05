@@ -1,37 +1,25 @@
 import 'dart:async';
 import 'dart:io';
 
-import 'package:android_alarm_manager_plus/android_alarm_manager_plus.dart';
 import 'package:flutter/foundation.dart';
-import 'package:flutter/widgets.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:local_notifier/local_notifier.dart';
+import 'package:timezone/data/latest_all.dart' as tz;
+import 'package:timezone/timezone.dart' as tz;
 
 import '../../features/anime/models/anime.dart';
 import '../../features/anime/services/anime_storage.dart';
 import '../utils/jst_time.dart';
 
-/// Top-level function for AndroidAlarmManager callback.
-/// Must be a top-level or static function.
-@pragma('vm:entry-point')
-Future<void> _androidAlarmCallback() async {
-  WidgetsFlutterBinding.ensureInitialized();
-  await ReminderService.init();
-  await ReminderService.checkAndNotify();
-}
-
 /// Daily reminder notification service.
 ///
-/// At app startup, checks whether the configured reminder time (local
-/// timezone) has passed today. If so, and if there are episodes airing
-/// today (JST) or unwatched episodes, a local notification is shown.
+/// On Android: uses flutter_local_notifications' zonedSchedule() to schedule
+/// a daily repeating notification at the OS level. This fires even when the
+/// app process is killed or the device is rebooted.
 ///
-/// On Android, uses AndroidAlarmManager to schedule daily alarms that fire
-/// even when the app process is killed. On other platforms, uses
-/// Timer.periodic as a fallback (works while app is in foreground).
+/// On iOS: uses Timer.periodic (foreground only; iOS background limits apply).
 ///
-/// Mobile (Android/iOS): flutter_local_notifications
-/// Desktop (Windows/macOS/Linux): local_notifier
+/// On Desktop (Windows/macOS/Linux): uses Timer.periodic + local_notifier.
 class ReminderService {
   ReminderService._();
 
@@ -40,8 +28,7 @@ class ReminderService {
   /// Notification channel / ID constants.
   static const _channelId = 'my_anime_reminder';
   static const _channelName = 'Anime Reminder';
-  static const _notificationId = 1;
-  static const _alarmId = 0;
+  static const _scheduledNotificationId = 100;
 
   static bool _isDesktop = false;
   static bool _isMobile = false;
@@ -63,8 +50,18 @@ class ReminderService {
     // Mobile path: Android / iOS
     _isMobile = true;
 
-    if (Platform.isAndroid) {
-      await AndroidAlarmManager.initialize();
+    // Initialize timezone database for zonedSchedule
+    tz.initializeTimeZones();
+    try {
+      tz.setLocalLocation(tz.getLocation(DateTime.now().timeZoneName));
+    } catch (_) {
+      final offset = DateTime.now().timeZoneOffset;
+      final locations = tz.timeZoneDatabase.locations.values.where(
+        (l) => l.currentTimeZone.offset == offset.inMilliseconds,
+      );
+      if (locations.isNotEmpty) {
+        tz.setLocalLocation(locations.first);
+      }
     }
 
     const androidSettings =
@@ -100,16 +97,16 @@ class ReminderService {
     }
   }
 
-  /// Schedule or reschedule the Android alarm for the configured reminder time.
-  /// On non-Android platforms, this is a no-op (Timer.periodic is used instead).
-  static Future<void> _scheduleAndroidAlarm() async {
-    if (!Platform.isAndroid) return;
+  /// Schedule or cancel the daily Android notification via zonedSchedule.
+  /// The OS delivers this notification even when the app is killed.
+  static Future<void> _scheduleMobileNotification() async {
+    if (!_isMobile) return;
 
     final config = await AnimeStorage.readConfig();
     final enabled = config['reminderEnabled'] as bool? ?? false;
 
     if (!enabled) {
-      await AndroidAlarmManager.cancel(_alarmId);
+      await _plugin.cancel(_scheduledNotificationId);
       return;
     }
 
@@ -118,32 +115,46 @@ class ReminderService {
     final rHour = int.parse(parts[0]);
     final rMinute = int.parse(parts[1]);
 
-    final now = DateTime.now();
-    var scheduledTime = DateTime(now.year, now.month, now.day, rHour, rMinute);
-    // If the time has already passed today, schedule for tomorrow.
-    if (scheduledTime.isBefore(now)) {
-      scheduledTime = scheduledTime.add(const Duration(days: 1));
+    await _plugin.cancel(_scheduledNotificationId);
+
+    final now = tz.TZDateTime.now(tz.local);
+    var scheduledDate = tz.TZDateTime(
+      tz.local, now.year, now.month, now.day, rHour, rMinute);
+    if (scheduledDate.isBefore(now)) {
+      scheduledDate = scheduledDate.add(const Duration(days: 1));
     }
 
-    await AndroidAlarmManager.periodic(
-      const Duration(days: 1),
-      _alarmId,
-      _androidAlarmCallback,
-      startAt: scheduledTime,
-      exact: true,
-      wakeup: true,
-      rescheduleOnReboot: true,
+    const androidDetails = AndroidNotificationDetails(
+      _channelId,
+      _channelName,
+      importance: Importance.high,
+      priority: Priority.high,
+    );
+
+    const darwinDetails = DarwinNotificationDetails();
+
+    await _plugin.zonedSchedule(
+      _scheduledNotificationId,
+      'MyAnime!!!!!',
+      'Check your anime schedule!',
+      scheduledDate,
+      const NotificationDetails(
+        android: androidDetails,
+        iOS: darwinDetails,
+      ),
+      androidScheduleMode: AndroidScheduleMode.inexactAllowWhileIdle,
+      matchDateTimeComponents: DateTimeComponents.time,
     );
   }
 
   /// Start periodic reminder checks.
-  /// On Android: schedules an exact daily alarm via AndroidAlarmManager.
-  /// On other platforms: uses Timer.periodic (every 60 seconds).
+  /// On Android/iOS: schedules an OS-level daily notification via zonedSchedule.
+  /// On desktop: uses Timer.periodic (every 60 seconds).
   /// Safe to call multiple times.
   static void startPeriodicCheck() {
-    if (!kIsWeb && Platform.isAndroid) {
-      _scheduleAndroidAlarm();
-      // Also check immediately in case we're past the time.
+    if (!kIsWeb && _isMobile) {
+      _scheduleMobileNotification();
+      // Also check immediately for in-app logic.
       checkAndNotify();
       return;
     }
@@ -234,6 +245,8 @@ class ReminderService {
     }
   }
 
+  static int _showCounter = 0;
+
   static Future<void> _show(String title, String body) async {
     if (_isDesktop) {
       final notification = LocalNotification(
@@ -256,7 +269,7 @@ class ReminderService {
     const darwinDetails = DarwinNotificationDetails();
 
     await _plugin.show(
-      _notificationId,
+      _showCounter++,
       title,
       body,
       const NotificationDetails(

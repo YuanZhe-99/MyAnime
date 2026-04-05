@@ -177,6 +177,13 @@ class AppLocalizationsJa extends AppLocalizations {
   String get animeMarkAllUnwatched => '全て未読';
 
   @override
+  String get animeResetSchedule => 'スケジュールリセット';
+
+  @override
+  String get animeResetScheduleConfirm =>
+      'すべてのエピソードの日程調整を初回放送日に基づくオリジナルスケジュールにリセットしますか？';
+
+  @override
   String get animeAbandon => '視聴中止';
 
   @override

@@ -104,6 +104,36 @@ class _AnimeDetailPageState extends State<AnimeDetailPage> {
     await _load();
   }
 
+  /// Reset all episode week offsets to original schedule based on firstAirDate.
+  Future<void> _resetSchedule() async {
+    if (_anime == null) return;
+    final l10n = AppLocalizations.of(context)!;
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text(l10n.animeResetSchedule),
+        content: Text(l10n.animeResetScheduleConfirm),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: Text(l10n.cancel),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            child: Text(l10n.settingsConfirm),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true) return;
+    final updated = _anime!.copyWith(
+      episodeWeekOffsets: {},
+      modifiedAt: DateTime.now().toUtc(),
+    );
+    await AnimeStorage.addOrUpdate(updated);
+    await _load();
+  }
+
   Future<void> _delete() async {
     if (_anime == null) return;
     final ok = await confirmDelete(context, _anime!.displayTitle);
@@ -273,6 +303,12 @@ class _AnimeDetailPageState extends State<AnimeDetailPage> {
                   ),
                 ),
                 const Spacer(),
+                if (anime.episodeWeekOffsets.isNotEmpty)
+                  IconButton(
+                    icon: const Icon(Icons.restart_alt, size: 20),
+                    tooltip: l10n.animeResetSchedule,
+                    onPressed: () => _resetSchedule(),
+                  ),
                 if (anime.endEpisode != null) _buildAbandonOrResume(anime, l10n),
                 TextButton(
                   onPressed: () => _toggleAllWatched(),

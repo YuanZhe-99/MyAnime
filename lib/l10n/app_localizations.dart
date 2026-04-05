@@ -425,6 +425,18 @@ abstract class AppLocalizations {
   /// **'Unmark All'**
   String get animeMarkAllUnwatched;
 
+  /// No description provided for @animeResetSchedule.
+  ///
+  /// In en, this message translates to:
+  /// **'Reset Schedule'**
+  String get animeResetSchedule;
+
+  /// No description provided for @animeResetScheduleConfirm.
+  ///
+  /// In en, this message translates to:
+  /// **'Reset all episode date adjustments to the original schedule based on the first air date?'**
+  String get animeResetScheduleConfirm;
+
   /// No description provided for @animeAbandon.
   ///
   /// In en, this message translates to:
