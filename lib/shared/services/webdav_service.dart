@@ -97,6 +97,24 @@ class WebDAVService {
   /// Global lock to prevent concurrent syncs.
   static bool _syncing = false;
 
+  /// Whether the last sync wrote changes to local data files.
+  static bool _localDataChanged = false;
+
+  /// Returns true (and resets the flag) if the last sync wrote local changes.
+  static bool consumeLocalDataChanged() {
+    final v = _localDataChanged;
+    _localDataChanged = false;
+    return v;
+  }
+
+  /// Atomic write: write to .tmp then rename, preventing corruption if the
+  /// app is killed mid-write.
+  static Future<void> _atomicWrite(File file, String content) async {
+    final tmp = File('${file.path}.tmp');
+    await tmp.writeAsString(content);
+    await tmp.rename(file.path);
+  }
+
   // ── Config persistence ──
 
   static Future<WebDAVConfig?> loadConfig() async {
@@ -398,8 +416,9 @@ class WebDAVService {
 
         if (!localExists && remoteRaw != null) {
           // Only on remote → download
-          await localFile.writeAsString(remoteRaw);
+          await _atomicWrite(localFile, remoteRaw);
           await _saveBase(name, remoteRaw);
+          _localDataChanged = true;
           continue;
         }
 
@@ -407,8 +426,8 @@ class WebDAVService {
 
         if (localExists && remoteRaw == null) {
           // Only on local → upload
-          await _upload(config, name, localRaw);
-          await _saveBase(name, localRaw);
+          final uploaded = await _upload(config, name, localRaw);
+          if (uploaded) await _saveBase(name, localRaw);
           continue;
         }
 
@@ -434,9 +453,10 @@ class WebDAVService {
               final mergedData =
                   AnimeData(animes: result.merged);
               final mergedJson = jsonEncode(mergedData.toJson());
-              await localFile.writeAsString(mergedJson);
-              await _upload(config, name, mergedJson);
-              await _saveBase(name, mergedJson);
+              await _atomicWrite(localFile, mergedJson);
+              final uploaded = await _upload(config, name, mergedJson);
+              if (uploaded) await _saveBase(name, mergedJson);
+              _localDataChanged = true;
             }
         }
       }
@@ -473,10 +493,10 @@ class WebDAVService {
       if (pending.animeMerge != null) {
         final mergedData = pending.animeMerge!.buildResolved(resolutions);
         final mergedJson = jsonEncode(mergedData.toJson());
-        await File('${appDir.path}/anime_data.json')
-            .writeAsString(mergedJson);
-        await _upload(config, 'anime_data.json', mergedJson);
-        await _saveBase('anime_data.json', mergedJson);
+        await _atomicWrite(
+          File('${appDir.path}/anime_data.json'), mergedJson);
+        final uploaded = await _upload(config, 'anime_data.json', mergedJson);
+        if (uploaded) await _saveBase('anime_data.json', mergedJson);
       }
 
       return true;

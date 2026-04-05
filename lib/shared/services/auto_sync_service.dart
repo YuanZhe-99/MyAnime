@@ -16,6 +16,17 @@ class AutoSyncService with WidgetsBindingObserver {
 
   static const _debounceDuration = Duration(seconds: 30);
 
+  // Callbacks for UI reload after sync writes local files.
+  final List<void Function()> _onLocalDataChanged = [];
+
+  /// Register a callback invoked when auto-sync updates local data.
+  void addOnLocalDataChanged(void Function() cb) =>
+      _onLocalDataChanged.add(cb);
+
+  /// Remove a previously registered callback.
+  void removeOnLocalDataChanged(void Function() cb) =>
+      _onLocalDataChanged.remove(cb);
+
   void start() {
     if (_started) return;
     _started = true;
@@ -51,6 +62,11 @@ class AutoSyncService with WidgetsBindingObserver {
     _syncing = true;
     try {
       await WebDAVService.sync(config, autoResolve: true);
+      if (WebDAVService.consumeLocalDataChanged()) {
+        for (final cb in List.of(_onLocalDataChanged)) {
+          cb();
+        }
+      }
     } catch (_) {
       // Auto-sync failures are silent.
     } finally {
