@@ -55,6 +55,8 @@
   "animeSearchHint": "Search anime...",
   "animeNoResults": "No anime in this season",
   "animeFieldRequired": "Required",
+  "animeMissingFields": "Please fill in the following fields: {fields}",
+  "@animeMissingFields": { "placeholders": { "fields": { "type": "String" } } },
   "animeWatched": "Watched",
   "animeUnwatched": "Unwatched",
   "animeSkipped": "Skipped",
@@ -151,5 +153,8 @@
 
   "animeShare": "Share",
   "shareCopied": "Image copied to clipboard",
+  "shareCopy": "Copy",
+  "shareSaveAs": "Save As",
+  "shareSaved": "Image saved",
   "shareFailed": "Share failed"
 }

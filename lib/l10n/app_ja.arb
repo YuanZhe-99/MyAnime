@@ -52,6 +52,7 @@
   "animeSearchHint": "アニメを検索…",
   "animeNoResults": "今期のアニメはありません",
   "animeFieldRequired": "必須",
+  "animeMissingFields": "次の項目を入力してください：{fields}",
   "animeWatched": "視聴済み",
   "animeUnwatched": "未視聴",
   "animeSkipped": "スキップ",
@@ -145,5 +146,8 @@
 
   "animeShare": "共有",
   "shareCopied": "画像をクリップボードにコピーしました",
+  "shareCopy": "コピー",
+  "shareSaveAs": "名前を付けて保存",
+  "shareSaved": "画像を保存しました",
   "shareFailed": "共有に失敗しました"
 }

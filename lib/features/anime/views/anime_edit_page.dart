@@ -182,6 +182,35 @@ class _AnimeEditPageState extends State<AnimeEditPage> {
   Future<void> _save() async {
     if (!_formKey.currentState!.validate()) return;
 
+    // Validate key fields for new anime
+    if (!_isEdit) {
+      final l10n = AppLocalizations.of(context)!;
+      final missing = <String>[];
+      if (_titleController.text.trim().isEmpty &&
+          _titleJaController.text.trim().isEmpty) {
+        missing.add(l10n.animeTitle);
+      }
+      if (_firstAirDate == null) {
+        missing.add(l10n.animeFirstAirDate);
+      }
+      if (missing.isNotEmpty) {
+        await showDialog<void>(
+          context: context,
+          builder: (ctx) => AlertDialog(
+            title: Text(l10n.animeFieldRequired),
+            content: Text(l10n.animeMissingFields(missing.join(', '))),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(ctx),
+                child: Text(l10n.settingsConfirm),
+              ),
+            ],
+          ),
+        );
+        return;
+      }
+    }
+
     final startEp = int.tryParse(_startEpController.text) ?? 1;
     var endEp = int.tryParse(_endEpController.text) ?? 12;
 

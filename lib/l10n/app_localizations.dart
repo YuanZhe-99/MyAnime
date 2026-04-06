@@ -383,6 +383,12 @@ abstract class AppLocalizations {
   /// **'Required'**
   String get animeFieldRequired;
 
+  /// No description provided for @animeMissingFields.
+  ///
+  /// In en, this message translates to:
+  /// **'Please fill in the following fields: {fields}'**
+  String animeMissingFields(String fields);
+
   /// No description provided for @animeWatched.
   ///
   /// In en, this message translates to:
@@ -904,6 +910,24 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Image copied to clipboard'**
   String get shareCopied;
+
+  /// No description provided for @shareCopy.
+  ///
+  /// In en, this message translates to:
+  /// **'Copy'**
+  String get shareCopy;
+
+  /// No description provided for @shareSaveAs.
+  ///
+  /// In en, this message translates to:
+  /// **'Save As'**
+  String get shareSaveAs;
+
+  /// No description provided for @shareSaved.
+  ///
+  /// In en, this message translates to:
+  /// **'Image saved'**
+  String get shareSaved;
 
   /// No description provided for @shareFailed.
   ///

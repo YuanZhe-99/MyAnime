@@ -52,6 +52,7 @@
   "animeSearchHint": "搜索番剧…",
   "animeNoResults": "本季暂无番剧",
   "animeFieldRequired": "必填",
+  "animeMissingFields": "请填写以下字段：{fields}",
   "animeWatched": "已看",
   "animeUnwatched": "未看",
   "animeSkipped": "跳过",
@@ -145,5 +146,8 @@
 
   "animeShare": "分享",
   "shareCopied": "图片已复制到剪贴板",
+  "shareCopy": "复制",
+  "shareSaveAs": "另存为",
+  "shareSaved": "图片已保存",
   "shareFailed": "分享失败"
 }

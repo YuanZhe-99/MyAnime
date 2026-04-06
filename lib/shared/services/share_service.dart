@@ -5,6 +5,7 @@ import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:file_picker/file_picker.dart';
 import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
 import 'package:qr_flutter/qr_flutter.dart';
@@ -23,7 +24,7 @@ class ShareService {
   static const double _coverHeight = 180;
   static const double _qrSize = 100;
   static const double _headerHeight = 6;
-  static const double _pixelRatio = 2.0;
+  static const double _pixelRatio = 3.0;
   static const double _logoSize = 18.0;
 
   static const _accentColor = Color(0xFF673AB7);
@@ -46,12 +47,7 @@ class ShareService {
       if (Platform.isAndroid || Platform.isIOS) {
         await Share.shareXFiles([XFile(file.path)]);
       } else {
-        await _copyImageToClipboard(file.path);
-        if (context.mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text(l10n.shareCopied)),
-          );
-        }
+        await _showDesktopPreview(context, imageBytes, file.path, l10n);
       }
     } catch (e) {
       if (context.mounted) {
@@ -203,13 +199,17 @@ class ShareService {
 
     // Notes section
     TextPainter? notesPainter;
+    TextPainter? notesEllipsisPainter;
     double notesY = y;
+    double notesEllipsisY = y;
+    bool notesTruncated = false;
     if (hasNotes) {
       y += _gap;
       notesY = y;
       var notesText = anime.notes!;
       if (notesText.length > 300) {
-        notesText = '${notesText.substring(0, 297)}...';
+        notesText = notesText.substring(0, 297);
+        notesTruncated = true;
       }
       notesPainter = _layoutText(
         notesText,
@@ -217,7 +217,25 @@ class ShareService {
         contentWidth,
         maxLines: 6,
       );
+      // Check if TextPainter itself truncated (didExceedMaxLines)
+      if (notesPainter.didExceedMaxLines) {
+        notesTruncated = true;
+      }
       y += notesPainter.height;
+      if (notesTruncated) {
+        y += 4;
+        notesEllipsisY = y;
+        notesEllipsisPainter = _layoutText(
+          '...',
+          const TextStyle(
+            color: _accentColor,
+            fontSize: 12,
+            fontWeight: FontWeight.bold,
+          ),
+          contentWidth,
+        );
+        y += notesEllipsisPainter.height;
+      }
     }
 
     // QR section
@@ -340,6 +358,17 @@ class ShareService {
     // Notes
     notesPainter?.paint(canvas, Offset(_padding, notesY));
 
+    // Notes truncation indicator
+    if (notesEllipsisPainter != null) {
+      notesEllipsisPainter.paint(
+        canvas,
+        Offset(
+          _padding + (contentWidth - notesEllipsisPainter.width) / 2,
+          notesEllipsisY,
+        ),
+      );
+    }
+
     // QR code + URL
     if (hasQr) {
       final qrPainter = QrPainter(
@@ -458,6 +487,75 @@ class ShareService {
       }
     }
     return count;
+  }
+
+  static Future<void> _showDesktopPreview(
+    BuildContext context,
+    Uint8List imageBytes,
+    String tempPath,
+    AppLocalizations l10n,
+  ) async {
+    await showDialog<void>(
+      context: context,
+      builder: (ctx) => Dialog(
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 520, maxHeight: 700),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Flexible(
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
+                  child: Image.memory(imageBytes, fit: BoxFit.contain),
+                ),
+              ),
+              Padding(
+                padding: const EdgeInsets.all(12),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.end,
+                  children: [
+                    TextButton.icon(
+                      icon: const Icon(Icons.copy),
+                      label: Text(l10n.shareCopy),
+                      onPressed: () async {
+                        await _copyImageToClipboard(tempPath);
+                        if (ctx.mounted) {
+                          Navigator.of(ctx).pop();
+                          ScaffoldMessenger.of(ctx).showSnackBar(
+                            SnackBar(content: Text(l10n.shareCopied)),
+                          );
+                        }
+                      },
+                    ),
+                    const SizedBox(width: 8),
+                    FilledButton.icon(
+                      icon: const Icon(Icons.save_alt),
+                      label: Text(l10n.shareSaveAs),
+                      onPressed: () async {
+                        final result = await FilePicker.platform.saveFile(
+                          dialogTitle: l10n.shareSaveAs,
+                          fileName: 'myanime_share.png',
+                          type: FileType.image,
+                        );
+                        if (result != null) {
+                          await File(result).writeAsBytes(imageBytes);
+                          if (ctx.mounted) {
+                            Navigator.of(ctx).pop();
+                            ScaffoldMessenger.of(ctx).showSnackBar(
+                              SnackBar(content: Text(l10n.shareSaved)),
+                            );
+                          }
+                        }
+                      },
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
   }
 
   static Future<void> _copyImageToClipboard(String imagePath) async {

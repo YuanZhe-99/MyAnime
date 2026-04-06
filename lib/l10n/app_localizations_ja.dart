@@ -156,6 +156,11 @@ class AppLocalizationsJa extends AppLocalizations {
   String get animeFieldRequired => '必須';
 
   @override
+  String animeMissingFields(String fields) {
+    return '次の項目を入力してください：$fields';
+  }
+
+  @override
   String get animeWatched => '視聴済み';
 
   @override
@@ -423,6 +428,15 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get shareCopied => '画像をクリップボードにコピーしました';
+
+  @override
+  String get shareCopy => 'コピー';
+
+  @override
+  String get shareSaveAs => '名前を付けて保存';
+
+  @override
+  String get shareSaved => '画像を保存しました';
 
   @override
   String get shareFailed => '共有に失敗しました';

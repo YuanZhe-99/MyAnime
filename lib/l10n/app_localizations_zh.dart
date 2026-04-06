@@ -156,6 +156,11 @@ class AppLocalizationsZh extends AppLocalizations {
   String get animeFieldRequired => '必填';
 
   @override
+  String animeMissingFields(String fields) {
+    return '请填写以下字段：$fields';
+  }
+
+  @override
   String get animeWatched => '已看';
 
   @override
@@ -423,6 +428,15 @@ class AppLocalizationsZh extends AppLocalizations {
   String get shareCopied => '图片已复制到剪贴板';
 
   @override
+  String get shareCopy => '复制';
+
+  @override
+  String get shareSaveAs => '另存为';
+
+  @override
+  String get shareSaved => '图片已保存';
+
+  @override
   String get shareFailed => '分享失败';
 }
 
@@ -576,6 +590,11 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
 
   @override
   String get animeFieldRequired => '必填';
+
+  @override
+  String animeMissingFields(String fields) {
+    return '請填寫以下欄位：$fields';
+  }
 
   @override
   String get animeWatched => '已看';
@@ -843,6 +862,15 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
 
   @override
   String get shareCopied => '圖片已複製到剪貼簿';
+
+  @override
+  String get shareCopy => '複製';
+
+  @override
+  String get shareSaveAs => '另存為';
+
+  @override
+  String get shareSaved => '圖片已儲存';
 
   @override
   String get shareFailed => '分享失敗';
