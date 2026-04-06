@@ -251,11 +251,23 @@ abstract class AppLocalizations {
   /// **'Watch URL'**
   String get animeWatchUrl;
 
+  /// No description provided for @animeInfoUrl.
+  ///
+  /// In en, this message translates to:
+  /// **'Info URL'**
+  String get animeInfoUrl;
+
   /// No description provided for @animeOpenUrl.
   ///
   /// In en, this message translates to:
   /// **'Watch'**
   String get animeOpenUrl;
+
+  /// No description provided for @animeOpenInfoUrl.
+  ///
+  /// In en, this message translates to:
+  /// **'Info'**
+  String get animeOpenInfoUrl;
 
   /// No description provided for @searchAnimeInfo.
   ///
@@ -934,6 +946,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Share failed'**
   String get shareFailed;
+
+  /// No description provided for @shareUrlOptions.
+  ///
+  /// In en, this message translates to:
+  /// **'Include URLs'**
+  String get shareUrlOptions;
 }
 
 class _AppLocalizationsDelegate

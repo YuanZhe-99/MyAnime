@@ -29,7 +29,9 @@
   "animeFirstAirDate": "首播日期",
   "animeNotes": "备注",
   "animeWatchUrl": "观看链接",
+  "animeInfoUrl": "信息链接",
   "animeOpenUrl": "观看",
+  "animeOpenInfoUrl": "信息",
 
   "searchAnimeInfo": "搜索番剧信息",
   "searchHint": "输入标题搜索…",
@@ -149,5 +151,6 @@
   "shareCopy": "复制",
   "shareSaveAs": "另存为",
   "shareSaved": "图片已保存",
-  "shareFailed": "分享失败"
+  "shareFailed": "分享失败",
+  "shareUrlOptions": "包含链接"
 }

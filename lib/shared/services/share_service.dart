@@ -36,8 +36,27 @@ class ShareService {
 
   static Future<void> shareAnime(BuildContext context, Anime anime) async {
     final l10n = AppLocalizations.of(context)!;
+
+    // Show URL options dialog if any URL is available
+    final hasInfoUrl = anime.infoUrl != null && anime.infoUrl!.isNotEmpty;
+    final hasWatchUrl = anime.watchUrl != null && anime.watchUrl!.isNotEmpty;
+    bool includeInfoUrl = false;
+    bool includeWatchUrl = false;
+
+    if (hasInfoUrl || hasWatchUrl) {
+      final result = await _showUrlOptionsDialog(
+        context, l10n, hasInfoUrl, hasWatchUrl);
+      if (result == null) return; // cancelled
+      includeInfoUrl = result.includeInfoUrl;
+      includeWatchUrl = result.includeWatchUrl;
+    }
+
     try {
-      final imageBytes = await _generateShareImage(anime, l10n);
+      final imageBytes = await _generateShareImage(
+        anime, l10n,
+        includeInfoUrl: includeInfoUrl,
+        includeWatchUrl: includeWatchUrl,
+      );
       final tempDir = await getTemporaryDirectory();
       final file = File(p.join(tempDir.path, 'myanime_share.png'));
       await file.writeAsBytes(imageBytes);
@@ -58,10 +77,63 @@ class ShareService {
     }
   }
 
+  static Future<({bool includeInfoUrl, bool includeWatchUrl})?> _showUrlOptionsDialog(
+    BuildContext context,
+    AppLocalizations l10n,
+    bool hasInfoUrl,
+    bool hasWatchUrl,
+  ) async {
+    bool infoUrl = false;
+    bool watchUrl = false;
+    return showDialog<({bool includeInfoUrl, bool includeWatchUrl})>(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setDialogState) => AlertDialog(
+          title: Text(l10n.shareUrlOptions),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              if (hasInfoUrl)
+                CheckboxListTile(
+                  value: infoUrl,
+                  onChanged: (v) => setDialogState(() => infoUrl = v ?? false),
+                  title: Text(l10n.animeInfoUrl),
+                  dense: true,
+                  controlAffinity: ListTileControlAffinity.leading,
+                ),
+              if (hasWatchUrl)
+                CheckboxListTile(
+                  value: watchUrl,
+                  onChanged: (v) => setDialogState(() => watchUrl = v ?? false),
+                  title: Text(l10n.animeWatchUrl),
+                  dense: true,
+                  controlAffinity: ListTileControlAffinity.leading,
+                ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(ctx).pop(null),
+              child: Text(l10n.cancel),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.of(ctx).pop(
+                (includeInfoUrl: infoUrl, includeWatchUrl: watchUrl),
+              ),
+              child: Text(l10n.animeShare),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   static Future<Uint8List> _generateShareImage(
     Anime anime,
-    AppLocalizations l10n,
-  ) async {
+    AppLocalizations l10n, {
+    bool includeInfoUrl = false,
+    bool includeWatchUrl = false,
+  }) async {
     // Load app logo
     ui.Image? logoImage;
     try {
@@ -93,7 +165,15 @@ class ShareService {
 
     final contentWidth = _cardWidth - _padding * 2;
     final hasCover = coverImage != null;
-    final hasQr = anime.watchUrl != null && anime.watchUrl!.isNotEmpty;
+    // Build list of URLs to show on the card
+    final shareUrls = <({String url, String label})>[];
+    if (includeInfoUrl && anime.infoUrl != null && anime.infoUrl!.isNotEmpty) {
+      shareUrls.add((url: anime.infoUrl!, label: anime.infoUrl!));
+    }
+    if (includeWatchUrl && anime.watchUrl != null && anime.watchUrl!.isNotEmpty) {
+      shareUrls.add((url: anime.watchUrl!, label: anime.watchUrl!));
+    }
+    final hasQr = shareUrls.isNotEmpty;
     final hasNotes = anime.notes != null && anime.notes!.isNotEmpty;
 
     // Info text width (beside cover or full width)
@@ -238,19 +318,22 @@ class ShareService {
       }
     }
 
-    // QR section
-    double qrY = y;
-    TextPainter? urlPainter;
+    // QR + URL section(s)
+    // For each URL: QR code on the left, URL text on the right
+    final qrEntries = <({double y, String url, TextPainter painter})>[];
     if (hasQr) {
-      y += _gap;
-      qrY = y;
-      urlPainter = _layoutText(
-        anime.watchUrl!,
-        const TextStyle(color: _subtitleColor, fontSize: 11),
-        contentWidth - _qrSize - _gap,
-        maxLines: 3,
-      );
-      y += max<double>(_qrSize, urlPainter.height);
+      for (final entry in shareUrls) {
+        y += _gap;
+        final entryY = y;
+        final urlPainter = _layoutText(
+          entry.label,
+          const TextStyle(color: _subtitleColor, fontSize: 11),
+          contentWidth - _qrSize - _gap,
+          maxLines: 3,
+        );
+        qrEntries.add((y: entryY, url: entry.url, painter: urlPainter));
+        y += max<double>(_qrSize, urlPainter.height);
+      }
     }
 
     // Watermark: [logo] [MyAnime!!!!!]
@@ -369,22 +452,22 @@ class ShareService {
       );
     }
 
-    // QR code + URL
-    if (hasQr) {
+    // QR code + URL entries
+    for (final entry in qrEntries) {
       final qrPainter = QrPainter(
-        data: anime.watchUrl!,
+        data: entry.url,
         version: QrVersions.auto,
       );
       canvas.save();
-      canvas.translate(_padding, qrY);
+      canvas.translate(_padding, entry.y);
       qrPainter.paint(canvas, Size(_qrSize, _qrSize));
       canvas.restore();
 
-      urlPainter?.paint(
+      entry.painter.paint(
         canvas,
         Offset(
           _padding + _qrSize + _gap,
-          qrY + (_qrSize - urlPainter.height) / 2,
+          entry.y + (_qrSize - entry.painter.height) / 2,
         ),
       );
     }

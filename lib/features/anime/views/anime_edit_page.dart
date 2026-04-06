@@ -28,6 +28,7 @@ class _AnimeEditPageState extends State<AnimeEditPage> {
   final _airTimeController = TextEditingController();
   final _notesController = TextEditingController();
   final _watchUrlController = TextEditingController();
+  final _infoUrlController = TextEditingController();
 
   int? _airDayOfWeek;
   DateTime? _firstAirDate;
@@ -64,6 +65,7 @@ class _AnimeEditPageState extends State<AnimeEditPage> {
         _airTimeController.text = found.airTime ?? '';
         _notesController.text = found.notes ?? '';
         _watchUrlController.text = found.watchUrl ?? '';
+        _infoUrlController.text = found.infoUrl ?? '';
         _airDayOfWeek = found.airDayOfWeek;
         _firstAirDate = found.firstAirDate;
         _manualType = found.manualType;
@@ -82,6 +84,7 @@ class _AnimeEditPageState extends State<AnimeEditPage> {
     _airTimeController.dispose();
     _notesController.dispose();
     _watchUrlController.dispose();
+    _infoUrlController.dispose();
     super.dispose();
   }
 
@@ -163,6 +166,9 @@ class _AnimeEditPageState extends State<AnimeEditPage> {
         if (result.containsKey('coverImage')) {
           _coverImage = result['coverImage'] as String;
         }
+        if (result.containsKey('infoUrl')) {
+          _infoUrlController.text = result['infoUrl'] as String;
+        }
       });
     }
   }
@@ -238,6 +244,9 @@ class _AnimeEditPageState extends State<AnimeEditPage> {
             : _airTimeController.text.trim(),
         firstAirDate: _firstAirDate,
         coverImage: _coverImage,
+        infoUrl: _infoUrlController.text.trim().isEmpty
+            ? null
+            : _infoUrlController.text.trim(),
         watchUrl: _watchUrlController.text.trim().isEmpty
             ? null
             : _watchUrlController.text.trim(),
@@ -263,6 +272,9 @@ class _AnimeEditPageState extends State<AnimeEditPage> {
             : _airTimeController.text.trim(),
         firstAirDate: _firstAirDate,
         coverImage: _coverImage,
+        infoUrl: _infoUrlController.text.trim().isEmpty
+            ? null
+            : _infoUrlController.text.trim(),
         watchUrl: _watchUrlController.text.trim().isEmpty
             ? null
             : _watchUrlController.text.trim(),
@@ -477,6 +489,19 @@ class _AnimeEditPageState extends State<AnimeEditPage> {
                     ),
                 ],
               ),
+            ),
+            const SizedBox(height: 12),
+
+            // Info URL
+            TextFormField(
+              controller: _infoUrlController,
+              decoration: InputDecoration(
+                labelText: l10n.animeInfoUrl,
+                hintText: 'https://',
+                border: const OutlineInputBorder(),
+                prefixIcon: const Icon(Icons.info_outline),
+              ),
+              keyboardType: TextInputType.url,
             ),
             const SizedBox(height: 12),
 

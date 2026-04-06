@@ -88,7 +88,13 @@ class AppLocalizationsZh extends AppLocalizations {
   String get animeWatchUrl => '观看链接';
 
   @override
+  String get animeInfoUrl => '信息链接';
+
+  @override
   String get animeOpenUrl => '观看';
+
+  @override
+  String get animeOpenInfoUrl => '信息';
 
   @override
   String get searchAnimeInfo => '搜索番剧信息';
@@ -438,6 +444,9 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get shareFailed => '分享失败';
+
+  @override
+  String get shareUrlOptions => '包含链接';
 }
 
 /// The translations for Chinese, as used in Taiwan (`zh_TW`).
@@ -524,7 +533,13 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
   String get animeWatchUrl => '觀看連結';
 
   @override
+  String get animeInfoUrl => '資訊連結';
+
+  @override
   String get animeOpenUrl => '觀看';
+
+  @override
+  String get animeOpenInfoUrl => '資訊';
 
   @override
   String get searchAnimeInfo => '搜尋番劇資訊';
@@ -874,4 +889,7 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
 
   @override
   String get shareFailed => '分享失敗';
+
+  @override
+  String get shareUrlOptions => '包含連結';
 }

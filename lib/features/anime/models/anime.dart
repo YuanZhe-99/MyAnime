@@ -65,6 +65,9 @@ class Anime {
   /// Optional cover image relative path (e.g. "images/xxx.png").
   final String? coverImage;
 
+  /// Optional info URL (source page from search, e.g. bangumi.tv, AniList).
+  final String? infoUrl;
+
   /// Optional watch URL for quick browser launch.
   final String? watchUrl;
 
@@ -93,6 +96,7 @@ class Anime {
     this.firstAirDate,
     this.episodeStatuses = const {},
     this.coverImage,
+    this.infoUrl,
     this.watchUrl,
     this.episodeWeekOffsets = const {},
     this.notes,
@@ -274,6 +278,8 @@ class Anime {
     Map<int, EpisodeStatus>? episodeStatuses,
     String? coverImage,
     bool clearCoverImage = false,
+    String? infoUrl,
+    bool clearInfoUrl = false,
     String? watchUrl,
     bool clearWatchUrl = false,
     Map<int, int>? episodeWeekOffsets,
@@ -296,6 +302,7 @@ class Anime {
           clearFirstAirDate ? null : (firstAirDate ?? this.firstAirDate),
       episodeStatuses: episodeStatuses ?? this.episodeStatuses,
       coverImage: clearCoverImage ? null : (coverImage ?? this.coverImage),
+      infoUrl: clearInfoUrl ? null : (infoUrl ?? this.infoUrl),
       watchUrl: clearWatchUrl ? null : (watchUrl ?? this.watchUrl),
       episodeWeekOffsets: episodeWeekOffsets ?? this.episodeWeekOffsets,
       notes: clearNotes ? null : (notes ?? this.notes),
@@ -319,6 +326,7 @@ class Anime {
         'episodeStatuses': episodeStatuses
             .map((k, v) => MapEntry(k.toString(), v.name)),
         if (coverImage != null) 'coverImage': coverImage,
+        if (infoUrl != null) 'infoUrl': infoUrl,
         if (watchUrl != null) 'watchUrl': watchUrl,
         if (episodeWeekOffsets.isNotEmpty)
           'episodeWeekOffsets': episodeWeekOffsets
@@ -375,6 +383,7 @@ class Anime {
           : null,
       episodeStatuses: statuses,
       coverImage: json['coverImage'] as String?,
+      infoUrl: json['infoUrl'] as String?,
       watchUrl: json['watchUrl'] as String?,
       episodeWeekOffsets: weekOffsets,
       notes: json['notes'] as String?,
@@ -395,6 +404,7 @@ class Anime {
     String? airTime,
     DateTime? firstAirDate,
     String? coverImage,
+    String? infoUrl,
     String? watchUrl,
     String? notes,
   }) {
@@ -411,6 +421,7 @@ class Anime {
       airTime: airTime,
       firstAirDate: firstAirDate,
       coverImage: coverImage,
+      infoUrl: infoUrl,
       watchUrl: watchUrl,
       notes: notes,
       createdAt: now,

@@ -88,7 +88,13 @@ class AppLocalizationsJa extends AppLocalizations {
   String get animeWatchUrl => '視聴URL';
 
   @override
+  String get animeInfoUrl => '情報URL';
+
+  @override
   String get animeOpenUrl => '視聴';
+
+  @override
+  String get animeOpenInfoUrl => '情報';
 
   @override
   String get searchAnimeInfo => '作品情報を検索';
@@ -440,4 +446,7 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get shareFailed => '共有に失敗しました';
+
+  @override
+  String get shareUrlOptions => 'URLを含める';
 }

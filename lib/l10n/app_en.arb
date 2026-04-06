@@ -31,7 +31,9 @@
   "animeFirstAirDate": "First Air Date",
   "animeNotes": "Notes",
   "animeWatchUrl": "Watch URL",
+  "animeInfoUrl": "Info URL",
   "animeOpenUrl": "Watch",
+  "animeOpenInfoUrl": "Info",
 
   "searchAnimeInfo": "Search Anime Info",
   "searchHint": "Enter title to search…",
@@ -156,5 +158,6 @@
   "shareCopy": "Copy",
   "shareSaveAs": "Save As",
   "shareSaved": "Image saved",
-  "shareFailed": "Share failed"
+  "shareFailed": "Share failed",
+  "shareUrlOptions": "Include URLs"
 }

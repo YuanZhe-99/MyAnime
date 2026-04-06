@@ -204,6 +204,10 @@ class _SearchDialogState extends State<_SearchDialog> {
     if (_toggles['cover'] == true && _fetchedCoverPath != null) {
       result['coverImage'] = _fetchedCoverPath;
     }
+    // Always set infoUrl from sourceUrl when applying search result
+    if (r.sourceUrl != null && r.sourceUrl!.isNotEmpty) {
+      result['infoUrl'] = r.sourceUrl;
+    }
     Navigator.of(context).pop(result);
   }
 

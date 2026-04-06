@@ -32,7 +32,7 @@ class AnimeSearchResult {
 }
 
 class AnimeSearchService {
-  static const _userAgent = 'MyAnime/0.1.1 (anime tracker)';
+  static const _userAgent = 'MyAnime/0.3.0 (anime tracker)';
 
   /// Search all sources in parallel and return combined results.
   /// Automatically tries S↔T Chinese variants on Chinese-language sources.
@@ -44,6 +44,7 @@ class AnimeSearchService {
       _searchMAL(query).catchError((_) => <AnimeSearchResult>[]),
       _searchAcgsecrets(query).catchError((_) => <AnimeSearchResult>[]),
       _searchFilmarks(query).catchError((_) => <AnimeSearchResult>[]),
+      _searchAniList(query).catchError((_) => <AnimeSearchResult>[]),
     ];
     // bangumi.tv is mainland-Chinese — also try simplified variant.
     if (simplified != query) {
@@ -319,6 +320,100 @@ class AnimeSearchService {
     }
 
     return results;
+  }
+
+  /// AniList — GraphQL API.
+  static Future<List<AnimeSearchResult>> _searchAniList(String query) async {
+    const graphqlQuery = r'''
+query ($search: String) {
+  Page(perPage: 5) {
+    media(search: $search, type: ANIME, sort: SEARCH_MATCH) {
+      id
+      title { romaji native english }
+      episodes
+      startDate { year month day }
+      airingSchedule(notYetAired: true, perPage: 1) {
+        nodes { airingAt episode }
+      }
+      coverImage { large }
+      description(asHtml: false)
+      siteUrl
+    }
+  }
+}
+''';
+    final url = Uri.parse('https://graphql.anilist.co');
+    final resp = await http.post(
+      url,
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+        'User-Agent': _userAgent,
+      },
+      body: jsonEncode({
+        'query': graphqlQuery,
+        'variables': {'search': query},
+      }),
+    ).timeout(const Duration(seconds: 10));
+    if (resp.statusCode != 200) return [];
+
+    final json = jsonDecode(resp.body) as Map<String, dynamic>;
+    final data = json['data'] as Map<String, dynamic>?;
+    final page = data?['Page'] as Map<String, dynamic>?;
+    final media = page?['media'] as List<dynamic>?;
+    if (media == null) return [];
+
+    return media.map((item) {
+      final m = item as Map<String, dynamic>;
+      final titles = m['title'] as Map<String, dynamic>?;
+      final startDate = m['startDate'] as Map<String, dynamic>?;
+      final coverImg = m['coverImage'] as Map<String, dynamic>?;
+
+      DateTime? airDate;
+      if (startDate != null &&
+          startDate['year'] != null &&
+          startDate['month'] != null &&
+          startDate['day'] != null) {
+        airDate = DateTime(
+          startDate['year'] as int,
+          startDate['month'] as int,
+          startDate['day'] as int,
+        );
+      }
+
+      // Determine air day of week from firstAirDate
+      int? airDayOfWeek;
+      if (airDate != null) {
+        airDayOfWeek = airDate.weekday; // 1=Mon..7=Sun
+      }
+
+      // Clean HTML tags from description
+      String? summary = m['description'] as String?;
+      if (summary != null) {
+        summary = summary
+            .replaceAll(RegExp(r'<br\s*/?>'), '\n')
+            .replaceAll(RegExp(r'<[^>]+>'), '')
+            .replaceAll('&amp;', '&')
+            .replaceAll('&lt;', '<')
+            .replaceAll('&gt;', '>')
+            .replaceAll('&quot;', '"')
+            .replaceAll('&#39;', "'")
+            .trim();
+      }
+
+      return AnimeSearchResult(
+        source: 'AniList',
+        sourceUrl: m['siteUrl'] as String?,
+        title: titles?['english'] as String? ??
+            titles?['romaji'] as String?,
+        titleJa: titles?['native'] as String?,
+        episodes: m['episodes'] as int?,
+        firstAirDate: airDate,
+        airDayOfWeek: airDayOfWeek,
+        coverImageUrl: coverImg?['large'] as String?,
+        summary: summary,
+      );
+    }).toList();
   }
 
   static int? _parseDayOfWeek(String day) {

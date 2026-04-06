@@ -29,7 +29,9 @@
   "animeFirstAirDate": "初回放送日",
   "animeNotes": "メモ",
   "animeWatchUrl": "視聴URL",
+  "animeInfoUrl": "情報URL",
   "animeOpenUrl": "視聴",
+  "animeOpenInfoUrl": "情報",
 
   "searchAnimeInfo": "作品情報を検索",
   "searchHint": "タイトルを入力して検索…",
@@ -149,5 +151,6 @@
   "shareCopy": "コピー",
   "shareSaveAs": "名前を付けて保存",
   "shareSaved": "画像を保存しました",
-  "shareFailed": "共有に失敗しました"
+  "shareFailed": "共有に失敗しました",
+  "shareUrlOptions": "URLを含める"
 }

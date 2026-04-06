@@ -240,6 +240,15 @@ class _AnimeDetailPageState extends State<AnimeDetailPage> {
                         avatar: const Icon(Icons.schedule, size: 16),
                         label: Text(anime.airTime!),
                       ),
+                    if (anime.infoUrl != null)
+                      ActionChip(
+                        avatar: const Icon(Icons.info_outline, size: 16),
+                        label: Text(l10n.animeOpenInfoUrl),
+                        onPressed: () => launchUrl(
+                          Uri.parse(anime.infoUrl!),
+                          mode: LaunchMode.externalApplication,
+                        ),
+                      ),
                     if (anime.watchUrl != null)
                       ActionChip(
                         avatar: const Icon(Icons.open_in_browser, size: 16),
