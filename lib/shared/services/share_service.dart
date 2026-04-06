@@ -4,6 +4,7 @@ import 'dart:typed_data';
 import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
 import 'package:qr_flutter/qr_flutter.dart';
@@ -11,6 +12,7 @@ import 'package:share_plus/share_plus.dart';
 
 import '../../features/anime/models/anime.dart';
 import '../../l10n/app_localizations.dart';
+import '../utils/jst_time.dart';
 import 'image_service.dart';
 
 class ShareService {
@@ -22,6 +24,7 @@ class ShareService {
   static const double _qrSize = 100;
   static const double _headerHeight = 6;
   static const double _pixelRatio = 2.0;
+  static const double _logoSize = 18.0;
 
   static const _accentColor = Color(0xFF673AB7);
   static const _bgColor = Color(0xFFFFFFFF);
@@ -63,6 +66,19 @@ class ShareService {
     Anime anime,
     AppLocalizations l10n,
   ) async {
+    // Load app logo
+    ui.Image? logoImage;
+    try {
+      final logoData = await rootBundle.load('assets/icon/app_icon.png');
+      final logoCodec = await ui.instantiateImageCodec(
+        logoData.buffer.asUint8List(),
+      );
+      final logoFrame = await logoCodec.getNextFrame();
+      logoImage = logoFrame.image;
+    } catch (_) {
+      // Proceed without logo
+    }
+
     // Load cover image
     ui.Image? coverImage;
     if (anime.coverImage != null) {
@@ -160,16 +176,14 @@ class ShareService {
       y += tp.height + 4;
     }
 
-    // Progress
+    // Progress: aired episodes based on JST today
     y += 4;
     final totalEps = anime.totalEpisodes ?? 0;
-    final watchedCount = anime.episodeStatuses.values
-        .where((s) => s == EpisodeStatus.watched)
-        .length;
+    final airedCount = _countAiredEpisodes(anime);
     final progressY = y;
     final progressText = anime.endEpisode != null
-        ? '$watchedCount / $totalEps ${l10n.animeEpisodes}'
-        : '$watchedCount ${l10n.animeEpisodes}';
+        ? '$airedCount / $totalEps ${l10n.animeEpisodes}'
+        : '$airedCount ${l10n.animeEpisodes}';
     final progressPainter = _layoutText(
       progressText,
       const TextStyle(color: _textColor, fontSize: 14),
@@ -221,7 +235,7 @@ class ShareService {
       y += max<double>(_qrSize, urlPainter.height);
     }
 
-    // Watermark
+    // Watermark: [logo] [MyAnime!!!!!]
     y += _gap;
     final watermarkPainter = _layoutText(
       'MyAnime!!!!!',
@@ -233,7 +247,10 @@ class ShareService {
       contentWidth,
     );
     final watermarkY = y;
-    y += watermarkPainter.height;
+    // Row height = max(logo, text)
+    final watermarkRowHeight =
+        logoImage != null ? max<double>(_logoSize, watermarkPainter.height) : watermarkPainter.height;
+    y += watermarkRowHeight;
     y += _padding;
 
     final cardHeight = y;
@@ -310,7 +327,7 @@ class ShareService {
       Paint()..color = _trackColor,
     );
     if (totalEps > 0) {
-      final fillWidth = infoWidth * watchedCount / totalEps;
+      final fillWidth = infoWidth * airedCount / totalEps;
       canvas.drawRRect(
         RRect.fromRectAndRadius(
           Rect.fromLTWH(infoX, progressBarY, fillWidth, 6),
@@ -343,11 +360,33 @@ class ShareService {
       );
     }
 
-    // Watermark (right-aligned)
-    watermarkPainter.paint(
-      canvas,
-      Offset(_cardWidth - _padding - watermarkPainter.width, watermarkY),
-    );
+    // Watermark row (right-aligned): [logo] [gap] [MyAnime!!!!!]
+    const logoGap = 6.0;
+    if (logoImage != null) {
+      final logoAspect = logoImage.width / logoImage.height;
+      final logoDrawW = _logoSize * logoAspect;
+      final rowWidth = logoDrawW + logoGap + watermarkPainter.width;
+      final rowX = _cardWidth - _padding - rowWidth;
+      final logoY = watermarkY + (watermarkRowHeight - _logoSize) / 2;
+      final textY = watermarkY + (watermarkRowHeight - watermarkPainter.height) / 2;
+      canvas.drawImageRect(
+        logoImage,
+        Rect.fromLTWH(
+          0,
+          0,
+          logoImage.width.toDouble(),
+          logoImage.height.toDouble(),
+        ),
+        Rect.fromLTWH(rowX, logoY, logoDrawW, _logoSize),
+        Paint(),
+      );
+      watermarkPainter.paint(canvas, Offset(rowX + logoDrawW + logoGap, textY));
+    } else {
+      watermarkPainter.paint(
+        canvas,
+        Offset(_cardWidth - _padding - watermarkPainter.width, watermarkY),
+      );
+    }
 
     // Encode to PNG
     final picture = recorder.endRecording();
@@ -393,6 +432,32 @@ class ShareService {
   static String _dayName(int dow) {
     const days = ['', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
     return days[dow.clamp(1, 7)];
+  }
+
+  /// Count episodes that have aired as of today (JST).
+  static int _countAiredEpisodes(Anime anime) {
+    if (anime.endEpisode == null) return 0;
+    if (anime.firstAirDate == null) return anime.totalEpisodes ?? 0;
+
+    final today = JstTime.today();
+
+    if (anime.effectiveType == AnimeType.allAtOnce) {
+      final airDate = DateTime(
+        anime.firstAirDate!.year,
+        anime.firstAirDate!.month,
+        anime.firstAirDate!.day,
+      );
+      return airDate.isAfter(today) ? 0 : (anime.totalEpisodes ?? 0);
+    }
+
+    int count = 0;
+    for (int ep = anime.startEpisode; ep <= anime.endEpisode!; ep++) {
+      final airDate = anime.getEpisodeCalendarDate(ep);
+      if (airDate == null || !airDate.isAfter(today)) {
+        count++;
+      }
+    }
+    return count;
   }
 
   static Future<void> _copyImageToClipboard(String imagePath) async {
