@@ -420,4 +420,13 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get homeCalendarJst => 'Calendar dates in JST (UTC+9)';
+
+  @override
+  String get animeShare => 'Share';
+
+  @override
+  String get shareCopied => 'Image copied to clipboard';
+
+  @override
+  String get shareFailed => 'Share failed';
 }

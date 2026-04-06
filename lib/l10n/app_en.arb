@@ -147,5 +147,9 @@
   "settingsStoragePathUpdated": "Storage location updated",
   "dataMigration": "Open Data Folder",
   "dataMigrationDesc": "Open the application data directory",
-  "homeCalendarJst": "Calendar dates in JST (UTC+9)"
+  "homeCalendarJst": "Calendar dates in JST (UTC+9)",
+
+  "animeShare": "Share",
+  "shareCopied": "Image copied to clipboard",
+  "shareFailed": "Share failed"
 }

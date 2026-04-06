@@ -415,6 +415,15 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get homeCalendarJst => '日历日期为 JST（日本标准时间 UTC+9）';
+
+  @override
+  String get animeShare => '分享';
+
+  @override
+  String get shareCopied => '图片已复制到剪贴板';
+
+  @override
+  String get shareFailed => '分享失败';
 }
 
 /// The translations for Chinese, as used in Taiwan (`zh_TW`).
@@ -828,4 +837,13 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
 
   @override
   String get homeCalendarJst => '日曆日期為 JST（日本標準時間 UTC+9）';
+
+  @override
+  String get animeShare => '分享';
+
+  @override
+  String get shareCopied => '圖片已複製到剪貼簿';
+
+  @override
+  String get shareFailed => '分享失敗';
 }

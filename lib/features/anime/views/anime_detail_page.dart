@@ -7,6 +7,7 @@ import 'package:url_launcher/url_launcher.dart';
 
 import '../../../l10n/app_localizations.dart';
 import '../../../shared/services/image_service.dart';
+import '../../../shared/services/share_service.dart';
 import '../../../shared/widgets/delete_confirm.dart';
 import '../models/anime.dart';
 import '../services/anime_storage.dart';
@@ -164,6 +165,11 @@ class _AnimeDetailPageState extends State<AnimeDetailPage> {
       appBar: AppBar(
         title: Text(anime.displayTitle),
         actions: [
+          IconButton(
+            icon: const Icon(Icons.share),
+            tooltip: l10n.animeShare,
+            onPressed: () => ShareService.shareAnime(context, anime),
+          ),
           IconButton(
             icon: const Icon(Icons.edit),
             onPressed: () async {

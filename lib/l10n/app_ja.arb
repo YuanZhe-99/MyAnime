@@ -141,5 +141,9 @@
   "settingsStoragePathUpdated": "保存場所を更新しました",
   "dataMigration": "データフォルダを開く",
   "dataMigrationDesc": "アプリケーションデータディレクトリを開く",
-  "homeCalendarJst": "カレンダーの日付は JST（UTC+9）"
+  "homeCalendarJst": "カレンダーの日付は JST（UTC+9）",
+
+  "animeShare": "共有",
+  "shareCopied": "画像をクリップボードにコピーしました",
+  "shareFailed": "共有に失敗しました"
 }

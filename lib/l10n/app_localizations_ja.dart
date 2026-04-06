@@ -417,4 +417,13 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get homeCalendarJst => 'カレンダーの日付は JST（UTC+9）';
+
+  @override
+  String get animeShare => '共有';
+
+  @override
+  String get shareCopied => '画像をクリップボードにコピーしました';
+
+  @override
+  String get shareFailed => '共有に失敗しました';
 }

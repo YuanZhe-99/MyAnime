@@ -141,5 +141,9 @@
   "settingsStoragePathUpdated": "存储位置已更新",
   "dataMigration": "打开数据目录",
   "dataMigrationDesc": "打开应用数据文件夹",
-  "homeCalendarJst": "日历日期为 JST（日本标准时间 UTC+9）"
+  "homeCalendarJst": "日历日期为 JST（日本标准时间 UTC+9）",
+
+  "animeShare": "分享",
+  "shareCopied": "图片已复制到剪贴板",
+  "shareFailed": "分享失败"
 }

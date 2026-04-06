@@ -892,6 +892,24 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Calendar dates in JST (UTC+9)'**
   String get homeCalendarJst;
+
+  /// No description provided for @animeShare.
+  ///
+  /// In en, this message translates to:
+  /// **'Share'**
+  String get animeShare;
+
+  /// No description provided for @shareCopied.
+  ///
+  /// In en, this message translates to:
+  /// **'Image copied to clipboard'**
+  String get shareCopied;
+
+  /// No description provided for @shareFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Share failed'**
+  String get shareFailed;
 }
 
 class _AppLocalizationsDelegate
