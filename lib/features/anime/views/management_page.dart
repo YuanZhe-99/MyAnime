@@ -106,26 +106,71 @@ class _ManagementPageState extends State<ManagementPage> {
 
   Future<void> _showQuarterPicker() async {
     final l10n = AppLocalizations.of(context)!;
+    final currentQ = _quarters[_currentQuarterIndex];
+    int selectedYear = currentQ.year;
+
     final result = await showDialog<int>(
       context: context,
-      builder: (context) {
-        return SimpleDialog(
-          title: Text(l10n.manageJumpToQuarter),
-          children: List.generate(_quarters.length, (i) {
-            final q = _quarters[i];
-            return SimpleDialogOption(
-              onPressed: () => Navigator.pop(context, i),
-              child: Text(
-                _quarterLabel(q),
-                style: i == _currentQuarterIndex
-                    ? TextStyle(
-                        fontWeight: FontWeight.bold,
-                        color: Theme.of(context).colorScheme.primary,
-                      )
-                    : null,
+      builder: (dialogContext) {
+        return StatefulBuilder(
+          builder: (context, setDialogState) {
+            const seasons = ['', 'Winter', 'Spring', 'Summer', 'Fall'];
+            return AlertDialog(
+              title: Text(l10n.manageJumpToQuarter),
+              content: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  // Year selector
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      IconButton(
+                        icon: const Icon(Icons.chevron_left),
+                        onPressed: selectedYear > 2020
+                            ? () => setDialogState(() => selectedYear--)
+                            : null,
+                      ),
+                      Text(
+                        '$selectedYear',
+                        style: Theme.of(context).textTheme.titleLarge,
+                      ),
+                      IconButton(
+                        icon: const Icon(Icons.chevron_right),
+                        onPressed: selectedYear < 2030
+                            ? () => setDialogState(() => selectedYear++)
+                            : null,
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+                  // Quarter grid
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    children: List.generate(4, (qi) {
+                      final q = qi + 1;
+                      final idx = _quarters.indexWhere(
+                          (e) => e.year == selectedYear && e.q == q);
+                      final isCurrent = idx == _currentQuarterIndex;
+                      return ChoiceChip(
+                        label: Text(seasons[q]),
+                        selected: isCurrent,
+                        onSelected: (_) {
+                          if (idx >= 0) Navigator.pop(dialogContext, idx);
+                        },
+                      );
+                    }),
+                  ),
+                ],
               ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(dialogContext),
+                  child: Text(l10n.cancel),
+                ),
+              ],
             );
-          }),
+          },
         );
       },
     );

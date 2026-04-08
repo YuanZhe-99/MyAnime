@@ -171,10 +171,26 @@ class _StatisticsPageState extends State<StatisticsPage> {
           }
         }
       case _TimeScope.year:
-        // Show 4 quarters of selected year
-        quarters = [
-          for (int q = 1; q <= 4; q++) (_selectedYearOnly, q),
-        ];
+        // Show recent 5 years ending at selected year (per-year aggregation)
+        return List.generate(5, (i) => _selectedYearOnly - 4 + i).map((y) {
+          final animeInYear = _allAnime.where((a) {
+            for (int q = 1; q <= 4; q++) {
+              if (a.airsInQuarter(y, q)) return true;
+            }
+            return false;
+          }).toList();
+          return _TrendEntry(
+            year: y,
+            quarter: 0,
+            tracked: animeInYear.length,
+            completed: animeInYear
+                .where((a) => _deriveStatus(a) == _AnimeStatus.completed)
+                .length,
+            dropped: animeInYear
+                .where((a) => _deriveStatus(a) == _AnimeStatus.dropped)
+                .length,
+          );
+        }).toList();
       case _TimeScope.all:
         // All quarters from earliest to latest data
         if (quarterSet.isEmpty) return [];
@@ -394,120 +410,137 @@ class _StatisticsPageState extends State<StatisticsPage> {
           const SizedBox(height: 8),
           SizedBox(
             height: 200,
-            child: BarChart(
-              BarChartData(
-                alignment: BarChartAlignment.spaceAround,
-                maxY: maxY.toDouble(),
-                barTouchData: BarTouchData(
-                  touchTooltipData: BarTouchTooltipData(
-                    getTooltipItem: (group, groupIndex, rod, rodIndex) {
-                      final entry = data[groupIndex];
-                      final labels = [
-                        l10n.statsTracked,
-                        l10n.statsCompleted,
-                        l10n.statsDropped,
-                      ];
-                      final values = [
-                        entry.tracked,
-                        entry.completed,
-                        entry.dropped,
-                      ];
-                      return BarTooltipItem(
-                        '${labels[rodIndex]}: ${values[rodIndex]}',
-                        TextStyle(
-                          color: theme.colorScheme.onInverseSurface,
-                          fontSize: 12,
-                        ),
-                      );
-                    },
-                  ),
-                ),
-                titlesData: FlTitlesData(
-                  show: true,
-                  bottomTitles: AxisTitles(
-                    sideTitles: SideTitles(
-                      showTitles: true,
-                      getTitlesWidget: (value, meta) {
-                        final index = value.toInt();
-                        if (index < 0 || index >= data.length) {
-                          return const SizedBox.shrink();
-                        }
-                        final e = data[index];
-                        final label = _scope == _TimeScope.year
-                            ? 'Q${e.quarter}'
-                            : "'${e.year % 100}Q${e.quarter}";
-                        return SideTitleWidget(
-                          meta: meta,
-                          child: Text(
-                            label,
-                            style: const TextStyle(fontSize: 10),
-                          ),
-                        );
-                      },
-                      reservedSize: 28,
+            child: data.length > 8
+                ? SingleChildScrollView(
+                    scrollDirection: Axis.horizontal,
+                    child: SizedBox(
+                      width: data.length * 50.0,
+                      child: _buildBarChart(data, maxY, theme, l10n),
                     ),
-                  ),
-                  leftTitles: AxisTitles(
-                    sideTitles: SideTitles(
-                      showTitles: true,
-                      reservedSize: 28,
-                      interval: maxY > 10 ? (maxY / 5).ceilToDouble() : 1,
-                      getTitlesWidget: (value, meta) {
-                        if (value == value.roundToDouble()) {
-                          return Text(
-                            '${value.toInt()}',
-                            style: const TextStyle(fontSize: 10),
-                          );
-                        }
-                        return const SizedBox.shrink();
-                      },
-                    ),
-                  ),
-                  topTitles: AxisTitles(
-                      sideTitles: SideTitles(showTitles: false)),
-                  rightTitles: AxisTitles(
-                      sideTitles: SideTitles(showTitles: false)),
-                ),
-                borderData: FlBorderData(show: false),
-                gridData: FlGridData(
-                  show: true,
-                  drawVerticalLine: false,
-                  horizontalInterval:
-                      maxY > 10 ? (maxY / 5).ceilToDouble() : 1,
-                ),
-                barGroups: List.generate(data.length, (i) {
-                  final e = data[i];
-                  return BarChartGroupData(
-                    x: i,
-                    barRods: [
-                      BarChartRodData(
-                        toY: e.tracked.toDouble(),
-                        color: theme.colorScheme.primary,
-                        width: 8,
-                        borderRadius: const BorderRadius.vertical(
-                            top: Radius.circular(2)),
-                      ),
-                      BarChartRodData(
-                        toY: e.completed.toDouble(),
-                        color: Colors.green,
-                        width: 8,
-                        borderRadius: const BorderRadius.vertical(
-                            top: Radius.circular(2)),
-                      ),
-                      BarChartRodData(
-                        toY: e.dropped.toDouble(),
-                        color: Colors.red,
-                        width: 8,
-                        borderRadius: const BorderRadius.vertical(
-                            top: Radius.circular(2)),
-                      ),
-                    ],
-                  );
-                }),
-              ),
-            ),
+                  )
+                : _buildBarChart(data, maxY, theme, l10n),
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildBarChart(
+    List<_TrendEntry> data,
+    int maxY,
+    ThemeData theme,
+    AppLocalizations l10n,
+  ) {
+    return BarChart(
+      BarChartData(
+        alignment: BarChartAlignment.spaceAround,
+        maxY: maxY.toDouble(),
+        barTouchData: BarTouchData(
+          touchTooltipData: BarTouchTooltipData(
+            getTooltipItem: (group, groupIndex, rod, rodIndex) {
+              final entry = data[groupIndex];
+              final labels = [
+                l10n.statsTracked,
+                l10n.statsCompleted,
+                l10n.statsDropped,
+              ];
+              final values = [
+                entry.tracked,
+                entry.completed,
+                entry.dropped,
+              ];
+              return BarTooltipItem(
+                '${labels[rodIndex]}: ${values[rodIndex]}',
+                TextStyle(
+                  color: theme.colorScheme.onInverseSurface,
+                  fontSize: 12,
+                ),
+              );
+            },
+          ),
+        ),
+        titlesData: FlTitlesData(
+          show: true,
+          bottomTitles: AxisTitles(
+            sideTitles: SideTitles(
+              showTitles: true,
+              getTitlesWidget: (value, meta) {
+                final index = value.toInt();
+                if (index < 0 || index >= data.length) {
+                  return const SizedBox.shrink();
+                }
+                final e = data[index];
+                final label = e.quarter == 0
+                    ? '${e.year}'
+                    : "'${e.year % 100}Q${e.quarter}";
+                return SideTitleWidget(
+                  meta: meta,
+                  child: Text(
+                    label,
+                    style: const TextStyle(fontSize: 10),
+                  ),
+                );
+              },
+              reservedSize: 28,
+            ),
+          ),
+          leftTitles: AxisTitles(
+            sideTitles: SideTitles(
+              showTitles: true,
+              reservedSize: 28,
+              interval: maxY > 10 ? (maxY / 5).ceilToDouble() : 1,
+              getTitlesWidget: (value, meta) {
+                if (value == value.roundToDouble()) {
+                  return Text(
+                    '${value.toInt()}',
+                    style: const TextStyle(fontSize: 10),
+                  );
+                }
+                return const SizedBox.shrink();
+              },
+            ),
+          ),
+          topTitles:
+              AxisTitles(sideTitles: SideTitles(showTitles: false)),
+          rightTitles:
+              AxisTitles(sideTitles: SideTitles(showTitles: false)),
+        ),
+        borderData: FlBorderData(show: false),
+        gridData: FlGridData(
+          show: true,
+          drawVerticalLine: false,
+          horizontalInterval:
+              maxY > 10 ? (maxY / 5).ceilToDouble() : 1,
+        ),
+        barGroups: List.generate(data.length, (i) {
+          final e = data[i];
+          return BarChartGroupData(
+            x: i,
+            barRods: [
+              BarChartRodData(
+                toY: e.tracked.toDouble(),
+                color: theme.colorScheme.primary,
+                width: 8,
+                borderRadius:
+                    const BorderRadius.vertical(top: Radius.circular(2)),
+              ),
+              BarChartRodData(
+                toY: e.completed.toDouble(),
+                color: Colors.green,
+                width: 8,
+                borderRadius:
+                    const BorderRadius.vertical(top: Radius.circular(2)),
+              ),
+              BarChartRodData(
+                toY: e.dropped.toDouble(),
+                color: Colors.red,
+                width: 8,
+                borderRadius:
+                    const BorderRadius.vertical(top: Radius.circular(2)),
+              ),
+            ],
+          );
+        }),
       ),
     );
   }
