@@ -488,4 +488,7 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get manageNoSearchResults => '該当するアニメが見つかりません';
+
+  @override
+  String get manageOther => 'その他';
 }

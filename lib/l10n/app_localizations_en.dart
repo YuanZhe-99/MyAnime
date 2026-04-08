@@ -491,4 +491,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get manageNoSearchResults => 'No matching anime found';
+
+  @override
+  String get manageOther => 'Other';
 }

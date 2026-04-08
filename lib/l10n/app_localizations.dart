@@ -1030,6 +1030,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'No matching anime found'**
   String get manageNoSearchResults;
+
+  /// No description provided for @manageOther.
+  ///
+  /// In en, this message translates to:
+  /// **'Other'**
+  String get manageOther;
 }
 
 class _AppLocalizationsDelegate

@@ -486,6 +486,9 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get manageNoSearchResults => '没有匹配的番剧';
+
+  @override
+  String get manageOther => '其他';
 }
 
 /// The translations for Chinese, as used in Taiwan (`zh_TW`).
@@ -970,4 +973,7 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
 
   @override
   String get manageNoSearchResults => '沒有匹配的番劇';
+
+  @override
+  String get manageOther => '其他';
 }

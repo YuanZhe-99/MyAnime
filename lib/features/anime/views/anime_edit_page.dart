@@ -192,12 +192,10 @@ class _AnimeEditPageState extends State<AnimeEditPage> {
     if (!_isEdit) {
       final l10n = AppLocalizations.of(context)!;
       final missing = <String>[];
-      if (_titleController.text.trim().isEmpty &&
-          _titleJaController.text.trim().isEmpty) {
+      final hasTitle = _titleController.text.trim().isNotEmpty;
+      final hasTitleJa = _titleJaController.text.trim().isNotEmpty;
+      if (!hasTitle && !hasTitleJa) {
         missing.add(l10n.animeTitle);
-      }
-      if (_firstAirDate == null) {
-        missing.add(l10n.animeFirstAirDate);
       }
       if (missing.isNotEmpty) {
         await showDialog<void>(
@@ -257,8 +255,12 @@ class _AnimeEditPageState extends State<AnimeEditPage> {
       );
       await AnimeStorage.addOrUpdate(updated);
     } else {
+      // Auto-fill title from titleJa if title is empty
+      final title = _titleController.text.trim().isNotEmpty
+          ? _titleController.text.trim()
+          : _titleJaController.text.trim();
       final anime = Anime.create(
-        title: _titleController.text.trim(),
+        title: title,
         titleJa: _titleJaController.text.trim().isEmpty
             ? null
             : _titleJaController.text.trim(),
@@ -361,8 +363,12 @@ class _AnimeEditPageState extends State<AnimeEditPage> {
                 labelText: l10n.animeTitle,
                 border: const OutlineInputBorder(),
               ),
-              validator: (v) =>
-                  (v == null || v.trim().isEmpty) ? l10n.animeFieldRequired : null,
+              validator: (v) {
+                if (v != null && v.trim().isNotEmpty) return null;
+                // Allow empty title if Japanese title is provided
+                if (_titleJaController.text.trim().isNotEmpty) return null;
+                return l10n.animeFieldRequired;
+              },
             ),
             const SizedBox(height: 12),
 

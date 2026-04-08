@@ -167,5 +167,6 @@
   "statsTrend": "趋势",
 
   "manageJumpToQuarter": "跳转到季度",
-  "manageNoSearchResults": "没有匹配的番剧"
+  "manageNoSearchResults": "没有匹配的番剧",
+  "manageOther": "其他"
 }

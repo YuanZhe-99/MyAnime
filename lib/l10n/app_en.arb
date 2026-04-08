@@ -174,5 +174,6 @@
   "statsTrend": "Trend",
 
   "manageJumpToQuarter": "Jump to Quarter",
-  "manageNoSearchResults": "No matching anime found"
+  "manageNoSearchResults": "No matching anime found",
+  "manageOther": "Other"
 }

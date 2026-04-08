@@ -23,10 +23,13 @@ class _ManagementPageState extends State<ManagementPage> {
   late int _currentQuarterIndex;
 
   // Quarter list: wide range for PageView (lazy, so no perf issue)
+  // Last page (_quarters.length) is the "Other" page for anime without firstAirDate.
   static final List<_Quarter> _quarters = [
     for (var y = 2000; y <= 2040; y++)
       for (var q = 1; q <= 4; q++) _Quarter(y, q),
   ];
+
+  bool get _isOtherPage => _currentQuarterIndex == _quarters.length;
 
   @override
   void initState() {
@@ -64,6 +67,12 @@ class _ManagementPageState extends State<ManagementPage> {
       });
   }
 
+  /// Anime without a firstAirDate — shown on the "Other" page.
+  List<Anime> get _otherAnime {
+    return _allAnime.where((a) => a.firstAirDate == null).toList()
+      ..sort((a, b) => a.displayTitle.compareTo(b.displayTitle));
+  }
+
   List<Anime> _searchResults() {
     final q = _searchQuery.toLowerCase();
     return _allAnime.where((a) {
@@ -95,10 +104,17 @@ class _ManagementPageState extends State<ManagementPage> {
     final anime = _allAnime.where((a) => a.id == animeId).firstOrNull;
     if (anime == null) return;
     final sq = anime.startQuarter;
-    if (sq == null) return;
-    final targetQ = ((sq.$2 - 1) ~/ 3) + 1;
+    if (sq == null) {
+      // No date — jump to "Other" page
+      final otherIdx = _quarters.length;
+      if (otherIdx != _currentQuarterIndex) {
+        _pageController.jumpToPage(otherIdx);
+      }
+      return;
+    }
+    // sq.$2 is already the quarter number (1-4)
     final idx = _quarters.indexWhere(
-        (q) => q.year == sq.$1 && q.q == targetQ);
+        (q) => q.year == sq.$1 && q.q == sq.$2);
     if (idx >= 0 && idx != _currentQuarterIndex) {
       _pageController.jumpToPage(idx);
     }
@@ -106,7 +122,7 @@ class _ManagementPageState extends State<ManagementPage> {
 
   Future<void> _showQuarterPicker() async {
     final l10n = AppLocalizations.of(context)!;
-    final current = _quarters[_currentQuarterIndex];
+    final current = _isOtherPage ? null : _quarters[_currentQuarterIndex];
 
     // Compute year range from anime data
     final dataYears = <int>{};
@@ -121,11 +137,14 @@ class _ManagementPageState extends State<ManagementPage> {
     final maxYear = dataYears.reduce((a, b) => a > b ? a : b);
 
     const rowHeight = 44.0;
-    final currentRow = current.year - minYear;
+    final currentRow = current != null ? current.year - minYear : 0;
     final initialOffset =
         ((currentRow - 3) * rowHeight).clamp(0.0, double.infinity);
     final scrollCtrl = ScrollController(initialScrollOffset: initialOffset);
 
+    final otherCount = _otherAnime.length;
+
+    // Use sentinel _Quarter(0, 0) for "Other"
     final result = await showDialog<_Quarter>(
       context: context,
       builder: (dialogContext) {
@@ -187,6 +206,53 @@ class _ManagementPageState extends State<ManagementPage> {
                     },
                   ),
                 ),
+                const Divider(height: 1),
+                // "Other" button
+                Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 4),
+                  child: Material(
+                    color: _isOtherPage
+                        ? theme.colorScheme.primary
+                        : otherCount > 0
+                            ? theme.colorScheme.primaryContainer
+                            : Colors.transparent,
+                    borderRadius: BorderRadius.circular(8),
+                    child: InkWell(
+                      onTap: () =>
+                          Navigator.pop(dialogContext, const _Quarter(0, 0)),
+                      borderRadius: BorderRadius.circular(8),
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 16, vertical: 8),
+                        child: Row(
+                          children: [
+                            Text(
+                              l10n.manageOther,
+                              style: TextStyle(
+                                color: _isOtherPage
+                                    ? theme.colorScheme.onPrimary
+                                    : null,
+                                fontWeight:
+                                    _isOtherPage ? FontWeight.bold : null,
+                              ),
+                            ),
+                            const Spacer(),
+                            if (otherCount > 0)
+                              Text(
+                                '$otherCount',
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  color: _isOtherPage
+                                      ? theme.colorScheme.onPrimary
+                                      : theme.colorScheme.onPrimaryContainer,
+                                ),
+                              ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
               ],
             ),
           ),
@@ -202,10 +268,18 @@ class _ManagementPageState extends State<ManagementPage> {
     scrollCtrl.dispose();
 
     if (result != null) {
-      final idx = _quarters.indexWhere(
-          (q) => q.year == result.year && q.q == result.q);
-      if (idx >= 0 && idx != _currentQuarterIndex) {
-        _pageController.jumpToPage(idx);
+      // Sentinel _Quarter(0, 0) means "Other" page
+      if (result.year == 0 && result.q == 0) {
+        final otherIdx = _quarters.length;
+        if (otherIdx != _currentQuarterIndex) {
+          _pageController.jumpToPage(otherIdx);
+        }
+      } else {
+        final idx = _quarters.indexWhere(
+            (q) => q.year == result.year && q.q == result.q);
+        if (idx >= 0 && idx != _currentQuarterIndex) {
+          _pageController.jumpToPage(idx);
+        }
       }
     }
   }
@@ -213,11 +287,11 @@ class _ManagementPageState extends State<ManagementPage> {
   Widget _quarterGridCell(
     int year,
     int q,
-    _Quarter current,
+    _Quarter? current,
     ThemeData theme,
     BuildContext dialogContext,
   ) {
-    final isCurrent = year == current.year && q == current.q;
+    final isCurrent = current != null && year == current.year && q == current.q;
     final count = _allAnime.where((a) => a.airsInQuarter(year, q)).length;
     final hasData = count > 0;
 
@@ -338,7 +412,9 @@ class _ManagementPageState extends State<ManagementPage> {
                       mainAxisSize: MainAxisSize.min,
                       children: [
                         Text(
-                          _quarterLabel(_quarters[_currentQuarterIndex]),
+                          _isOtherPage
+                              ? l10n.manageOther
+                              : _quarterLabel(_quarters[_currentQuarterIndex]),
                           style: theme.textTheme.titleMedium,
                         ),
                         const SizedBox(width: 4),
@@ -352,7 +428,7 @@ class _ManagementPageState extends State<ManagementPage> {
               ),
               IconButton(
                 icon: const Icon(Icons.chevron_right),
-                onPressed: _currentQuarterIndex < _quarters.length - 1
+                onPressed: _currentQuarterIndex < _quarters.length
                     ? () {
                         _pageController.nextPage(
                           duration: const Duration(milliseconds: 300),
@@ -364,15 +440,36 @@ class _ManagementPageState extends State<ManagementPage> {
             ],
           ),
         ),
-        // Quarter pages
+        // Quarter pages + "Other" page
         Expanded(
           child: PageView.builder(
             controller: _pageController,
-            itemCount: _quarters.length,
+            itemCount: _quarters.length + 1,
             onPageChanged: (index) {
               setState(() => _currentQuarterIndex = index);
             },
             itemBuilder: (context, index) {
+              // "Other" page (last)
+              if (index == _quarters.length) {
+                final animeList = _otherAnime;
+                if (animeList.isEmpty) {
+                  return Center(
+                    child: Text(
+                      l10n.animeNoResults,
+                      style: theme.textTheme.bodyLarge?.copyWith(
+                        color: theme.colorScheme.onSurfaceVariant,
+                      ),
+                    ),
+                  );
+                }
+                return ListView.builder(
+                  padding: const EdgeInsets.only(bottom: 80),
+                  itemCount: animeList.length,
+                  itemBuilder: (context, i) =>
+                      _buildAnimeTile(animeList[i], theme, l10n),
+                );
+              }
+
               final quarter = _quarters[index];
               final animeList = _animeForQuarter(quarter);
 

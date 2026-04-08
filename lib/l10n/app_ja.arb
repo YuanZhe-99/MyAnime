@@ -167,5 +167,6 @@
   "statsTrend": "トレンド",
 
   "manageJumpToQuarter": "クールに移動",
-  "manageNoSearchResults": "該当するアニメが見つかりません"
+  "manageNoSearchResults": "該当するアニメが見つかりません",
+  "manageOther": "その他"
 }
