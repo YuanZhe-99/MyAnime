@@ -31,6 +31,8 @@ class _StatisticsPageState extends State<StatisticsPage> {
   // For year scope
   late int _selectedYearOnly;
 
+  final ScrollController _trendScrollController = ScrollController();
+
   @override
   void initState() {
     super.initState();
@@ -41,9 +43,27 @@ class _StatisticsPageState extends State<StatisticsPage> {
     _load();
   }
 
+  @override
+  void dispose() {
+    _trendScrollController.dispose();
+    super.dispose();
+  }
+
   Future<void> _load() async {
     final data = await AnimeStorage.load();
-    if (mounted) setState(() => _allAnime = data.animeList);
+    if (mounted) {
+      setState(() => _allAnime = data.animeList);
+      _scrollTrendToEnd();
+    }
+  }
+
+  void _scrollTrendToEnd() {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (_trendScrollController.hasClients) {
+        _trendScrollController
+            .jumpTo(_trendScrollController.position.maxScrollExtent);
+      }
+    });
   }
 
   // --- Status derivation ---
@@ -272,7 +292,10 @@ class _StatisticsPageState extends State<StatisticsPage> {
                   ),
                 ],
                 selected: {_scope},
-                onSelectionChanged: (s) => setState(() => _scope = s.first),
+                onSelectionChanged: (s) {
+                  setState(() => _scope = s.first);
+                  _scrollTrendToEnd();
+                },
               ),
             ),
 
@@ -389,6 +412,7 @@ class _StatisticsPageState extends State<StatisticsPage> {
     final maxY = data.fold<int>(
             0, (m, e) => e.tracked > m ? e.tracked : m) +
         1;
+    final needsScroll = data.length > 8;
 
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
@@ -410,13 +434,29 @@ class _StatisticsPageState extends State<StatisticsPage> {
           const SizedBox(height: 8),
           SizedBox(
             height: 200,
-            child: data.length > 8
-                ? SingleChildScrollView(
-                    scrollDirection: Axis.horizontal,
-                    child: SizedBox(
-                      width: data.length * 50.0,
-                      child: _buildBarChart(data, maxY, theme, l10n),
-                    ),
+            child: needsScroll
+                ? Row(
+                    children: [
+                      // Sticky Y-axis
+                      SizedBox(
+                        width: 32,
+                        child: _buildYAxisStub(maxY, theme),
+                      ),
+                      // Scrollable chart
+                      Expanded(
+                        child: SingleChildScrollView(
+                          controller: _trendScrollController,
+                          scrollDirection: Axis.horizontal,
+                          child: SizedBox(
+                            width: data.length * 50.0,
+                            child: _buildBarChart(
+                              data, maxY, theme, l10n,
+                              showLeftTitles: false,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
                   )
                 : _buildBarChart(data, maxY, theme, l10n),
           ),
@@ -425,12 +465,56 @@ class _StatisticsPageState extends State<StatisticsPage> {
     );
   }
 
+  Widget _buildYAxisStub(int maxY, ThemeData theme) {
+    final interval = maxY > 10 ? (maxY / 5).ceilToDouble() : 1.0;
+    return BarChart(
+      BarChartData(
+        maxY: maxY.toDouble(),
+        titlesData: FlTitlesData(
+          show: true,
+          leftTitles: AxisTitles(
+            sideTitles: SideTitles(
+              showTitles: true,
+              reservedSize: 28,
+              interval: interval,
+              getTitlesWidget: (value, meta) {
+                if (value == value.roundToDouble()) {
+                  return Text(
+                    '${value.toInt()}',
+                    style: const TextStyle(fontSize: 10),
+                  );
+                }
+                return const SizedBox.shrink();
+              },
+            ),
+          ),
+          bottomTitles: AxisTitles(
+            sideTitles: SideTitles(
+              showTitles: true,
+              reservedSize: 28,
+              getTitlesWidget: (_, _) => const SizedBox.shrink(),
+            ),
+          ),
+          topTitles:
+              AxisTitles(sideTitles: SideTitles(showTitles: false)),
+          rightTitles:
+              AxisTitles(sideTitles: SideTitles(showTitles: false)),
+        ),
+        borderData: FlBorderData(show: false),
+        gridData: FlGridData(show: false),
+        barGroups: [],
+        barTouchData: BarTouchData(enabled: false),
+      ),
+    );
+  }
+
   Widget _buildBarChart(
     List<_TrendEntry> data,
     int maxY,
     ThemeData theme,
-    AppLocalizations l10n,
-  ) {
+    AppLocalizations l10n, {
+    bool showLeftTitles = true,
+  }) {
     return BarChart(
       BarChartData(
         alignment: BarChartAlignment.spaceAround,
@@ -484,22 +568,24 @@ class _StatisticsPageState extends State<StatisticsPage> {
               reservedSize: 28,
             ),
           ),
-          leftTitles: AxisTitles(
-            sideTitles: SideTitles(
-              showTitles: true,
-              reservedSize: 28,
-              interval: maxY > 10 ? (maxY / 5).ceilToDouble() : 1,
-              getTitlesWidget: (value, meta) {
-                if (value == value.roundToDouble()) {
-                  return Text(
-                    '${value.toInt()}',
-                    style: const TextStyle(fontSize: 10),
-                  );
-                }
-                return const SizedBox.shrink();
-              },
-            ),
-          ),
+          leftTitles: showLeftTitles
+              ? AxisTitles(
+                  sideTitles: SideTitles(
+                    showTitles: true,
+                    reservedSize: 28,
+                    interval: maxY > 10 ? (maxY / 5).ceilToDouble() : 1,
+                    getTitlesWidget: (value, meta) {
+                      if (value == value.roundToDouble()) {
+                        return Text(
+                          '${value.toInt()}',
+                          style: const TextStyle(fontSize: 10),
+                        );
+                      }
+                      return const SizedBox.shrink();
+                    },
+                  ),
+                )
+              : AxisTitles(sideTitles: SideTitles(showTitles: false)),
           topTitles:
               AxisTitles(sideTitles: SideTitles(showTitles: false)),
           rightTitles:

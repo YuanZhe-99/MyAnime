@@ -22,9 +22,9 @@ class _ManagementPageState extends State<ManagementPage> {
   late PageController _pageController;
   late int _currentQuarterIndex;
 
-  // Quarter list: generate from 2020Q1 to 2030Q4
+  // Quarter list: wide range for PageView (lazy, so no perf issue)
   static final List<_Quarter> _quarters = [
-    for (var y = 2020; y <= 2030; y++)
+    for (var y = 2000; y <= 2040; y++)
       for (var q = 1; q <= 4; q++) _Quarter(y, q),
   ];
 
@@ -106,77 +106,148 @@ class _ManagementPageState extends State<ManagementPage> {
 
   Future<void> _showQuarterPicker() async {
     final l10n = AppLocalizations.of(context)!;
-    final currentQ = _quarters[_currentQuarterIndex];
-    int selectedYear = currentQ.year;
+    final current = _quarters[_currentQuarterIndex];
 
-    final result = await showDialog<int>(
+    // Compute year range from anime data
+    final dataYears = <int>{};
+    for (final anime in _allAnime) {
+      final sq = anime.startQuarter;
+      if (sq != null) dataYears.add(sq.$1);
+    }
+    final now = DateTime.now();
+    dataYears.add(now.year);
+    dataYears.add(now.year + 1);
+    final minYear = dataYears.reduce((a, b) => a < b ? a : b);
+    final maxYear = dataYears.reduce((a, b) => a > b ? a : b);
+
+    const rowHeight = 44.0;
+    final currentRow = current.year - minYear;
+    final initialOffset =
+        ((currentRow - 3) * rowHeight).clamp(0.0, double.infinity);
+    final scrollCtrl = ScrollController(initialScrollOffset: initialOffset);
+
+    final result = await showDialog<_Quarter>(
       context: context,
       builder: (dialogContext) {
-        return StatefulBuilder(
-          builder: (context, setDialogState) {
-            const seasons = ['', 'Winter', 'Spring', 'Summer', 'Fall'];
-            return AlertDialog(
-              title: Text(l10n.manageJumpToQuarter),
-              content: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  // Year selector
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
+        final theme = Theme.of(dialogContext);
+        return AlertDialog(
+          title: Text(l10n.manageJumpToQuarter),
+          contentPadding: const EdgeInsets.fromLTRB(8, 16, 8, 0),
+          content: SizedBox(
+            width: 300,
+            height: 360,
+            child: Column(
+              children: [
+                // Header
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 8),
+                  child: Row(
                     children: [
-                      IconButton(
-                        icon: const Icon(Icons.chevron_left),
-                        onPressed: selectedYear > 2020
-                            ? () => setDialogState(() => selectedYear--)
-                            : null,
-                      ),
-                      Text(
-                        '$selectedYear',
-                        style: Theme.of(context).textTheme.titleLarge,
-                      ),
-                      IconButton(
-                        icon: const Icon(Icons.chevron_right),
-                        onPressed: selectedYear < 2030
-                            ? () => setDialogState(() => selectedYear++)
-                            : null,
-                      ),
+                      const SizedBox(width: 48),
+                      for (final label in ['Q1', 'Q2', 'Q3', 'Q4'])
+                        Expanded(
+                          child: Center(
+                            child: Text(
+                              label,
+                              style: theme.textTheme.labelSmall?.copyWith(
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ),
+                        ),
                     ],
                   ),
-                  const SizedBox(height: 12),
-                  // Quarter grid
-                  Wrap(
-                    spacing: 8,
-                    runSpacing: 8,
-                    children: List.generate(4, (qi) {
-                      final q = qi + 1;
-                      final idx = _quarters.indexWhere(
-                          (e) => e.year == selectedYear && e.q == q);
-                      final isCurrent = idx == _currentQuarterIndex;
-                      return ChoiceChip(
-                        label: Text(seasons[q]),
-                        selected: isCurrent,
-                        onSelected: (_) {
-                          if (idx >= 0) Navigator.pop(dialogContext, idx);
-                        },
+                ),
+                const Divider(height: 1),
+                // Grid
+                Expanded(
+                  child: ListView.builder(
+                    controller: scrollCtrl,
+                    itemCount: maxYear - minYear + 1,
+                    itemExtent: rowHeight,
+                    itemBuilder: (context, index) {
+                      final year = minYear + index;
+                      return Row(
+                        children: [
+                          SizedBox(
+                            width: 48,
+                            child: Text(
+                              '$year',
+                              style: theme.textTheme.bodySmall,
+                            ),
+                          ),
+                          for (int q = 1; q <= 4; q++)
+                            Expanded(
+                              child: _quarterGridCell(
+                                year, q, current, theme, dialogContext,
+                              ),
+                            ),
+                        ],
                       );
-                    }),
+                    },
                   ),
-                ],
-              ),
-              actions: [
-                TextButton(
-                  onPressed: () => Navigator.pop(dialogContext),
-                  child: Text(l10n.cancel),
                 ),
               ],
-            );
-          },
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(dialogContext),
+              child: Text(l10n.cancel),
+            ),
+          ],
         );
       },
     );
-    if (result != null && result != _currentQuarterIndex) {
-      _pageController.jumpToPage(result);
+    scrollCtrl.dispose();
+
+    if (result != null) {
+      final idx = _quarters.indexWhere(
+          (q) => q.year == result.year && q.q == result.q);
+      if (idx >= 0 && idx != _currentQuarterIndex) {
+        _pageController.jumpToPage(idx);
+      }
     }
+  }
+
+  Widget _quarterGridCell(
+    int year,
+    int q,
+    _Quarter current,
+    ThemeData theme,
+    BuildContext dialogContext,
+  ) {
+    final isCurrent = year == current.year && q == current.q;
+    final count = _allAnime.where((a) => a.airsInQuarter(year, q)).length;
+    final hasData = count > 0;
+
+    return Padding(
+      padding: const EdgeInsets.all(2),
+      child: Material(
+        color: isCurrent
+            ? theme.colorScheme.primary
+            : hasData
+                ? theme.colorScheme.primaryContainer
+                : Colors.transparent,
+        borderRadius: BorderRadius.circular(8),
+        child: InkWell(
+          onTap: () => Navigator.pop(dialogContext, _Quarter(year, q)),
+          borderRadius: BorderRadius.circular(8),
+          child: Center(
+            child: Text(
+              hasData ? '$count' : '',
+              style: TextStyle(
+                fontSize: 12,
+                color: isCurrent
+                    ? theme.colorScheme.onPrimary
+                    : theme.colorScheme.onPrimaryContainer,
+                fontWeight: isCurrent ? FontWeight.bold : null,
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
   }
 
   @override
