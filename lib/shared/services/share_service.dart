@@ -63,7 +63,13 @@ class ShareService {
 
       if (!context.mounted) return;
 
-      if (Platform.isAndroid || Platform.isIOS) {
+      if (Platform.isAndroid) {
+        const channel = MethodChannel('com.yuanzhe.my_anime/share');
+        await channel.invokeMethod('shareFile', {
+          'path': file.path,
+          'mimeType': 'image/png',
+        });
+      } else if (Platform.isIOS) {
         await Share.shareXFiles([XFile(file.path)]);
       } else {
         await _showDesktopPreview(context, imageBytes, file.path, l10n);
