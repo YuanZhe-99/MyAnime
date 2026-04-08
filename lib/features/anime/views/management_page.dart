@@ -53,12 +53,6 @@ class _ManagementPageState extends State<ManagementPage> {
 
   List<Anime> _animeForQuarter(_Quarter quarter) {
     return _allAnime.where((a) {
-      if (_searchQuery.isNotEmpty) {
-        final q = _searchQuery.toLowerCase();
-        final match = (a.title?.toLowerCase().contains(q) ?? false) ||
-            (a.titleJa?.toLowerCase().contains(q) ?? false);
-        if (!match) return false;
-      }
       return a.airsInQuarter(quarter.year, quarter.q);
     }).toList()
       ..sort((a, b) {
@@ -68,6 +62,15 @@ class _ManagementPageState extends State<ManagementPage> {
         if (aDow != bDow) return aDow.compareTo(bDow);
         return a.displayTitle.compareTo(b.displayTitle);
       });
+  }
+
+  List<Anime> _searchResults() {
+    final q = _searchQuery.toLowerCase();
+    return _allAnime.where((a) {
+      return (a.title?.toLowerCase().contains(q) ?? false) ||
+          (a.titleJa?.toLowerCase().contains(q) ?? false);
+    }).toList()
+      ..sort((a, b) => a.displayTitle.compareTo(b.displayTitle));
   }
 
   static String _quarterLabel(_Quarter q) {
@@ -88,10 +91,41 @@ class _ManagementPageState extends State<ManagementPage> {
     await _load();
   }
 
+  Future<void> _showQuarterPicker() async {
+    final l10n = AppLocalizations.of(context)!;
+    final result = await showDialog<int>(
+      context: context,
+      builder: (context) {
+        return SimpleDialog(
+          title: Text(l10n.manageJumpToQuarter),
+          children: List.generate(_quarters.length, (i) {
+            final q = _quarters[i];
+            return SimpleDialogOption(
+              onPressed: () => Navigator.pop(context, i),
+              child: Text(
+                _quarterLabel(q),
+                style: i == _currentQuarterIndex
+                    ? TextStyle(
+                        fontWeight: FontWeight.bold,
+                        color: Theme.of(context).colorScheme.primary,
+                      )
+                    : null,
+              ),
+            );
+          }),
+        );
+      },
+    );
+    if (result != null && result != _currentQuarterIndex) {
+      _pageController.jumpToPage(result);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
     final theme = Theme.of(context);
+    final isSearching = _searchQuery.isNotEmpty;
 
     return Scaffold(
       appBar: AppBar(
@@ -112,82 +146,7 @@ class _ManagementPageState extends State<ManagementPage> {
           ),
         ),
       ),
-      body: Column(
-        children: [
-          // Quarter navigation
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-            child: Row(
-              children: [
-                IconButton(
-                  icon: const Icon(Icons.chevron_left),
-                  onPressed: _currentQuarterIndex > 0
-                      ? () {
-                          _pageController.previousPage(
-                            duration: const Duration(milliseconds: 300),
-                            curve: Curves.easeInOut,
-                          );
-                        }
-                      : null,
-                ),
-                Expanded(
-                  child: Center(
-                    child: Text(
-                      _quarterLabel(_quarters[_currentQuarterIndex]),
-                      style: theme.textTheme.titleMedium,
-                    ),
-                  ),
-                ),
-                IconButton(
-                  icon: const Icon(Icons.chevron_right),
-                  onPressed: _currentQuarterIndex < _quarters.length - 1
-                      ? () {
-                          _pageController.nextPage(
-                            duration: const Duration(milliseconds: 300),
-                            curve: Curves.easeInOut,
-                          );
-                        }
-                      : null,
-                ),
-              ],
-            ),
-          ),
-          // Quarter pages
-          Expanded(
-            child: PageView.builder(
-              controller: _pageController,
-              itemCount: _quarters.length,
-              onPageChanged: (index) {
-                setState(() => _currentQuarterIndex = index);
-              },
-              itemBuilder: (context, index) {
-                final quarter = _quarters[index];
-                final animeList = _animeForQuarter(quarter);
-
-                if (animeList.isEmpty) {
-                  return Center(
-                    child: Text(
-                      l10n.animeNoResults,
-                      style: theme.textTheme.bodyLarge?.copyWith(
-                        color: theme.colorScheme.onSurfaceVariant,
-                      ),
-                    ),
-                  );
-                }
-
-                return ListView.builder(
-                  padding: const EdgeInsets.only(bottom: 80),
-                  itemCount: animeList.length,
-                  itemBuilder: (context, i) {
-                    final anime = animeList[i];
-                    return _buildAnimeTile(anime, theme, l10n);
-                  },
-                );
-              },
-            ),
-          ),
-        ],
-      ),
+      body: isSearching ? _buildSearchResults(theme, l10n) : _buildQuarterView(theme, l10n),
       floatingActionButton: FloatingActionButton(
         onPressed: () async {
           await context.push('/anime/edit');
@@ -196,6 +155,116 @@ class _ManagementPageState extends State<ManagementPage> {
         tooltip: l10n.animeAdd,
         child: const Icon(Icons.add),
       ),
+    );
+  }
+
+  Widget _buildSearchResults(ThemeData theme, AppLocalizations l10n) {
+    final results = _searchResults();
+    if (results.isEmpty) {
+      return Center(
+        child: Text(
+          l10n.manageNoSearchResults,
+          style: theme.textTheme.bodyLarge?.copyWith(
+            color: theme.colorScheme.onSurfaceVariant,
+          ),
+        ),
+      );
+    }
+    return ListView.builder(
+      padding: const EdgeInsets.only(bottom: 80),
+      itemCount: results.length,
+      itemBuilder: (context, i) => _buildAnimeTile(results[i], theme, l10n),
+    );
+  }
+
+  Widget _buildQuarterView(ThemeData theme, AppLocalizations l10n) {
+    return Column(
+      children: [
+        // Quarter navigation
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+          child: Row(
+            children: [
+              IconButton(
+                icon: const Icon(Icons.chevron_left),
+                onPressed: _currentQuarterIndex > 0
+                    ? () {
+                        _pageController.previousPage(
+                          duration: const Duration(milliseconds: 300),
+                          curve: Curves.easeInOut,
+                        );
+                      }
+                    : null,
+              ),
+              Expanded(
+                child: GestureDetector(
+                  onTap: _showQuarterPicker,
+                  child: Center(
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                          _quarterLabel(_quarters[_currentQuarterIndex]),
+                          style: theme.textTheme.titleMedium,
+                        ),
+                        const SizedBox(width: 4),
+                        Icon(Icons.arrow_drop_down,
+                            size: 20,
+                            color: theme.colorScheme.onSurfaceVariant),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+              IconButton(
+                icon: const Icon(Icons.chevron_right),
+                onPressed: _currentQuarterIndex < _quarters.length - 1
+                    ? () {
+                        _pageController.nextPage(
+                          duration: const Duration(milliseconds: 300),
+                          curve: Curves.easeInOut,
+                        );
+                      }
+                    : null,
+              ),
+            ],
+          ),
+        ),
+        // Quarter pages
+        Expanded(
+          child: PageView.builder(
+            controller: _pageController,
+            itemCount: _quarters.length,
+            onPageChanged: (index) {
+              setState(() => _currentQuarterIndex = index);
+            },
+            itemBuilder: (context, index) {
+              final quarter = _quarters[index];
+              final animeList = _animeForQuarter(quarter);
+
+              if (animeList.isEmpty) {
+                return Center(
+                  child: Text(
+                    l10n.animeNoResults,
+                    style: theme.textTheme.bodyLarge?.copyWith(
+                      color: theme.colorScheme.onSurfaceVariant,
+                    ),
+                  ),
+                );
+              }
+
+              return ListView.builder(
+                padding: const EdgeInsets.only(bottom: 80),
+                itemCount: animeList.length,
+                itemBuilder: (context, i) {
+                  final anime = animeList[i];
+                  return _buildAnimeTile(anime, theme, l10n);
+                },
+              );
+            },
+          ),
+        ),
+      ],
     );
   }
 

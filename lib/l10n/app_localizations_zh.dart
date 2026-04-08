@@ -18,6 +18,9 @@ class AppLocalizationsZh extends AppLocalizations {
   String get navManage => '管理';
 
   @override
+  String get navStats => '统计';
+
+  @override
   String get navSettings => '设置';
 
   @override
@@ -447,6 +450,42 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get shareUrlOptions => '包含链接';
+
+  @override
+  String get statsTitle => '统计';
+
+  @override
+  String get statsQuarter => '季度';
+
+  @override
+  String get statsYear => '年度';
+
+  @override
+  String get statsAll => '全部';
+
+  @override
+  String get statsTracked => '追番';
+
+  @override
+  String get statsCompleted => '看完';
+
+  @override
+  String get statsDropped => '放弃';
+
+  @override
+  String get statsWatching => '在追';
+
+  @override
+  String get statsNotStarted => '未开始';
+
+  @override
+  String get statsTrend => '趋势';
+
+  @override
+  String get manageJumpToQuarter => '跳转到季度';
+
+  @override
+  String get manageNoSearchResults => '没有匹配的番剧';
 }
 
 /// The translations for Chinese, as used in Taiwan (`zh_TW`).
@@ -461,6 +500,9 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
 
   @override
   String get navManage => '管理';
+
+  @override
+  String get navStats => '統計';
 
   @override
   String get navSettings => '設定';
@@ -892,4 +934,40 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
 
   @override
   String get shareUrlOptions => '包含連結';
+
+  @override
+  String get statsTitle => '統計';
+
+  @override
+  String get statsQuarter => '季度';
+
+  @override
+  String get statsYear => '年度';
+
+  @override
+  String get statsAll => '全部';
+
+  @override
+  String get statsTracked => '追番';
+
+  @override
+  String get statsCompleted => '看完';
+
+  @override
+  String get statsDropped => '放棄';
+
+  @override
+  String get statsWatching => '在追';
+
+  @override
+  String get statsNotStarted => '未開始';
+
+  @override
+  String get statsTrend => '趨勢';
+
+  @override
+  String get manageJumpToQuarter => '跳轉到季度';
+
+  @override
+  String get manageNoSearchResults => '沒有匹配的番劇';
 }

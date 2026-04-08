@@ -5,6 +5,7 @@
 
   "navHome": "Home",
   "navManage": "Manage",
+  "navStats": "Stats",
   "navSettings": "Settings",
 
   "homeAiringOn": "Airing on {date}",
@@ -159,5 +160,19 @@
   "shareSaveAs": "Save As",
   "shareSaved": "Image saved",
   "shareFailed": "Share failed",
-  "shareUrlOptions": "Include URLs"
+  "shareUrlOptions": "Include URLs",
+
+  "statsTitle": "Statistics",
+  "statsQuarter": "Quarter",
+  "statsYear": "Year",
+  "statsAll": "All",
+  "statsTracked": "Tracked",
+  "statsCompleted": "Completed",
+  "statsDropped": "Dropped",
+  "statsWatching": "Watching",
+  "statsNotStarted": "Not Started",
+  "statsTrend": "Trend",
+
+  "manageJumpToQuarter": "Jump to Quarter",
+  "manageNoSearchResults": "No matching anime found"
 }

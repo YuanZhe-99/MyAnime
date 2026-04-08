@@ -18,6 +18,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get navManage => 'Manage';
 
   @override
+  String get navStats => 'Stats';
+
+  @override
   String get navSettings => 'Settings';
 
   @override
@@ -452,4 +455,40 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get shareUrlOptions => 'Include URLs';
+
+  @override
+  String get statsTitle => 'Statistics';
+
+  @override
+  String get statsQuarter => 'Quarter';
+
+  @override
+  String get statsYear => 'Year';
+
+  @override
+  String get statsAll => 'All';
+
+  @override
+  String get statsTracked => 'Tracked';
+
+  @override
+  String get statsCompleted => 'Completed';
+
+  @override
+  String get statsDropped => 'Dropped';
+
+  @override
+  String get statsWatching => 'Watching';
+
+  @override
+  String get statsNotStarted => 'Not Started';
+
+  @override
+  String get statsTrend => 'Trend';
+
+  @override
+  String get manageJumpToQuarter => 'Jump to Quarter';
+
+  @override
+  String get manageNoSearchResults => 'No matching anime found';
 }

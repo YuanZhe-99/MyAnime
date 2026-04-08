@@ -4,6 +4,7 @@ import '../features/anime/views/anime_detail_page.dart';
 import '../features/anime/views/anime_edit_page.dart';
 import '../features/anime/views/home_page.dart';
 import '../features/anime/views/management_page.dart';
+import '../features/anime/views/statistics_page.dart';
 import '../features/settings/views/settings_page.dart';
 import '../shared/widgets/shell_scaffold.dart';
 
@@ -20,6 +21,10 @@ final appRouter = GoRouter(
         GoRoute(
           path: '/manage',
           builder: (context, state) => const ManagementPage(),
+        ),
+        GoRoute(
+          path: '/stats',
+          builder: (context, state) => const StatisticsPage(),
         ),
         GoRoute(
           path: '/settings',

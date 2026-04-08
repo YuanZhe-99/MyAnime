@@ -18,6 +18,9 @@ class AppLocalizationsJa extends AppLocalizations {
   String get navManage => '管理';
 
   @override
+  String get navStats => '統計';
+
+  @override
   String get navSettings => '設定';
 
   @override
@@ -449,4 +452,40 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get shareUrlOptions => 'URLを含める';
+
+  @override
+  String get statsTitle => '統計';
+
+  @override
+  String get statsQuarter => 'クール';
+
+  @override
+  String get statsYear => '年間';
+
+  @override
+  String get statsAll => 'すべて';
+
+  @override
+  String get statsTracked => '視聴中';
+
+  @override
+  String get statsCompleted => '完了';
+
+  @override
+  String get statsDropped => '中止';
+
+  @override
+  String get statsWatching => '追跡中';
+
+  @override
+  String get statsNotStarted => '未開始';
+
+  @override
+  String get statsTrend => 'トレンド';
+
+  @override
+  String get manageJumpToQuarter => 'クールに移動';
+
+  @override
+  String get manageNoSearchResults => '該当するアニメが見つかりません';
 }

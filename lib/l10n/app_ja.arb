@@ -5,6 +5,7 @@
 
   "navHome": "ホーム",
   "navManage": "管理",
+  "navStats": "統計",
   "navSettings": "設定",
 
   "homeAiringOn": "{date} 放送",
@@ -152,5 +153,19 @@
   "shareSaveAs": "名前を付けて保存",
   "shareSaved": "画像を保存しました",
   "shareFailed": "共有に失敗しました",
-  "shareUrlOptions": "URLを含める"
+  "shareUrlOptions": "URLを含める",
+
+  "statsTitle": "統計",
+  "statsQuarter": "クール",
+  "statsYear": "年間",
+  "statsAll": "すべて",
+  "statsTracked": "視聴中",
+  "statsCompleted": "完了",
+  "statsDropped": "中止",
+  "statsWatching": "追跡中",
+  "statsNotStarted": "未開始",
+  "statsTrend": "トレンド",
+
+  "manageJumpToQuarter": "クールに移動",
+  "manageNoSearchResults": "該当するアニメが見つかりません"
 }

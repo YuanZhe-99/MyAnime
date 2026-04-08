@@ -5,6 +5,7 @@
 
   "navHome": "首页",
   "navManage": "管理",
+  "navStats": "统计",
   "navSettings": "设置",
 
   "homeAiringOn": "{date} 播出",
@@ -152,5 +153,19 @@
   "shareSaveAs": "另存为",
   "shareSaved": "图片已保存",
   "shareFailed": "分享失败",
-  "shareUrlOptions": "包含链接"
+  "shareUrlOptions": "包含链接",
+
+  "statsTitle": "统计",
+  "statsQuarter": "季度",
+  "statsYear": "年度",
+  "statsAll": "全部",
+  "statsTracked": "追番",
+  "statsCompleted": "看完",
+  "statsDropped": "放弃",
+  "statsWatching": "在追",
+  "statsNotStarted": "未开始",
+  "statsTrend": "趋势",
+
+  "manageJumpToQuarter": "跳转到季度",
+  "manageNoSearchResults": "没有匹配的番剧"
 }

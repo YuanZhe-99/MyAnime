@@ -119,6 +119,12 @@ abstract class AppLocalizations {
   /// **'Manage'**
   String get navManage;
 
+  /// No description provided for @navStats.
+  ///
+  /// In en, this message translates to:
+  /// **'Stats'**
+  String get navStats;
+
   /// No description provided for @navSettings.
   ///
   /// In en, this message translates to:
@@ -952,6 +958,78 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Include URLs'**
   String get shareUrlOptions;
+
+  /// No description provided for @statsTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Statistics'**
+  String get statsTitle;
+
+  /// No description provided for @statsQuarter.
+  ///
+  /// In en, this message translates to:
+  /// **'Quarter'**
+  String get statsQuarter;
+
+  /// No description provided for @statsYear.
+  ///
+  /// In en, this message translates to:
+  /// **'Year'**
+  String get statsYear;
+
+  /// No description provided for @statsAll.
+  ///
+  /// In en, this message translates to:
+  /// **'All'**
+  String get statsAll;
+
+  /// No description provided for @statsTracked.
+  ///
+  /// In en, this message translates to:
+  /// **'Tracked'**
+  String get statsTracked;
+
+  /// No description provided for @statsCompleted.
+  ///
+  /// In en, this message translates to:
+  /// **'Completed'**
+  String get statsCompleted;
+
+  /// No description provided for @statsDropped.
+  ///
+  /// In en, this message translates to:
+  /// **'Dropped'**
+  String get statsDropped;
+
+  /// No description provided for @statsWatching.
+  ///
+  /// In en, this message translates to:
+  /// **'Watching'**
+  String get statsWatching;
+
+  /// No description provided for @statsNotStarted.
+  ///
+  /// In en, this message translates to:
+  /// **'Not Started'**
+  String get statsNotStarted;
+
+  /// No description provided for @statsTrend.
+  ///
+  /// In en, this message translates to:
+  /// **'Trend'**
+  String get statsTrend;
+
+  /// No description provided for @manageJumpToQuarter.
+  ///
+  /// In en, this message translates to:
+  /// **'Jump to Quarter'**
+  String get manageJumpToQuarter;
+
+  /// No description provided for @manageNoSearchResults.
+  ///
+  /// In en, this message translates to:
+  /// **'No matching anime found'**
+  String get manageNoSearchResults;
 }
 
 class _AppLocalizationsDelegate
