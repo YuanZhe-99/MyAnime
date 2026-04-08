@@ -91,6 +91,19 @@ class _ManagementPageState extends State<ManagementPage> {
     await _load();
   }
 
+  void _jumpToAnimeQuarter(String animeId) {
+    final anime = _allAnime.where((a) => a.id == animeId).firstOrNull;
+    if (anime == null) return;
+    final sq = anime.startQuarter;
+    if (sq == null) return;
+    final targetQ = ((sq.$2 - 1) ~/ 3) + 1;
+    final idx = _quarters.indexWhere(
+        (q) => q.year == sq.$1 && q.q == targetQ);
+    if (idx >= 0 && idx != _currentQuarterIndex) {
+      _pageController.jumpToPage(idx);
+    }
+  }
+
   Future<void> _showQuarterPicker() async {
     final l10n = AppLocalizations.of(context)!;
     final result = await showDialog<int>(
@@ -149,8 +162,13 @@ class _ManagementPageState extends State<ManagementPage> {
       body: isSearching ? _buildSearchResults(theme, l10n) : _buildQuarterView(theme, l10n),
       floatingActionButton: FloatingActionButton(
         onPressed: () async {
-          await context.push('/anime/edit');
+          final newId = await context.push<String>('/anime/edit');
           await _load();
+          if (newId != null && mounted) {
+            await context.push('/anime/detail/$newId');
+            await _load();
+            _jumpToAnimeQuarter(newId);
+          }
         },
         tooltip: l10n.animeAdd,
         child: const Icon(Icons.add),

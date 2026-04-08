@@ -2,7 +2,7 @@ name: my_anime
 description: "MyAnime!!!!! — Your anime tracking companion"
 publish_to: 'none'
 
-version: 0.4.0+12
+version: 0.4.1+13
 
 environment:
   sdk: ^3.11.3

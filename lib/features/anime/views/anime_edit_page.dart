@@ -283,6 +283,8 @@ class _AnimeEditPageState extends State<AnimeEditPage> {
             : _notesController.text.trim(),
       );
       await AnimeStorage.addOrUpdate(anime);
+      if (mounted) context.pop(anime.id);
+      return;
     }
 
     if (mounted) context.pop();

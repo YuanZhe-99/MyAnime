@@ -238,8 +238,12 @@ class _HomePageState extends State<HomePage> {
       ),
       floatingActionButton: FloatingActionButton(
         onPressed: () async {
-          await context.push('/anime/edit');
+          final newId = await context.push<String>('/anime/edit');
           await _load();
+          if (newId != null && mounted) {
+            await context.push('/anime/detail/$newId');
+            await _load();
+          }
         },
         tooltip: l10n.animeAdd,
         child: const Icon(Icons.add),
