@@ -222,5 +222,10 @@
   "importAnimeFailed": "Failed to import anime",
 
   "addAnimeCreate": "Create New",
-  "addAnimeImport": "Import from File"
+  "addAnimeImport": "Import from File",
+
+  "exportAsZip": "Export as ZIP",
+  "exportAsZipDesc": "Full data archive (anime data + cover images) for backup or migration",
+  "exportAsMarkdown": "Export as Markdown",
+  "exportAsMarkdownDesc": "Anime list sorted by air date with viewing status, for LLM personalization"
 }

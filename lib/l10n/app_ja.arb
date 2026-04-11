@@ -215,5 +215,10 @@
   "importAnimeFailed": "インポートに失敗しました",
 
   "addAnimeCreate": "新規作成",
-  "addAnimeImport": "ファイルからインポート"
+  "addAnimeImport": "ファイルからインポート",
+
+  "exportAsZip": "ZIPでエクスポート",
+  "exportAsZipDesc": "完全データアーカイブ（アニメデータ＋カバー画像）、バックアップや移行用",
+  "exportAsMarkdown": "Markdownでエクスポート",
+  "exportAsMarkdownDesc": "放送日順のアニメリストと視聴状況、LLMパーソナライズ用"
 }

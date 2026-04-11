@@ -601,4 +601,16 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get addAnimeImport => 'ファイルからインポート';
+
+  @override
+  String get exportAsZip => 'ZIPでエクスポート';
+
+  @override
+  String get exportAsZipDesc => '完全データアーカイブ（アニメデータ＋カバー画像）、バックアップや移行用';
+
+  @override
+  String get exportAsMarkdown => 'Markdownでエクスポート';
+
+  @override
+  String get exportAsMarkdownDesc => '放送日順のアニメリストと視聴状況、LLMパーソナライズ用';
 }

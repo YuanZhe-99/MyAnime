@@ -599,6 +599,18 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get addAnimeImport => '从文件导入';
+
+  @override
+  String get exportAsZip => '导出为 ZIP';
+
+  @override
+  String get exportAsZipDesc => '完整数据压缩包（番剧数据 + 封面图片），用于备份或迁移';
+
+  @override
+  String get exportAsMarkdown => '导出为 Markdown';
+
+  @override
+  String get exportAsMarkdownDesc => '按开播时间排列的番剧列表及观看状态，用于 LLM 个性化学习';
 }
 
 /// The translations for Chinese, as used in Taiwan (`zh_TW`).
@@ -1196,4 +1208,16 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
 
   @override
   String get addAnimeImport => '從檔案匯入';
+
+  @override
+  String get exportAsZip => '匯出為 ZIP';
+
+  @override
+  String get exportAsZipDesc => '完整資料壓縮包（番劇資料 + 封面圖片），用於備份或遷移';
+
+  @override
+  String get exportAsMarkdown => '匯出為 Markdown';
+
+  @override
+  String get exportAsMarkdownDesc => '按開播時間排列的番劇列表及觀看狀態，用於 LLM 個人化學習';
 }

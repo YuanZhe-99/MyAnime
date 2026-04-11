@@ -215,5 +215,10 @@
   "importAnimeFailed": "匯入失敗",
 
   "addAnimeCreate": "新建番劇",
-  "addAnimeImport": "從檔案匯入"
+  "addAnimeImport": "從檔案匯入",
+
+  "exportAsZip": "匯出為 ZIP",
+  "exportAsZipDesc": "完整資料壓縮包（番劇資料 + 封面圖片），用於備份或遷移",
+  "exportAsMarkdown": "匯出為 Markdown",
+  "exportAsMarkdownDesc": "按開播時間排列的番劇列表及觀看狀態，用於 LLM 個人化學習"
 }

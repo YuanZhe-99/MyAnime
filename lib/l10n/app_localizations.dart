@@ -1228,6 +1228,30 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Import from File'**
   String get addAnimeImport;
+
+  /// No description provided for @exportAsZip.
+  ///
+  /// In en, this message translates to:
+  /// **'Export as ZIP'**
+  String get exportAsZip;
+
+  /// No description provided for @exportAsZipDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'Full data archive (anime data + cover images) for backup or migration'**
+  String get exportAsZipDesc;
+
+  /// No description provided for @exportAsMarkdown.
+  ///
+  /// In en, this message translates to:
+  /// **'Export as Markdown'**
+  String get exportAsMarkdown;
+
+  /// No description provided for @exportAsMarkdownDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'Anime list sorted by air date with viewing status, for LLM personalization'**
+  String get exportAsMarkdownDesc;
 }
 
 class _AppLocalizationsDelegate

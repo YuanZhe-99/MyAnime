@@ -71,10 +71,51 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
 
   Future<void> _exportData() async {
     final l10n = AppLocalizations.of(context)!;
+
+    // Ask user which format to export
+    final choice = await showDialog<String>(
+      context: context,
+      builder: (ctx) => SimpleDialog(
+        title: Text(l10n.exportData),
+        children: [
+          SimpleDialogOption(
+            onPressed: () => Navigator.pop(ctx, 'zip'),
+            child: ListTile(
+              leading: const Icon(Icons.archive_outlined),
+              title: Text(l10n.exportAsZip),
+              subtitle: Text(
+                l10n.exportAsZipDesc,
+                style: Theme.of(context).textTheme.bodySmall,
+              ),
+              contentPadding: EdgeInsets.zero,
+            ),
+          ),
+          SimpleDialogOption(
+            onPressed: () => Navigator.pop(ctx, 'markdown'),
+            child: ListTile(
+              leading: const Icon(Icons.description_outlined),
+              title: Text(l10n.exportAsMarkdown),
+              subtitle: Text(
+                l10n.exportAsMarkdownDesc,
+                style: Theme.of(context).textTheme.bodySmall,
+              ),
+              contentPadding: EdgeInsets.zero,
+            ),
+          ),
+        ],
+      ),
+    );
+    if (choice == null || !mounted) return;
+
     final dir = await FilePicker.platform.getDirectoryPath();
     if (dir == null || !mounted) return;
 
-    final path = await ImportExportService.exportZIP(dir);
+    final String? path;
+    if (choice == 'markdown') {
+      path = await ImportExportService.exportMarkdown(dir);
+    } else {
+      path = await ImportExportService.exportZIP(dir);
+    }
     if (!mounted) return;
     if (path != null) {
       ScaffoldMessenger.of(context).showSnackBar(

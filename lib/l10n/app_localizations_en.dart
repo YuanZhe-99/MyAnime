@@ -605,4 +605,18 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get addAnimeImport => 'Import from File';
+
+  @override
+  String get exportAsZip => 'Export as ZIP';
+
+  @override
+  String get exportAsZipDesc =>
+      'Full data archive (anime data + cover images) for backup or migration';
+
+  @override
+  String get exportAsMarkdown => 'Export as Markdown';
+
+  @override
+  String get exportAsMarkdownDesc =>
+      'Anime list sorted by air date with viewing status, for LLM personalization';
 }
