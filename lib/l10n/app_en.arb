@@ -213,5 +213,11 @@
   "searchEpisodesCount": "{count} eps",
   "@searchEpisodesCount": { "placeholders": { "count": { "type": "int" } } },
 
-  "animeSeasonHint": "Season 1"
+  "animeSeasonHint": "Season 1",
+
+  "shareTypeTitle": "Share Type",
+  "shareAsImage": "Share as Image",
+  "shareAsData": "Share as Data File",
+  "importAnimeSuccess": "Anime imported successfully",
+  "importAnimeFailed": "Failed to import anime"
 }

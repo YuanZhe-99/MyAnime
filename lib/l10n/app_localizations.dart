@@ -1186,6 +1186,36 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Season 1'**
   String get animeSeasonHint;
+
+  /// No description provided for @shareTypeTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Share Type'**
+  String get shareTypeTitle;
+
+  /// No description provided for @shareAsImage.
+  ///
+  /// In en, this message translates to:
+  /// **'Share as Image'**
+  String get shareAsImage;
+
+  /// No description provided for @shareAsData.
+  ///
+  /// In en, this message translates to:
+  /// **'Share as Data File'**
+  String get shareAsData;
+
+  /// No description provided for @importAnimeSuccess.
+  ///
+  /// In en, this message translates to:
+  /// **'Anime imported successfully'**
+  String get importAnimeSuccess;
+
+  /// No description provided for @importAnimeFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Failed to import anime'**
+  String get importAnimeFailed;
 }
 
 class _AppLocalizationsDelegate

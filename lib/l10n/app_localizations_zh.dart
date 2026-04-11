@@ -578,6 +578,21 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get animeSeasonHint => '第1季';
+
+  @override
+  String get shareTypeTitle => '分享方式';
+
+  @override
+  String get shareAsImage => '分享为图片';
+
+  @override
+  String get shareAsData => '分享为数据文件';
+
+  @override
+  String get importAnimeSuccess => '番剧导入成功';
+
+  @override
+  String get importAnimeFailed => '导入失败';
 }
 
 /// The translations for Chinese, as used in Taiwan (`zh_TW`).
@@ -1154,4 +1169,19 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
 
   @override
   String get animeSeasonHint => '第1季';
+
+  @override
+  String get shareTypeTitle => '分享方式';
+
+  @override
+  String get shareAsImage => '分享為圖片';
+
+  @override
+  String get shareAsData => '分享為資料檔案';
+
+  @override
+  String get importAnimeSuccess => '番劇匯入成功';
+
+  @override
+  String get importAnimeFailed => '匯入失敗';
 }

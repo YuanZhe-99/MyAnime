@@ -584,4 +584,19 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get animeSeasonHint => 'Season 1';
+
+  @override
+  String get shareTypeTitle => 'Share Type';
+
+  @override
+  String get shareAsImage => 'Share as Image';
+
+  @override
+  String get shareAsData => 'Share as Data File';
+
+  @override
+  String get importAnimeSuccess => 'Anime imported successfully';
+
+  @override
+  String get importAnimeFailed => 'Failed to import anime';
 }

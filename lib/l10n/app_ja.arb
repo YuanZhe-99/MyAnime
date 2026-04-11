@@ -206,5 +206,11 @@
   "searchEpisodesCount": "{count}話",
   "@searchEpisodesCount": { "placeholders": { "count": { "type": "int" } } },
 
-  "animeSeasonHint": "第1期"
+  "animeSeasonHint": "第1期",
+
+  "shareTypeTitle": "共有方法",
+  "shareAsImage": "画像で共有",
+  "shareAsData": "データファイルで共有",
+  "importAnimeSuccess": "アニメをインポートしました",
+  "importAnimeFailed": "インポートに失敗しました"
 }

@@ -28,5 +28,44 @@
 	<string>MainMenu</string>
 	<key>NSPrincipalClass</key>
 	<string>NSApplication</string>
+	<key>CFBundleDocumentTypes</key>
+	<array>
+		<dict>
+			<key>CFBundleTypeName</key>
+			<string>MyAnime Item</string>
+			<key>CFBundleTypeRole</key>
+			<string>Viewer</string>
+			<key>LSHandlerRank</key>
+			<string>Owner</string>
+			<key>LSItemContentTypes</key>
+			<array>
+				<string>com.yuanzhe.my-anime.myanimeitem</string>
+			</array>
+			<key>CFBundleTypeExtensions</key>
+			<array>
+				<string>myanimeitem</string>
+			</array>
+		</dict>
+	</array>
+	<key>UTExportedTypeDeclarations</key>
+	<array>
+		<dict>
+			<key>UTTypeIdentifier</key>
+			<string>com.yuanzhe.my-anime.myanimeitem</string>
+			<key>UTTypeDescription</key>
+			<string>MyAnime Item</string>
+			<key>UTTypeConformsTo</key>
+			<array>
+				<string>public.json</string>
+			</array>
+			<key>UTTypeTagSpecification</key>
+			<dict>
+				<key>public.filename-extension</key>
+				<array>
+					<string>myanimeitem</string>
+				</array>
+			</dict>
+		</dict>
+	</array>
 </dict>
 </plist>

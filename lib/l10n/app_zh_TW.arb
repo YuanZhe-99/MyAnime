@@ -206,5 +206,11 @@
   "searchEpisodesCount": "{count}話",
   "@searchEpisodesCount": { "placeholders": { "count": { "type": "int" } } },
 
-  "animeSeasonHint": "第1季"
+  "animeSeasonHint": "第1季",
+
+  "shareTypeTitle": "分享方式",
+  "shareAsImage": "分享為圖片",
+  "shareAsData": "分享為資料檔案",
+  "importAnimeSuccess": "番劇匯入成功",
+  "importAnimeFailed": "匯入失敗"
 }

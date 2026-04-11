@@ -580,4 +580,19 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get animeSeasonHint => '第1期';
+
+  @override
+  String get shareTypeTitle => '共有方法';
+
+  @override
+  String get shareAsImage => '画像で共有';
+
+  @override
+  String get shareAsData => 'データファイルで共有';
+
+  @override
+  String get importAnimeSuccess => 'アニメをインポートしました';
+
+  @override
+  String get importAnimeFailed => 'インポートに失敗しました';
 }

@@ -6,9 +6,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'app/app.dart';
 import 'shared/services/auto_sync_service.dart';
 import 'shared/services/backup_service.dart';
+import 'shared/services/file_open_service.dart';
 import 'shared/services/reminder_service.dart';
 
-void main() async {
+void main(List<String> args) async {
   WidgetsFlutterBinding.ensureInitialized();
 
   // Initialize local notifications.
@@ -23,6 +24,17 @@ void main() async {
   // Start periodic reminder check (every 60s)
   ReminderService.startPeriodicCheck();
 
+  // Initialize file open handler (MethodChannel for mobile file associations)
+  FileOpenService.init();
+
+  // Check command-line args for .myanimeitem file (desktop cold start)
+  final openFile = args
+      .where((a) => a.endsWith('.myanimeitem'))
+      .firstOrNull;
+  if (openFile != null) {
+    FileOpenService.setPendingFile(openFile);
+  }
+
   runApp(
     DevicePreview(
       enabled: kDebugMode,
@@ -31,6 +43,13 @@ void main() async {
       ),
     ),
   );
+
+  // Process pending file after the first frame
+  if (openFile != null) {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      FileOpenService.processPendingFile();
+    });
+  }
 }
 
 

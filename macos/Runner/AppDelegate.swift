@@ -10,4 +10,16 @@ class AppDelegate: FlutterAppDelegate {
   override func applicationSupportsSecureRestorableState(_ app: NSApplication) -> Bool {
     return true
   }
+
+  override func application(_ sender: NSApplication, openFile filename: String) -> Bool {
+    if filename.hasSuffix(".myanimeitem") {
+      let controller = mainFlutterWindow?.contentViewController as? FlutterViewController
+      if let messenger = controller?.engine.binaryMessenger {
+        let channel = FlutterMethodChannel(name: "com.yuanzhe.my_anime/file_open", binaryMessenger: messenger)
+        channel.invokeMethod("openFile", arguments: filename)
+      }
+      return true
+    }
+    return false
+  }
 }

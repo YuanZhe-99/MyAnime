@@ -14,6 +14,7 @@ import 'package:share_plus/share_plus.dart';
 import '../../features/anime/models/anime.dart';
 import '../../l10n/app_localizations.dart';
 import '../utils/jst_time.dart';
+import 'file_open_service.dart';
 import 'image_service.dart';
 
 class ShareService {
@@ -37,6 +38,86 @@ class ShareService {
   static Future<void> shareAnime(BuildContext context, Anime anime) async {
     final l10n = AppLocalizations.of(context)!;
 
+    // Ask share type: image or data file
+    final shareType = await showDialog<String>(
+      context: context,
+      builder: (ctx) => SimpleDialog(
+        title: Text(l10n.shareTypeTitle),
+        children: [
+          SimpleDialogOption(
+            onPressed: () => Navigator.pop(ctx, 'image'),
+            child: ListTile(
+              leading: const Icon(Icons.image),
+              title: Text(l10n.shareAsImage),
+            ),
+          ),
+          SimpleDialogOption(
+            onPressed: () => Navigator.pop(ctx, 'data'),
+            child: ListTile(
+              leading: const Icon(Icons.file_present),
+              title: Text(l10n.shareAsData),
+            ),
+          ),
+        ],
+      ),
+    );
+    if (shareType == null || !context.mounted) return;
+
+    if (shareType == 'data') {
+      await _shareAnimeData(context, anime, l10n);
+    } else {
+      await _shareAnimeImage(context, anime, l10n);
+    }
+  }
+
+  static Future<void> _shareAnimeData(
+    BuildContext context,
+    Anime anime,
+    AppLocalizations l10n,
+  ) async {
+    try {
+      final filePath = await FileOpenService.exportAnimeItem(anime);
+      if (filePath == null) throw Exception('Export failed');
+      if (!context.mounted) return;
+
+      if (Platform.isAndroid) {
+        const channel = MethodChannel('com.yuanzhe.my_anime/share');
+        await channel.invokeMethod('shareFile', {
+          'path': filePath,
+          'mimeType': 'application/json',
+        });
+      } else if (Platform.isIOS) {
+        await Share.shareXFiles([XFile(filePath)]);
+      } else {
+        // Desktop: save as dialog
+        final result = await FilePicker.platform.saveFile(
+          dialogTitle: l10n.shareSaveAs,
+          fileName: p.basename(filePath),
+          type: FileType.any,
+        );
+        if (result != null) {
+          await File(filePath).copy(result);
+          if (context.mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: Text(l10n.shareSaved)),
+            );
+          }
+        }
+      }
+    } catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(l10n.shareFailed)),
+        );
+      }
+    }
+  }
+
+  static Future<void> _shareAnimeImage(
+    BuildContext context,
+    Anime anime,
+    AppLocalizations l10n,
+  ) async {
     // Show URL options dialog if any URL is available
     final hasInfoUrl = anime.infoUrl != null && anime.infoUrl!.isNotEmpty;
     final hasWatchUrl = anime.watchUrl != null && anime.watchUrl!.isNotEmpty;
