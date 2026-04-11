@@ -130,24 +130,79 @@ class Anime {
   }
 
   /// Whether this anime airs in a given season quarter (1-4).
+  ///
+  /// When [manualType] is set, the anime spans a fixed number of consecutive
+  /// quarters from its start quarter (Japanese anime cour convention):
+  ///   - allAtOnce / singleCour → 1 quarter
+  ///   - halfYear (2クール) → 2 quarters
+  ///   - fullYear (4クール) → 4 quarters
+  ///   - longRunning → falls through to week-based estimation
+  ///
+  /// When no manual type is set, the actual run duration is calculated from
+  /// episode count + [episodeWeekOffsets], then mapped to cour boundaries:
+  ///   - ≤13 weeks → 1 quarter
+  ///   - ≤26 weeks → 2 quarters
+  ///   - ≤52 weeks → 4 quarters
+  ///
+  /// For long-running anime (no end episode), falls back to date overlap
+  /// estimation.
   bool airsInQuarter(int year, int quarter) {
     if (firstAirDate == null) return false;
 
+    final sq = startQuarter;
+    if (sq == null) return false;
+
+    // When manual type is set, use cour-based quarter span.
+    if (manualType != null && manualType != AnimeType.longRunning) {
+      final int spanQuarters;
+      switch (manualType!) {
+        case AnimeType.allAtOnce:
+        case AnimeType.singleCour:
+          spanQuarters = 1;
+        case AnimeType.halfYear:
+          spanQuarters = 2;
+        case AnimeType.fullYear:
+          spanQuarters = 4;
+        case AnimeType.longRunning:
+          spanQuarters = 0; // unreachable
+      }
+      final startIdx = sq.$1 * 4 + sq.$2;
+      final queryIdx = year * 4 + quarter;
+      return queryIdx >= startIdx && queryIdx < startIdx + spanQuarters;
+    }
+
+    // No manual type — compute actual run weeks from episode count + offsets.
+    final ep = totalEpisodes;
+    if (ep != null) {
+      final lastEp = startEpisode + ep - 1;
+      final actualWeeks = (ep - 1) + weekOffsetFor(lastEp);
+      // Map to cour count with ~2 weeks tolerance per boundary.
+      final int spanQuarters;
+      if (actualWeeks <= 15) {
+        spanQuarters = 1;
+      } else if (actualWeeks <= 28) {
+        spanQuarters = 2;
+      } else if (actualWeeks <= 41) {
+        spanQuarters = 3;
+      } else if (actualWeeks <= 54) {
+        spanQuarters = 4;
+      } else {
+        spanQuarters = (actualWeeks / 13).ceil();
+      }
+      final startIdx = sq.$1 * 4 + sq.$2;
+      final queryIdx = year * 4 + quarter;
+      return queryIdx >= startIdx && queryIdx < startIdx + spanQuarters;
+    }
+
+    // Long-running (no end episode) — fall back to date overlap.
     final quarterStartMonth = (quarter - 1) * 3 + 1;
     final quarterStart = DateTime(year, quarterStartMonth);
     final quarterEnd = DateTime(
       quarterStartMonth == 10 ? year + 1 : year,
       quarterStartMonth == 10 ? 1 : quarterStartMonth + 3,
     );
-
-    // Calculate approximate end date based on type
-    // First episode airs on firstAirDate, last episode (ep-1) weeks later
-    final ep = totalEpisodes;
-    final weeksToLastEp = ep != null ? (ep - 1) : 51;
     final estimatedEnd =
-        firstAirDate!.add(Duration(days: weeksToLastEp * 7));
-
-    // Anime airs in this quarter if its run overlaps with the quarter
+        firstAirDate!.add(const Duration(days: 51 * 7));
     return firstAirDate!.isBefore(quarterEnd) &&
         estimatedEnd.isAfter(quarterStart);
   }
