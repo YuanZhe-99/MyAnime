@@ -294,45 +294,46 @@ class _ConflictDialog extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     final local = conflict.localRecord;
     final remote = conflict.remoteRecord;
 
     return AlertDialog(
-      title: Text('Sync Conflict: ${conflict.displayName}'),
+      title: Text(l10n.syncConflictTitle(conflict.displayName)),
       content: SizedBox(
         width: double.maxFinite,
         child: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('This anime was modified on both devices since last sync.'),
+            Text(l10n.syncConflictDesc),
             const SizedBox(height: 16),
-            Text('Local version:',
+            Text(l10n.syncLocalVersion,
                 style: TextStyle(fontWeight: FontWeight.bold)),
-            Text('Modified: ${local.modifiedAt.toLocal()}'),
+            Text(l10n.syncModifiedAt('${local.modifiedAt.toLocal()}')),
             if (local.endEpisode != null)
-              Text('Episodes: ${local.startEpisode}–${local.endEpisode}'),
+              Text(l10n.syncEpisodeRange(local.startEpisode, local.endEpisode!)),
             Text(
-                'Watched: ${local.episodeStatuses.values.where((s) => s == EpisodeStatus.watched).length}'),
+                l10n.syncWatched(local.episodeStatuses.values.where((s) => s == EpisodeStatus.watched).length)),
             const SizedBox(height: 12),
-            Text('Remote version:',
+            Text(l10n.syncRemoteVersion,
                 style: TextStyle(fontWeight: FontWeight.bold)),
-            Text('Modified: ${remote.modifiedAt.toLocal()}'),
+            Text(l10n.syncModifiedAt('${remote.modifiedAt.toLocal()}')),
             if (remote.endEpisode != null)
-              Text('Episodes: ${remote.startEpisode}–${remote.endEpisode}'),
+              Text(l10n.syncEpisodeRange(remote.startEpisode, remote.endEpisode!)),
             Text(
-                'Watched: ${remote.episodeStatuses.values.where((s) => s == EpisodeStatus.watched).length}'),
+                l10n.syncWatched(remote.episodeStatuses.values.where((s) => s == EpisodeStatus.watched).length)),
           ],
         ),
       ),
       actions: [
         TextButton(
           onPressed: () => Navigator.of(context).pop(local),
-          child: const Text('Keep Local'),
+          child: Text(l10n.syncKeepLocal),
         ),
         FilledButton(
           onPressed: () => Navigator.of(context).pop(remote),
-          child: const Text('Keep Remote'),
+          child: Text(l10n.syncKeepRemote),
         ),
       ],
     );

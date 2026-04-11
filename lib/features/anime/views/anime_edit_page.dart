@@ -387,7 +387,7 @@ class _AnimeEditPageState extends State<AnimeEditPage> {
               controller: _seasonController,
               decoration: InputDecoration(
                 labelText: l10n.animeSeason,
-                hintText: 'Season 1',
+                hintText: l10n.animeSeasonHint,
                 border: const OutlineInputBorder(),
               ),
               validator: (v) =>
@@ -550,7 +550,8 @@ class _AnimeEditPageState extends State<AnimeEditPage> {
   }
 
   String _dayName(int dow) {
-    const days = ['', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+    final l10n = AppLocalizations.of(context)!;
+    final days = ['', l10n.dayMon, l10n.dayTue, l10n.dayWed, l10n.dayThu, l10n.dayFri, l10n.daySat, l10n.daySun];
     return days[dow.clamp(1, 7)];
   }
 

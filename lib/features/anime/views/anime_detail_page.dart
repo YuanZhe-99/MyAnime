@@ -485,7 +485,7 @@ class _AnimeDetailPageState extends State<AnimeDetailPage> {
 
   String _dayName(int? dow, AppLocalizations l10n) {
     if (dow == null) return '?';
-    const days = ['', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+    final days = ['', l10n.dayMon, l10n.dayTue, l10n.dayWed, l10n.dayThu, l10n.dayFri, l10n.daySat, l10n.daySun];
     return days[dow.clamp(1, 7)];
   }
 

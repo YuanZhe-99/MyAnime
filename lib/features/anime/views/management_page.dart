@@ -82,14 +82,16 @@ class _ManagementPageState extends State<ManagementPage> {
       ..sort((a, b) => a.displayTitle.compareTo(b.displayTitle));
   }
 
-  static String _quarterLabel(_Quarter q) {
-    const seasons = ['', 'Winter', 'Spring', 'Summer', 'Fall'];
+  String _quarterLabel(_Quarter q) {
+    final l10n = AppLocalizations.of(context)!;
+    final seasons = ['', l10n.seasonWinter, l10n.seasonSpring, l10n.seasonSummer, l10n.seasonFall];
     return '${q.year} ${seasons[q.q]}';
   }
 
-  static String _dayLabel(int? dow) {
+  String _dayLabel(int? dow) {
     if (dow == null) return '?';
-    const days = ['', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+    final l10n = AppLocalizations.of(context)!;
+    final days = ['', l10n.dayMon, l10n.dayTue, l10n.dayWed, l10n.dayThu, l10n.dayFri, l10n.daySat, l10n.daySun];
     return days[dow.clamp(1, 7)];
   }
 

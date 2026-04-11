@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:io';
+import 'dart:ui';
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
@@ -9,6 +10,7 @@ import 'package:timezone/timezone.dart' as tz;
 
 import '../../features/anime/models/anime.dart';
 import '../../features/anime/services/anime_storage.dart';
+import '../../l10n/app_localizations.dart';
 import '../utils/jst_time.dart';
 
 /// Daily reminder notification service.
@@ -33,6 +35,19 @@ class ReminderService {
   static bool _isDesktop = false;
   static bool _isMobile = false;
   static Timer? _timer;
+
+  /// Resolve the current l10n instance from saved locale or platform default.
+  static Future<AppLocalizations> _getL10n() async {
+    final tag = await AnimeStorage.getLocaleTag();
+    Locale locale;
+    if (tag != null) {
+      final parts = tag.split('_');
+      locale = parts.length > 1 ? Locale(parts[0], parts[1]) : Locale(parts[0]);
+    } else {
+      locale = PlatformDispatcher.instance.locale;
+    }
+    return lookupAppLocalizations(locale);
+  }
 
   /// Initialize the notification plugin.
   static Future<void> init() async {
@@ -133,10 +148,12 @@ class ReminderService {
 
     const darwinDetails = DarwinNotificationDetails();
 
+    final l10n = await _getL10n();
+
     await _plugin.zonedSchedule(
       _scheduledNotificationId,
       'MyAnime!!!!!',
-      'Check your anime schedule!',
+      l10n.reminderNotifBody,
       scheduledDate,
       const NotificationDetails(
         android: androidDetails,
@@ -227,12 +244,13 @@ class ReminderService {
       if (airingToday == 0 && unwatchedCount == 0) return;
 
       // Build notification body.
+      final l10n = await _getL10n();
       final lines = <String>[];
       if (airingToday > 0) {
-        lines.add('$airingToday episode(s) airing today');
+        lines.add(l10n.reminderAiringToday(airingToday));
       }
       if (unwatchedCount > 0) {
-        lines.add('$unwatchedCount unwatched episode(s)');
+        lines.add(l10n.reminderUnwatched(unwatchedCount));
       }
 
       await _show('MyAnime!!!!!', lines.join(' · '));

@@ -175,5 +175,43 @@
 
   "manageJumpToQuarter": "Jump to Quarter",
   "manageNoSearchResults": "No matching anime found",
-  "manageOther": "Other"
+  "manageOther": "Other",
+
+  "dayMon": "Mon",
+  "dayTue": "Tue",
+  "dayWed": "Wed",
+  "dayThu": "Thu",
+  "dayFri": "Fri",
+  "daySat": "Sat",
+  "daySun": "Sun",
+
+  "seasonWinter": "Winter",
+  "seasonSpring": "Spring",
+  "seasonSummer": "Summer",
+  "seasonFall": "Fall",
+
+  "reminderNotifBody": "Check your anime schedule!",
+  "reminderAiringToday": "{count} episode(s) airing today",
+  "@reminderAiringToday": { "placeholders": { "count": { "type": "int" } } },
+  "reminderUnwatched": "{count} unwatched episode(s)",
+  "@reminderUnwatched": { "placeholders": { "count": { "type": "int" } } },
+
+  "syncConflictTitle": "Sync Conflict: {name}",
+  "@syncConflictTitle": { "placeholders": { "name": { "type": "String" } } },
+  "syncConflictDesc": "This anime was modified on both devices since last sync.",
+  "syncLocalVersion": "Local version:",
+  "syncRemoteVersion": "Remote version:",
+  "syncModifiedAt": "Modified: {time}",
+  "@syncModifiedAt": { "placeholders": { "time": { "type": "String" } } },
+  "syncEpisodeRange": "Episodes: {start}\u2013{end}",
+  "@syncEpisodeRange": { "placeholders": { "start": { "type": "int" }, "end": { "type": "int" } } },
+  "syncWatched": "Watched: {count}",
+  "@syncWatched": { "placeholders": { "count": { "type": "int" } } },
+  "syncKeepLocal": "Keep Local",
+  "syncKeepRemote": "Keep Remote",
+
+  "searchEpisodesCount": "{count} eps",
+  "@searchEpisodesCount": { "placeholders": { "count": { "type": "int" } } },
+
+  "animeSeasonHint": "Season 1"
 }

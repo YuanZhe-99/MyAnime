@@ -168,5 +168,43 @@
 
   "manageJumpToQuarter": "跳转到季度",
   "manageNoSearchResults": "没有匹配的番剧",
-  "manageOther": "其他"
+  "manageOther": "其他",
+
+  "dayMon": "周一",
+  "dayTue": "周二",
+  "dayWed": "周三",
+  "dayThu": "周四",
+  "dayFri": "周五",
+  "daySat": "周六",
+  "daySun": "周日",
+
+  "seasonWinter": "冬",
+  "seasonSpring": "春",
+  "seasonSummer": "夏",
+  "seasonFall": "秋",
+
+  "reminderNotifBody": "查看你的动漫日程！",
+  "reminderAiringToday": "今日放送: {count}话",
+  "@reminderAiringToday": { "placeholders": { "count": { "type": "int" } } },
+  "reminderUnwatched": "未观看: {count}话",
+  "@reminderUnwatched": { "placeholders": { "count": { "type": "int" } } },
+
+  "syncConflictTitle": "同步冲突: {name}",
+  "@syncConflictTitle": { "placeholders": { "name": { "type": "String" } } },
+  "syncConflictDesc": "该番剧在上次同步后在两台设备上均被修改。",
+  "syncLocalVersion": "本地版本:",
+  "syncRemoteVersion": "远程版本:",
+  "syncModifiedAt": "修改时间: {time}",
+  "@syncModifiedAt": { "placeholders": { "time": { "type": "String" } } },
+  "syncEpisodeRange": "集数: {start}\u301c{end}",
+  "@syncEpisodeRange": { "placeholders": { "start": { "type": "int" }, "end": { "type": "int" } } },
+  "syncWatched": "已观看: {count}",
+  "@syncWatched": { "placeholders": { "count": { "type": "int" } } },
+  "syncKeepLocal": "保留本地",
+  "syncKeepRemote": "保留远程",
+
+  "searchEpisodesCount": "{count}话",
+  "@searchEpisodesCount": { "placeholders": { "count": { "type": "int" } } },
+
+  "animeSeasonHint": "第1季"
 }

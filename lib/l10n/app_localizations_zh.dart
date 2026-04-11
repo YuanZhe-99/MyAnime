@@ -489,6 +489,95 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get manageOther => '其他';
+
+  @override
+  String get dayMon => '周一';
+
+  @override
+  String get dayTue => '周二';
+
+  @override
+  String get dayWed => '周三';
+
+  @override
+  String get dayThu => '周四';
+
+  @override
+  String get dayFri => '周五';
+
+  @override
+  String get daySat => '周六';
+
+  @override
+  String get daySun => '周日';
+
+  @override
+  String get seasonWinter => '冬';
+
+  @override
+  String get seasonSpring => '春';
+
+  @override
+  String get seasonSummer => '夏';
+
+  @override
+  String get seasonFall => '秋';
+
+  @override
+  String get reminderNotifBody => '查看你的动漫日程！';
+
+  @override
+  String reminderAiringToday(int count) {
+    return '今日放送: $count话';
+  }
+
+  @override
+  String reminderUnwatched(int count) {
+    return '未观看: $count话';
+  }
+
+  @override
+  String syncConflictTitle(String name) {
+    return '同步冲突: $name';
+  }
+
+  @override
+  String get syncConflictDesc => '该番剧在上次同步后在两台设备上均被修改。';
+
+  @override
+  String get syncLocalVersion => '本地版本:';
+
+  @override
+  String get syncRemoteVersion => '远程版本:';
+
+  @override
+  String syncModifiedAt(String time) {
+    return '修改时间: $time';
+  }
+
+  @override
+  String syncEpisodeRange(int start, int end) {
+    return '集数: $start〜$end';
+  }
+
+  @override
+  String syncWatched(int count) {
+    return '已观看: $count';
+  }
+
+  @override
+  String get syncKeepLocal => '保留本地';
+
+  @override
+  String get syncKeepRemote => '保留远程';
+
+  @override
+  String searchEpisodesCount(int count) {
+    return '$count话';
+  }
+
+  @override
+  String get animeSeasonHint => '第1季';
 }
 
 /// The translations for Chinese, as used in Taiwan (`zh_TW`).
@@ -976,4 +1065,93 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
 
   @override
   String get manageOther => '其他';
+
+  @override
+  String get dayMon => '週一';
+
+  @override
+  String get dayTue => '週二';
+
+  @override
+  String get dayWed => '週三';
+
+  @override
+  String get dayThu => '週四';
+
+  @override
+  String get dayFri => '週五';
+
+  @override
+  String get daySat => '週六';
+
+  @override
+  String get daySun => '週日';
+
+  @override
+  String get seasonWinter => '冬';
+
+  @override
+  String get seasonSpring => '春';
+
+  @override
+  String get seasonSummer => '夏';
+
+  @override
+  String get seasonFall => '秋';
+
+  @override
+  String get reminderNotifBody => '查看你的動漫日程！';
+
+  @override
+  String reminderAiringToday(int count) {
+    return '今日放送: $count話';
+  }
+
+  @override
+  String reminderUnwatched(int count) {
+    return '未觀看: $count話';
+  }
+
+  @override
+  String syncConflictTitle(String name) {
+    return '同步衝突: $name';
+  }
+
+  @override
+  String get syncConflictDesc => '此番劇在上次同步後在兩台裝置上均被修改。';
+
+  @override
+  String get syncLocalVersion => '本地版本:';
+
+  @override
+  String get syncRemoteVersion => '遠端版本:';
+
+  @override
+  String syncModifiedAt(String time) {
+    return '修改時間: $time';
+  }
+
+  @override
+  String syncEpisodeRange(int start, int end) {
+    return '集數: $start〜$end';
+  }
+
+  @override
+  String syncWatched(int count) {
+    return '已觀看: $count';
+  }
+
+  @override
+  String get syncKeepLocal => '保留本地';
+
+  @override
+  String get syncKeepRemote => '保留遠端';
+
+  @override
+  String searchEpisodesCount(int count) {
+    return '$count話';
+  }
+
+  @override
+  String get animeSeasonHint => '第1季';
 }

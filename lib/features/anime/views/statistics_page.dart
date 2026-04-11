@@ -724,8 +724,9 @@ class _StatisticsPageState extends State<StatisticsPage> {
     }).toList();
   }
 
-  static String _quarterLabel(int year, int quarter) {
-    const seasons = ['', 'Winter', 'Spring', 'Summer', 'Fall'];
+  String _quarterLabel(int year, int quarter) {
+    final l10n = AppLocalizations.of(context)!;
+    final seasons = ['', l10n.seasonWinter, l10n.seasonSpring, l10n.seasonSummer, l10n.seasonFall];
     return '$year ${seasons[quarter]}';
   }
 }

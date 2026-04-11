@@ -168,5 +168,43 @@
 
   "manageJumpToQuarter": "クールに移動",
   "manageNoSearchResults": "該当するアニメが見つかりません",
-  "manageOther": "その他"
+  "manageOther": "その他",
+
+  "dayMon": "月",
+  "dayTue": "火",
+  "dayWed": "水",
+  "dayThu": "木",
+  "dayFri": "金",
+  "daySat": "土",
+  "daySun": "日",
+
+  "seasonWinter": "冬",
+  "seasonSpring": "春",
+  "seasonSummer": "夏",
+  "seasonFall": "秋",
+
+  "reminderNotifBody": "アニメのスケジュールを確認してください！",
+  "reminderAiringToday": "今日放送: {count}話",
+  "@reminderAiringToday": { "placeholders": { "count": { "type": "int" } } },
+  "reminderUnwatched": "未視聴: {count}話",
+  "@reminderUnwatched": { "placeholders": { "count": { "type": "int" } } },
+
+  "syncConflictTitle": "同期競合: {name}",
+  "@syncConflictTitle": { "placeholders": { "name": { "type": "String" } } },
+  "syncConflictDesc": "このアニメは最後の同期以降、両方のデバイスで変更されました。",
+  "syncLocalVersion": "ローカル版:",
+  "syncRemoteVersion": "リモート版:",
+  "syncModifiedAt": "更新日時: {time}",
+  "@syncModifiedAt": { "placeholders": { "time": { "type": "String" } } },
+  "syncEpisodeRange": "エピソード: {start}\u301c{end}",
+  "@syncEpisodeRange": { "placeholders": { "start": { "type": "int" }, "end": { "type": "int" } } },
+  "syncWatched": "視聴済み: {count}",
+  "@syncWatched": { "placeholders": { "count": { "type": "int" } } },
+  "syncKeepLocal": "ローカルを保持",
+  "syncKeepRemote": "リモートを保持",
+
+  "searchEpisodesCount": "{count}話",
+  "@searchEpisodesCount": { "placeholders": { "count": { "type": "int" } } },
+
+  "animeSeasonHint": "第1期"
 }

@@ -494,4 +494,94 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get manageOther => 'Other';
+
+  @override
+  String get dayMon => 'Mon';
+
+  @override
+  String get dayTue => 'Tue';
+
+  @override
+  String get dayWed => 'Wed';
+
+  @override
+  String get dayThu => 'Thu';
+
+  @override
+  String get dayFri => 'Fri';
+
+  @override
+  String get daySat => 'Sat';
+
+  @override
+  String get daySun => 'Sun';
+
+  @override
+  String get seasonWinter => 'Winter';
+
+  @override
+  String get seasonSpring => 'Spring';
+
+  @override
+  String get seasonSummer => 'Summer';
+
+  @override
+  String get seasonFall => 'Fall';
+
+  @override
+  String get reminderNotifBody => 'Check your anime schedule!';
+
+  @override
+  String reminderAiringToday(int count) {
+    return '$count episode(s) airing today';
+  }
+
+  @override
+  String reminderUnwatched(int count) {
+    return '$count unwatched episode(s)';
+  }
+
+  @override
+  String syncConflictTitle(String name) {
+    return 'Sync Conflict: $name';
+  }
+
+  @override
+  String get syncConflictDesc =>
+      'This anime was modified on both devices since last sync.';
+
+  @override
+  String get syncLocalVersion => 'Local version:';
+
+  @override
+  String get syncRemoteVersion => 'Remote version:';
+
+  @override
+  String syncModifiedAt(String time) {
+    return 'Modified: $time';
+  }
+
+  @override
+  String syncEpisodeRange(int start, int end) {
+    return 'Episodes: $start–$end';
+  }
+
+  @override
+  String syncWatched(int count) {
+    return 'Watched: $count';
+  }
+
+  @override
+  String get syncKeepLocal => 'Keep Local';
+
+  @override
+  String get syncKeepRemote => 'Keep Remote';
+
+  @override
+  String searchEpisodesCount(int count) {
+    return '$count eps';
+  }
+
+  @override
+  String get animeSeasonHint => 'Season 1';
 }

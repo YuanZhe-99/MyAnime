@@ -1036,6 +1036,156 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Other'**
   String get manageOther;
+
+  /// No description provided for @dayMon.
+  ///
+  /// In en, this message translates to:
+  /// **'Mon'**
+  String get dayMon;
+
+  /// No description provided for @dayTue.
+  ///
+  /// In en, this message translates to:
+  /// **'Tue'**
+  String get dayTue;
+
+  /// No description provided for @dayWed.
+  ///
+  /// In en, this message translates to:
+  /// **'Wed'**
+  String get dayWed;
+
+  /// No description provided for @dayThu.
+  ///
+  /// In en, this message translates to:
+  /// **'Thu'**
+  String get dayThu;
+
+  /// No description provided for @dayFri.
+  ///
+  /// In en, this message translates to:
+  /// **'Fri'**
+  String get dayFri;
+
+  /// No description provided for @daySat.
+  ///
+  /// In en, this message translates to:
+  /// **'Sat'**
+  String get daySat;
+
+  /// No description provided for @daySun.
+  ///
+  /// In en, this message translates to:
+  /// **'Sun'**
+  String get daySun;
+
+  /// No description provided for @seasonWinter.
+  ///
+  /// In en, this message translates to:
+  /// **'Winter'**
+  String get seasonWinter;
+
+  /// No description provided for @seasonSpring.
+  ///
+  /// In en, this message translates to:
+  /// **'Spring'**
+  String get seasonSpring;
+
+  /// No description provided for @seasonSummer.
+  ///
+  /// In en, this message translates to:
+  /// **'Summer'**
+  String get seasonSummer;
+
+  /// No description provided for @seasonFall.
+  ///
+  /// In en, this message translates to:
+  /// **'Fall'**
+  String get seasonFall;
+
+  /// No description provided for @reminderNotifBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Check your anime schedule!'**
+  String get reminderNotifBody;
+
+  /// No description provided for @reminderAiringToday.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} episode(s) airing today'**
+  String reminderAiringToday(int count);
+
+  /// No description provided for @reminderUnwatched.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} unwatched episode(s)'**
+  String reminderUnwatched(int count);
+
+  /// No description provided for @syncConflictTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Sync Conflict: {name}'**
+  String syncConflictTitle(String name);
+
+  /// No description provided for @syncConflictDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'This anime was modified on both devices since last sync.'**
+  String get syncConflictDesc;
+
+  /// No description provided for @syncLocalVersion.
+  ///
+  /// In en, this message translates to:
+  /// **'Local version:'**
+  String get syncLocalVersion;
+
+  /// No description provided for @syncRemoteVersion.
+  ///
+  /// In en, this message translates to:
+  /// **'Remote version:'**
+  String get syncRemoteVersion;
+
+  /// No description provided for @syncModifiedAt.
+  ///
+  /// In en, this message translates to:
+  /// **'Modified: {time}'**
+  String syncModifiedAt(String time);
+
+  /// No description provided for @syncEpisodeRange.
+  ///
+  /// In en, this message translates to:
+  /// **'Episodes: {start}–{end}'**
+  String syncEpisodeRange(int start, int end);
+
+  /// No description provided for @syncWatched.
+  ///
+  /// In en, this message translates to:
+  /// **'Watched: {count}'**
+  String syncWatched(int count);
+
+  /// No description provided for @syncKeepLocal.
+  ///
+  /// In en, this message translates to:
+  /// **'Keep Local'**
+  String get syncKeepLocal;
+
+  /// No description provided for @syncKeepRemote.
+  ///
+  /// In en, this message translates to:
+  /// **'Keep Remote'**
+  String get syncKeepRemote;
+
+  /// No description provided for @searchEpisodesCount.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} eps'**
+  String searchEpisodesCount(int count);
+
+  /// No description provided for @animeSeasonHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Season 1'**
+  String get animeSeasonHint;
 }
 
 class _AppLocalizationsDelegate

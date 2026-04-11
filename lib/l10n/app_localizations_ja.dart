@@ -491,4 +491,93 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get manageOther => 'その他';
+
+  @override
+  String get dayMon => '月';
+
+  @override
+  String get dayTue => '火';
+
+  @override
+  String get dayWed => '水';
+
+  @override
+  String get dayThu => '木';
+
+  @override
+  String get dayFri => '金';
+
+  @override
+  String get daySat => '土';
+
+  @override
+  String get daySun => '日';
+
+  @override
+  String get seasonWinter => '冬';
+
+  @override
+  String get seasonSpring => '春';
+
+  @override
+  String get seasonSummer => '夏';
+
+  @override
+  String get seasonFall => '秋';
+
+  @override
+  String get reminderNotifBody => 'アニメのスケジュールを確認してください！';
+
+  @override
+  String reminderAiringToday(int count) {
+    return '今日放送: $count話';
+  }
+
+  @override
+  String reminderUnwatched(int count) {
+    return '未視聴: $count話';
+  }
+
+  @override
+  String syncConflictTitle(String name) {
+    return '同期競合: $name';
+  }
+
+  @override
+  String get syncConflictDesc => 'このアニメは最後の同期以降、両方のデバイスで変更されました。';
+
+  @override
+  String get syncLocalVersion => 'ローカル版:';
+
+  @override
+  String get syncRemoteVersion => 'リモート版:';
+
+  @override
+  String syncModifiedAt(String time) {
+    return '更新日時: $time';
+  }
+
+  @override
+  String syncEpisodeRange(int start, int end) {
+    return 'エピソード: $start〜$end';
+  }
+
+  @override
+  String syncWatched(int count) {
+    return '視聴済み: $count';
+  }
+
+  @override
+  String get syncKeepLocal => 'ローカルを保持';
+
+  @override
+  String get syncKeepRemote => 'リモートを保持';
+
+  @override
+  String searchEpisodesCount(int count) {
+    return '$count話';
+  }
+
+  @override
+  String get animeSeasonHint => '第1期';
 }

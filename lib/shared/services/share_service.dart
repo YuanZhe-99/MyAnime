@@ -232,7 +232,7 @@ class ShareService {
 
     // Schedule
     if (anime.airDayOfWeek != null) {
-      final day = _dayName(anime.airDayOfWeek!);
+      final day = _dayName(anime.airDayOfWeek!, l10n);
       final time = anime.airTime ?? '';
       infoLines.add(time.isNotEmpty ? '$day $time JST' : '$day JST');
     }
@@ -547,8 +547,8 @@ class ShareService {
     }
   }
 
-  static String _dayName(int dow) {
-    const days = ['', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+  static String _dayName(int dow, AppLocalizations l10n) {
+    final days = ['', l10n.dayMon, l10n.dayTue, l10n.dayWed, l10n.dayThu, l10n.dayFri, l10n.daySat, l10n.daySun];
     return days[dow.clamp(1, 7)];
   }
 
