@@ -595,4 +595,10 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get importAnimeFailed => 'インポートに失敗しました';
+
+  @override
+  String get addAnimeCreate => '新規作成';
+
+  @override
+  String get addAnimeImport => 'ファイルからインポート';
 }

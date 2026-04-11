@@ -593,6 +593,12 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get importAnimeFailed => '导入失败';
+
+  @override
+  String get addAnimeCreate => '新建番剧';
+
+  @override
+  String get addAnimeImport => '从文件导入';
 }
 
 /// The translations for Chinese, as used in Taiwan (`zh_TW`).
@@ -1184,4 +1190,10 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
 
   @override
   String get importAnimeFailed => '匯入失敗';
+
+  @override
+  String get addAnimeCreate => '新建番劇';
+
+  @override
+  String get addAnimeImport => '從檔案匯入';
 }

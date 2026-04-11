@@ -1,8 +1,10 @@
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:file_picker/file_picker.dart';
 import 'package:flutter/services.dart';
 import 'package:path/path.dart' as p;
+import 'package:path_provider/path_provider.dart';
 import 'package:uuid/uuid.dart';
 
 import '../../app/router.dart';
@@ -17,7 +19,8 @@ class FileOpenService {
     _channel.setMethodCallHandler((call) async {
       if (call.method == 'openFile') {
         final path = call.arguments as String;
-        await handleFile(path);
+        final id = await handleFile(path);
+        if (id != null) appRouter.go('/anime/detail/$id');
       }
     });
   }
@@ -30,18 +33,19 @@ class FileOpenService {
     if (_pendingFile != null) {
       final path = _pendingFile!;
       _pendingFile = null;
-      await handleFile(path);
+      final id = await handleFile(path);
+      if (id != null) appRouter.go('/anime/detail/$id');
     }
   }
 
-  static Future<void> handleFile(String path) async {
+  static Future<String?> handleFile(String path) async {
     try {
       final file = File(path);
-      if (!await file.exists()) return;
+      if (!await file.exists()) return null;
 
       final raw = await file.readAsString();
       final json = jsonDecode(raw) as Map<String, dynamic>;
-      if (json['version'] != 1 || json['anime'] == null) return;
+      if (json['version'] != 1 || json['anime'] == null) return null;
 
       final anime = Anime.fromJson(json['anime'] as Map<String, dynamic>);
 
@@ -82,18 +86,34 @@ class FileOpenService {
       );
 
       await AnimeStorage.addOrUpdate(imported);
-      appRouter.go('/anime/detail/${imported.id}');
+      return imported.id;
     } catch (_) {
-      // Silently fail — file might be corrupted or wrong format
+      return null;
     }
+  }
+
+  /// Open a file picker for the user to select a .myanimeitem file,
+  /// then import it. Returns the imported anime ID, or null on failure/cancel.
+  static Future<String?> importFromPicker() async {
+    final result = await FilePicker.platform.pickFiles(
+      type: FileType.any,
+    );
+    if (result == null || result.files.isEmpty) return null;
+    final path = result.files.single.path;
+    if (path == null) return null;
+    return handleFile(path);
   }
 
   /// Export an anime to a .myanimeitem JSON file.
   /// Returns the file path, or null on failure.
+  /// Personal data (episodeStatuses, episodeWeekOffsets) is stripped.
   static Future<String?> exportAnimeItem(Anime anime) async {
+    final animeJson = anime.toJson();
+    animeJson.remove('episodeStatuses');
+    animeJson.remove('episodeWeekOffsets');
     final json = <String, dynamic>{
       'version': 1,
-      'anime': anime.toJson(),
+      'anime': animeJson,
     };
 
     // Embed cover image as base64
@@ -109,12 +129,26 @@ class FileOpenService {
       } catch (_) {}
     }
 
-    final tempDir = await Directory.systemTemp.createTemp('myanimeitem');
-    final safeName = anime.displayTitle.replaceAll(RegExp(r'[^\w\s\-]'), '');
+    final tempDir = await getTemporaryDirectory();
+    final safeName = _sanitizeFileName(anime.displayTitle);
     final filePath =
-        p.join(tempDir.path, '${safeName.trim()}.myanimeitem');
+        p.join(tempDir.path, '$safeName.myanimeitem');
     await File(filePath)
         .writeAsString(const JsonEncoder.withIndent('  ').convert(json));
     return filePath;
+  }
+
+  /// Sanitize a string for use as a filename.
+  /// Removes characters illegal on Windows/macOS/Linux filesystems,
+  /// keeps CJK, accented, and other Unicode letters.
+  static String _sanitizeFileName(String name) {
+    // Remove characters illegal in filenames: / \ : * ? " < > |
+    // Also remove control characters.
+    var safe = name.replaceAll(RegExp(r'[/\\:*?"<>|\x00-\x1F]'), '');
+    safe = safe.trim();
+    if (safe.isEmpty) safe = 'anime';
+    // Limit length to avoid filesystem issues
+    if (safe.length > 100) safe = safe.substring(0, 100);
+    return safe;
   }
 }

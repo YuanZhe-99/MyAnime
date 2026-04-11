@@ -219,5 +219,8 @@
   "shareAsImage": "Share as Image",
   "shareAsData": "Share as Data File",
   "importAnimeSuccess": "Anime imported successfully",
-  "importAnimeFailed": "Failed to import anime"
+  "importAnimeFailed": "Failed to import anime",
+
+  "addAnimeCreate": "Create New",
+  "addAnimeImport": "Import from File"
 }

@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../l10n/app_localizations.dart';
+import '../../../shared/services/file_open_service.dart';
 import '../../../shared/services/image_service.dart';
 import '../../../shared/widgets/delete_confirm.dart';
 import '../models/anime.dart';
@@ -100,6 +101,51 @@ class _ManagementPageState extends State<ManagementPage> {
     if (!ok) return;
     await AnimeStorage.deleteAnime(anime.id);
     await _load();
+  }
+
+  Future<void> _showAddOptions(BuildContext context) async {
+    final l10n = AppLocalizations.of(context)!;
+    final choice = await showDialog<String>(
+      context: context,
+      builder: (ctx) => SimpleDialog(
+        title: Text(l10n.animeAdd),
+        children: [
+          SimpleDialogOption(
+            onPressed: () => Navigator.pop(ctx, 'create'),
+            child: ListTile(
+              leading: const Icon(Icons.add),
+              title: Text(l10n.addAnimeCreate),
+            ),
+          ),
+          SimpleDialogOption(
+            onPressed: () => Navigator.pop(ctx, 'import'),
+            child: ListTile(
+              leading: const Icon(Icons.file_open),
+              title: Text(l10n.addAnimeImport),
+            ),
+          ),
+        ],
+      ),
+    );
+    if (choice == null || !mounted) return;
+
+    if (choice == 'create') {
+      final newId = await context.push<String>('/anime/edit');
+      await _load();
+      if (newId != null && mounted) {
+        await context.push('/anime/detail/$newId');
+        await _load();
+        _jumpToAnimeQuarter(newId);
+      }
+    } else {
+      final importedId = await FileOpenService.importFromPicker();
+      await _load();
+      if (importedId != null && mounted) {
+        await context.push('/anime/detail/$importedId');
+        await _load();
+        _jumpToAnimeQuarter(importedId);
+      }
+    }
   }
 
   void _jumpToAnimeQuarter(String animeId) {
@@ -353,15 +399,7 @@ class _ManagementPageState extends State<ManagementPage> {
       ),
       body: isSearching ? _buildSearchResults(theme, l10n) : _buildQuarterView(theme, l10n),
       floatingActionButton: FloatingActionButton(
-        onPressed: () async {
-          final newId = await context.push<String>('/anime/edit');
-          await _load();
-          if (newId != null && mounted) {
-            await context.push('/anime/detail/$newId');
-            await _load();
-            _jumpToAnimeQuarter(newId);
-          }
-        },
+        onPressed: () => _showAddOptions(context),
         tooltip: l10n.animeAdd,
         child: const Icon(Icons.add),
       ),

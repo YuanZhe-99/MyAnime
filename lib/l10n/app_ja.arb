@@ -212,5 +212,8 @@
   "shareAsImage": "画像で共有",
   "shareAsData": "データファイルで共有",
   "importAnimeSuccess": "アニメをインポートしました",
-  "importAnimeFailed": "インポートに失敗しました"
+  "importAnimeFailed": "インポートに失敗しました",
+
+  "addAnimeCreate": "新規作成",
+  "addAnimeImport": "ファイルからインポート"
 }

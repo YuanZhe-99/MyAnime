@@ -7,6 +7,7 @@ import 'package:table_calendar/table_calendar.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../../../l10n/app_localizations.dart';
+import '../../../shared/services/file_open_service.dart';
 import '../../../shared/services/image_service.dart';
 import '../../../shared/utils/jst_time.dart';
 import '../models/anime.dart';
@@ -93,6 +94,49 @@ class _HomePageState extends State<HomePage> {
     );
     await AnimeStorage.addOrUpdate(updated);
     await _load();
+  }
+
+  Future<void> _showAddOptions(BuildContext context) async {
+    final l10n = AppLocalizations.of(context)!;
+    final choice = await showDialog<String>(
+      context: context,
+      builder: (ctx) => SimpleDialog(
+        title: Text(l10n.animeAdd),
+        children: [
+          SimpleDialogOption(
+            onPressed: () => Navigator.pop(ctx, 'create'),
+            child: ListTile(
+              leading: const Icon(Icons.add),
+              title: Text(l10n.addAnimeCreate),
+            ),
+          ),
+          SimpleDialogOption(
+            onPressed: () => Navigator.pop(ctx, 'import'),
+            child: ListTile(
+              leading: const Icon(Icons.file_open),
+              title: Text(l10n.addAnimeImport),
+            ),
+          ),
+        ],
+      ),
+    );
+    if (choice == null || !mounted) return;
+
+    if (choice == 'create') {
+      final newId = await context.push<String>('/anime/edit');
+      await _load();
+      if (newId != null && mounted) {
+        await context.push('/anime/detail/$newId');
+        await _load();
+      }
+    } else {
+      final importedId = await FileOpenService.importFromPicker();
+      await _load();
+      if (importedId != null && mounted) {
+        await context.push('/anime/detail/$importedId');
+        await _load();
+      }
+    }
   }
 
   @override
@@ -237,14 +281,7 @@ class _HomePageState extends State<HomePage> {
         ),
       ),
       floatingActionButton: FloatingActionButton(
-        onPressed: () async {
-          final newId = await context.push<String>('/anime/edit');
-          await _load();
-          if (newId != null && mounted) {
-            await context.push('/anime/detail/$newId');
-            await _load();
-          }
-        },
+        onPressed: () => _showAddOptions(context),
         tooltip: l10n.animeAdd,
         child: const Icon(Icons.add),
       ),

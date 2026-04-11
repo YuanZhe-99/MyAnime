@@ -1216,6 +1216,18 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Failed to import anime'**
   String get importAnimeFailed;
+
+  /// No description provided for @addAnimeCreate.
+  ///
+  /// In en, this message translates to:
+  /// **'Create New'**
+  String get addAnimeCreate;
+
+  /// No description provided for @addAnimeImport.
+  ///
+  /// In en, this message translates to:
+  /// **'Import from File'**
+  String get addAnimeImport;
 }
 
 class _AppLocalizationsDelegate

@@ -45,7 +45,7 @@ class Anime {
   /// Last episode number. null = long-running / unknown end.
   final int? endEpisode;
 
-  /// Manual type override. Must be >= auto type.
+  /// Manual type override. When set, always takes effect.
   final AnimeType? manualType;
 
   /// Day of the week the anime airs (1=Monday..7=Sunday), Japan time.
@@ -123,12 +123,9 @@ class Anime {
     return AnimeType.longRunning;
   }
 
-  /// Effective type: manual override wins if it's >= auto.
+  /// Effective type: manual override always wins when set.
   AnimeType get effectiveType {
-    if (manualType == AnimeType.allAtOnce) return AnimeType.allAtOnce;
-    if (manualType != null && manualType!.index >= autoType.index) {
-      return manualType!;
-    }
+    if (manualType != null) return manualType!;
     return autoType;
   }
 

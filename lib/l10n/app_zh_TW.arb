@@ -212,5 +212,8 @@
   "shareAsImage": "分享為圖片",
   "shareAsData": "分享為資料檔案",
   "importAnimeSuccess": "番劇匯入成功",
-  "importAnimeFailed": "匯入失敗"
+  "importAnimeFailed": "匯入失敗",
+
+  "addAnimeCreate": "新建番劇",
+  "addAnimeImport": "從檔案匯入"
 }
