@@ -37,7 +37,9 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
   bool _minimizeToTray = false;
   bool _closeToTray = false;
   // API server settings
+  bool _apiEnabled = false;
   int _apiPort = 7788;
+  String _apiListenAddress = 'localhost';
   String _apiUsername = '';
   String _apiPassword = '';
 
@@ -220,7 +222,9 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
     final config = await AnimeStorage.readConfig();
     if (!mounted) return;
     setState(() {
+      _apiEnabled = config['apiEnabled'] as bool? ?? false;
       _apiPort = config['apiPort'] as int? ?? 7788;
+      _apiListenAddress = config['apiListenAddress'] as String? ?? 'localhost';
       _apiUsername = config['apiUsername'] as String? ?? '';
       _apiPassword = config['apiPassword'] as String? ?? '';
     });
@@ -229,6 +233,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
   Future<void> _showApiSettingsDialog() async {
     final l10n = AppLocalizations.of(context)!;
     final portCtrl = TextEditingController(text: _apiPort.toString());
+    final addrCtrl = TextEditingController(text: _apiListenAddress);
     final userCtrl = TextEditingController(text: _apiUsername);
     final passCtrl = TextEditingController(text: _apiPassword);
 
@@ -239,6 +244,11 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
+            TextField(
+              controller: addrCtrl,
+              decoration: InputDecoration(labelText: l10n.settingsApiListenAddress),
+            ),
+            const SizedBox(height: 8),
             TextField(
               controller: portCtrl,
               decoration: InputDecoration(labelText: l10n.settingsApiPort),
@@ -272,15 +282,18 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
     if (saved != true || !mounted) return;
 
     final newPort = int.tryParse(portCtrl.text.trim()) ?? 7788;
+    final newAddr = addrCtrl.text.trim().isEmpty ? 'localhost' : addrCtrl.text.trim();
     final newUser = userCtrl.text.trim();
     final newPass = passCtrl.text.trim();
     final config = await AnimeStorage.readConfig();
     config['apiPort'] = newPort;
+    config['apiListenAddress'] = newAddr;
     config['apiUsername'] = newUser.isEmpty ? null : newUser;
     config['apiPassword'] = newPass.isEmpty ? null : newPass;
     await AnimeStorage.writeConfig(config);
     setState(() {
       _apiPort = newPort;
+      _apiListenAddress = newAddr;
       _apiUsername = newUser;
       _apiPassword = newPass;
     });
@@ -553,16 +566,34 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
                 },
               ),
               const Divider(height: 1, indent: 16, endIndent: 16),
-              ListTile(
-                leading: const Icon(Icons.dns_outlined),
-                title: Text(l10n.settingsApiServer),
+              SwitchListTile(
+                secondary: const Icon(Icons.dns_outlined),
+                title: Text(l10n.settingsApiEnabled),
                 subtitle: Text(
                   LocalApiServer.isRunning
                       ? l10n.settingsApiRunning(LocalApiServer.port)
                       : l10n.settingsApiStopped,
                 ),
+                value: _apiEnabled,
+                onChanged: (v) async {
+                  final config = await AnimeStorage.readConfig();
+                  config['apiEnabled'] = v;
+                  await AnimeStorage.writeConfig(config);
+                  setState(() => _apiEnabled = v);
+                  if (v) {
+                    await LocalApiServer.start();
+                  } else {
+                    await LocalApiServer.stop();
+                  }
+                  if (mounted) setState(() {});
+                },
+              ),
+              ListTile(
+                leading: const Icon(Icons.settings_outlined),
+                title: Text(l10n.settingsApiServer),
                 trailing: const Icon(Icons.chevron_right),
-                onTap: _showApiSettingsDialog,
+                enabled: _apiEnabled,
+                onTap: _apiEnabled ? _showApiSettingsDialog : null,
               ),
             ]),
 

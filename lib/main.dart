@@ -16,7 +16,7 @@ import 'shared/services/tray_service.dart';
 void main(List<String> args) async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  // Start local HTTP API server (desktop only)
+  // Start local HTTP API server if enabled (desktop only)
   if (!kIsWeb && (Platform.isWindows || Platform.isMacOS || Platform.isLinux)) {
     await LocalApiServer.start();
   }

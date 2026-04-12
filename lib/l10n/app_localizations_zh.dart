@@ -625,7 +625,13 @@ class AppLocalizationsZh extends AppLocalizations {
   String get settingsCloseToTray => '关闭到托盘';
 
   @override
-  String get settingsApiServer => '本地 API 服务器';
+  String get settingsApiServer => 'API 服务器设置';
+
+  @override
+  String get settingsApiEnabled => '本地 API 服务器';
+
+  @override
+  String get settingsApiListenAddress => '监听地址';
 
   @override
   String get settingsApiPort => '端口';
@@ -1277,7 +1283,13 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
   String get settingsCloseToTray => '關閉到系統匣';
 
   @override
-  String get settingsApiServer => '本機 API 伺服器';
+  String get settingsApiServer => 'API 伺服器設定';
+
+  @override
+  String get settingsApiEnabled => '本機 API 伺服器';
+
+  @override
+  String get settingsApiListenAddress => '監聽位址';
 
   @override
   String get settingsApiPort => '連接埠';

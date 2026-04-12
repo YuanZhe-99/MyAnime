@@ -1280,8 +1280,20 @@ abstract class AppLocalizations {
   /// No description provided for @settingsApiServer.
   ///
   /// In en, this message translates to:
-  /// **'Local API Server'**
+  /// **'API Server Settings'**
   String get settingsApiServer;
+
+  /// No description provided for @settingsApiEnabled.
+  ///
+  /// In en, this message translates to:
+  /// **'Local API Server'**
+  String get settingsApiEnabled;
+
+  /// No description provided for @settingsApiListenAddress.
+  ///
+  /// In en, this message translates to:
+  /// **'Listen Address'**
+  String get settingsApiListenAddress;
 
   /// No description provided for @settingsApiPort.
   ///

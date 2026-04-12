@@ -12,15 +12,21 @@ import '../../features/anime/services/anime_storage.dart';
 class LocalApiServer {
   static HttpServer? _server;
   static int _port = 7788;
+  static String _listenAddress = 'localhost';
+  static bool _enabled = false;
   static String? _username;
   static String? _password;
 
   static int get port => _port;
+  static String get listenAddress => _listenAddress;
+  static bool get enabled => _enabled;
   static bool get isRunning => _server != null;
 
   static Future<void> loadConfig() async {
     final config = await AnimeStorage.readConfig();
     _port = config['apiPort'] as int? ?? 7788;
+    _listenAddress = config['apiListenAddress'] as String? ?? 'localhost';
+    _enabled = config['apiEnabled'] as bool? ?? false;
     _username = config['apiUsername'] as String?;
     _password = config['apiPassword'] as String?;
   }
@@ -28,6 +34,7 @@ class LocalApiServer {
   static Future<void> start() async {
     await loadConfig();
     await stop();
+    if (!_enabled) return;
 
     final router = Router();
     router.get('/ping', _handlePing);
@@ -44,9 +51,12 @@ class LocalApiServer {
         .addHandler(router.call);
 
     try {
+      final bindAddress = _listenAddress == '0.0.0.0'
+          ? InternetAddress.anyIPv4
+          : InternetAddress(_listenAddress, type: InternetAddressType.any);
       _server = await shelf_io.serve(
         handler,
-        InternetAddress.anyIPv4,
+        bindAddress,
         _port,
       );
       // ignore: avoid_print

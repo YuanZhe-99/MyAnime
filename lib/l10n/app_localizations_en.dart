@@ -633,7 +633,13 @@ class AppLocalizationsEn extends AppLocalizations {
   String get settingsCloseToTray => 'Close to Tray';
 
   @override
-  String get settingsApiServer => 'Local API Server';
+  String get settingsApiServer => 'API Server Settings';
+
+  @override
+  String get settingsApiEnabled => 'Local API Server';
+
+  @override
+  String get settingsApiListenAddress => 'Listen Address';
 
   @override
   String get settingsApiPort => 'Port';

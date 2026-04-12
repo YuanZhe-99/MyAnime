@@ -627,7 +627,13 @@ class AppLocalizationsJa extends AppLocalizations {
   String get settingsCloseToTray => 'トレイに閉じる';
 
   @override
-  String get settingsApiServer => 'ローカルAPIサーバー';
+  String get settingsApiServer => 'APIサーバー設定';
+
+  @override
+  String get settingsApiEnabled => 'ローカルAPIサーバー';
+
+  @override
+  String get settingsApiListenAddress => 'リッスンアドレス';
 
   @override
   String get settingsApiPort => 'ポート';
