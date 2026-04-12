@@ -611,6 +611,49 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get exportAsMarkdownDesc => '按开播时间排列的番剧列表及观看状态，用于 LLM 个性化学习';
+
+  @override
+  String get trayShow => '显示';
+
+  @override
+  String get trayQuit => '退出';
+
+  @override
+  String get settingsMinimizeToTray => '最小化到托盘';
+
+  @override
+  String get settingsCloseToTray => '关闭到托盘';
+
+  @override
+  String get settingsApiServer => '本地 API 服务器';
+
+  @override
+  String get settingsApiPort => '端口';
+
+  @override
+  String get settingsApiUsername => '用户名';
+
+  @override
+  String get settingsApiPassword => '密码';
+
+  @override
+  String settingsApiRunning(int port) {
+    return '运行中，端口 $port';
+  }
+
+  @override
+  String get settingsApiStopped => '已停止';
+
+  @override
+  String get settingsApiRestart => '重启服务器';
+
+  @override
+  String settingsApiRestarted(int port) {
+    return 'API 服务器已在端口 $port 重启';
+  }
+
+  @override
+  String get settingsDesktop => '桌面';
 }
 
 /// The translations for Chinese, as used in Taiwan (`zh_TW`).
@@ -1220,4 +1263,47 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
 
   @override
   String get exportAsMarkdownDesc => '按開播時間排列的番劇列表及觀看狀態，用於 LLM 個人化學習';
+
+  @override
+  String get trayShow => '顯示';
+
+  @override
+  String get trayQuit => '退出';
+
+  @override
+  String get settingsMinimizeToTray => '最小化到系統匣';
+
+  @override
+  String get settingsCloseToTray => '關閉到系統匣';
+
+  @override
+  String get settingsApiServer => '本機 API 伺服器';
+
+  @override
+  String get settingsApiPort => '連接埠';
+
+  @override
+  String get settingsApiUsername => '使用者名稱';
+
+  @override
+  String get settingsApiPassword => '密碼';
+
+  @override
+  String settingsApiRunning(int port) {
+    return '運行中，連接埠 $port';
+  }
+
+  @override
+  String get settingsApiStopped => '已停止';
+
+  @override
+  String get settingsApiRestart => '重啟伺服器';
+
+  @override
+  String settingsApiRestarted(int port) {
+    return 'API 伺服器已在連接埠 $port 重啟';
+  }
+
+  @override
+  String get settingsDesktop => '桌面';
 }

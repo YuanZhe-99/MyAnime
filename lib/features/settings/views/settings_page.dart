@@ -12,7 +12,9 @@ import '../../../l10n/app_localizations.dart';
 import '../../../shared/utils/jst_time.dart';
 import '../../../shared/providers/app_settings.dart';
 import '../../../shared/services/import_export_service.dart';
+import '../../../shared/services/local_api_server.dart';
 import '../../../shared/services/reminder_service.dart';
+import '../../../shared/services/tray_service.dart';
 import '../../../shared/views/webdav_config_page.dart';
 import '../../anime/services/anime_storage.dart';
 import 'backup_page.dart';
@@ -31,6 +33,13 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
   String _storagePath = '';
   bool _reminderEnabled = false;
   TimeOfDay _reminderTime = const TimeOfDay(hour: 18, minute: 0);
+  // Tray settings
+  bool _minimizeToTray = false;
+  bool _closeToTray = false;
+  // API server settings
+  int _apiPort = 7788;
+  String _apiUsername = '';
+  String _apiPassword = '';
 
   @override
   void initState() {
@@ -38,6 +47,10 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
     _loadVersion();
     _loadStoragePath();
     _loadReminder();
+    if (_isDesktop) {
+      _loadTraySettings();
+      _loadApiSettings();
+    }
   }
 
   Future<void> _loadVersion() async {
@@ -192,6 +205,91 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
         );
       }
     });
+  }
+
+  Future<void> _loadTraySettings() async {
+    final config = await AnimeStorage.readConfig();
+    if (!mounted) return;
+    setState(() {
+      _minimizeToTray = config['minimizeToTray'] as bool? ?? false;
+      _closeToTray = config['closeToTray'] as bool? ?? false;
+    });
+  }
+
+  Future<void> _loadApiSettings() async {
+    final config = await AnimeStorage.readConfig();
+    if (!mounted) return;
+    setState(() {
+      _apiPort = config['apiPort'] as int? ?? 7788;
+      _apiUsername = config['apiUsername'] as String? ?? '';
+      _apiPassword = config['apiPassword'] as String? ?? '';
+    });
+  }
+
+  Future<void> _showApiSettingsDialog() async {
+    final l10n = AppLocalizations.of(context)!;
+    final portCtrl = TextEditingController(text: _apiPort.toString());
+    final userCtrl = TextEditingController(text: _apiUsername);
+    final passCtrl = TextEditingController(text: _apiPassword);
+
+    final saved = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text(l10n.settingsApiServer),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            TextField(
+              controller: portCtrl,
+              decoration: InputDecoration(labelText: l10n.settingsApiPort),
+              keyboardType: TextInputType.number,
+            ),
+            const SizedBox(height: 8),
+            TextField(
+              controller: userCtrl,
+              decoration: InputDecoration(labelText: l10n.settingsApiUsername),
+            ),
+            const SizedBox(height: 8),
+            TextField(
+              controller: passCtrl,
+              decoration: InputDecoration(labelText: l10n.settingsApiPassword),
+              obscureText: true,
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: Text(l10n.cancel),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            child: Text(l10n.save),
+          ),
+        ],
+      ),
+    );
+    if (saved != true || !mounted) return;
+
+    final newPort = int.tryParse(portCtrl.text.trim()) ?? 7788;
+    final newUser = userCtrl.text.trim();
+    final newPass = passCtrl.text.trim();
+    final config = await AnimeStorage.readConfig();
+    config['apiPort'] = newPort;
+    config['apiUsername'] = newUser.isEmpty ? null : newUser;
+    config['apiPassword'] = newPass.isEmpty ? null : newPass;
+    await AnimeStorage.writeConfig(config);
+    setState(() {
+      _apiPort = newPort;
+      _apiUsername = newUser;
+      _apiPassword = newPass;
+    });
+    await LocalApiServer.restart();
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(l10n.settingsApiRestarted(LocalApiServer.port))),
+      );
+    }
   }
 
   Future<void> _setReminderEnabled(bool v) async {
@@ -430,6 +528,41 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
                 subtitle: Text(
                   DateFormat('yyyy-MM-dd HH:mm:ss').format(JstTime.now()),
                 ),
+              ),
+            ]),
+
+          // ── Desktop ──
+          if (_isDesktop)
+            _buildSection(l10n.settingsDesktop, [
+              SwitchListTile(
+                secondary: const Icon(Icons.minimize_outlined),
+                title: Text(l10n.settingsMinimizeToTray),
+                value: _minimizeToTray,
+                onChanged: (v) {
+                  setState(() => _minimizeToTray = v);
+                  TrayService.instance.setMinimizeToTray(v);
+                },
+              ),
+              SwitchListTile(
+                secondary: const Icon(Icons.close_outlined),
+                title: Text(l10n.settingsCloseToTray),
+                value: _closeToTray,
+                onChanged: (v) {
+                  setState(() => _closeToTray = v);
+                  TrayService.instance.setCloseToTray(v);
+                },
+              ),
+              const Divider(height: 1, indent: 16, endIndent: 16),
+              ListTile(
+                leading: const Icon(Icons.dns_outlined),
+                title: Text(l10n.settingsApiServer),
+                subtitle: Text(
+                  LocalApiServer.isRunning
+                      ? l10n.settingsApiRunning(LocalApiServer.port)
+                      : l10n.settingsApiStopped,
+                ),
+                trailing: const Icon(Icons.chevron_right),
+                onTap: _showApiSettingsDialog,
               ),
             ]),
 

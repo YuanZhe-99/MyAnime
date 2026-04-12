@@ -619,4 +619,47 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get exportAsMarkdownDesc =>
       'Anime list sorted by air date with viewing status, for LLM personalization';
+
+  @override
+  String get trayShow => 'Show';
+
+  @override
+  String get trayQuit => 'Quit';
+
+  @override
+  String get settingsMinimizeToTray => 'Minimize to Tray';
+
+  @override
+  String get settingsCloseToTray => 'Close to Tray';
+
+  @override
+  String get settingsApiServer => 'Local API Server';
+
+  @override
+  String get settingsApiPort => 'Port';
+
+  @override
+  String get settingsApiUsername => 'Username';
+
+  @override
+  String get settingsApiPassword => 'Password';
+
+  @override
+  String settingsApiRunning(int port) {
+    return 'Running on port $port';
+  }
+
+  @override
+  String get settingsApiStopped => 'Stopped';
+
+  @override
+  String get settingsApiRestart => 'Restart Server';
+
+  @override
+  String settingsApiRestarted(int port) {
+    return 'API server restarted on port $port';
+  }
+
+  @override
+  String get settingsDesktop => 'Desktop';
 }

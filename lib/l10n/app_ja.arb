@@ -220,5 +220,19 @@
   "exportAsZip": "ZIPでエクスポート",
   "exportAsZipDesc": "完全データアーカイブ（アニメデータ＋カバー画像）、バックアップや移行用",
   "exportAsMarkdown": "Markdownでエクスポート",
-  "exportAsMarkdownDesc": "放送日順のアニメリストと視聴状況、LLMパーソナライズ用"
+  "exportAsMarkdownDesc": "放送日順のアニメリストと視聴状況、LLMパーソナライズ用",
+
+  "trayShow": "表示",
+  "trayQuit": "終了",
+  "settingsMinimizeToTray": "トレイに最小化",
+  "settingsCloseToTray": "トレイに閉じる",
+  "settingsApiServer": "ローカルAPIサーバー",
+  "settingsApiPort": "ポート",
+  "settingsApiUsername": "ユーザー名",
+  "settingsApiPassword": "パスワード",
+  "settingsApiRunning": "ポート{port}で稼働中",
+  "settingsApiStopped": "停止中",
+  "settingsApiRestart": "サーバー再起動",
+  "settingsApiRestarted": "APIサーバーをポート{port}で再起動しました",
+  "settingsDesktop": "デスクトップ"
 }

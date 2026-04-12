@@ -220,5 +220,19 @@
   "exportAsZip": "导出为 ZIP",
   "exportAsZipDesc": "完整数据压缩包（番剧数据 + 封面图片），用于备份或迁移",
   "exportAsMarkdown": "导出为 Markdown",
-  "exportAsMarkdownDesc": "按开播时间排列的番剧列表及观看状态，用于 LLM 个性化学习"
+  "exportAsMarkdownDesc": "按开播时间排列的番剧列表及观看状态，用于 LLM 个性化学习",
+
+  "trayShow": "显示",
+  "trayQuit": "退出",
+  "settingsMinimizeToTray": "最小化到托盘",
+  "settingsCloseToTray": "关闭到托盘",
+  "settingsApiServer": "本地 API 服务器",
+  "settingsApiPort": "端口",
+  "settingsApiUsername": "用户名",
+  "settingsApiPassword": "密码",
+  "settingsApiRunning": "运行中，端口 {port}",
+  "settingsApiStopped": "已停止",
+  "settingsApiRestart": "重启服务器",
+  "settingsApiRestarted": "API 服务器已在端口 {port} 重启",
+  "settingsDesktop": "桌面"
 }

@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:device_preview/device_preview.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
@@ -7,10 +9,22 @@ import 'app/app.dart';
 import 'shared/services/auto_sync_service.dart';
 import 'shared/services/backup_service.dart';
 import 'shared/services/file_open_service.dart';
+import 'shared/services/local_api_server.dart';
 import 'shared/services/reminder_service.dart';
+import 'shared/services/tray_service.dart';
 
 void main(List<String> args) async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  // Start local HTTP API server (desktop only)
+  if (!kIsWeb && (Platform.isWindows || Platform.isMacOS || Platform.isLinux)) {
+    await LocalApiServer.start();
+  }
+
+  // Initialise system tray on desktop platforms
+  if (!kIsWeb && (Platform.isWindows || Platform.isMacOS || Platform.isLinux)) {
+    await TrayService.instance.init();
+  }
 
   // Initialize local notifications.
   await ReminderService.init();

@@ -2,7 +2,7 @@ name: my_anime
 description: "MyAnime!!!!! — Your anime tracking companion"
 publish_to: 'none'
 
-version: 0.5.4+21
+version: 0.6.0+22
 
 environment:
   sdk: ^3.11.3
@@ -59,6 +59,14 @@ dependencies:
   flutter_local_notifications: ^19.0.0
   local_notifier: ^0.1.6
   timezone: ^0.10.0
+
+  # Local HTTP API server (desktop)
+  shelf: ^1.4.0
+  shelf_router: ^1.1.0
+
+  # System tray & window management (desktop)
+  tray_manager: ^0.2.3
+  window_manager: ^0.4.3
 
 dev_dependencies:
   flutter_test:

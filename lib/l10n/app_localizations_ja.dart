@@ -613,4 +613,47 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get exportAsMarkdownDesc => '放送日順のアニメリストと視聴状況、LLMパーソナライズ用';
+
+  @override
+  String get trayShow => '表示';
+
+  @override
+  String get trayQuit => '終了';
+
+  @override
+  String get settingsMinimizeToTray => 'トレイに最小化';
+
+  @override
+  String get settingsCloseToTray => 'トレイに閉じる';
+
+  @override
+  String get settingsApiServer => 'ローカルAPIサーバー';
+
+  @override
+  String get settingsApiPort => 'ポート';
+
+  @override
+  String get settingsApiUsername => 'ユーザー名';
+
+  @override
+  String get settingsApiPassword => 'パスワード';
+
+  @override
+  String settingsApiRunning(int port) {
+    return 'ポート$portで稼働中';
+  }
+
+  @override
+  String get settingsApiStopped => '停止中';
+
+  @override
+  String get settingsApiRestart => 'サーバー再起動';
+
+  @override
+  String settingsApiRestarted(int port) {
+    return 'APIサーバーをポート$portで再起動しました';
+  }
+
+  @override
+  String get settingsDesktop => 'デスクトップ';
 }
