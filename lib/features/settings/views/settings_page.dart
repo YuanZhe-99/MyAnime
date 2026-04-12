@@ -4,6 +4,7 @@ import 'package:file_picker/file_picker.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:launch_at_startup/launch_at_startup.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 
 import 'package:intl/intl.dart';
@@ -36,6 +37,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
   // Tray settings
   bool _minimizeToTray = false;
   bool _closeToTray = false;
+  bool _autoStart = false;
   // API server settings
   bool _apiEnabled = false;
   int _apiPort = 7788;
@@ -51,6 +53,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
     _loadReminder();
     if (_isDesktop) {
       _loadTraySettings();
+      _loadAutoStartStatus();
       _loadApiSettings();
     }
   }
@@ -216,6 +219,12 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
       _minimizeToTray = config['minimizeToTray'] as bool? ?? false;
       _closeToTray = config['closeToTray'] as bool? ?? false;
     });
+  }
+
+  Future<void> _loadAutoStartStatus() async {
+    final enabled = await launchAtStartup.isEnabled();
+    if (!mounted) return;
+    setState(() => _autoStart = enabled);
   }
 
   Future<void> _loadApiSettings() async {
@@ -565,6 +574,19 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
                   TrayService.instance.setCloseToTray(v);
                 },
               ),
+              SwitchListTile(
+                secondary: const Icon(Icons.login_outlined),
+                title: Text(l10n.settingsAutoStart),
+                value: _autoStart,
+                onChanged: (v) async {
+                  if (v) {
+                    await launchAtStartup.enable();
+                  } else {
+                    await launchAtStartup.disable();
+                  }
+                  setState(() => _autoStart = v);
+                },
+              ),
               const Divider(height: 1, indent: 16, endIndent: 16),
               SwitchListTile(
                 secondary: const Icon(Icons.dns_outlined),
@@ -572,7 +594,14 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
                 subtitle: Text(
                   LocalApiServer.isRunning
                       ? l10n.settingsApiRunning(LocalApiServer.port)
-                      : l10n.settingsApiStopped,
+                      : LocalApiServer.lastError == 'credentials_required'
+                          ? l10n.settingsApiNeedCredentials
+                          : LocalApiServer.lastError != null
+                              ? '${l10n.settingsApiStopped} (${LocalApiServer.lastError})'
+                              : l10n.settingsApiStopped,
+                  style: !LocalApiServer.isRunning && LocalApiServer.lastError != null
+                      ? TextStyle(color: Theme.of(context).colorScheme.error)
+                      : null,
                 ),
                 value: _apiEnabled,
                 onChanged: (v) async {

@@ -2,7 +2,7 @@ name: my_anime
 description: "MyAnime!!!!! — Your anime tracking companion"
 publish_to: 'none'
 
-version: 0.6.1+23
+version: 0.6.2+24
 
 environment:
   sdk: ^3.11.3
@@ -67,6 +67,9 @@ dependencies:
   # System tray & window management (desktop)
   tray_manager: ^0.2.3
   window_manager: ^0.4.3
+
+  # Auto-start on boot (desktop)
+  launch_at_startup: ^0.5.1
 
 dev_dependencies:
   flutter_test:

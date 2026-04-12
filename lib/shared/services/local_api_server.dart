@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'dart:io';
+import 'dart:math';
 
 import 'package:shelf/shelf.dart';
 import 'package:shelf/shelf_io.dart' as shelf_io;
@@ -8,6 +9,7 @@ import 'package:shelf_router/shelf_router.dart';
 import '../../features/anime/models/anime.dart';
 import '../../features/anime/services/anime_search_service.dart';
 import '../../features/anime/services/anime_storage.dart';
+import '../utils/jst_time.dart';
 
 class LocalApiServer {
   static HttpServer? _server;
@@ -16,11 +18,13 @@ class LocalApiServer {
   static bool _enabled = false;
   static String? _username;
   static String? _password;
+  static String? _lastError;
 
   static int get port => _port;
   static String get listenAddress => _listenAddress;
   static bool get enabled => _enabled;
   static bool get isRunning => _server != null;
+  static String? get lastError => _lastError;
 
   static Future<void> loadConfig() async {
     final config = await AnimeStorage.readConfig();
@@ -34,7 +38,20 @@ class LocalApiServer {
   static Future<void> start() async {
     await loadConfig();
     await stop();
+    _lastError = null;
     if (!_enabled) return;
+
+    // Warn about missing credentials on non-loopback
+    final isNonLoopback = _listenAddress == '0.0.0.0' ||
+        (_listenAddress != 'localhost' && _listenAddress != '127.0.0.1');
+    final hasCredentials = _username != null &&
+        _username!.isNotEmpty &&
+        _password != null &&
+        _password!.isNotEmpty;
+    if (isNonLoopback && !hasCredentials) {
+      _lastError = 'credentials_required';
+      return;
+    }
 
     final router = Router();
     router.get('/ping', _handlePing);
@@ -51,9 +68,14 @@ class LocalApiServer {
         .addHandler(router.call);
 
     try {
-      final bindAddress = _listenAddress == '0.0.0.0'
-          ? InternetAddress.anyIPv4
-          : InternetAddress(_listenAddress, type: InternetAddressType.any);
+      final InternetAddress bindAddress;
+      if (_listenAddress == '0.0.0.0') {
+        bindAddress = InternetAddress.anyIPv4;
+      } else if (_listenAddress == 'localhost' || _listenAddress == '127.0.0.1') {
+        bindAddress = InternetAddress.loopbackIPv4;
+      } else {
+        bindAddress = InternetAddress(_listenAddress, type: InternetAddressType.any);
+      }
       _server = await shelf_io.serve(
         handler,
         bindAddress,
@@ -62,6 +84,7 @@ class LocalApiServer {
       // ignore: avoid_print
       print('[LocalApiServer] listening on port $_port');
     } catch (e) {
+      _lastError = e.toString();
       // ignore: avoid_print
       print('[LocalApiServer] failed to start: $e');
     }
@@ -139,21 +162,46 @@ class LocalApiServer {
 
   static Future<Response> _handleList(Request request) async {
     final data = await AnimeStorage.load();
-    return _json(data.animes.map(_animeToJson).toList());
+    final filtered = _filterBySeason(data.animes, request);
+    return _json(filtered.map(_animeToJson).toList());
   }
 
   static Future<Response> _handleUnwatched(Request request) async {
     final data = await AnimeStorage.load();
-    final unwatched = data.animes
-        .where((a) => !a.isCompleted && a.nextUnwatchedEpisode != null)
-        .map((a) => _animeToJson(a))
-        .toList();
-    return _json(unwatched);
+    final now = JstTime.now();
+    final results = <Map<String, dynamic>>[];
+    for (final anime in data.animes) {
+      final lastEp = anime.endEpisode ?? anime.startEpisode;
+      for (var ep = anime.startEpisode; ep <= lastEp; ep++) {
+        final status =
+            anime.episodeStatuses[ep] ?? EpisodeStatus.unwatched;
+        if (status == EpisodeStatus.unwatched) {
+          final airDate = anime.getEpisodeAirDate(ep);
+          if (airDate != null && !airDate.isAfter(now)) {
+            final json = _animeToJson(anime);
+            json['nextUnwatchedEpisode'] = ep;
+            json['episodeAirDate'] = airDate.toIso8601String();
+            results.add(json);
+          }
+          break; // only the earliest unwatched episode per anime
+        }
+      }
+    }
+    results.sort((a, b) {
+      final aDate = a['episodeAirDate'] as String?;
+      final bDate = b['episodeAirDate'] as String?;
+      if (aDate == null && bDate == null) return 0;
+      if (aDate == null) return 1;
+      if (bDate == null) return -1;
+      return aDate.compareTo(bDate);
+    });
+    return _json(results);
   }
 
   static Future<Response> _handleHistory(Request request) async {
     final data = await AnimeStorage.load();
-    final list = data.animes.map((a) {
+    final filtered = _filterBySeason(data.animes, request);
+    final list = filtered.map((a) {
       final json = _animeToJson(a);
       json['watchedEpisodes'] = a.episodeStatuses.values
           .where((s) => s == EpisodeStatus.watched)
@@ -164,6 +212,44 @@ class LocalApiServer {
   }
 
   // ── Helpers ──
+
+  /// Parse `?season=` query param and filter anime list.
+  ///
+  /// Values:
+  /// - absent or `current` → current JST quarter
+  /// - `YYYYQn` (e.g. `2026Q2`) → specific quarter
+  /// - `unassigned` → anime without firstAirDate
+  /// - `all` → all anime (random 40)
+  static List<Anime> _filterBySeason(List<Anime> animes, Request request) {
+    final season = request.url.queryParameters['season']?.trim() ?? 'current';
+
+    if (season == 'all') {
+      if (animes.length <= 40) return animes;
+      final shuffled = List<Anime>.from(animes)..shuffle(Random());
+      return shuffled.take(40).toList();
+    }
+
+    if (season == 'unassigned') {
+      return animes.where((a) => a.firstAirDate == null).toList();
+    }
+
+    int year;
+    int quarter;
+    if (season == 'current') {
+      final now = JstTime.now();
+      year = now.year;
+      quarter = (now.month - 1) ~/ 3 + 1;
+    } else {
+      // Expect format YYYYQn, e.g. 2026Q2
+      final match = RegExp(r'^(\d{4})Q([1-4])$').firstMatch(season);
+      if (match == null) {
+        return animes; // invalid format, return all
+      }
+      year = int.parse(match.group(1)!);
+      quarter = int.parse(match.group(2)!);
+    }
+    return animes.where((a) => a.airsInQuarter(year, quarter)).toList();
+  }
 
   static Map<String, dynamic> _animeToJson(Anime a) => {
         'id': a.id,

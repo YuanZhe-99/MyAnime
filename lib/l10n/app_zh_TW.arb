@@ -225,8 +225,7 @@
   "trayShow": "顯示",
   "trayQuit": "退出",
   "settingsMinimizeToTray": "最小化到系統匣",
-  "settingsCloseToTray": "關閉到系統匣",
-  "settingsApiServer": "API 伺服器設定",
+  "settingsCloseToTray": "關閉到系統匣",  "settingsAutoStart": "開機自啟",  "settingsApiServer": "API 伺服器設定",
   "settingsApiEnabled": "本機 API 伺服器",
   "settingsApiListenAddress": "監聽位址",
   "settingsApiPort": "連接埠",
@@ -234,6 +233,7 @@
   "settingsApiPassword": "密碼",
   "settingsApiRunning": "運行中，連接埠 {port}",
   "settingsApiStopped": "已停止",
+  "settingsApiNeedCredentials": "在非本機監聽前請先設定使用者名稱和密碼",
   "settingsApiRestart": "重啟伺服器",
   "settingsApiRestarted": "API 伺服器已在連接埠 {port} 重啟",
   "settingsDesktop": "桌面"

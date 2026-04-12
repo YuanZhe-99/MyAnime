@@ -633,6 +633,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get settingsCloseToTray => 'Close to Tray';
 
   @override
+  String get settingsAutoStart => 'Launch at Startup';
+
+  @override
   String get settingsApiServer => 'API Server Settings';
 
   @override
@@ -657,6 +660,10 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get settingsApiStopped => 'Stopped';
+
+  @override
+  String get settingsApiNeedCredentials =>
+      'Set username and password before listening on non-localhost';
 
   @override
   String get settingsApiRestart => 'Restart Server';

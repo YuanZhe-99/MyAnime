@@ -627,6 +627,9 @@ class AppLocalizationsJa extends AppLocalizations {
   String get settingsCloseToTray => 'トレイに閉じる';
 
   @override
+  String get settingsAutoStart => 'スタートアップ時に起動';
+
+  @override
   String get settingsApiServer => 'APIサーバー設定';
 
   @override
@@ -651,6 +654,9 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get settingsApiStopped => '停止中';
+
+  @override
+  String get settingsApiNeedCredentials => '非ローカルで公開する前にユーザー名とパスワードを設定してください';
 
   @override
   String get settingsApiRestart => 'サーバー再起動';

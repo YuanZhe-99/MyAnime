@@ -1,6 +1,7 @@
 import 'dart:io';
 import 'dart:ui';
 
+import 'package:flutter/services.dart';
 import 'package:tray_manager/tray_manager.dart';
 import 'package:window_manager/window_manager.dart';
 
@@ -10,6 +11,8 @@ import '../../l10n/app_localizations.dart';
 class TrayService with TrayListener, WindowListener {
   TrayService._();
   static final TrayService instance = TrayService._();
+
+  static const _dockChannel = MethodChannel('com.yuanzhe.my_anime/dock');
 
   bool _minimizeToTray = false;
   bool _closeToTray = false;
@@ -79,8 +82,7 @@ class TrayService with TrayListener, WindowListener {
 
   @override
   void onTrayIconMouseDown() {
-    windowManager.show();
-    windowManager.focus();
+    _showWindow();
   }
 
   @override
@@ -92,8 +94,7 @@ class TrayService with TrayListener, WindowListener {
   void onTrayMenuItemClick(MenuItem menuItem) {
     switch (menuItem.key) {
       case 'show':
-        windowManager.show();
-        windowManager.focus();
+        _showWindow();
         break;
       case 'quit':
         windowManager.setPreventClose(false);
@@ -108,6 +109,7 @@ class TrayService with TrayListener, WindowListener {
   void onWindowClose() {
     if (_closeToTray) {
       windowManager.hide();
+      _setDockIconVisible(false);
     } else {
       windowManager.destroy();
     }
@@ -117,6 +119,20 @@ class TrayService with TrayListener, WindowListener {
   void onWindowMinimize() {
     if (_minimizeToTray) {
       windowManager.hide();
+      _setDockIconVisible(false);
     }
+  }
+
+  // ─── macOS Dock ──
+
+  void _showWindow() {
+    _setDockIconVisible(true);
+    windowManager.show();
+    windowManager.focus();
+  }
+
+  static void _setDockIconVisible(bool visible) {
+    if (!Platform.isMacOS) return;
+    _dockChannel.invokeMethod('setDockIconVisible', {'visible': visible});
   }
 }

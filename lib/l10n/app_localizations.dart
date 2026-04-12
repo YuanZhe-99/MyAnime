@@ -1277,6 +1277,12 @@ abstract class AppLocalizations {
   /// **'Close to Tray'**
   String get settingsCloseToTray;
 
+  /// No description provided for @settingsAutoStart.
+  ///
+  /// In en, this message translates to:
+  /// **'Launch at Startup'**
+  String get settingsAutoStart;
+
   /// No description provided for @settingsApiServer.
   ///
   /// In en, this message translates to:
@@ -1324,6 +1330,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Stopped'**
   String get settingsApiStopped;
+
+  /// No description provided for @settingsApiNeedCredentials.
+  ///
+  /// In en, this message translates to:
+  /// **'Set username and password before listening on non-localhost'**
+  String get settingsApiNeedCredentials;
 
   /// No description provided for @settingsApiRestart.
   ///

@@ -625,6 +625,9 @@ class AppLocalizationsZh extends AppLocalizations {
   String get settingsCloseToTray => '关闭到托盘';
 
   @override
+  String get settingsAutoStart => '开机自启';
+
+  @override
   String get settingsApiServer => 'API 服务器设置';
 
   @override
@@ -649,6 +652,9 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get settingsApiStopped => '已停止';
+
+  @override
+  String get settingsApiNeedCredentials => '在非本地监听前请先设置用户名和密码';
 
   @override
   String get settingsApiRestart => '重启服务器';
@@ -1283,6 +1289,9 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
   String get settingsCloseToTray => '關閉到系統匣';
 
   @override
+  String get settingsAutoStart => '開機自啟';
+
+  @override
   String get settingsApiServer => 'API 伺服器設定';
 
   @override
@@ -1307,6 +1316,9 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
 
   @override
   String get settingsApiStopped => '已停止';
+
+  @override
+  String get settingsApiNeedCredentials => '在非本機監聽前請先設定使用者名稱和密碼';
 
   @override
   String get settingsApiRestart => '重啟伺服器';
