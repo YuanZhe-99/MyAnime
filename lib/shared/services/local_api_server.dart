@@ -180,7 +180,7 @@ class LocalApiServer {
           if (airDate != null && !airDate.isAfter(now)) {
             final json = _animeToJson(anime);
             json['nextUnwatchedEpisode'] = ep;
-            json['episodeAirDate'] = airDate.toIso8601String();
+            json['episodeAirDate'] = _jstToUtcString(airDate);
             results.add(json);
           }
           break; // only the earliest unwatched episode per anime
@@ -251,28 +251,43 @@ class LocalApiServer {
     return animes.where((a) => a.airsInQuarter(year, quarter)).toList();
   }
 
-  static Map<String, dynamic> _animeToJson(Anime a) => {
-        'id': a.id,
-        'title': a.displayTitle,
-        'titleJa': a.titleJa,
-        'season': a.season,
-        'startEpisode': a.startEpisode,
-        'endEpisode': a.endEpisode,
-        'totalEpisodes': a.totalEpisodes,
-        'firstAirDate': a.firstAirDate?.toIso8601String(),
-        'airDayOfWeek': a.airDayOfWeek,
-        'airTime': a.airTime,
-        'infoUrl': a.infoUrl,
-        'isCompleted': a.isCompleted,
-        'nextUnwatchedEpisode': a.nextUnwatchedEpisode,
-        'type': a.effectiveType.name,
-        'createdAt': a.createdAt.toIso8601String(),
-      };
+  static Map<String, dynamic> _animeToJson(Anime a) {
+    final nxt = a.nextUnwatchedEpisode;
+    return {
+      'id': a.id,
+      'title': a.displayTitle,
+      'titleJa': a.titleJa,
+      'season': a.season,
+      'startEpisode': a.startEpisode,
+      'endEpisode': a.endEpisode,
+      'totalEpisodes': a.totalEpisodes,
+      'firstAirDate': a.firstAirDate?.toIso8601String(),
+      'airDayOfWeek': a.airDayOfWeek,
+      'airTime': a.airTime,
+      'infoUrl': a.infoUrl,
+      'isCompleted': a.isCompleted,
+      'nextUnwatchedEpisode': nxt,
+      'nextEpisodeAirDate': nxt != null
+          ? _jstToUtcString(a.getEpisodeAirDate(nxt))
+          : null,
+      'type': a.effectiveType.name,
+      'createdAt': a.createdAt.toIso8601String(),
+    };
+  }
 
   static Response _json(Object data) => Response.ok(
         jsonEncode(data),
         headers: {'Content-Type': 'application/json'},
       );
+
+  /// Convert a naive JST DateTime to a UTC ISO-8601 string.
+  static String? _jstToUtcString(DateTime? jst) {
+    if (jst == null) return null;
+    final utc = jst.subtract(const Duration(hours: 9));
+    return DateTime.utc(utc.year, utc.month, utc.day, utc.hour, utc.minute,
+            utc.second)
+        .toIso8601String();
+  }
 
   static Response _error(int status, String message) => Response(
         status,
