@@ -162,8 +162,13 @@ class LocalApiServer {
 
   static Future<Response> _handleList(Request request) async {
     final data = await AnimeStorage.load();
-    final filtered = _filterBySeason(data.animes, request);
-    return _json(filtered.map(_animeToJson).toList());
+    final allFiltered = _filterBySeason(data.animes, request, sample: false);
+    final sampled = _filterBySeason(data.animes, request);
+    return _json({
+      'total': allFiltered.length,
+      'counts': _computeCounts(allFiltered),
+      'data': sampled.map(_animeToJson).toList(),
+    });
   }
 
   static Future<Response> _handleUnwatched(Request request) async {
@@ -200,15 +205,20 @@ class LocalApiServer {
 
   static Future<Response> _handleHistory(Request request) async {
     final data = await AnimeStorage.load();
-    final filtered = _filterBySeason(data.animes, request);
-    final list = filtered.map((a) {
+    final allFiltered = _filterBySeason(data.animes, request, sample: false);
+    final sampled = _filterBySeason(data.animes, request);
+    final list = sampled.map((a) {
       final json = _animeToJson(a);
       json['watchedEpisodes'] = a.episodeStatuses.values
           .where((s) => s == EpisodeStatus.watched)
           .length;
       return json;
     }).toList();
-    return _json(list);
+    return _json({
+      'total': allFiltered.length,
+      'counts': _computeCounts(allFiltered),
+      'data': list,
+    });
   }
 
   // ── Helpers ──
@@ -220,11 +230,12 @@ class LocalApiServer {
   /// - `YYYYQn` (e.g. `2026Q2`) → specific quarter
   /// - `unassigned` → anime without firstAirDate
   /// - `all` → all anime (random 40)
-  static List<Anime> _filterBySeason(List<Anime> animes, Request request) {
+  static List<Anime> _filterBySeason(List<Anime> animes, Request request,
+      {bool sample = true}) {
     final season = request.url.queryParameters['season']?.trim() ?? 'current';
 
     if (season == 'all') {
-      if (animes.length <= 40) return animes;
+      if (!sample || animes.length <= 40) return animes;
       final shuffled = List<Anime>.from(animes)..shuffle(Random());
       return shuffled.take(40).toList();
     }
@@ -272,6 +283,32 @@ class LocalApiServer {
           : null,
       'type': a.effectiveType.name,
       'createdAt': a.createdAt.toIso8601String(),
+    };
+  }
+
+  static Map<String, int> _computeCounts(List<Anime> animes) {
+    int completed = 0, inProgress = 0, abandoned = 0, notStarted = 0;
+    for (final a in animes) {
+      if (a.isCompleted) {
+        completed++;
+      } else if (a.nextUnwatchedEpisode == null) {
+        abandoned++;
+      } else {
+        final watched = a.episodeStatuses.values
+            .where((s) => s == EpisodeStatus.watched)
+            .length;
+        if (watched > 0) {
+          inProgress++;
+        } else {
+          notStarted++;
+        }
+      }
+    }
+    return {
+      'completed': completed,
+      'inProgress': inProgress,
+      'abandoned': abandoned,
+      'notStarted': notStarted,
     };
   }
 
