@@ -8,7 +8,11 @@ DefaultDirName={autopf}\MyAnime!!!!!
 DefaultGroupName=MyAnime!!!!!
 UninstallDisplayIcon={app}\my_anime.exe
 OutputDir=build\installer
+#ifdef ARM64
+OutputBaseFilename=MyAnime_0.6.4_arm64_Setup
+#else
 OutputBaseFilename=MyAnime_0.6.4_Setup
+#endif
 VersionInfoVersion=0.6.4.0
 VersionInfoCompany=yuanzhe
 VersionInfoDescription=MyAnime!!!!! Installer
@@ -16,8 +20,13 @@ VersionInfoProductName=MyAnime!!!!!
 VersionInfoProductVersion=0.6.4
 Compression=lzma2
 SolidCompression=yes
+#ifdef ARM64
+ArchitecturesAllowed=arm64
+ArchitecturesInstallIn64BitMode=arm64
+#else
 ArchitecturesAllowed=x64compatible
 ArchitecturesInstallIn64BitMode=x64compatible
+#endif
 WizardStyle=modern
 SetupIconFile=windows\runner\resources\app_icon.ico
 PrivilegesRequired=lowest
@@ -30,7 +39,11 @@ Name: "japanese"; MessagesFile: "compiler:Languages\Japanese.isl"
 Name: "desktopicon"; Description: "{cm:CreateDesktopIcon}"; GroupDescription: "{cm:AdditionalIcons}"
 
 [Files]
+#ifdef ARM64
+Source: "build\windows\arm64\runner\Release\*"; DestDir: "{app}"; Flags: recursesubdirs ignoreversion
+#else
 Source: "build\windows\x64\runner\Release\*"; DestDir: "{app}"; Flags: recursesubdirs ignoreversion
+#endif
 
 [Icons]
 Name: "{group}\MyAnime!!!!!"; Filename: "{app}\my_anime.exe"
