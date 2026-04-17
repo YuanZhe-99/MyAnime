@@ -26,7 +26,8 @@ The flavor is controlled via `--dart-define=FLAVOR=store|full` (default: `full`)
 
 | Platform | Artifact | Flavor |
 |----------|----------|--------|
-| Windows  | Inno Setup installer (`MyAnime_x.x.x_Setup.exe`) | full |
+| Windows (x64)  | Inno Setup installer (`MyAnime_x.x.x_Setup.exe`) | full |
+| Windows (ARM64) | Inno Setup installer (`MyAnime_x.x.x_arm64_Setup.exe`) | full |
 | Android  | APK (`app-release.apk`) | full |
 | Android  | AAB (`app-release.aab`) | store |
 | iOS      | Sideload IPA | full |
@@ -38,9 +39,13 @@ The flavor is controlled via `--dart-define=FLAVOR=store|full` (default: `full`)
 ```bash
 # ── Full flavor (direct distribution) ──
 
-# Windows installer
+# Windows x64 installer
 flutter build windows --release --dart-define=FLAVOR=full
-# then run Inno Setup on installer.iss
+iscc installer.iss
+
+# Windows ARM64 installer (requires Flutter master for ARM64 engine)
+flutter build windows --release --dart-define=FLAVOR=full
+iscc /DARM64 installer.iss
 
 # Android APK
 flutter build apk --release --dart-define=FLAVOR=full
@@ -74,6 +79,7 @@ flutter build ipa --release --dart-define=FLAVOR=store
 # Windows (for testing only)
 flutter build windows --release --dart-define=FLAVOR=store
 ```
+
 
 ## License
 
