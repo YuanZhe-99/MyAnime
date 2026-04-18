@@ -87,19 +87,40 @@ jobs:
           name: windows-installer-x64-full
           path: build/installer/*.exe
 
-  # ── Windows ARM64 installer (full, Flutter master — stable has no ARM64 engine yet) ──
+  # ── Windows ARM64 installer (full, Flutter master — stable ARM64 engine in master since flutter/flutter#176385,
+  #    merged March 2026; will land in a future stable release. Until then, use cached master weekly
+  #    so the same flutter_windows_arm64.dll hash is reused across builds, allowing Defender cloud
+  #    reputation to accumulate. Without caching, every build produces a fresh unknown hash → false positive.) ──
   windows-arm64:
     runs-on: windows-11-arm
     steps:
       - uses: actions/checkout@v4
 
+      # Pin Flutter master to a weekly window so the same DLL hashes are produced on every
+      # build within the week → identical hashes accumulate Defender cloud reputation.
+      # Once a Flutter stable/beta with ARM64 engine is released, switch to subosito/flutter-action
+      # with channel: stable and remove this caching block.
+      - name: Get weekly Flutter cache key
+        id: cache-key
+        shell: pwsh
+        run: echo "week=$(Get-Date -UFormat '%G-W%V')" >> $env:GITHUB_OUTPUT
+
+      - name: Cache Flutter master (weekly)
+        uses: actions/cache@v4
+        with:
+          path: ${{ runner.tool_cache }}\flutter-master
+          key: flutter-master-arm64-${{ steps.cache-key.outputs.week }}
+
       - name: Setup Flutter master (ARM64 engine only on master)
         shell: pwsh
         run: |
-          git clone https://github.com/flutter/flutter.git `
-            --branch master --depth 1 `
-            "$env:USERPROFILE\flutter"
-          Add-Content $env:GITHUB_PATH "$env:USERPROFILE\flutter\bin"
+          $flutterDir = "$env:RUNNER_TOOL_CACHE\flutter-master"
+          if (-not (Test-Path "$flutterDir\bin\flutter")) {
+            git clone https://github.com/flutter/flutter.git `
+              --branch master --depth 1 `
+              "$flutterDir"
+          }
+          Add-Content $env:GITHUB_PATH "$flutterDir\bin"
 
       - name: Flutter doctor
         run: flutter doctor

@@ -98,12 +98,63 @@ class _WebDAVConfigPageState extends State<WebDAVConfigPage> {
       return;
     }
 
+    final l10n = AppLocalizations.of(context)!;
+
+    if (!result.success) {
+      await showDialog<void>(
+        context: context,
+        builder: (ctx) => AlertDialog(
+          title: Text(l10n.settingsWebDAVSyncFailed),
+          content: SingleChildScrollView(
+            child: Text(result.error ?? '-'),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(ctx).pop(),
+              child: const Text('OK'),
+            ),
+          ],
+        ),
+      );
+      return;
+    }
+
+    if (result.warnings.isNotEmpty) {
+      await showDialog<void>(
+        context: context,
+        builder: (ctx) => AlertDialog(
+          title: Text(l10n.settingsWebDAVSyncSuccess),
+          content: SingleChildScrollView(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(l10n.settingsWebDAVSyncImageWarnings(
+                    result.warnings.length)),
+                const SizedBox(height: 8),
+                ...result.warnings.map(
+                  (w) => Padding(
+                    padding: const EdgeInsets.only(bottom: 4),
+                    child: Text(w,
+                        style: Theme.of(ctx).textTheme.bodySmall),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(ctx).pop(),
+              child: const Text('OK'),
+            ),
+          ],
+        ),
+      );
+      return;
+    }
+
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(result.success
-            ? AppLocalizations.of(context)!.settingsWebDAVSyncSuccess
-            : AppLocalizations.of(context)!.settingsWebDAVSyncFailed),
-      ),
+      SnackBar(content: Text(l10n.settingsWebDAVSyncSuccess)),
     );
   }
 

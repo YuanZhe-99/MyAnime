@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 import 'dart:typed_data';
@@ -66,11 +67,14 @@ class SyncResult {
   final bool success;
   final String? error;
   final PendingSync? pending;
+  /// Non-fatal warnings collected during sync (e.g. individual image failures).
+  final List<String> warnings;
 
   const SyncResult({
     required this.success,
     this.error,
     this.pending,
+    this.warnings = const [],
   });
 
   bool get hasConflicts => pending != null;
@@ -242,22 +246,21 @@ class WebDAVService {
 
   static Future<bool> _uploadBytes(
       WebDAVConfig config, String fileName, Uint8List bytes) async {
-    try {
-      final url = Uri.parse(_remoteFileUrl(config, fileName));
-      final response = await http
-          .put(
-            url,
-            headers: {
-              ..._authHeaders(config),
-              'Content-Type': 'application/octet-stream',
-            },
-            body: bytes,
-          )
-          .timeout(const Duration(seconds: 60));
-      return response.statusCode >= 200 && response.statusCode < 300;
-    } catch (_) {
-      return false;
+    final url = Uri.parse(_remoteFileUrl(config, fileName));
+    final response = await http
+        .put(
+          url,
+          headers: {
+            ..._authHeaders(config),
+            'Content-Type': 'application/octet-stream',
+          },
+          body: bytes,
+        )
+        .timeout(const Duration(seconds: 120));
+    if (response.statusCode < 200 || response.statusCode >= 300) {
+      throw Exception('HTTP ${response.statusCode}');
     }
+    return true;
   }
 
   static Future<String?> _download(
@@ -276,16 +279,12 @@ class WebDAVService {
 
   static Future<Uint8List?> _downloadBytes(
       WebDAVConfig config, String fileName) async {
-    try {
-      final url = Uri.parse(_remoteFileUrl(config, fileName));
-      final response = await http
-          .get(url, headers: _authHeaders(config))
-          .timeout(const Duration(seconds: 60));
-      if (response.statusCode == 200) return response.bodyBytes;
-      return null;
-    } catch (_) {
-      return null;
-    }
+    final url = Uri.parse(_remoteFileUrl(config, fileName));
+    final response = await http
+        .get(url, headers: _authHeaders(config))
+        .timeout(const Duration(seconds: 120));
+    if (response.statusCode == 200) return response.bodyBytes;
+    throw Exception('HTTP ${response.statusCode}');
   }
 
   /// List file names inside a remote subdirectory via PROPFIND.
@@ -343,8 +342,35 @@ class WebDAVService {
     } catch (_) {}
   }
 
-  static Future<void> _syncImages(
-      WebDAVConfig config, Directory appDir) async {
+  /// Extract basenames of cover images referenced by any anime in [json].
+  static Set<String> _getReferencedImageNames(String? json) {
+    if (json == null) return {};
+    try {
+      final data = AnimeData.fromJson(
+          jsonDecode(json) as Map<String, dynamic>);
+      return data.animes
+          .map((a) => a.coverImage)
+          .whereType<String>()
+          .map((path) => p.basename(path))
+          .toSet();
+    } catch (_) {
+      return {};
+    }
+  }
+
+  /// Sync only images that are referenced by actual anime records.
+  ///
+  /// [referencedImages] is the union of basenames from local + remote anime
+  /// data, so images from both sides are covered without syncing orphans.
+  ///
+  /// Returns a list of non-fatal error strings for individual transfer failures.
+  static Future<List<String>> _syncImages(
+      WebDAVConfig config,
+      Directory appDir,
+      Set<String> referencedImages) async {
+    final errors = <String>[];
+    if (referencedImages.isEmpty) return errors;
+
     final imgDir = Directory(p.join(appDir.path, 'images'));
     if (!await imgDir.exists()) {
       await imgDir.create(recursive: true);
@@ -352,34 +378,49 @@ class WebDAVService {
 
     await _ensureRemoteSubDir(config, 'images');
 
-    // Collect local file names
+    // Collect local referenced images (skip orphans)
     final localNames = <String>{};
     await for (final entity in imgDir.list()) {
       if (entity is File) {
-        localNames.add(p.basename(entity.path));
+        final name = p.basename(entity.path);
+        if (referencedImages.contains(name)) localNames.add(name);
       }
     }
 
-    // List remote file names
+    // List all remote file names (needed to avoid re-uploading existing files)
     final remoteNames = (await _listRemoteFiles(config, 'images')).toSet();
 
-    // Upload local-only images
+    // Upload local referenced images that are missing on remote
     for (final name in localNames) {
       if (!remoteNames.contains(name)) {
-        final bytes = await File(p.join(imgDir.path, name)).readAsBytes();
-        await _uploadBytes(config, 'images/$name', bytes);
-      }
-    }
-
-    // Download remote-only images
-    for (final name in remoteNames) {
-      if (!localNames.contains(name)) {
-        final bytes = await _downloadBytes(config, 'images/$name');
-        if (bytes != null) {
-          await File(p.join(imgDir.path, name)).writeAsBytes(bytes);
+        try {
+          final bytes = await File(p.join(imgDir.path, name)).readAsBytes();
+          await _uploadBytes(config, 'images/$name', bytes);
+        } on TimeoutException {
+          errors.add('Upload timed out: $name');
+        } catch (e) {
+          errors.add('Upload failed for $name: $e');
         }
       }
     }
+
+    // Download referenced remote images that are missing locally
+    for (final name in referencedImages) {
+      if (!localNames.contains(name) && remoteNames.contains(name)) {
+        try {
+          final bytes = await _downloadBytes(config, 'images/$name');
+          if (bytes != null) {
+            await File(p.join(imgDir.path, name)).writeAsBytes(bytes);
+          }
+        } on TimeoutException {
+          errors.add('Download timed out: $name');
+        } catch (e) {
+          errors.add('Download failed for $name: $e');
+        }
+      }
+    }
+
+    return errors;
   }
 
   // ── Per-record merge sync ──
@@ -406,6 +447,9 @@ class WebDAVService {
       final appDir = await AnimeStorage.getAppDir();
 
       AnimeMergeResult? pendingAnime;
+      // Track local/remote anime JSON to compute referenced image set.
+      String? localAnimeJson;
+      String? remoteAnimeJson;
 
       for (final name in _dataFileNames) {
         final localFile = File('${appDir.path}/$name');
@@ -419,17 +463,27 @@ class WebDAVService {
           await _atomicWrite(localFile, remoteRaw);
           await _saveBase(name, remoteRaw);
           _localDataChanged = true;
+          if (name == 'anime_data.json') remoteAnimeJson = remoteRaw;
           continue;
         }
 
         final localRaw = await localFile.readAsString();
+        if (name == 'anime_data.json') localAnimeJson = localRaw;
 
         if (localExists && remoteRaw == null) {
           // Only on local → upload
           final uploaded = await _upload(config, name, localRaw);
-          if (uploaded) await _saveBase(name, localRaw);
+          if (!uploaded) {
+            return SyncResult(
+              success: false,
+              error: 'Failed to upload $name to remote',
+            );
+          }
+          await _saveBase(name, localRaw);
           continue;
         }
+
+        if (name == 'anime_data.json') remoteAnimeJson = remoteRaw;
 
         // Both exist → per-record merge
         if (localRaw == remoteRaw) {
@@ -450,30 +504,43 @@ class WebDAVService {
             if (result.hasConflicts) {
               pendingAnime = result;
             } else {
-              final mergedData =
-                  AnimeData(animes: result.merged);
+              final mergedData = AnimeData(animes: result.merged);
               final mergedJson = jsonEncode(mergedData.toJson());
               await _atomicWrite(localFile, mergedJson);
               final uploaded = await _upload(config, name, mergedJson);
-              if (uploaded) await _saveBase(name, mergedJson);
+              if (!uploaded) {
+                return SyncResult(
+                  success: false,
+                  error: 'Failed to upload merged $name to remote',
+                );
+              }
+              await _saveBase(name, mergedJson);
+              // Use the merged result for image reference computation.
+              localAnimeJson = mergedJson;
               _localDataChanged = true;
             }
         }
       }
 
-      // Sync images (additive, no conflict)
-      await _syncImages(config, appDir);
+      // Sync only images referenced by actual anime records (local ∪ remote),
+      // skipping orphaned images to avoid transferring stale/unused data.
+      final referencedImages = {
+        ..._getReferencedImageNames(localAnimeJson),
+        ..._getReferencedImageNames(remoteAnimeJson),
+      };
+      final imageErrors = await _syncImages(config, appDir, referencedImages);
 
       if (pendingAnime != null) {
         return SyncResult(
           success: true,
           pending: PendingSync(animeMerge: pendingAnime),
+          warnings: imageErrors,
         );
       }
 
-      return const SyncResult(success: true);
-    } catch (e) {
-      return SyncResult(success: false, error: e.toString());
+      return SyncResult(success: true, warnings: imageErrors);
+    } catch (e, st) {
+      return SyncResult(success: false, error: '$e\n$st');
     } finally {
       _syncing = false;
     }

@@ -112,6 +112,8 @@
   "settingsWebDAVConnectionFailed": "接続失敗",
   "settingsWebDAVSyncSuccess": "同期完了",
   "settingsWebDAVSyncFailed": "同期失敗",
+  "settingsWebDAVSyncImageWarnings": "同期完了（画像{count}件の転送に失敗）",
+  "@settingsWebDAVSyncImageWarnings": { "placeholders": { "count": { "type": "int" } } },
 
   "backupTitle": "バックアップ",
   "backupSubtitle": "完全ローカルバックアップ（データ＋画像）",

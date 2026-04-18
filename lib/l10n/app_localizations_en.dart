@@ -332,6 +332,11 @@ class AppLocalizationsEn extends AppLocalizations {
   String get settingsWebDAVSyncFailed => 'Sync failed';
 
   @override
+  String settingsWebDAVSyncImageWarnings(int count) {
+    return 'Sync completed, but $count image(s) failed to transfer';
+  }
+
+  @override
   String get backupTitle => 'Backup';
 
   @override
