@@ -30,36 +30,38 @@ class WebDAVConfig {
       serverUrl.isNotEmpty && username.isNotEmpty && password.isNotEmpty;
 
   WebDAVConfig copyWith({bool? autoSync}) => WebDAVConfig(
-        serverUrl: serverUrl,
-        username: username,
-        password: password,
-        remotePath: remotePath,
-        autoSync: autoSync ?? this.autoSync,
-      );
+    serverUrl: serverUrl,
+    username: username,
+    password: password,
+    remotePath: remotePath,
+    autoSync: autoSync ?? this.autoSync,
+  );
 
   Map<String, dynamic> toJson() => {
-        'serverUrl': serverUrl,
-        'username': username,
-        'password': password,
-        'remotePath': remotePath,
-        'autoSync': autoSync,
-      };
+    'serverUrl': serverUrl,
+    'username': username,
+    'password': password,
+    'remotePath': remotePath,
+    'autoSync': autoSync,
+  };
 
   factory WebDAVConfig.fromJson(Map<String, dynamic> json) => WebDAVConfig(
-        serverUrl: json['serverUrl'] as String? ?? '',
-        username: json['username'] as String? ?? '',
-        password: json['password'] as String? ?? '',
-        remotePath: json['remotePath'] as String? ?? '/MyAnime',
-        autoSync: json['autoSync'] as bool? ?? false,
-      );
+    serverUrl: json['serverUrl'] as String? ?? '',
+    username: json['username'] as String? ?? '',
+    password: json['password'] as String? ?? '',
+    remotePath: json['remotePath'] as String? ?? '/MyAnime',
+    autoSync: json['autoSync'] as bool? ?? false,
+  );
 
   factory WebDAVConfig.nextcloud(
-          String host, String username, String password) =>
-      WebDAVConfig(
-        serverUrl: 'https://$host/remote.php/dav/files/$username',
-        username: username,
-        password: password,
-      );
+    String host,
+    String username,
+    String password,
+  ) => WebDAVConfig(
+    serverUrl: 'https://$host/remote.php/dav/files/$username',
+    username: username,
+    password: password,
+  );
 }
 
 /// Result of a sync operation.
@@ -67,6 +69,7 @@ class SyncResult {
   final bool success;
   final String? error;
   final PendingSync? pending;
+
   /// Non-fatal warnings collected during sync (e.g. individual image failures).
   final List<String> warnings;
 
@@ -86,17 +89,13 @@ class PendingSync {
 
   const PendingSync({this.animeMerge});
 
-  List<RecordConflict<Anime>> get allConflicts => [
-        ...?animeMerge?.conflicts,
-      ];
+  List<RecordConflict<Anime>> get allConflicts => [...?animeMerge?.conflicts];
 }
 
 class WebDAVService {
   static const _configFileName = 'webdav_config.json';
   static const _syncBaseDirName = '.sync_base';
-  static const _dataFileNames = [
-    'anime_data.json',
-  ];
+  static const _dataFileNames = ['anime_data.json'];
 
   /// Global lock to prevent concurrent syncs.
   static bool _syncing = false;
@@ -175,8 +174,9 @@ class WebDAVService {
   // ── HTTP helpers ──
 
   static Map<String, String> _authHeaders(WebDAVConfig config) {
-    final creds =
-        base64Encode(utf8.encode('${config.username}:${config.password}'));
+    final creds = base64Encode(
+      utf8.encode('${config.username}:${config.password}'),
+    );
     return {'Authorization': 'Basic $creds'};
   }
 
@@ -225,7 +225,10 @@ class WebDAVService {
   }
 
   static Future<bool> _upload(
-      WebDAVConfig config, String fileName, String content) async {
+    WebDAVConfig config,
+    String fileName,
+    String content,
+  ) async {
     try {
       final url = Uri.parse(_remoteFileUrl(config, fileName));
       final response = await http
@@ -245,7 +248,10 @@ class WebDAVService {
   }
 
   static Future<bool> _uploadBytes(
-      WebDAVConfig config, String fileName, Uint8List bytes) async {
+    WebDAVConfig config,
+    String fileName,
+    Uint8List bytes,
+  ) async {
     final url = Uri.parse(_remoteFileUrl(config, fileName));
     final response = await http
         .put(
@@ -263,8 +269,7 @@ class WebDAVService {
     return true;
   }
 
-  static Future<String?> _download(
-      WebDAVConfig config, String fileName) async {
+  static Future<String?> _download(WebDAVConfig config, String fileName) async {
     try {
       final url = Uri.parse(_remoteFileUrl(config, fileName));
       final response = await http
@@ -278,7 +283,9 @@ class WebDAVService {
   }
 
   static Future<Uint8List?> _downloadBytes(
-      WebDAVConfig config, String fileName) async {
+    WebDAVConfig config,
+    String fileName,
+  ) async {
     final url = Uri.parse(_remoteFileUrl(config, fileName));
     final response = await http
         .get(url, headers: _authHeaders(config))
@@ -289,7 +296,9 @@ class WebDAVService {
 
   /// List file names inside a remote subdirectory via PROPFIND.
   static Future<List<String>> _listRemoteFiles(
-      WebDAVConfig config, String subPath) async {
+    WebDAVConfig config,
+    String subPath,
+  ) async {
     try {
       final base = config.serverUrl.endsWith('/')
           ? config.serverUrl.substring(0, config.serverUrl.length - 1)
@@ -311,7 +320,10 @@ class WebDAVService {
       if (streamed.statusCode != 207) return [];
       final body = await streamed.stream.bytesToString();
       // Extract href values and filter to files (not the directory itself)
-      final hrefRegex = RegExp(r'<d:href>([^<]+)</d:href>', caseSensitive: false);
+      final hrefRegex = RegExp(
+        r'<d:href>([^<]+)</d:href>',
+        caseSensitive: false,
+      );
       final names = <String>[];
       for (final match in hrefRegex.allMatches(body)) {
         final href = Uri.decodeFull(match.group(1)!);
@@ -327,7 +339,9 @@ class WebDAVService {
   // ── Image sync ──
 
   static Future<void> _ensureRemoteSubDir(
-      WebDAVConfig config, String subPath) async {
+    WebDAVConfig config,
+    String subPath,
+  ) async {
     try {
       final base = config.serverUrl.endsWith('/')
           ? config.serverUrl.substring(0, config.serverUrl.length - 1)
@@ -346,8 +360,7 @@ class WebDAVService {
   static Set<String> _getReferencedImageNames(String? json) {
     if (json == null) return {};
     try {
-      final data = AnimeData.fromJson(
-          jsonDecode(json) as Map<String, dynamic>);
+      final data = AnimeData.fromJson(jsonDecode(json) as Map<String, dynamic>);
       return data.animes
           .map((a) => a.coverImage)
           .whereType<String>()
@@ -365,9 +378,10 @@ class WebDAVService {
   ///
   /// Returns a list of non-fatal error strings for individual transfer failures.
   static Future<List<String>> _syncImages(
-      WebDAVConfig config,
-      Directory appDir,
-      Set<String> referencedImages) async {
+    WebDAVConfig config,
+    Directory appDir,
+    Set<String> referencedImages,
+  ) async {
     final errors = <String>[];
     if (referencedImages.isEmpty) return errors;
 
@@ -435,11 +449,15 @@ class WebDAVService {
   ///
   /// When [autoResolve] is true, conflicts are resolved automatically using
   /// last-writer-wins per record. Used by auto-sync to prevent blocking.
-  static Future<SyncResult> sync(WebDAVConfig config,
-      {bool autoResolve = false}) async {
+  static Future<SyncResult> sync(
+    WebDAVConfig config, {
+    bool autoResolve = false,
+  }) async {
     if (_syncing) {
       return const SyncResult(
-          success: false, error: 'Sync already in progress');
+        success: false,
+        error: 'Sync already in progress',
+      );
     }
     _syncing = true;
     try {
@@ -504,7 +522,10 @@ class WebDAVService {
             if (result.hasConflicts) {
               pendingAnime = result;
             } else {
-              final mergedData = AnimeData(animes: result.merged);
+              final mergedData = AnimeData(
+                animes: result.merged,
+                extraJson: result.extraJson,
+              );
               final mergedJson = jsonEncode(mergedData.toJson());
               await _atomicWrite(localFile, mergedJson);
               final uploaded = await _upload(config, name, mergedJson);
@@ -560,8 +581,7 @@ class WebDAVService {
       if (pending.animeMerge != null) {
         final mergedData = pending.animeMerge!.buildResolved(resolutions);
         final mergedJson = jsonEncode(mergedData.toJson());
-        await _atomicWrite(
-          File('${appDir.path}/anime_data.json'), mergedJson);
+        await _atomicWrite(File('${appDir.path}/anime_data.json'), mergedJson);
         final uploaded = await _upload(config, 'anime_data.json', mergedJson);
         if (uploaded) await _saveBase('anime_data.json', mergedJson);
       }

@@ -1,6 +1,75 @@
 import 'package:uuid/uuid.dart';
 
+const _animeJsonKeys = {
+  'id',
+  'title',
+  'titleJa',
+  'season',
+  'startEpisode',
+  'endEpisode',
+  'manualType',
+  'airDayOfWeek',
+  'airTime',
+  'firstAirDate',
+  'episodeStatuses',
+  'coverImage',
+  'infoUrl',
+  'watchUrl',
+  'episodeWeekOffsets',
+  'notes',
+  'createdAt',
+  'modifiedAt',
+};
 
+const _animeDataJsonKeys = {'animes'};
+
+Map<String, dynamic> _unknownJson(
+  Map<String, dynamic> json,
+  Set<String> knownKeys,
+) {
+  final extra = Map<String, dynamic>.from(json);
+  extra.removeWhere((key, _) => knownKeys.contains(key));
+  return extra;
+}
+
+Map<String, dynamic> _stringKeyedMap(Map<dynamic, dynamic> map) => {
+  for (final entry in map.entries) entry.key.toString(): entry.value,
+};
+
+Map<String, dynamic> _mergeJsonMaps(Iterable<Map<String, dynamic>> maps) {
+  final merged = <String, dynamic>{};
+  for (final map in maps) {
+    for (final entry in map.entries) {
+      final existing = merged[entry.key];
+      final value = entry.value;
+      if (existing is Map && value is Map) {
+        merged[entry.key] = _mergeJsonMaps([
+          _stringKeyedMap(existing),
+          _stringKeyedMap(value),
+        ]);
+      } else {
+        merged[entry.key] = value;
+      }
+    }
+  }
+  return merged;
+}
+
+AnimeType? _parseAnimeType(Object? value) {
+  if (value is! String) return null;
+  for (final type in AnimeType.values) {
+    if (type.name == value) return type;
+  }
+  return null;
+}
+
+EpisodeStatus? _parseEpisodeStatus(Object? value) {
+  if (value is! String) return null;
+  for (final status in EpisodeStatus.values) {
+    if (status.name == value) return status;
+  }
+  return null;
+}
 
 /// Anime broadcast type based on episode count.
 enum AnimeType {
@@ -21,11 +90,7 @@ enum AnimeType {
 }
 
 /// Per-episode watch status.
-enum EpisodeStatus {
-  unwatched,
-  watched,
-  skippedThisWeek,
-}
+enum EpisodeStatus { unwatched, watched, skippedThisWeek }
 
 class Anime {
   final String id;
@@ -83,6 +148,12 @@ class Anime {
   final DateTime createdAt;
   final DateTime modifiedAt;
 
+  /// JSON fields this app version does not understand yet.
+  ///
+  /// These are preserved verbatim so older app versions do not erase data
+  /// written by newer versions during normal edits or sync.
+  final Map<String, dynamic> extraJson;
+
   const Anime({
     required this.id,
     this.title,
@@ -102,6 +173,7 @@ class Anime {
     this.notes,
     required this.createdAt,
     required this.modifiedAt,
+    this.extraJson = const {},
   });
 
   /// The display title: title ?? titleJa ?? ''.
@@ -201,8 +273,7 @@ class Anime {
       quarterStartMonth == 10 ? year + 1 : year,
       quarterStartMonth == 10 ? 1 : quarterStartMonth + 3,
     );
-    final estimatedEnd =
-        firstAirDate!.add(const Duration(days: 51 * 7));
+    final estimatedEnd = firstAirDate!.add(const Duration(days: 51 * 7));
     return firstAirDate!.isBefore(quarterEnd) &&
         estimatedEnd.isAfter(quarterStart);
   }
@@ -275,7 +346,11 @@ class Anime {
   DateTime? getEpisodeCalendarDate(int episodeNumber) {
     if (firstAirDate == null) return null;
     if (effectiveType == AnimeType.allAtOnce) {
-      return DateTime(firstAirDate!.year, firstAirDate!.month, firstAirDate!.day);
+      return DateTime(
+        firstAirDate!.year,
+        firstAirDate!.month,
+        firstAirDate!.day,
+      );
     }
     if (airDayOfWeek == null) return null;
 
@@ -347,11 +422,13 @@ class Anime {
       startEpisode: startEpisode ?? this.startEpisode,
       endEpisode: clearEndEpisode ? null : (endEpisode ?? this.endEpisode),
       manualType: clearManualType ? null : (manualType ?? this.manualType),
-      airDayOfWeek:
-          clearAirDayOfWeek ? null : (airDayOfWeek ?? this.airDayOfWeek),
+      airDayOfWeek: clearAirDayOfWeek
+          ? null
+          : (airDayOfWeek ?? this.airDayOfWeek),
       airTime: clearAirTime ? null : (airTime ?? this.airTime),
-      firstAirDate:
-          clearFirstAirDate ? null : (firstAirDate ?? this.firstAirDate),
+      firstAirDate: clearFirstAirDate
+          ? null
+          : (firstAirDate ?? this.firstAirDate),
       episodeStatuses: episodeStatuses ?? this.episodeStatuses,
       coverImage: clearCoverImage ? null : (coverImage ?? this.coverImage),
       infoUrl: clearInfoUrl ? null : (infoUrl ?? this.infoUrl),
@@ -360,59 +437,180 @@ class Anime {
       notes: clearNotes ? null : (notes ?? this.notes),
       createdAt: createdAt,
       modifiedAt: modifiedAt ?? DateTime.now().toUtc(),
+      extraJson: extraJson,
     );
   }
 
-  Map<String, dynamic> toJson() => {
-        'id': id,
-        if (title != null) 'title': title,
-        if (titleJa != null) 'titleJa': titleJa,
-        'season': season,
-        'startEpisode': startEpisode,
-        if (endEpisode != null) 'endEpisode': endEpisode,
-        if (manualType != null) 'manualType': manualType!.name,
-        if (airDayOfWeek != null) 'airDayOfWeek': airDayOfWeek,
-        if (airTime != null) 'airTime': airTime,
-        if (firstAirDate != null)
-          'firstAirDate': firstAirDate!.toIso8601String(),
-        'episodeStatuses': episodeStatuses
-            .map((k, v) => MapEntry(k.toString(), v.name)),
-        if (coverImage != null) 'coverImage': coverImage,
-        if (infoUrl != null) 'infoUrl': infoUrl,
-        if (watchUrl != null) 'watchUrl': watchUrl,
-        if (episodeWeekOffsets.isNotEmpty)
-          'episodeWeekOffsets': episodeWeekOffsets
-              .map((k, v) => MapEntry(k.toString(), v)),
-        if (notes != null) 'notes': notes,
-        'createdAt': createdAt.toIso8601String(),
-        'modifiedAt': modifiedAt.toIso8601String(),
-      };
+  Anime withExtraJson(Map<String, dynamic> extraJson) => Anime(
+    id: id,
+    title: title,
+    titleJa: titleJa,
+    season: season,
+    startEpisode: startEpisode,
+    endEpisode: endEpisode,
+    manualType: manualType,
+    airDayOfWeek: airDayOfWeek,
+    airTime: airTime,
+    firstAirDate: firstAirDate,
+    episodeStatuses: episodeStatuses,
+    coverImage: coverImage,
+    infoUrl: infoUrl,
+    watchUrl: watchUrl,
+    episodeWeekOffsets: episodeWeekOffsets,
+    notes: notes,
+    createdAt: createdAt,
+    modifiedAt: modifiedAt,
+    extraJson: extraJson,
+  );
+
+  Anime withPreservedUnknownJson(Iterable<Anime?> fallbackSources) =>
+      withExtraJson(
+        _mergeJsonMaps([
+          for (final source in fallbackSources)
+            if (source != null) source.extraJson,
+          extraJson,
+        ]),
+      );
+
+  Map<String, dynamic> toJson() {
+    final json = Map<String, dynamic>.from(extraJson);
+
+    final statusJson = <String, dynamic>{};
+    final rawStatuses = extraJson['episodeStatuses'];
+    if (rawStatuses is Map) {
+      statusJson.addAll(_stringKeyedMap(rawStatuses));
+    }
+    statusJson.addAll(
+      episodeStatuses.map((k, v) => MapEntry(k.toString(), v.name)),
+    );
+
+    final weekOffsetJson = <String, dynamic>{};
+    final rawWeekOffsets = extraJson['episodeWeekOffsets'];
+    if (rawWeekOffsets is Map) {
+      weekOffsetJson.addAll(_stringKeyedMap(rawWeekOffsets));
+    }
+    weekOffsetJson.addAll(
+      episodeWeekOffsets.map((k, v) => MapEntry(k.toString(), v)),
+    );
+
+    json['id'] = id;
+    if (title != null) {
+      json['title'] = title;
+    } else {
+      json.remove('title');
+    }
+    if (titleJa != null) {
+      json['titleJa'] = titleJa;
+    } else {
+      json.remove('titleJa');
+    }
+    json['season'] = season;
+    json['startEpisode'] = startEpisode;
+    if (endEpisode != null) {
+      json['endEpisode'] = endEpisode;
+    } else {
+      json.remove('endEpisode');
+    }
+    if (manualType != null) {
+      json['manualType'] = manualType!.name;
+    } else if (!extraJson.containsKey('manualType')) {
+      json.remove('manualType');
+    }
+    if (airDayOfWeek != null) {
+      json['airDayOfWeek'] = airDayOfWeek;
+    } else {
+      json.remove('airDayOfWeek');
+    }
+    if (airTime != null) {
+      json['airTime'] = airTime;
+    } else {
+      json.remove('airTime');
+    }
+    if (firstAirDate != null) {
+      json['firstAirDate'] = firstAirDate!.toIso8601String();
+    } else {
+      json.remove('firstAirDate');
+    }
+    json['episodeStatuses'] = statusJson;
+    if (coverImage != null) {
+      json['coverImage'] = coverImage;
+    } else {
+      json.remove('coverImage');
+    }
+    if (infoUrl != null) {
+      json['infoUrl'] = infoUrl;
+    } else {
+      json.remove('infoUrl');
+    }
+    if (watchUrl != null) {
+      json['watchUrl'] = watchUrl;
+    } else {
+      json.remove('watchUrl');
+    }
+    if (weekOffsetJson.isNotEmpty) {
+      json['episodeWeekOffsets'] = weekOffsetJson;
+    } else {
+      json.remove('episodeWeekOffsets');
+    }
+    if (notes != null) {
+      json['notes'] = notes;
+    } else {
+      json.remove('notes');
+    }
+    json['createdAt'] = createdAt.toIso8601String();
+    json['modifiedAt'] = modifiedAt.toIso8601String();
+
+    return json;
+  }
 
   factory Anime.fromJson(Map<String, dynamic> json) {
+    final extraJson = _unknownJson(json, _animeJsonKeys);
+
+    final manualType = _parseAnimeType(json['manualType']);
+    if (json.containsKey('manualType') && manualType == null) {
+      extraJson['manualType'] = json['manualType'];
+    }
+
     final statuses = <int, EpisodeStatus>{};
-    final rawStatuses = json['episodeStatuses'] as Map<String, dynamic>?;
-    if (rawStatuses != null) {
+    final unknownStatuses = <String, dynamic>{};
+    final rawStatusesValue = json['episodeStatuses'];
+    if (rawStatusesValue is Map) {
+      final rawStatuses = _stringKeyedMap(rawStatusesValue);
       for (final entry in rawStatuses.entries) {
         final ep = int.tryParse(entry.key);
-        if (ep != null) {
-          statuses[ep] = EpisodeStatus.values.firstWhere(
-            (e) => e.name == entry.value,
-            orElse: () => EpisodeStatus.unwatched,
-          );
+        final status = _parseEpisodeStatus(entry.value);
+        if (ep != null && status != null) {
+          statuses[ep] = status;
+        } else {
+          unknownStatuses[entry.key] = entry.value;
         }
       }
+    } else if (json.containsKey('episodeStatuses')) {
+      extraJson['episodeStatuses'] = rawStatusesValue;
+    }
+    if (unknownStatuses.isNotEmpty) {
+      extraJson['episodeStatuses'] = unknownStatuses;
     }
 
     final weekOffsets = <int, int>{};
-    final rawOffsets = json['episodeWeekOffsets'] as Map<String, dynamic>?;
-    if (rawOffsets != null) {
+    final unknownWeekOffsets = <String, dynamic>{};
+    final rawOffsetsValue = json['episodeWeekOffsets'];
+    if (rawOffsetsValue is Map) {
+      final rawOffsets = _stringKeyedMap(rawOffsetsValue);
       for (final entry in rawOffsets.entries) {
         final ep = int.tryParse(entry.key);
-        final val = entry.value as int?;
-        if (ep != null && val != null) {
+        final val = entry.value;
+        if (ep != null && val is int) {
           weekOffsets[ep] = val;
+        } else {
+          unknownWeekOffsets[entry.key] = val;
         }
       }
+    } else if (json.containsKey('episodeWeekOffsets')) {
+      extraJson['episodeWeekOffsets'] = rawOffsetsValue;
+    }
+    if (unknownWeekOffsets.isNotEmpty) {
+      extraJson['episodeWeekOffsets'] = unknownWeekOffsets;
     }
 
     return Anime(
@@ -422,12 +620,7 @@ class Anime {
       season: json['season'] as String? ?? 'Season 1',
       startEpisode: json['startEpisode'] as int? ?? 1,
       endEpisode: json['endEpisode'] as int?,
-      manualType: json['manualType'] != null
-          ? AnimeType.values.firstWhere(
-              (e) => e.name == json['manualType'],
-              orElse: () => AnimeType.singleCour,
-            )
-          : null,
+      manualType: manualType,
       airDayOfWeek: json['airDayOfWeek'] as int?,
       airTime: json['airTime'] as String?,
       firstAirDate: json['firstAirDate'] != null
@@ -441,6 +634,7 @@ class Anime {
       notes: json['notes'] as String?,
       createdAt: DateTime.parse(json['createdAt'] as String),
       modifiedAt: DateTime.parse(json['modifiedAt'] as String),
+      extraJson: extraJson,
     );
   }
 
@@ -485,20 +679,38 @@ class Anime {
 /// Top-level data container for all anime entries.
 class AnimeData {
   final List<Anime> animes;
+  final Map<String, dynamic> extraJson;
 
   List<Anime> get animeList => animes;
 
-  const AnimeData({this.animes = const []});
+  const AnimeData({this.animes = const [], this.extraJson = const {}});
+
+  AnimeData withExtraJson(Map<String, dynamic> extraJson) =>
+      AnimeData(animes: animes, extraJson: extraJson);
+
+  AnimeData withPreservedUnknownJson(Iterable<AnimeData?> fallbackSources) =>
+      withExtraJson(
+        _mergeJsonMaps([
+          for (final source in fallbackSources)
+            if (source != null) source.extraJson,
+          extraJson,
+        ]),
+      );
 
   Map<String, dynamic> toJson() => {
-        'animes': animes.map((a) => a.toJson()).toList(),
-      };
+    ...extraJson,
+    'animes': animes.map((a) => a.toJson()).toList(),
+  };
 
   factory AnimeData.fromJson(Map<String, dynamic> json) {
-    final list = (json['animes'] as List<dynamic>?)
+    final list =
+        (json['animes'] as List<dynamic>?)
             ?.map((e) => Anime.fromJson(e as Map<String, dynamic>))
             .toList() ??
         [];
-    return AnimeData(animes: list);
+    return AnimeData(
+      animes: list,
+      extraJson: _unknownJson(json, _animeDataJsonKeys),
+    );
   }
 }

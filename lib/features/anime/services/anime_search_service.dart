@@ -32,7 +32,7 @@ class AnimeSearchResult {
 }
 
 class AnimeSearchService {
-  static const _userAgent = 'MyAnime/0.3.0 (anime tracker)';
+  static const _userAgent = 'MyAnime/0.6.6 (anime tracker)';
 
   /// Search all sources in parallel and return combined results.
   /// Automatically tries S↔T Chinese variants on Chinese-language sources.
@@ -72,10 +72,12 @@ class AnimeSearchService {
       'https://api.bgm.tv/search/subject/${Uri.encodeComponent(query)}'
       '?type=2&responseGroup=large&max_results=5',
     );
-    final resp = await http.get(url, headers: {
-      'User-Agent': _userAgent,
-      'Accept': 'application/json',
-    }).timeout(const Duration(seconds: 10));
+    final resp = await http
+        .get(
+          url,
+          headers: {'User-Agent': _userAgent, 'Accept': 'application/json'},
+        )
+        .timeout(const Duration(seconds: 10));
     if (resp.statusCode != 200) return [];
 
     final json = jsonDecode(resp.body) as Map<String, dynamic>;
@@ -98,8 +100,8 @@ class AnimeSearchService {
         titleJa: m['name'] as String?,
         episodes: m['eps'] as int? ?? m['eps_count'] as int?,
         firstAirDate: airDate,
-        coverImageUrl: images?['large'] as String? ??
-            images?['common'] as String?,
+        coverImageUrl:
+            images?['large'] as String? ?? images?['common'] as String?,
         summary: m['summary'] as String?,
       );
     }).toList();
@@ -111,10 +113,12 @@ class AnimeSearchService {
       'https://api.jikan.moe/v4/anime'
       '?q=${Uri.encodeComponent(query)}&limit=5',
     );
-    final resp = await http.get(url, headers: {
-      'User-Agent': _userAgent,
-      'Accept': 'application/json',
-    }).timeout(const Duration(seconds: 10));
+    final resp = await http
+        .get(
+          url,
+          headers: {'User-Agent': _userAgent, 'Accept': 'application/json'},
+        )
+        .timeout(const Duration(seconds: 10));
     if (resp.statusCode != 200) return [];
 
     final json = jsonDecode(resp.body) as Map<String, dynamic>;
@@ -147,7 +151,8 @@ class AnimeSearchService {
         firstAirDate: airDate,
         airDayOfWeek: airDayOfWeek,
         airTime: airTime,
-        coverImageUrl: jpgImages?['large_image_url'] as String? ??
+        coverImageUrl:
+            jpgImages?['large_image_url'] as String? ??
             jpgImages?['image_url'] as String?,
         summary: m['synopsis'] as String?,
       );
@@ -155,8 +160,7 @@ class AnimeSearchService {
   }
 
   /// acgsecrets.hk — scrape seasonal page JSON-LD data and fuzzy-match.
-  static Future<List<AnimeSearchResult>> _searchAcgsecrets(
-      String query) async {
+  static Future<List<AnimeSearchResult>> _searchAcgsecrets(String query) async {
     final seasons = _recentSeasons();
     final allResults = <(AnimeSearchResult, double)>[];
     final seenUrls = <String>{};
@@ -165,9 +169,9 @@ class AnimeSearchService {
 
     for (final season in seasons) {
       final url = Uri.parse('https://acgsecrets.hk/bangumi/$season/');
-      final resp = await http.get(url, headers: {
-        'User-Agent': _userAgent,
-      }).timeout(const Duration(seconds: 15));
+      final resp = await http
+          .get(url, headers: {'User-Agent': _userAgent})
+          .timeout(const Duration(seconds: 15));
       if (resp.statusCode != 200) continue;
 
       final html = utf8.decode(resp.bodyBytes);
@@ -242,9 +246,7 @@ class AnimeSearchService {
     final m = now.month;
     // Current season month: 01, 04, 07, 10.
     final sm = [1, 4, 7, 10].lastWhere((s) => m >= s);
-    final seasons = <String>[
-      '$y${sm.toString().padLeft(2, '0')}',
-    ];
+    final seasons = <String>['$y${sm.toString().padLeft(2, '0')}'];
     // Previous season.
     if (sm == 1) {
       seasons.add('${y - 1}10');
@@ -271,10 +273,9 @@ class AnimeSearchService {
       'https://filmarks.com/search/animes'
       '?q=${Uri.encodeComponent(query)}',
     );
-    final resp = await http.get(url, headers: {
-      'User-Agent': _userAgent,
-      'Accept-Language': 'ja',
-    }).timeout(const Duration(seconds: 10));
+    final resp = await http
+        .get(url, headers: {'User-Agent': _userAgent, 'Accept-Language': 'ja'})
+        .timeout(const Duration(seconds: 10));
     if (resp.statusCode != 200) return [];
 
     final html = utf8.decode(resp.bodyBytes);
@@ -292,12 +293,14 @@ class AnimeSearchService {
       final imgUrl = match.group(2);
       final title = match.group(3)?.trim();
       if (title != null && title.isNotEmpty) {
-        results.add(AnimeSearchResult(
-          source: 'filmarks.com',
-          sourceUrl: path != null ? 'https://filmarks.com$path' : null,
-          titleJa: _decodeHtmlEntities(title),
-          coverImageUrl: imgUrl,
-        ));
+        results.add(
+          AnimeSearchResult(
+            source: 'filmarks.com',
+            sourceUrl: path != null ? 'https://filmarks.com$path' : null,
+            titleJa: _decodeHtmlEntities(title),
+            coverImageUrl: imgUrl,
+          ),
+        );
       }
     }
 
@@ -310,11 +313,13 @@ class AnimeSearchService {
         final path = match.group(1);
         final title = match.group(2)?.trim();
         if (title != null && title.isNotEmpty && title.length > 1) {
-          results.add(AnimeSearchResult(
-            source: 'filmarks.com',
-            sourceUrl: path != null ? 'https://filmarks.com$path' : null,
-            titleJa: _decodeHtmlEntities(title),
-          ));
+          results.add(
+            AnimeSearchResult(
+              source: 'filmarks.com',
+              sourceUrl: path != null ? 'https://filmarks.com$path' : null,
+              titleJa: _decodeHtmlEntities(title),
+            ),
+          );
         }
       }
     }
@@ -343,18 +348,20 @@ query ($search: String) {
 }
 ''';
     final url = Uri.parse('https://graphql.anilist.co');
-    final resp = await http.post(
-      url,
-      headers: {
-        'Content-Type': 'application/json',
-        'Accept': 'application/json',
-        'User-Agent': _userAgent,
-      },
-      body: jsonEncode({
-        'query': graphqlQuery,
-        'variables': {'search': query},
-      }),
-    ).timeout(const Duration(seconds: 10));
+    final resp = await http
+        .post(
+          url,
+          headers: {
+            'Content-Type': 'application/json',
+            'Accept': 'application/json',
+            'User-Agent': _userAgent,
+          },
+          body: jsonEncode({
+            'query': graphqlQuery,
+            'variables': {'search': query},
+          }),
+        )
+        .timeout(const Duration(seconds: 10));
     if (resp.statusCode != 200) return [];
 
     final json = jsonDecode(resp.body) as Map<String, dynamic>;
@@ -404,8 +411,7 @@ query ($search: String) {
       return AnimeSearchResult(
         source: 'AniList',
         sourceUrl: m['siteUrl'] as String?,
-        title: titles?['english'] as String? ??
-            titles?['romaji'] as String?,
+        title: titles?['english'] as String? ?? titles?['romaji'] as String?,
         titleJa: titles?['native'] as String?,
         episodes: m['episodes'] as int?,
         firstAirDate: airDate,
@@ -433,7 +439,9 @@ query ($search: String) {
   /// Automatically tries S↔T Chinese variants + optional alternate queries.
   /// Results are ranked by fuzzy similarity to the queries.
   static Future<List<({String title, String url})>> searchAnime1(
-      String query, {List<String> altQueries = const []}) async {
+    String query, {
+    List<String> altQueries = const [],
+  }) async {
     // Build all query variants.
     final traditional = ChineseConvert.toTraditional(query);
     final simplified = ChineseConvert.toSimplified(query);
@@ -463,13 +471,16 @@ query ($search: String) {
     // traditional query.  E.g. "能幫我弄乾淨嗎" shares "乾淨" with
     // "可以幫忙洗乾淨嗎？" even though the full titles differ.
     if (allResults.isEmpty) {
-      final trad = ChineseConvert.toTraditional(query)
-          .replaceAll(RegExp(r'[^\p{L}\p{N}]', unicode: true), '');
+      final trad = ChineseConvert.toTraditional(
+        query,
+      ).replaceAll(RegExp(r'[^\p{L}\p{N}]', unicode: true), '');
       if (trad.length >= 4) {
         int attempts = 0;
-        for (int i = trad.length - 2;
-            i >= 0 && attempts < 3 && allResults.isEmpty;
-            i--) {
+        for (
+          int i = trad.length - 2;
+          i >= 0 && attempts < 3 && allResults.isEmpty;
+          i--
+        ) {
           final sub = trad.substring(i, i + 2);
           attempts++;
           final partial = await _searchAnime1Single(sub);
@@ -556,13 +567,12 @@ query ($search: String) {
   }
 
   static Future<List<({String title, String url})>> _searchAnime1Single(
-      String query) async {
-    final url = Uri.parse(
-      'https://anime1.me/?s=${Uri.encodeComponent(query)}',
-    );
-    final resp = await http.get(url, headers: {
-      'User-Agent': _userAgent,
-    }).timeout(const Duration(seconds: 10));
+    String query,
+  ) async {
+    final url = Uri.parse('https://anime1.me/?s=${Uri.encodeComponent(query)}');
+    final resp = await http
+        .get(url, headers: {'User-Agent': _userAgent})
+        .timeout(const Duration(seconds: 10));
     if (resp.statusCode != 200) return [];
 
     final html = utf8.decode(resp.bodyBytes);
@@ -613,8 +623,9 @@ query ($search: String) {
         final rawTitle = match.group(2)?.trim();
         if (href != null && rawTitle != null && rawTitle.isNotEmpty) {
           // Strip episode suffix like " [34]" or " [1]"
-          final cleanTitle =
-              _decodeHtmlEntities(rawTitle.replaceAll(RegExp(r'\s*\[\d+\]\s*$'), ''));
+          final cleanTitle = _decodeHtmlEntities(
+            rawTitle.replaceAll(RegExp(r'\s*\[\d+\]\s*$'), ''),
+          );
           if (seen.add(cleanTitle)) {
             results.add((title: cleanTitle, url: href));
           }

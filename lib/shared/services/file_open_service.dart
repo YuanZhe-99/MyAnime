@@ -83,6 +83,7 @@ class FileOpenService {
         notes: anime.notes,
         createdAt: now,
         modifiedAt: now,
+        extraJson: anime.extraJson,
       );
 
       await AnimeStorage.addOrUpdate(imported);
@@ -95,9 +96,7 @@ class FileOpenService {
   /// Open a file picker for the user to select a .myanimeitem file,
   /// then import it. Returns the imported anime ID, or null on failure/cancel.
   static Future<String?> importFromPicker() async {
-    final result = await FilePicker.platform.pickFiles(
-      type: FileType.any,
-    );
+    final result = await FilePicker.platform.pickFiles(type: FileType.any);
     if (result == null || result.files.isEmpty) return null;
     final path = result.files.single.path;
     if (path == null) return null;
@@ -111,10 +110,7 @@ class FileOpenService {
     final animeJson = anime.toJson();
     animeJson.remove('episodeStatuses');
     animeJson.remove('episodeWeekOffsets');
-    final json = <String, dynamic>{
-      'version': 1,
-      'anime': animeJson,
-    };
+    final json = <String, dynamic>{'version': 1, 'anime': animeJson};
 
     // Embed cover image as base64
     if (anime.coverImage != null) {
@@ -131,10 +127,10 @@ class FileOpenService {
 
     final tempDir = await getTemporaryDirectory();
     final safeName = _sanitizeFileName(anime.displayTitle);
-    final filePath =
-        p.join(tempDir.path, '$safeName.myanimeitem');
-    await File(filePath)
-        .writeAsString(const JsonEncoder.withIndent('  ').convert(json));
+    final filePath = p.join(tempDir.path, '$safeName.myanimeitem');
+    await File(
+      filePath,
+    ).writeAsString(const JsonEncoder.withIndent('  ').convert(json));
     return filePath;
   }
 

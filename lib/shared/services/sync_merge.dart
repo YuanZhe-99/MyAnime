@@ -48,8 +48,9 @@ RecordMergeResult<T> mergeRecords<T>({
 }) {
   final localMap = {for (final r in local) getId(r): r};
   final remoteMap = {for (final r in remote) getId(r): r};
-  final baseMap =
-      base != null ? {for (final r in base) getId(r): r} : <String, T>{};
+  final baseMap = base != null
+      ? {for (final r in base) getId(r): r}
+      : <String, T>{};
 
   final allIds = {...localMap.keys, ...remoteMap.keys, ...baseMap.keys};
   final merged = <T>[];
@@ -72,12 +73,14 @@ RecordMergeResult<T> mergeRecords<T>({
             // LWW per record: pick the one with newer modifiedAt
             merged.add(getModifiedAt(l).isAfter(getModifiedAt(r)) ? l : r);
           } else {
-            conflicts.add(RecordConflict(
-              id: id,
-              localRecord: l,
-              remoteRecord: r,
-              displayName: getDisplayName(l),
-            ));
+            conflicts.add(
+              RecordConflict(
+                id: id,
+                localRecord: l,
+                remoteRecord: r,
+                displayName: getDisplayName(l),
+              ),
+            );
           }
         } else if (localChanged) {
           merged.add(l);
@@ -125,8 +128,13 @@ RecordMergeResult<T> mergeRecords<T>({
 class AnimeMergeResult {
   final List<Anime> merged;
   final List<RecordConflict<Anime>> conflicts;
+  final Map<String, dynamic> extraJson;
 
-  const AnimeMergeResult({required this.merged, this.conflicts = const []});
+  const AnimeMergeResult({
+    required this.merged,
+    this.conflicts = const [],
+    this.extraJson = const {},
+  });
 
   bool get hasConflicts => conflicts.isNotEmpty;
 
@@ -135,9 +143,10 @@ class AnimeMergeResult {
   AnimeData buildResolved(Map<String, Anime> resolutions) {
     final all = <Anime>[...merged];
     for (final c in conflicts) {
-      all.add(resolutions[c.id] ?? c.localRecord);
+      final chosen = resolutions[c.id] ?? c.localRecord;
+      all.add(chosen.withPreservedUnknownJson([c.localRecord, c.remoteRecord]));
     }
-    return AnimeData(animes: all);
+    return AnimeData(animes: all, extraJson: extraJson);
   }
 }
 
@@ -148,26 +157,40 @@ AnimeMergeResult mergeAnimeData(
   String? baseJson, {
   bool autoResolve = false,
 }) {
-  final local =
-      AnimeData.fromJson(jsonDecode(localJson) as Map<String, dynamic>);
-  final remote =
-      AnimeData.fromJson(jsonDecode(remoteJson) as Map<String, dynamic>);
-  final base = baseJson != null
+  final localData = AnimeData.fromJson(
+    jsonDecode(localJson) as Map<String, dynamic>,
+  );
+  final remoteData = AnimeData.fromJson(
+    jsonDecode(remoteJson) as Map<String, dynamic>,
+  );
+  final baseData = baseJson != null
       ? AnimeData.fromJson(jsonDecode(baseJson) as Map<String, dynamic>)
       : null;
+  final localMap = {for (final anime in localData.animes) anime.id: anime};
+  final remoteMap = {for (final anime in remoteData.animes) anime.id: anime};
 
   final result = mergeRecords<Anime>(
-    local: local.animes,
-    remote: remote.animes,
-    base: base?.animes,
+    local: localData.animes,
+    remote: remoteData.animes,
+    base: baseData?.animes,
     getId: (a) => a.id,
     getModifiedAt: (a) => a.modifiedAt,
     getDisplayName: (a) => a.displayTitle,
     autoResolve: autoResolve,
   );
+  final merged = result.merged
+      .map(
+        (anime) => anime.withPreservedUnknownJson([
+          localMap[anime.id],
+          remoteMap[anime.id],
+        ]),
+      )
+      .toList();
+  final extraJson = localData.withPreservedUnknownJson([remoteData]).extraJson;
 
   return AnimeMergeResult(
-    merged: result.merged,
+    merged: merged,
     conflicts: result.conflicts,
+    extraJson: extraJson,
   );
 }
