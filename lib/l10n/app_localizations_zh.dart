@@ -21,6 +21,9 @@ class AppLocalizationsZh extends AppLocalizations {
   String get navStats => '统计';
 
   @override
+  String get navKana => '五十音';
+
+  @override
   String get navSettings => '设置';
 
   @override
@@ -670,6 +673,80 @@ class AppLocalizationsZh extends AppLocalizations {
   }
 
   @override
+  String get kanaTitle => '五十音速查';
+
+  @override
+  String get kanaScriptHiragana => '平假名';
+
+  @override
+  String get kanaScriptKatakana => '片假名';
+
+  @override
+  String get kanaSearchHint => '搜索假名或罗马音...';
+
+  @override
+  String kanaSearchResults(int count) {
+    return '匹配 ($count)';
+  }
+
+  @override
+  String get kanaNoMatches => '没有匹配的假名';
+
+  @override
+  String get kanaBasicSection => '清音五十音';
+
+  @override
+  String get kanaVoicedSection => '浊音 / 半浊音';
+
+  @override
+  String get kanaYoonSection => '拗音';
+
+  @override
+  String get kanaRulesSection => '发音规则';
+
+  @override
+  String get kanaRuleMoraTitle => '一个假名一拍';
+
+  @override
+  String get kanaRuleMoraBody => '每个假名占一个 mora。像 ka-ki-ku-ke-ko 一样保持均匀节奏。';
+
+  @override
+  String get kanaRuleVowelsTitle => '元音稳定';
+
+  @override
+  String get kanaRuleVowelsBody => 'a, i, u, e, o 要短而清楚，不像英语弱读元音那样被吞掉。';
+
+  @override
+  String get kanaRuleDakutenTitle => '浊音与半浊音';
+
+  @override
+  String get kanaRuleDakutenBody => '゛让辅音浊化: k 变 g，s 变 z，t 变 d，h 变 b。゜让 h 变 p。';
+
+  @override
+  String get kanaRuleYoonTitle => '拗音组合';
+
+  @override
+  String get kanaRuleYoonBody => '小写 ゃ/ゅ/ょ 与 i 段假名合并: き + ゃ = きゃ kya。';
+
+  @override
+  String get kanaRuleSokuonTitle => '促音';
+
+  @override
+  String get kanaRuleSokuonBody => '小写 っ/ッ 表示下一个辅音前有短暂停顿，并双写辅音，如 まって matte。';
+
+  @override
+  String get kanaRuleLongVowelsTitle => '长音';
+
+  @override
+  String get kanaRuleLongVowelsBody => 'ー 延长片假名音。平假名里 おう 常读长 o，えい 常读长 e。';
+
+  @override
+  String get kanaRuleNTitle => 'ん / ン';
+
+  @override
+  String get kanaRuleNBody => '通常读 n；在 m, b, p 前接近 m，在 k, g 前会变成较轻的鼻音。';
+
+  @override
   String get settingsDesktop => '桌面';
 }
 
@@ -688,6 +765,9 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
 
   @override
   String get navStats => '統計';
+
+  @override
+  String get navKana => '五十音';
 
   @override
   String get navSettings => '設定';
@@ -1337,6 +1417,80 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
   String settingsApiRestarted(int port) {
     return 'API 伺服器已在連接埠 $port 重啟';
   }
+
+  @override
+  String get kanaTitle => '五十音速查';
+
+  @override
+  String get kanaScriptHiragana => '平假名';
+
+  @override
+  String get kanaScriptKatakana => '片假名';
+
+  @override
+  String get kanaSearchHint => '搜尋假名或羅馬音...';
+
+  @override
+  String kanaSearchResults(int count) {
+    return '符合 ($count)';
+  }
+
+  @override
+  String get kanaNoMatches => '沒有符合的假名';
+
+  @override
+  String get kanaBasicSection => '清音五十音';
+
+  @override
+  String get kanaVoicedSection => '濁音 / 半濁音';
+
+  @override
+  String get kanaYoonSection => '拗音';
+
+  @override
+  String get kanaRulesSection => '發音規則';
+
+  @override
+  String get kanaRuleMoraTitle => '一個假名一拍';
+
+  @override
+  String get kanaRuleMoraBody => '每個假名佔一個 mora。像 ka-ki-ku-ke-ko 一樣保持均勻節奏。';
+
+  @override
+  String get kanaRuleVowelsTitle => '母音穩定';
+
+  @override
+  String get kanaRuleVowelsBody => 'a, i, u, e, o 要短而清楚，不像英語弱讀母音那樣被吞掉。';
+
+  @override
+  String get kanaRuleDakutenTitle => '濁音與半濁音';
+
+  @override
+  String get kanaRuleDakutenBody => '゛讓子音濁化: k 變 g，s 變 z，t 變 d，h 變 b。゜讓 h 變 p。';
+
+  @override
+  String get kanaRuleYoonTitle => '拗音組合';
+
+  @override
+  String get kanaRuleYoonBody => '小寫 ゃ/ゅ/ょ 與 i 段假名合併: き + ゃ = きゃ kya。';
+
+  @override
+  String get kanaRuleSokuonTitle => '促音';
+
+  @override
+  String get kanaRuleSokuonBody => '小寫 っ/ッ 表示下一個子音前有短暫停頓，並雙寫子音，如 まって matte。';
+
+  @override
+  String get kanaRuleLongVowelsTitle => '長音';
+
+  @override
+  String get kanaRuleLongVowelsBody => 'ー 延長片假名音。平假名裡 おう 常讀長 o，えい 常讀長 e。';
+
+  @override
+  String get kanaRuleNTitle => 'ん / ン';
+
+  @override
+  String get kanaRuleNBody => '通常讀 n；在 m, b, p 前接近 m，在 k, g 前會變成較輕的鼻音。';
 
   @override
   String get settingsDesktop => '桌面';

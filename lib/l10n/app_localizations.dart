@@ -125,6 +125,12 @@ abstract class AppLocalizations {
   /// **'Stats'**
   String get navStats;
 
+  /// No description provided for @navKana.
+  ///
+  /// In en, this message translates to:
+  /// **'Kana'**
+  String get navKana;
+
   /// No description provided for @navSettings.
   ///
   /// In en, this message translates to:
@@ -1354,6 +1360,150 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'API server restarted on port {port}'**
   String settingsApiRestarted(int port);
+
+  /// No description provided for @kanaTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Kana'**
+  String get kanaTitle;
+
+  /// No description provided for @kanaScriptHiragana.
+  ///
+  /// In en, this message translates to:
+  /// **'Hiragana'**
+  String get kanaScriptHiragana;
+
+  /// No description provided for @kanaScriptKatakana.
+  ///
+  /// In en, this message translates to:
+  /// **'Katakana'**
+  String get kanaScriptKatakana;
+
+  /// No description provided for @kanaSearchHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Search kana or romaji...'**
+  String get kanaSearchHint;
+
+  /// No description provided for @kanaSearchResults.
+  ///
+  /// In en, this message translates to:
+  /// **'Matches ({count})'**
+  String kanaSearchResults(int count);
+
+  /// No description provided for @kanaNoMatches.
+  ///
+  /// In en, this message translates to:
+  /// **'No matching kana'**
+  String get kanaNoMatches;
+
+  /// No description provided for @kanaBasicSection.
+  ///
+  /// In en, this message translates to:
+  /// **'Gojūon'**
+  String get kanaBasicSection;
+
+  /// No description provided for @kanaVoicedSection.
+  ///
+  /// In en, this message translates to:
+  /// **'Dakuten'**
+  String get kanaVoicedSection;
+
+  /// No description provided for @kanaYoonSection.
+  ///
+  /// In en, this message translates to:
+  /// **'Yōon'**
+  String get kanaYoonSection;
+
+  /// No description provided for @kanaRulesSection.
+  ///
+  /// In en, this message translates to:
+  /// **'Pronunciation'**
+  String get kanaRulesSection;
+
+  /// No description provided for @kanaRuleMoraTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'One kana, one beat'**
+  String get kanaRuleMoraTitle;
+
+  /// No description provided for @kanaRuleMoraBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Each kana is one mora. Keep the rhythm even, like ka-ki-ku-ke-ko.'**
+  String get kanaRuleMoraBody;
+
+  /// No description provided for @kanaRuleVowelsTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Stable vowels'**
+  String get kanaRuleVowelsTitle;
+
+  /// No description provided for @kanaRuleVowelsBody.
+  ///
+  /// In en, this message translates to:
+  /// **'a, i, u, e, o stay short and clean. Do not reduce them like unstressed English vowels.'**
+  String get kanaRuleVowelsBody;
+
+  /// No description provided for @kanaRuleDakutenTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Dakuten and handakuten'**
+  String get kanaRuleDakutenTitle;
+
+  /// No description provided for @kanaRuleDakutenBody.
+  ///
+  /// In en, this message translates to:
+  /// **'゛voices consonants: k to g, s to z, t to d, h to b. ゜changes h to p.'**
+  String get kanaRuleDakutenBody;
+
+  /// No description provided for @kanaRuleYoonTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Yōon combinations'**
+  String get kanaRuleYoonTitle;
+
+  /// No description provided for @kanaRuleYoonBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Small ゃ/ゅ/ょ merges with an i-row kana: き + ゃ becomes きゃ kya.'**
+  String get kanaRuleYoonBody;
+
+  /// No description provided for @kanaRuleSokuonTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Small tsu'**
+  String get kanaRuleSokuonTitle;
+
+  /// No description provided for @kanaRuleSokuonBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Small っ/ッ doubles the next consonant with a brief stop, as in まって matte.'**
+  String get kanaRuleSokuonBody;
+
+  /// No description provided for @kanaRuleLongVowelsTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Long vowels'**
+  String get kanaRuleLongVowelsTitle;
+
+  /// No description provided for @kanaRuleLongVowelsBody.
+  ///
+  /// In en, this message translates to:
+  /// **'ー lengthens katakana sounds. In hiragana, おう often sounds like long o, and えい like long e.'**
+  String get kanaRuleLongVowelsBody;
+
+  /// No description provided for @kanaRuleNTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'ん / ン'**
+  String get kanaRuleNTitle;
+
+  /// No description provided for @kanaRuleNBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Usually n, but it becomes m before m, b, or p, and a soft nasal before k or g.'**
+  String get kanaRuleNBody;
 
   /// No description provided for @settingsDesktop.
   ///

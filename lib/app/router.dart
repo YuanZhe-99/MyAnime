@@ -5,6 +5,7 @@ import '../features/anime/views/anime_edit_page.dart';
 import '../features/anime/views/home_page.dart';
 import '../features/anime/views/management_page.dart';
 import '../features/anime/views/statistics_page.dart';
+import '../features/kana/views/kana_page.dart';
 import '../features/settings/views/settings_page.dart';
 import '../shared/widgets/shell_scaffold.dart';
 
@@ -14,10 +15,7 @@ final appRouter = GoRouter(
     ShellRoute(
       builder: (context, state, child) => ShellScaffold(child: child),
       routes: [
-        GoRoute(
-          path: '/home',
-          builder: (context, state) => const HomePage(),
-        ),
+        GoRoute(path: '/home', builder: (context, state) => const HomePage()),
         GoRoute(
           path: '/manage',
           builder: (context, state) => const ManagementPage(),
@@ -26,6 +24,7 @@ final appRouter = GoRouter(
           path: '/stats',
           builder: (context, state) => const StatisticsPage(),
         ),
+        GoRoute(path: '/kana', builder: (context, state) => const KanaPage()),
         GoRoute(
           path: '/settings',
           builder: (context, state) => const SettingsPage(),
@@ -34,9 +33,8 @@ final appRouter = GoRouter(
     ),
     GoRoute(
       path: '/anime/detail/:id',
-      builder: (context, state) => AnimeDetailPage(
-        animeId: state.pathParameters['id']!,
-      ),
+      builder: (context, state) =>
+          AnimeDetailPage(animeId: state.pathParameters['id']!),
     ),
     GoRoute(
       path: '/anime/edit',
@@ -44,9 +42,8 @@ final appRouter = GoRouter(
     ),
     GoRoute(
       path: '/anime/edit/:id',
-      builder: (context, state) => AnimeEditPage(
-        animeId: state.pathParameters['id'],
-      ),
+      builder: (context, state) =>
+          AnimeEditPage(animeId: state.pathParameters['id']),
     ),
   ],
 );

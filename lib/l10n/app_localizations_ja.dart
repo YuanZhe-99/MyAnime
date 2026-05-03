@@ -21,6 +21,9 @@ class AppLocalizationsJa extends AppLocalizations {
   String get navStats => '統計';
 
   @override
+  String get navKana => 'かな';
+
+  @override
   String get navSettings => '設定';
 
   @override
@@ -670,6 +673,83 @@ class AppLocalizationsJa extends AppLocalizations {
   String settingsApiRestarted(int port) {
     return 'APIサーバーをポート$portで再起動しました';
   }
+
+  @override
+  String get kanaTitle => 'かな早見表';
+
+  @override
+  String get kanaScriptHiragana => 'ひらがな';
+
+  @override
+  String get kanaScriptKatakana => 'カタカナ';
+
+  @override
+  String get kanaSearchHint => 'かな・ローマ字を検索...';
+
+  @override
+  String kanaSearchResults(int count) {
+    return '一致 ($count)';
+  }
+
+  @override
+  String get kanaNoMatches => '一致するかながありません';
+
+  @override
+  String get kanaBasicSection => '五十音';
+
+  @override
+  String get kanaVoicedSection => '濁音・半濁音';
+
+  @override
+  String get kanaYoonSection => '拗音';
+
+  @override
+  String get kanaRulesSection => '発音ルール';
+
+  @override
+  String get kanaRuleMoraTitle => '一かな一拍';
+
+  @override
+  String get kanaRuleMoraBody => '各かなは一つのモーラです。か・き・く・け・このように一定のリズムで発音します。';
+
+  @override
+  String get kanaRuleVowelsTitle => '母音は安定';
+
+  @override
+  String get kanaRuleVowelsBody =>
+      'a, i, u, e, o は短くはっきり保ちます。英語の弱い母音のように曖昧にしません。';
+
+  @override
+  String get kanaRuleDakutenTitle => '濁点と半濁点';
+
+  @override
+  String get kanaRuleDakutenBody =>
+      '゛は子音を濁らせます: k は g、s は z、t は d、h は b。゜は h を p にします。';
+
+  @override
+  String get kanaRuleYoonTitle => '拗音';
+
+  @override
+  String get kanaRuleYoonBody => '小さい ゃ/ゅ/ょ はイ段のかなと結びます: き + ゃ = きゃ kya。';
+
+  @override
+  String get kanaRuleSokuonTitle => '小さいつ';
+
+  @override
+  String get kanaRuleSokuonBody => '小さい っ/ッ は次の子音を短く詰めます。例: まって matte。';
+
+  @override
+  String get kanaRuleLongVowelsTitle => '長音';
+
+  @override
+  String get kanaRuleLongVowelsBody =>
+      'ー はカタカナの音を伸ばします。ひらがなでは おう が長い o、えい が長い e になることが多いです。';
+
+  @override
+  String get kanaRuleNTitle => 'ん / ン';
+
+  @override
+  String get kanaRuleNBody => '基本は n。m, b, p の前では m に近く、k, g の前では柔らかい鼻音になります。';
 
   @override
   String get settingsDesktop => 'デスクトップ';

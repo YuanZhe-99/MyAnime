@@ -21,6 +21,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get navStats => 'Stats';
 
   @override
+  String get navKana => 'Kana';
+
+  @override
   String get navSettings => 'Settings';
 
   @override
@@ -677,6 +680,87 @@ class AppLocalizationsEn extends AppLocalizations {
   String settingsApiRestarted(int port) {
     return 'API server restarted on port $port';
   }
+
+  @override
+  String get kanaTitle => 'Kana';
+
+  @override
+  String get kanaScriptHiragana => 'Hiragana';
+
+  @override
+  String get kanaScriptKatakana => 'Katakana';
+
+  @override
+  String get kanaSearchHint => 'Search kana or romaji...';
+
+  @override
+  String kanaSearchResults(int count) {
+    return 'Matches ($count)';
+  }
+
+  @override
+  String get kanaNoMatches => 'No matching kana';
+
+  @override
+  String get kanaBasicSection => 'Gojūon';
+
+  @override
+  String get kanaVoicedSection => 'Dakuten';
+
+  @override
+  String get kanaYoonSection => 'Yōon';
+
+  @override
+  String get kanaRulesSection => 'Pronunciation';
+
+  @override
+  String get kanaRuleMoraTitle => 'One kana, one beat';
+
+  @override
+  String get kanaRuleMoraBody =>
+      'Each kana is one mora. Keep the rhythm even, like ka-ki-ku-ke-ko.';
+
+  @override
+  String get kanaRuleVowelsTitle => 'Stable vowels';
+
+  @override
+  String get kanaRuleVowelsBody =>
+      'a, i, u, e, o stay short and clean. Do not reduce them like unstressed English vowels.';
+
+  @override
+  String get kanaRuleDakutenTitle => 'Dakuten and handakuten';
+
+  @override
+  String get kanaRuleDakutenBody =>
+      '゛voices consonants: k to g, s to z, t to d, h to b. ゜changes h to p.';
+
+  @override
+  String get kanaRuleYoonTitle => 'Yōon combinations';
+
+  @override
+  String get kanaRuleYoonBody =>
+      'Small ゃ/ゅ/ょ merges with an i-row kana: き + ゃ becomes きゃ kya.';
+
+  @override
+  String get kanaRuleSokuonTitle => 'Small tsu';
+
+  @override
+  String get kanaRuleSokuonBody =>
+      'Small っ/ッ doubles the next consonant with a brief stop, as in まって matte.';
+
+  @override
+  String get kanaRuleLongVowelsTitle => 'Long vowels';
+
+  @override
+  String get kanaRuleLongVowelsBody =>
+      'ー lengthens katakana sounds. In hiragana, おう often sounds like long o, and えい like long e.';
+
+  @override
+  String get kanaRuleNTitle => 'ん / ン';
+
+  @override
+  String get kanaRuleNBody =>
+      'Usually n, but it becomes m before m, b, or p, and a soft nasal before k or g.';
 
   @override
   String get settingsDesktop => 'Desktop';
