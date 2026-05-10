@@ -21,18 +21,19 @@ Do not include secrets, credentials, WebDAV configuration, signing keys, private
 ## Required Agent Workflow
 
 1. Treat the user's message as the modification request.
-2. Read this `AGENTS.md`, inspect the relevant source files, and understand the current behavior before editing.
-3. Make a concise plan when the work is non-trivial, then implement the requested changes directly in the workspace.
-4. Keep changes scoped. Do not revert unrelated user work in the tree.
-5. Update `AGENTS.md` in the same change set whenever architecture, behavior, data formats, commands, release process, version locations, remotes, caveats, or project descriptions change. This document replaces the older role of an external summary and must stay current and complete.
-6. Verify with the narrowest meaningful checks for the change, usually `flutter analyze` and relevant `flutter test` targets for Dart changes.
-7. When the work is complete, report briefly in both English and Chinese:
+2. Before making any modification, fetch from the relevant remotes and verify whether the remote branch has new commits. Do not start editing until remote updates have been checked and any divergence is understood.
+3. Read this `AGENTS.md`, inspect the relevant source files, and understand the current behavior before editing.
+4. Make a concise plan when the work is non-trivial, then implement the requested changes directly in the workspace.
+5. Keep changes scoped. Do not revert unrelated user work in the tree.
+6. Update `AGENTS.md` in the same change set whenever architecture, behavior, data formats, commands, release process, version locations, remotes, caveats, or project descriptions change. This document replaces the older role of an external summary and must stay current and complete.
+7. Verify with the narrowest meaningful checks for the change, usually `flutter analyze` and relevant `flutter test` targets for Dart changes.
+8. When the work is complete, report briefly in both English and Chinese:
    - what changed,
    - what was verified,
    - the current/pre-change version,
    - the configured remotes,
    - whether anything could not be done.
-8. For normal code changes, ask whether the user wants to push to all remotes. The user must provide or confirm the release version before a release push.
+9. For normal code changes, ask whether the user wants to push to all remotes. The user must provide or confirm the release version before a release push.
 
 ## Release, Version, Commit, Tag, and Push Flow
 
