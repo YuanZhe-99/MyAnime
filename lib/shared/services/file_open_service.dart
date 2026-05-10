@@ -81,6 +81,7 @@ class FileOpenService {
         watchUrl: anime.watchUrl,
         episodeWeekOffsets: anime.episodeWeekOffsets,
         notes: anime.notes,
+        rating: anime.rating,
         createdAt: now,
         modifiedAt: now,
         extraJson: anime.extraJson,

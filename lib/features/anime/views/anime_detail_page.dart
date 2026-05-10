@@ -68,8 +68,7 @@ class _AnimeDetailPageState extends State<AnimeDetailPage> {
 
   Future<void> _toggleEpisode(int ep) async {
     if (_anime == null) return;
-    final current =
-        _anime!.episodeStatuses[ep] ?? EpisodeStatus.unwatched;
+    final current = _anime!.episodeStatuses[ep] ?? EpisodeStatus.unwatched;
     EpisodeStatus next;
     switch (current) {
       case EpisodeStatus.unwatched:
@@ -269,12 +268,13 @@ class _AnimeDetailPageState extends State<AnimeDetailPage> {
                   '$watchedCount / $totalEps ${l10n.animeEpisodes}',
                   style: theme.textTheme.bodySmall,
                 ),
+                if (anime.rating?.effectiveOverall != null) ...[
+                  const SizedBox(height: 12),
+                  _buildRatingCard(anime.rating!, theme, l10n),
+                ],
                 if (anime.notes != null && anime.notes!.isNotEmpty) ...[
                   const SizedBox(height: 12),
-                  Text(
-                    anime.notes!,
-                    style: theme.textTheme.bodyMedium,
-                  ),
+                  Text(anime.notes!, style: theme.textTheme.bodyMedium),
                 ],
 
                 // Prev/Next season navigation
@@ -287,7 +287,8 @@ class _AnimeDetailPageState extends State<AnimeDetailPage> {
                         TextButton.icon(
                           icon: const Icon(Icons.arrow_back, size: 16),
                           label: Text(l10n.animePrevSeason),
-                          onPressed: () => context.go('/anime/detail/$_prevSeasonId'),
+                          onPressed: () =>
+                              context.go('/anime/detail/$_prevSeasonId'),
                         ),
                       if (_prevSeasonId != null && _nextSeasonId != null)
                         const SizedBox(width: 16),
@@ -295,7 +296,8 @@ class _AnimeDetailPageState extends State<AnimeDetailPage> {
                         TextButton.icon(
                           icon: const Icon(Icons.arrow_forward, size: 16),
                           label: Text(l10n.animeNextSeason),
-                          onPressed: () => context.go('/anime/detail/$_nextSeasonId'),
+                          onPressed: () =>
+                              context.go('/anime/detail/$_nextSeasonId'),
                         ),
                     ],
                   ),
@@ -324,70 +326,79 @@ class _AnimeDetailPageState extends State<AnimeDetailPage> {
                     tooltip: l10n.animeResetSchedule,
                     onPressed: () => _resetSchedule(),
                   ),
-                if (anime.endEpisode != null) _buildAbandonOrResume(anime, l10n),
+                if (anime.endEpisode != null)
+                  _buildAbandonOrResume(anime, l10n),
                 TextButton(
                   onPressed: () => _toggleAllWatched(),
-                  child: Text(anime.isCompleted
-                      ? l10n.animeMarkAllUnwatched
-                      : l10n.animeMarkAllWatched),
+                  child: Text(
+                    anime.isCompleted
+                        ? l10n.animeMarkAllUnwatched
+                        : l10n.animeMarkAllWatched,
+                  ),
                 ),
               ],
             ),
           ),
-          ...List.generate(anime.endEpisode != null ? anime.endEpisode! - anime.startEpisode + 1 : 0, (i) {
-            final ep = anime.startEpisode + i;
-            final status =
-                anime.episodeStatuses[ep] ?? EpisodeStatus.unwatched;
-            final airDate = anime.getEpisodeCalendarDate(ep);
-            final airStr =
-                airDate != null ? DateFormat.MMMd().format(airDate) : '';
+          ...List.generate(
+            anime.endEpisode != null
+                ? anime.endEpisode! - anime.startEpisode + 1
+                : 0,
+            (i) {
+              final ep = anime.startEpisode + i;
+              final status =
+                  anime.episodeStatuses[ep] ?? EpisodeStatus.unwatched;
+              final airDate = anime.getEpisodeCalendarDate(ep);
+              final airStr = airDate != null
+                  ? DateFormat.MMMd().format(airDate)
+                  : '';
 
-            return ListTile(
-              dense: true,
-              leading: _statusIcon(status, theme),
-              title: Text(l10n.animeEpisodeShort(ep)),
-              subtitle: airStr.isNotEmpty ? Text(airStr) : null,
-              trailing: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  SizedBox(
-                    width: 32,
-                    height: 32,
-                    child: IconButton(
-                      padding: EdgeInsets.zero,
-                      iconSize: 16,
-                      tooltip: l10n.animeShiftForward,
-                      icon: const Icon(Icons.keyboard_double_arrow_left),
-                      onPressed: () => _shiftFromEpisode(ep, -1),
-                    ),
-                  ),
-                  SizedBox(
-                    width: 32,
-                    height: 32,
-                    child: IconButton(
-                      padding: EdgeInsets.zero,
-                      iconSize: 16,
-                      tooltip: l10n.animeShiftBackward,
-                      icon: const Icon(Icons.keyboard_double_arrow_right),
-                      onPressed: () => _shiftFromEpisode(ep, 1),
-                    ),
-                  ),
-                  const SizedBox(width: 4),
-                  SizedBox(
-                    width: 36,
-                    child: Text(
-                      _statusLabel(status, l10n),
-                      style: theme.textTheme.bodySmall?.copyWith(
-                        color: _statusColor(status, theme),
+              return ListTile(
+                dense: true,
+                leading: _statusIcon(status, theme),
+                title: Text(l10n.animeEpisodeShort(ep)),
+                subtitle: airStr.isNotEmpty ? Text(airStr) : null,
+                trailing: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    SizedBox(
+                      width: 32,
+                      height: 32,
+                      child: IconButton(
+                        padding: EdgeInsets.zero,
+                        iconSize: 16,
+                        tooltip: l10n.animeShiftForward,
+                        icon: const Icon(Icons.keyboard_double_arrow_left),
+                        onPressed: () => _shiftFromEpisode(ep, -1),
                       ),
-                      textAlign: TextAlign.end,
                     ),
-                  ),
-                ],
-              ),
-              onTap: () => _toggleEpisode(ep),
-            );
-          }),
+                    SizedBox(
+                      width: 32,
+                      height: 32,
+                      child: IconButton(
+                        padding: EdgeInsets.zero,
+                        iconSize: 16,
+                        tooltip: l10n.animeShiftBackward,
+                        icon: const Icon(Icons.keyboard_double_arrow_right),
+                        onPressed: () => _shiftFromEpisode(ep, 1),
+                      ),
+                    ),
+                    const SizedBox(width: 4),
+                    SizedBox(
+                      width: 36,
+                      child: Text(
+                        _statusLabel(status, l10n),
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          color: _statusColor(status, theme),
+                        ),
+                        textAlign: TextAlign.end,
+                      ),
+                    ),
+                  ],
+                ),
+                onTap: () => _toggleEpisode(ep),
+              );
+            },
+          ),
 
           const SizedBox(height: 24),
         ],
@@ -400,8 +411,9 @@ class _AnimeDetailPageState extends State<AnimeDetailPage> {
     final allWatched = _anime!.isCompleted;
     final newStatuses = <int, EpisodeStatus>{};
     for (var ep = _anime!.startEpisode; ep <= _anime!.endEpisode!; ep++) {
-      newStatuses[ep] =
-          allWatched ? EpisodeStatus.unwatched : EpisodeStatus.watched;
+      newStatuses[ep] = allWatched
+          ? EpisodeStatus.unwatched
+          : EpisodeStatus.watched;
     }
     final updated = _anime!.copyWith(
       episodeStatuses: newStatuses,
@@ -413,13 +425,18 @@ class _AnimeDetailPageState extends State<AnimeDetailPage> {
 
   Widget _buildAbandonOrResume(Anime anime, AppLocalizations l10n) {
     final statuses = anime.episodeStatuses;
-    final hasUnwatched = Iterable.generate(
-      anime.endEpisode! - anime.startEpisode + 1,
-      (i) => anime.startEpisode + i,
-    ).any((ep) =>
-        (statuses[ep] ?? EpisodeStatus.unwatched) == EpisodeStatus.unwatched);
-    final hasSkipped = statuses.values
-        .any((s) => s == EpisodeStatus.skippedThisWeek);
+    final hasUnwatched =
+        Iterable.generate(
+          anime.endEpisode! - anime.startEpisode + 1,
+          (i) => anime.startEpisode + i,
+        ).any(
+          (ep) =>
+              (statuses[ep] ?? EpisodeStatus.unwatched) ==
+              EpisodeStatus.unwatched,
+        );
+    final hasSkipped = statuses.values.any(
+      (s) => s == EpisodeStatus.skippedThisWeek,
+    );
 
     if (hasUnwatched) {
       return TextButton(
@@ -433,6 +450,78 @@ class _AnimeDetailPageState extends State<AnimeDetailPage> {
       );
     }
     return const SizedBox.shrink();
+  }
+
+  Widget _buildRatingCard(
+    AnimeRating rating,
+    ThemeData theme,
+    AppLocalizations l10n,
+  ) {
+    final scoreText = _formatScore(rating.effectiveOverall);
+    final sourceText = rating.hasManualOverall
+        ? l10n.animeRatingManualOverall
+        : l10n.animeRatingAutoOverall;
+    final subScores = [
+      (l10n.animeRatingVisual, rating.visual),
+      (l10n.animeRatingStory, rating.story),
+      (l10n.animeRatingCharacter, rating.character),
+      (l10n.animeRatingMusic, rating.music),
+      (l10n.animeRatingEnjoyment, rating.enjoyment),
+    ].where((entry) => entry.$2 != null).toList();
+
+    return Card(
+      margin: EdgeInsets.zero,
+      child: Padding(
+        padding: const EdgeInsets.all(12),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Icon(Icons.star, color: theme.colorScheme.primary, size: 20),
+                const SizedBox(width: 8),
+                Text(l10n.animeRating, style: theme.textTheme.titleSmall),
+                const Spacer(),
+                Text(
+                  scoreText != null ? '$scoreText / 10' : '-',
+                  style: theme.textTheme.titleMedium?.copyWith(
+                    color: theme.colorScheme.primary,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 4),
+            Text(
+              sourceText,
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: theme.colorScheme.onSurfaceVariant,
+              ),
+            ),
+            if (subScores.isNotEmpty) ...[
+              const SizedBox(height: 8),
+              Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: subScores
+                    .map(
+                      (entry) => Chip(
+                        label: Text('${entry.$1}: ${_formatScore(entry.$2)}'),
+                      ),
+                    )
+                    .toList(),
+              ),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+
+  String? _formatScore(double? score) {
+    if (score == null) return null;
+    if (score == score.roundToDouble()) return score.toInt().toString();
+    return score.toStringAsFixed(1);
   }
 
   Future<void> _abandonAnime() async {
@@ -485,7 +574,16 @@ class _AnimeDetailPageState extends State<AnimeDetailPage> {
 
   String _dayName(int? dow, AppLocalizations l10n) {
     if (dow == null) return '?';
-    final days = ['', l10n.dayMon, l10n.dayTue, l10n.dayWed, l10n.dayThu, l10n.dayFri, l10n.daySat, l10n.daySun];
+    final days = [
+      '',
+      l10n.dayMon,
+      l10n.dayTue,
+      l10n.dayWed,
+      l10n.dayThu,
+      l10n.dayFri,
+      l10n.daySat,
+      l10n.daySun,
+    ];
     return days[dow.clamp(1, 7)];
   }
 

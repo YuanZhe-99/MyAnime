@@ -9,7 +9,11 @@ import '../../../shared/services/image_service.dart';
 import '../models/anime.dart';
 import '../services/anime_storage.dart';
 
+enum _StatsView { summary, ranking }
+
 enum _TimeScope { quarter, year, all }
+
+enum _RankingTimeFilter { all, quarter, year, custom }
 
 enum _AnimeStatus { watching, completed, dropped, notStarted }
 
@@ -22,14 +26,29 @@ class StatisticsPage extends StatefulWidget {
 
 class _StatisticsPageState extends State<StatisticsPage> {
   List<Anime> _allAnime = [];
+  _StatsView _view = _StatsView.summary;
   _TimeScope _scope = _TimeScope.quarter;
+  _RankingTimeFilter _rankingTimeFilter = _RankingTimeFilter.all;
+  AnimeType? _rankingTypeFilter;
+  AnimeRatingField _rankingSortField = AnimeRatingField.overall;
+  bool _rankingDescending = true;
 
   // For quarter scope
   late int _selectedYear;
   late int _selectedQuarter;
 
+  // For ranking quarter filter
+  late int _rankingSelectedYear;
+  late int _rankingSelectedQuarter;
+
   // For year scope
   late int _selectedYearOnly;
+
+  // For ranking year filter
+  late int _rankingSelectedYearOnly;
+
+  DateTime? _rankingStartDate;
+  DateTime? _rankingEndDate;
 
   final ScrollController _trendScrollController = ScrollController();
 
@@ -39,7 +58,10 @@ class _StatisticsPageState extends State<StatisticsPage> {
     final now = DateTime.now();
     _selectedYear = now.year;
     _selectedQuarter = ((now.month - 1) ~/ 3) + 1;
+    _rankingSelectedYear = now.year;
+    _rankingSelectedQuarter = ((now.month - 1) ~/ 3) + 1;
     _selectedYearOnly = now.year;
+    _rankingSelectedYearOnly = now.year;
     _load();
   }
 
@@ -60,8 +82,9 @@ class _StatisticsPageState extends State<StatisticsPage> {
   void _scrollTrendToEnd() {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (_trendScrollController.hasClients) {
-        _trendScrollController
-            .jumpTo(_trendScrollController.position.maxScrollExtent);
+        _trendScrollController.jumpTo(
+          _trendScrollController.position.maxScrollExtent,
+        );
       }
     });
   }
@@ -75,8 +98,7 @@ class _StatisticsPageState extends State<StatisticsPage> {
     final end = anime.endEpisode;
     if (end == null) {
       // Long-running: check if has any watched
-      final hasWatched =
-          statuses.values.any((s) => s == EpisodeStatus.watched);
+      final hasWatched = statuses.values.any((s) => s == EpisodeStatus.watched);
       return hasWatched ? _AnimeStatus.watching : _AnimeStatus.notStarted;
     }
 
@@ -115,6 +137,57 @@ class _StatisticsPageState extends State<StatisticsPage> {
     }
   }
 
+  List<Anime> get _rankingAnime {
+    final filtered = _allAnime.where((anime) {
+      if (!_matchesRankingTimeFilter(anime)) return false;
+      if (_rankingTypeFilter != null &&
+          anime.effectiveType != _rankingTypeFilter) {
+        return false;
+      }
+      return anime.rating?.scoreFor(_rankingSortField) != null;
+    }).toList();
+
+    filtered.sort((a, b) {
+      final aScore = a.rating!.scoreFor(_rankingSortField)!;
+      final bScore = b.rating!.scoreFor(_rankingSortField)!;
+      final scoreCompare = _rankingDescending
+          ? bScore.compareTo(aScore)
+          : aScore.compareTo(bScore);
+      if (scoreCompare != 0) return scoreCompare;
+      return a.displayTitle.compareTo(b.displayTitle);
+    });
+    return filtered;
+  }
+
+  bool _matchesRankingTimeFilter(Anime anime) {
+    switch (_rankingTimeFilter) {
+      case _RankingTimeFilter.all:
+        return true;
+      case _RankingTimeFilter.quarter:
+        return anime.airsInQuarter(
+          _rankingSelectedYear,
+          _rankingSelectedQuarter,
+        );
+      case _RankingTimeFilter.year:
+        for (int q = 1; q <= 4; q++) {
+          if (anime.airsInQuarter(_rankingSelectedYearOnly, q)) return true;
+        }
+        return false;
+      case _RankingTimeFilter.custom:
+        final firstAirDate = anime.firstAirDate;
+        if (firstAirDate == null) return false;
+        final start = _rankingStartDate;
+        final end = _rankingEndDate;
+        if (start != null && firstAirDate.isBefore(_dateOnly(start))) {
+          return false;
+        }
+        if (end != null && firstAirDate.isAfter(_dateOnly(end))) {
+          return false;
+        }
+        return true;
+    }
+  }
+
   Map<_AnimeStatus, List<Anime>> get _groupedAnime {
     final map = <_AnimeStatus, List<Anime>>{
       _AnimeStatus.watching: [],
@@ -132,7 +205,17 @@ class _StatisticsPageState extends State<StatisticsPage> {
 
   void _prevPeriod() {
     setState(() {
-      if (_scope == _TimeScope.quarter) {
+      if (_view == _StatsView.ranking &&
+          _rankingTimeFilter == _RankingTimeFilter.quarter) {
+        _rankingSelectedQuarter--;
+        if (_rankingSelectedQuarter < 1) {
+          _rankingSelectedQuarter = 4;
+          _rankingSelectedYear--;
+        }
+      } else if (_view == _StatsView.ranking &&
+          _rankingTimeFilter == _RankingTimeFilter.year) {
+        _rankingSelectedYearOnly--;
+      } else if (_scope == _TimeScope.quarter) {
         _selectedQuarter--;
         if (_selectedQuarter < 1) {
           _selectedQuarter = 4;
@@ -146,7 +229,17 @@ class _StatisticsPageState extends State<StatisticsPage> {
 
   void _nextPeriod() {
     setState(() {
-      if (_scope == _TimeScope.quarter) {
+      if (_view == _StatsView.ranking &&
+          _rankingTimeFilter == _RankingTimeFilter.quarter) {
+        _rankingSelectedQuarter++;
+        if (_rankingSelectedQuarter > 4) {
+          _rankingSelectedQuarter = 1;
+          _rankingSelectedYear++;
+        }
+      } else if (_view == _StatsView.ranking &&
+          _rankingTimeFilter == _RankingTimeFilter.year) {
+        _rankingSelectedYearOnly++;
+      } else if (_scope == _TimeScope.quarter) {
         _selectedQuarter++;
         if (_selectedQuarter > 4) {
           _selectedQuarter = 1;
@@ -156,6 +249,30 @@ class _StatisticsPageState extends State<StatisticsPage> {
         _selectedYearOnly++;
       }
     });
+  }
+
+  Future<void> _pickRankingStartDate() async {
+    final date = await showDatePicker(
+      context: context,
+      initialDate: _rankingStartDate ?? DateTime.now(),
+      firstDate: DateTime(2000),
+      lastDate: DateTime(2040),
+    );
+    if (date != null && mounted) {
+      setState(() => _rankingStartDate = _dateOnly(date));
+    }
+  }
+
+  Future<void> _pickRankingEndDate() async {
+    final date = await showDatePicker(
+      context: context,
+      initialDate: _rankingEndDate ?? _rankingStartDate ?? DateTime.now(),
+      firstDate: DateTime(2000),
+      lastDate: DateTime(2040),
+    );
+    if (date != null && mounted) {
+      setState(() => _rankingEndDate = _dateOnly(date));
+    }
   }
 
   // --- Trend data ---
@@ -234,13 +351,16 @@ class _StatisticsPageState extends State<StatisticsPage> {
     }
 
     return quarters.map((yq) {
-      final animeInQ =
-          _allAnime.where((a) => a.airsInQuarter(yq.$1, yq.$2)).toList();
+      final animeInQ = _allAnime
+          .where((a) => a.airsInQuarter(yq.$1, yq.$2))
+          .toList();
       int tracked = animeInQ.length;
-      int completed =
-          animeInQ.where((a) => _deriveStatus(a) == _AnimeStatus.completed).length;
-      int dropped =
-          animeInQ.where((a) => _deriveStatus(a) == _AnimeStatus.dropped).length;
+      int completed = animeInQ
+          .where((a) => _deriveStatus(a) == _AnimeStatus.completed)
+          .length;
+      int dropped = animeInQ
+          .where((a) => _deriveStatus(a) == _AnimeStatus.dropped)
+          .length;
       return _TrendEntry(
         year: yq.$1,
         quarter: yq.$2,
@@ -258,6 +378,9 @@ class _StatisticsPageState extends State<StatisticsPage> {
     return 4;
   }
 
+  static DateTime _dateOnly(DateTime date) =>
+      DateTime(date.year, date.month, date.day);
+
   // --- Build ---
 
   @override
@@ -265,6 +388,7 @@ class _StatisticsPageState extends State<StatisticsPage> {
     final l10n = AppLocalizations.of(context)!;
     final theme = Theme.of(context);
     final grouped = _groupedAnime;
+    final isRanking = _view == _StatsView.ranking;
 
     return Scaffold(
       appBar: AppBar(title: Text(l10n.statsTitle)),
@@ -273,101 +397,129 @@ class _StatisticsPageState extends State<StatisticsPage> {
         child: ListView(
           padding: const EdgeInsets.only(bottom: 80),
           children: [
-            // Scope selector
             Padding(
               padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
-              child: SegmentedButton<_TimeScope>(
-                segments: [
-                  ButtonSegment(
-                    value: _TimeScope.quarter,
-                    label: Text(l10n.statsQuarter),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: SegmentedButton<_TimeScope>(
+                      segments: [
+                        ButtonSegment(
+                          value: _TimeScope.quarter,
+                          label: Text(l10n.statsQuarter),
+                        ),
+                        ButtonSegment(
+                          value: _TimeScope.year,
+                          label: Text(l10n.statsYear),
+                        ),
+                        ButtonSegment(
+                          value: _TimeScope.all,
+                          label: Text(l10n.statsAll),
+                        ),
+                      ],
+                      selected: {_scope},
+                      onSelectionChanged: (s) {
+                        setState(() {
+                          _scope = s.first;
+                          _view = _StatsView.summary;
+                        });
+                        _scrollTrendToEnd();
+                      },
+                    ),
                   ),
-                  ButtonSegment(
-                    value: _TimeScope.year,
-                    label: Text(l10n.statsYear),
-                  ),
-                  ButtonSegment(
-                    value: _TimeScope.all,
-                    label: Text(l10n.statsAll),
+                  const SizedBox(width: 8),
+                  FilledButton.tonalIcon(
+                    onPressed: () => setState(() => _view = _StatsView.ranking),
+                    icon: const Icon(Icons.leaderboard),
+                    label: Text(l10n.statsRanking),
+                    style: FilledButton.styleFrom(
+                      backgroundColor: isRanking
+                          ? theme.colorScheme.secondaryContainer
+                          : null,
+                      foregroundColor: isRanking
+                          ? theme.colorScheme.onSecondaryContainer
+                          : null,
+                    ),
                   ),
                 ],
-                selected: {_scope},
-                onSelectionChanged: (s) {
-                  setState(() => _scope = s.first);
-                  _scrollTrendToEnd();
-                },
               ),
             ),
 
-            // Period navigation (quarter/year only)
-            if (_scope != _TimeScope.all)
-              Padding(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                child: Row(
-                  children: [
-                    IconButton(
-                      icon: const Icon(Icons.chevron_left),
-                      onPressed: _prevPeriod,
-                    ),
-                    Expanded(
-                      child: Center(
-                        child: Text(
-                          _scope == _TimeScope.quarter
-                              ? _quarterLabel(_selectedYear, _selectedQuarter)
-                              : '$_selectedYearOnly',
-                          style: theme.textTheme.titleMedium,
+            if (isRanking) ...[
+              _buildRankingView(theme, l10n),
+            ] else ...[
+              // Period navigation (quarter/year only)
+              if (_scope != _TimeScope.all)
+                Padding(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 8,
+                    vertical: 4,
+                  ),
+                  child: Row(
+                    children: [
+                      IconButton(
+                        icon: const Icon(Icons.chevron_left),
+                        onPressed: _prevPeriod,
+                      ),
+                      Expanded(
+                        child: Center(
+                          child: Text(
+                            _scope == _TimeScope.quarter
+                                ? _quarterLabel(_selectedYear, _selectedQuarter)
+                                : '$_selectedYearOnly',
+                            style: theme.textTheme.titleMedium,
+                          ),
                         ),
                       ),
+                      IconButton(
+                        icon: const Icon(Icons.chevron_right),
+                        onPressed: _nextPeriod,
+                      ),
+                    ],
+                  ),
+                ),
+
+              // Summary cards
+              Padding(
+                padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
+                child: Row(
+                  children: [
+                    _buildSummaryCard(
+                      theme,
+                      l10n.statsWatching,
+                      grouped[_AnimeStatus.watching]!.length,
+                      theme.colorScheme.primary,
                     ),
-                    IconButton(
-                      icon: const Icon(Icons.chevron_right),
-                      onPressed: _nextPeriod,
+                    _buildSummaryCard(
+                      theme,
+                      l10n.statsCompleted,
+                      grouped[_AnimeStatus.completed]!.length,
+                      Colors.green,
+                    ),
+                    _buildSummaryCard(
+                      theme,
+                      l10n.statsDropped,
+                      grouped[_AnimeStatus.dropped]!.length,
+                      Colors.red,
+                    ),
+                    _buildSummaryCard(
+                      theme,
+                      l10n.statsNotStarted,
+                      grouped[_AnimeStatus.notStarted]!.length,
+                      theme.colorScheme.outline,
                     ),
                   ],
                 ),
               ),
 
-            // Summary cards
-            Padding(
-              padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
-              child: Row(
-                children: [
-                  _buildSummaryCard(
-                    theme,
-                    l10n.statsWatching,
-                    grouped[_AnimeStatus.watching]!.length,
-                    theme.colorScheme.primary,
-                  ),
-                  _buildSummaryCard(
-                    theme,
-                    l10n.statsCompleted,
-                    grouped[_AnimeStatus.completed]!.length,
-                    Colors.green,
-                  ),
-                  _buildSummaryCard(
-                    theme,
-                    l10n.statsDropped,
-                    grouped[_AnimeStatus.dropped]!.length,
-                    Colors.red,
-                  ),
-                  _buildSummaryCard(
-                    theme,
-                    l10n.statsNotStarted,
-                    grouped[_AnimeStatus.notStarted]!.length,
-                    theme.colorScheme.outline,
-                  ),
-                ],
-              ),
-            ),
+              // Trend chart
+              _buildTrendChart(theme, l10n),
 
-            // Trend chart
-            _buildTrendChart(theme, l10n),
+              const Divider(height: 32),
 
-            const Divider(height: 32),
-
-            // Anime lists by status
-            ..._buildGroupedLists(grouped, theme, l10n),
+              // Anime lists by status
+              ..._buildGroupedLists(grouped, theme, l10n),
+            ],
           ],
         ),
       ),
@@ -375,7 +527,11 @@ class _StatisticsPageState extends State<StatisticsPage> {
   }
 
   Widget _buildSummaryCard(
-      ThemeData theme, String label, int count, Color color) {
+    ThemeData theme,
+    String label,
+    int count,
+    Color color,
+  ) {
     return Expanded(
       child: Card(
         child: Padding(
@@ -405,13 +561,265 @@ class _StatisticsPageState extends State<StatisticsPage> {
     );
   }
 
+  Widget _buildRankingView(ThemeData theme, AppLocalizations l10n) {
+    final rankedAnime = _rankingAnime;
+
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(l10n.statsRankingFilters, style: theme.textTheme.titleSmall),
+          const SizedBox(height: 8),
+          _buildRankingFilters(theme, l10n),
+          const SizedBox(height: 16),
+          Row(
+            children: [
+              Text(
+                l10n.statsRankingCount(rankedAnime.length),
+                style: theme.textTheme.titleSmall,
+              ),
+              const Spacer(),
+              Text(
+                _rankingDescending
+                    ? l10n.statsRankingDescending
+                    : l10n.statsRankingAscending,
+                style: theme.textTheme.bodySmall?.copyWith(
+                  color: theme.colorScheme.onSurfaceVariant,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          if (rankedAnime.isEmpty)
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: 32),
+              child: Center(child: Text(l10n.statsRankingEmpty)),
+            )
+          else
+            ...List.generate(
+              rankedAnime.length,
+              (index) =>
+                  _buildRankingTile(rankedAnime[index], index + 1, theme, l10n),
+            ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildRankingFilters(ThemeData theme, AppLocalizations l10n) {
+    return Column(
+      children: [
+        DropdownButtonFormField<_RankingTimeFilter>(
+          initialValue: _rankingTimeFilter,
+          decoration: InputDecoration(
+            labelText: l10n.statsRankingTimeFilter,
+            border: const OutlineInputBorder(),
+          ),
+          items: _RankingTimeFilter.values
+              .map(
+                (filter) => DropdownMenuItem(
+                  value: filter,
+                  child: Text(_rankingTimeFilterLabel(filter, l10n)),
+                ),
+              )
+              .toList(),
+          onChanged: (value) {
+            if (value != null) {
+              setState(() => _rankingTimeFilter = value);
+            }
+          },
+        ),
+        if (_rankingTimeFilter == _RankingTimeFilter.quarter ||
+            _rankingTimeFilter == _RankingTimeFilter.year)
+          Padding(
+            padding: const EdgeInsets.only(top: 4),
+            child: Row(
+              children: [
+                IconButton(
+                  icon: const Icon(Icons.chevron_left),
+                  onPressed: _prevPeriod,
+                ),
+                Expanded(
+                  child: Center(
+                    child: Text(
+                      _rankingTimeFilter == _RankingTimeFilter.quarter
+                          ? _quarterLabel(
+                              _rankingSelectedYear,
+                              _rankingSelectedQuarter,
+                            )
+                          : '$_rankingSelectedYearOnly',
+                      style: theme.textTheme.titleMedium,
+                    ),
+                  ),
+                ),
+                IconButton(
+                  icon: const Icon(Icons.chevron_right),
+                  onPressed: _nextPeriod,
+                ),
+              ],
+            ),
+          ),
+        if (_rankingTimeFilter == _RankingTimeFilter.custom) ...[
+          const SizedBox(height: 8),
+          Row(
+            children: [
+              Expanded(
+                child: OutlinedButton.icon(
+                  onPressed: _pickRankingStartDate,
+                  icon: const Icon(Icons.date_range),
+                  label: Text(
+                    _rankingStartDate != null
+                        ? _formatDate(_rankingStartDate!)
+                        : l10n.statsRankingStartDate,
+                  ),
+                ),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: OutlinedButton.icon(
+                  onPressed: _pickRankingEndDate,
+                  icon: const Icon(Icons.event),
+                  label: Text(
+                    _rankingEndDate != null
+                        ? _formatDate(_rankingEndDate!)
+                        : l10n.statsRankingEndDate,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ],
+        const SizedBox(height: 12),
+        DropdownButtonFormField<AnimeType?>(
+          initialValue: _rankingTypeFilter,
+          decoration: InputDecoration(
+            labelText: l10n.statsRankingTypeFilter,
+            border: const OutlineInputBorder(),
+          ),
+          items: [
+            DropdownMenuItem<AnimeType?>(
+              value: null,
+              child: Text(l10n.statsRankingAllTypes),
+            ),
+            ...AnimeType.values.map(
+              (type) => DropdownMenuItem<AnimeType?>(
+                value: type,
+                child: Text(_typeLabel(type, l10n)),
+              ),
+            ),
+          ],
+          onChanged: (value) => setState(() => _rankingTypeFilter = value),
+        ),
+        const SizedBox(height: 12),
+        Row(
+          children: [
+            Expanded(
+              child: DropdownButtonFormField<AnimeRatingField>(
+                initialValue: _rankingSortField,
+                decoration: InputDecoration(
+                  labelText: l10n.statsRankingSortBy,
+                  border: const OutlineInputBorder(),
+                ),
+                items: AnimeRatingField.values
+                    .map(
+                      (field) => DropdownMenuItem(
+                        value: field,
+                        child: Text(_ratingFieldLabel(field, l10n)),
+                      ),
+                    )
+                    .toList(),
+                onChanged: (value) {
+                  if (value != null) setState(() => _rankingSortField = value);
+                },
+              ),
+            ),
+            const SizedBox(width: 12),
+            SegmentedButton<bool>(
+              segments: [
+                ButtonSegment(
+                  value: true,
+                  icon: const Icon(Icons.south),
+                  label: Text(l10n.statsRankingDescShort),
+                ),
+                ButtonSegment(
+                  value: false,
+                  icon: const Icon(Icons.north),
+                  label: Text(l10n.statsRankingAscShort),
+                ),
+              ],
+              selected: {_rankingDescending},
+              onSelectionChanged: (value) {
+                setState(() => _rankingDescending = value.first);
+              },
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+
+  Widget _buildRankingTile(
+    Anime anime,
+    int rank,
+    ThemeData theme,
+    AppLocalizations l10n,
+  ) {
+    final sortScore = anime.rating!.scoreFor(_rankingSortField)!;
+    final overallScore = anime.rating!.effectiveOverall;
+
+    return Card(
+      margin: const EdgeInsets.only(bottom: 8),
+      child: ListTile(
+        leading: CircleAvatar(
+          backgroundColor: theme.colorScheme.primaryContainer,
+          foregroundColor: theme.colorScheme.onPrimaryContainer,
+          child: Text('$rank'),
+        ),
+        title: Text(
+          anime.displayTitle,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+        ),
+        subtitle: Text(
+          [
+            _typeLabel(anime.effectiveType, l10n),
+            if (overallScore != null)
+              '${l10n.animeRatingOverall}: ${_formatScore(overallScore)}',
+          ].join(' · '),
+        ),
+        trailing: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.end,
+          children: [
+            Text(
+              _formatScore(sortScore),
+              style: theme.textTheme.titleMedium?.copyWith(
+                color: theme.colorScheme.primary,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            Text(
+              _ratingFieldLabel(_rankingSortField, l10n),
+              style: theme.textTheme.labelSmall?.copyWith(
+                color: theme.colorScheme.onSurfaceVariant,
+              ),
+            ),
+          ],
+        ),
+        onTap: () async {
+          await context.push('/anime/detail/${anime.id}');
+          await _load();
+        },
+      ),
+    );
+  }
+
   Widget _buildTrendChart(ThemeData theme, AppLocalizations l10n) {
     final data = _trendData;
     if (data.isEmpty) return const SizedBox.shrink();
 
-    final maxY = data.fold<int>(
-            0, (m, e) => e.tracked > m ? e.tracked : m) +
-        1;
+    final maxY = data.fold<int>(0, (m, e) => e.tracked > m ? e.tracked : m) + 1;
     final needsScroll = data.length > 8;
 
     return Padding(
@@ -438,10 +846,7 @@ class _StatisticsPageState extends State<StatisticsPage> {
                 ? Row(
                     children: [
                       // Sticky Y-axis
-                      SizedBox(
-                        width: 32,
-                        child: _buildYAxisStub(maxY, theme),
-                      ),
+                      SizedBox(width: 32, child: _buildYAxisStub(maxY, theme)),
                       // Scrollable chart
                       Expanded(
                         child: SingleChildScrollView(
@@ -450,7 +855,10 @@ class _StatisticsPageState extends State<StatisticsPage> {
                           child: SizedBox(
                             width: data.length * 50.0,
                             child: _buildBarChart(
-                              data, maxY, theme, l10n,
+                              data,
+                              maxY,
+                              theme,
+                              l10n,
                               showLeftTitles: false,
                             ),
                           ),
@@ -495,10 +903,8 @@ class _StatisticsPageState extends State<StatisticsPage> {
               getTitlesWidget: (_, _) => const SizedBox.shrink(),
             ),
           ),
-          topTitles:
-              AxisTitles(sideTitles: SideTitles(showTitles: false)),
-          rightTitles:
-              AxisTitles(sideTitles: SideTitles(showTitles: false)),
+          topTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
+          rightTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
         ),
         borderData: FlBorderData(show: false),
         gridData: FlGridData(show: false),
@@ -528,11 +934,7 @@ class _StatisticsPageState extends State<StatisticsPage> {
                 l10n.statsCompleted,
                 l10n.statsDropped,
               ];
-              final values = [
-                entry.tracked,
-                entry.completed,
-                entry.dropped,
-              ];
+              final values = [entry.tracked, entry.completed, entry.dropped];
               return BarTooltipItem(
                 '${labels[rodIndex]}: ${values[rodIndex]}',
                 TextStyle(
@@ -559,10 +961,7 @@ class _StatisticsPageState extends State<StatisticsPage> {
                     : "'${e.year % 100}Q${e.quarter}";
                 return SideTitleWidget(
                   meta: meta,
-                  child: Text(
-                    label,
-                    style: const TextStyle(fontSize: 10),
-                  ),
+                  child: Text(label, style: const TextStyle(fontSize: 10)),
                 );
               },
               reservedSize: 28,
@@ -586,17 +985,14 @@ class _StatisticsPageState extends State<StatisticsPage> {
                   ),
                 )
               : AxisTitles(sideTitles: SideTitles(showTitles: false)),
-          topTitles:
-              AxisTitles(sideTitles: SideTitles(showTitles: false)),
-          rightTitles:
-              AxisTitles(sideTitles: SideTitles(showTitles: false)),
+          topTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
+          rightTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
         ),
         borderData: FlBorderData(show: false),
         gridData: FlGridData(
           show: true,
           drawVerticalLine: false,
-          horizontalInterval:
-              maxY > 10 ? (maxY / 5).ceilToDouble() : 1,
+          horizontalInterval: maxY > 10 ? (maxY / 5).ceilToDouble() : 1,
         ),
         barGroups: List.generate(data.length, (i) {
           final e = data[i];
@@ -607,22 +1003,25 @@ class _StatisticsPageState extends State<StatisticsPage> {
                 toY: e.tracked.toDouble(),
                 color: theme.colorScheme.primary,
                 width: 8,
-                borderRadius:
-                    const BorderRadius.vertical(top: Radius.circular(2)),
+                borderRadius: const BorderRadius.vertical(
+                  top: Radius.circular(2),
+                ),
               ),
               BarChartRodData(
                 toY: e.completed.toDouble(),
                 color: Colors.green,
                 width: 8,
-                borderRadius:
-                    const BorderRadius.vertical(top: Radius.circular(2)),
+                borderRadius: const BorderRadius.vertical(
+                  top: Radius.circular(2),
+                ),
               ),
               BarChartRodData(
                 toY: e.dropped.toDouble(),
                 color: Colors.red,
                 width: 8,
-                borderRadius:
-                    const BorderRadius.vertical(top: Radius.circular(2)),
+                borderRadius: const BorderRadius.vertical(
+                  top: Radius.circular(2),
+                ),
               ),
             ],
           );
@@ -686,16 +1085,26 @@ class _StatisticsPageState extends State<StatisticsPage> {
                       if (snap.hasData && snap.data!.existsSync()) {
                         return ClipRRect(
                           borderRadius: BorderRadius.circular(4),
-                          child: Image.file(snap.data!,
-                              width: 40, height: 56, fit: BoxFit.cover),
+                          child: Image.file(
+                            snap.data!,
+                            width: 40,
+                            height: 56,
+                            fit: BoxFit.cover,
+                          ),
                         );
                       }
                       return const SizedBox(
-                          width: 40, height: 56, child: Icon(Icons.movie));
+                        width: 40,
+                        height: 56,
+                        child: Icon(Icons.movie),
+                      );
                     },
                   )
                 : const SizedBox(
-                    width: 40, height: 56, child: Icon(Icons.movie)),
+                    width: 40,
+                    height: 56,
+                    child: Icon(Icons.movie),
+                  ),
             title: Text(
               anime.displayTitle,
               maxLines: 1,
@@ -708,8 +1117,7 @@ class _StatisticsPageState extends State<StatisticsPage> {
                 Expanded(
                   child: LinearProgressIndicator(
                     value: progress,
-                    backgroundColor:
-                        theme.colorScheme.surfaceContainerHighest,
+                    backgroundColor: theme.colorScheme.surfaceContainerHighest,
                   ),
                 ),
               ],
@@ -726,9 +1134,71 @@ class _StatisticsPageState extends State<StatisticsPage> {
 
   String _quarterLabel(int year, int quarter) {
     final l10n = AppLocalizations.of(context)!;
-    final seasons = ['', l10n.seasonWinter, l10n.seasonSpring, l10n.seasonSummer, l10n.seasonFall];
+    final seasons = [
+      '',
+      l10n.seasonWinter,
+      l10n.seasonSpring,
+      l10n.seasonSummer,
+      l10n.seasonFall,
+    ];
     return '$year ${seasons[quarter]}';
   }
+
+  String _rankingTimeFilterLabel(
+    _RankingTimeFilter filter,
+    AppLocalizations l10n,
+  ) {
+    switch (filter) {
+      case _RankingTimeFilter.all:
+        return l10n.statsAll;
+      case _RankingTimeFilter.quarter:
+        return l10n.statsQuarter;
+      case _RankingTimeFilter.year:
+        return l10n.statsYear;
+      case _RankingTimeFilter.custom:
+        return l10n.statsRankingCustomRange;
+    }
+  }
+
+  String _ratingFieldLabel(AnimeRatingField field, AppLocalizations l10n) {
+    switch (field) {
+      case AnimeRatingField.overall:
+        return l10n.animeRatingOverall;
+      case AnimeRatingField.visual:
+        return l10n.animeRatingVisual;
+      case AnimeRatingField.story:
+        return l10n.animeRatingStory;
+      case AnimeRatingField.character:
+        return l10n.animeRatingCharacter;
+      case AnimeRatingField.music:
+        return l10n.animeRatingMusic;
+      case AnimeRatingField.enjoyment:
+        return l10n.animeRatingEnjoyment;
+    }
+  }
+
+  String _typeLabel(AnimeType type, AppLocalizations l10n) {
+    switch (type) {
+      case AnimeType.singleCour:
+        return l10n.animeTypeSingleCour;
+      case AnimeType.halfYear:
+        return l10n.animeTypeHalfYear;
+      case AnimeType.fullYear:
+        return l10n.animeTypeFullYear;
+      case AnimeType.longRunning:
+        return l10n.animeTypeLongRunning;
+      case AnimeType.allAtOnce:
+        return l10n.animeTypeAllAtOnce;
+    }
+  }
+
+  String _formatScore(double score) {
+    if (score == score.roundToDouble()) return score.toInt().toString();
+    return score.toStringAsFixed(1);
+  }
+
+  String _formatDate(DateTime date) =>
+      '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
 }
 
 class _TrendEntry {

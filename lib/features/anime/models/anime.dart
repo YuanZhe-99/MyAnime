@@ -17,8 +17,18 @@ const _animeJsonKeys = {
   'watchUrl',
   'episodeWeekOffsets',
   'notes',
+  'rating',
   'createdAt',
   'modifiedAt',
+};
+
+const _ratingJsonKeys = {
+  'overall',
+  'visual',
+  'story',
+  'character',
+  'music',
+  'enjoyment',
 };
 
 const _animeDataJsonKeys = {'animes'};
@@ -92,6 +102,132 @@ enum AnimeType {
 /// Per-episode watch status.
 enum EpisodeStatus { unwatched, watched, skippedThisWeek }
 
+/// Rating fields available for sorting and display.
+enum AnimeRatingField { overall, visual, story, character, music, enjoyment }
+
+class AnimeRating {
+  /// Manual overall score. When null, [effectiveOverall] is averaged from
+  /// sub-scores.
+  final double? overall;
+  final double? visual;
+  final double? story;
+  final double? character;
+  final double? music;
+  final double? enjoyment;
+
+  /// JSON fields this app version does not understand yet.
+  final Map<String, dynamic> extraJson;
+
+  const AnimeRating({
+    this.overall,
+    this.visual,
+    this.story,
+    this.character,
+    this.music,
+    this.enjoyment,
+    this.extraJson = const {},
+  });
+
+  bool get hasManualOverall => overall != null;
+
+  bool get hasAnyScore =>
+      overall != null ||
+      visual != null ||
+      story != null ||
+      character != null ||
+      music != null ||
+      enjoyment != null;
+
+  bool get hasAnyData => hasAnyScore || extraJson.isNotEmpty;
+
+  double? get effectiveOverall {
+    if (overall != null) return overall;
+    final scores = [
+      visual,
+      story,
+      character,
+      music,
+      enjoyment,
+    ].whereType<double>().toList();
+    if (scores.isEmpty) return null;
+    final sum = scores.fold<double>(0, (total, score) => total + score);
+    return sum / scores.length;
+  }
+
+  double? scoreFor(AnimeRatingField field) {
+    switch (field) {
+      case AnimeRatingField.overall:
+        return effectiveOverall;
+      case AnimeRatingField.visual:
+        return visual;
+      case AnimeRatingField.story:
+        return story;
+      case AnimeRatingField.character:
+        return character;
+      case AnimeRatingField.music:
+        return music;
+      case AnimeRatingField.enjoyment:
+        return enjoyment;
+    }
+  }
+
+  AnimeRating withExtraJson(Map<String, dynamic> extraJson) => AnimeRating(
+    overall: overall,
+    visual: visual,
+    story: story,
+    character: character,
+    music: music,
+    enjoyment: enjoyment,
+    extraJson: extraJson,
+  );
+
+  Map<String, dynamic> toJson() {
+    final json = Map<String, dynamic>.from(extraJson);
+    _writeScore(json, 'overall', overall);
+    _writeScore(json, 'visual', visual);
+    _writeScore(json, 'story', story);
+    _writeScore(json, 'character', character);
+    _writeScore(json, 'music', music);
+    _writeScore(json, 'enjoyment', enjoyment);
+    return json;
+  }
+
+  factory AnimeRating.fromJson(Map<String, dynamic> json) {
+    final extraJson = _unknownJson(json, _ratingJsonKeys);
+
+    double? readScore(String key) {
+      final score = _parseScore(json[key]);
+      if (json.containsKey(key) && score == null) {
+        extraJson[key] = json[key];
+      }
+      return score;
+    }
+
+    return AnimeRating(
+      overall: readScore('overall'),
+      visual: readScore('visual'),
+      story: readScore('story'),
+      character: readScore('character'),
+      music: readScore('music'),
+      enjoyment: readScore('enjoyment'),
+      extraJson: extraJson,
+    );
+  }
+}
+
+double? _parseScore(Object? value) {
+  if (value is num) return value.toDouble();
+  return null;
+}
+
+void _writeScore(Map<String, dynamic> json, String key, double? score) {
+  if (score != null) {
+    json[key] = score;
+  } else if (!json.containsKey(key)) {
+    json.remove(key);
+  }
+}
+
 class Anime {
   final String id;
 
@@ -145,6 +281,9 @@ class Anime {
   /// Optional notes.
   final String? notes;
 
+  /// Optional personal rating.
+  final AnimeRating? rating;
+
   final DateTime createdAt;
   final DateTime modifiedAt;
 
@@ -171,6 +310,7 @@ class Anime {
     this.watchUrl,
     this.episodeWeekOffsets = const {},
     this.notes,
+    this.rating,
     required this.createdAt,
     required this.modifiedAt,
     this.extraJson = const {},
@@ -412,6 +552,8 @@ class Anime {
     Map<int, int>? episodeWeekOffsets,
     String? notes,
     bool clearNotes = false,
+    AnimeRating? rating,
+    bool clearRating = false,
     DateTime? modifiedAt,
   }) {
     return Anime(
@@ -435,6 +577,7 @@ class Anime {
       watchUrl: clearWatchUrl ? null : (watchUrl ?? this.watchUrl),
       episodeWeekOffsets: episodeWeekOffsets ?? this.episodeWeekOffsets,
       notes: clearNotes ? null : (notes ?? this.notes),
+      rating: clearRating ? null : (rating ?? this.rating),
       createdAt: createdAt,
       modifiedAt: modifiedAt ?? DateTime.now().toUtc(),
       extraJson: extraJson,
@@ -458,19 +601,52 @@ class Anime {
     watchUrl: watchUrl,
     episodeWeekOffsets: episodeWeekOffsets,
     notes: notes,
+    rating: rating,
     createdAt: createdAt,
     modifiedAt: modifiedAt,
     extraJson: extraJson,
   );
 
-  Anime withPreservedUnknownJson(Iterable<Anime?> fallbackSources) =>
-      withExtraJson(
-        _mergeJsonMaps([
-          for (final source in fallbackSources)
-            if (source != null) source.extraJson,
-          extraJson,
-        ]),
-      );
+  Anime withPreservedUnknownJson(Iterable<Anime?> fallbackSources) {
+    final sources = fallbackSources.toList();
+    final mergedRatingExtraJson = _mergeJsonMaps([
+      for (final source in sources)
+        if (source?.rating != null) source!.rating!.extraJson,
+      if (rating != null) rating!.extraJson,
+    ]);
+    final preservedRating = rating != null
+        ? rating!.withExtraJson(mergedRatingExtraJson)
+        : (mergedRatingExtraJson.isNotEmpty
+              ? AnimeRating(extraJson: mergedRatingExtraJson)
+              : null);
+
+    return Anime(
+      id: id,
+      title: title,
+      titleJa: titleJa,
+      season: season,
+      startEpisode: startEpisode,
+      endEpisode: endEpisode,
+      manualType: manualType,
+      airDayOfWeek: airDayOfWeek,
+      airTime: airTime,
+      firstAirDate: firstAirDate,
+      episodeStatuses: episodeStatuses,
+      coverImage: coverImage,
+      infoUrl: infoUrl,
+      watchUrl: watchUrl,
+      episodeWeekOffsets: episodeWeekOffsets,
+      notes: notes,
+      rating: preservedRating,
+      createdAt: createdAt,
+      modifiedAt: modifiedAt,
+      extraJson: _mergeJsonMaps([
+        for (final source in sources)
+          if (source != null) source.extraJson,
+        extraJson,
+      ]),
+    );
+  }
 
   Map<String, dynamic> toJson() {
     final json = Map<String, dynamic>.from(extraJson);
@@ -557,6 +733,11 @@ class Anime {
     } else {
       json.remove('notes');
     }
+    if (rating != null && rating!.hasAnyData) {
+      json['rating'] = rating!.toJson();
+    } else if (!extraJson.containsKey('rating')) {
+      json.remove('rating');
+    }
     json['createdAt'] = createdAt.toIso8601String();
     json['modifiedAt'] = modifiedAt.toIso8601String();
 
@@ -613,6 +794,15 @@ class Anime {
       extraJson['episodeWeekOffsets'] = unknownWeekOffsets;
     }
 
+    AnimeRating? rating;
+    final rawRatingValue = json['rating'];
+    if (rawRatingValue is Map) {
+      rating = AnimeRating.fromJson(_stringKeyedMap(rawRatingValue));
+      if (!rating.hasAnyData) rating = null;
+    } else if (json.containsKey('rating')) {
+      extraJson['rating'] = rawRatingValue;
+    }
+
     return Anime(
       id: json['id'] as String,
       title: json['title'] as String?,
@@ -632,6 +822,7 @@ class Anime {
       watchUrl: json['watchUrl'] as String?,
       episodeWeekOffsets: weekOffsets,
       notes: json['notes'] as String?,
+      rating: rating,
       createdAt: DateTime.parse(json['createdAt'] as String),
       modifiedAt: DateTime.parse(json['modifiedAt'] as String),
       extraJson: extraJson,
@@ -653,6 +844,7 @@ class Anime {
     String? infoUrl,
     String? watchUrl,
     String? notes,
+    AnimeRating? rating,
   }) {
     final now = DateTime.now().toUtc();
     return Anime(
@@ -670,6 +862,7 @@ class Anime {
       infoUrl: infoUrl,
       watchUrl: watchUrl,
       notes: notes,
+      rating: rating,
       createdAt: now,
       modifiedAt: now,
     );

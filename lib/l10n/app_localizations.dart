@@ -281,6 +281,78 @@ abstract class AppLocalizations {
   /// **'Info'**
   String get animeOpenInfoUrl;
 
+  /// No description provided for @animeRating.
+  ///
+  /// In en, this message translates to:
+  /// **'Rating'**
+  String get animeRating;
+
+  /// No description provided for @animeRatingOverall.
+  ///
+  /// In en, this message translates to:
+  /// **'Overall'**
+  String get animeRatingOverall;
+
+  /// No description provided for @animeRatingVisual.
+  ///
+  /// In en, this message translates to:
+  /// **'Visuals/Direction'**
+  String get animeRatingVisual;
+
+  /// No description provided for @animeRatingStory.
+  ///
+  /// In en, this message translates to:
+  /// **'Story'**
+  String get animeRatingStory;
+
+  /// No description provided for @animeRatingCharacter.
+  ///
+  /// In en, this message translates to:
+  /// **'Characters'**
+  String get animeRatingCharacter;
+
+  /// No description provided for @animeRatingMusic.
+  ///
+  /// In en, this message translates to:
+  /// **'Music/Sound'**
+  String get animeRatingMusic;
+
+  /// No description provided for @animeRatingEnjoyment.
+  ///
+  /// In en, this message translates to:
+  /// **'Enjoyment'**
+  String get animeRatingEnjoyment;
+
+  /// No description provided for @animeRatingAutoHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Optional, 0-10. Overall can be averaged from sub-scores.'**
+  String get animeRatingAutoHint;
+
+  /// No description provided for @animeRatingOverallHelper.
+  ///
+  /// In en, this message translates to:
+  /// **'Leave empty to average sub-scores'**
+  String get animeRatingOverallHelper;
+
+  /// No description provided for @animeRatingInvalid.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter a score from 0 to 10'**
+  String get animeRatingInvalid;
+
+  /// No description provided for @animeRatingManualOverall.
+  ///
+  /// In en, this message translates to:
+  /// **'Manual overall score'**
+  String get animeRatingManualOverall;
+
+  /// No description provided for @animeRatingAutoOverall.
+  ///
+  /// In en, this message translates to:
+  /// **'Overall score averaged from sub-scores'**
+  String get animeRatingAutoOverall;
+
   /// No description provided for @searchAnimeInfo.
   ///
   /// In en, this message translates to:
@@ -1030,6 +1102,96 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Trend'**
   String get statsTrend;
+
+  /// No description provided for @statsRanking.
+  ///
+  /// In en, this message translates to:
+  /// **'Ranking'**
+  String get statsRanking;
+
+  /// No description provided for @statsRankingFilters.
+  ///
+  /// In en, this message translates to:
+  /// **'Filters'**
+  String get statsRankingFilters;
+
+  /// No description provided for @statsRankingTimeFilter.
+  ///
+  /// In en, this message translates to:
+  /// **'Time'**
+  String get statsRankingTimeFilter;
+
+  /// No description provided for @statsRankingTypeFilter.
+  ///
+  /// In en, this message translates to:
+  /// **'Type'**
+  String get statsRankingTypeFilter;
+
+  /// No description provided for @statsRankingAllTypes.
+  ///
+  /// In en, this message translates to:
+  /// **'All types'**
+  String get statsRankingAllTypes;
+
+  /// No description provided for @statsRankingSortBy.
+  ///
+  /// In en, this message translates to:
+  /// **'Sort by'**
+  String get statsRankingSortBy;
+
+  /// No description provided for @statsRankingDescending.
+  ///
+  /// In en, this message translates to:
+  /// **'High to low'**
+  String get statsRankingDescending;
+
+  /// No description provided for @statsRankingAscending.
+  ///
+  /// In en, this message translates to:
+  /// **'Low to high'**
+  String get statsRankingAscending;
+
+  /// No description provided for @statsRankingDescShort.
+  ///
+  /// In en, this message translates to:
+  /// **'Desc'**
+  String get statsRankingDescShort;
+
+  /// No description provided for @statsRankingAscShort.
+  ///
+  /// In en, this message translates to:
+  /// **'Asc'**
+  String get statsRankingAscShort;
+
+  /// No description provided for @statsRankingCustomRange.
+  ///
+  /// In en, this message translates to:
+  /// **'Custom range'**
+  String get statsRankingCustomRange;
+
+  /// No description provided for @statsRankingStartDate.
+  ///
+  /// In en, this message translates to:
+  /// **'Start date'**
+  String get statsRankingStartDate;
+
+  /// No description provided for @statsRankingEndDate.
+  ///
+  /// In en, this message translates to:
+  /// **'End date'**
+  String get statsRankingEndDate;
+
+  /// No description provided for @statsRankingEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'No rated anime matches these filters'**
+  String get statsRankingEmpty;
+
+  /// No description provided for @statsRankingCount.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} rated anime'**
+  String statsRankingCount(int count);
 
   /// No description provided for @manageJumpToQuarter.
   ///

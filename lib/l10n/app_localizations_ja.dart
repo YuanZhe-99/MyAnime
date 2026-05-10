@@ -103,6 +103,42 @@ class AppLocalizationsJa extends AppLocalizations {
   String get animeOpenInfoUrl => '情報';
 
   @override
+  String get animeRating => '評価';
+
+  @override
+  String get animeRatingOverall => '総合';
+
+  @override
+  String get animeRatingVisual => '映像/演出';
+
+  @override
+  String get animeRatingStory => 'ストーリー';
+
+  @override
+  String get animeRatingCharacter => 'キャラクター';
+
+  @override
+  String get animeRatingMusic => '音楽/音響';
+
+  @override
+  String get animeRatingEnjoyment => '満足度/おすすめ度';
+
+  @override
+  String get animeRatingAutoHint => '任意、0-10点。総合評価は項目平均でも計算できます。';
+
+  @override
+  String get animeRatingOverallHelper => '空欄の場合は項目平均を使用';
+
+  @override
+  String get animeRatingInvalid => '0から10までの評価を入力してください';
+
+  @override
+  String get animeRatingManualOverall => '手動の総合評価';
+
+  @override
+  String get animeRatingAutoOverall => '項目平均による総合評価';
+
+  @override
   String get searchAnimeInfo => '作品情報を検索';
 
   @override
@@ -490,6 +526,53 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get statsTrend => 'トレンド';
+
+  @override
+  String get statsRanking => 'ランキング';
+
+  @override
+  String get statsRankingFilters => 'フィルター';
+
+  @override
+  String get statsRankingTimeFilter => '期間';
+
+  @override
+  String get statsRankingTypeFilter => 'タイプ';
+
+  @override
+  String get statsRankingAllTypes => 'すべてのタイプ';
+
+  @override
+  String get statsRankingSortBy => '並び替え';
+
+  @override
+  String get statsRankingDescending => '高い順';
+
+  @override
+  String get statsRankingAscending => '低い順';
+
+  @override
+  String get statsRankingDescShort => '降順';
+
+  @override
+  String get statsRankingAscShort => '昇順';
+
+  @override
+  String get statsRankingCustomRange => 'カスタム期間';
+
+  @override
+  String get statsRankingStartDate => '開始日';
+
+  @override
+  String get statsRankingEndDate => '終了日';
+
+  @override
+  String get statsRankingEmpty => '条件に一致する評価済みアニメはありません';
+
+  @override
+  String statsRankingCount(int count) {
+    return '評価済みアニメ $count 件';
+  }
 
   @override
   String get manageJumpToQuarter => 'クールに移動';

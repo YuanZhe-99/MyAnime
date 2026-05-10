@@ -103,6 +103,43 @@ class AppLocalizationsEn extends AppLocalizations {
   String get animeOpenInfoUrl => 'Info';
 
   @override
+  String get animeRating => 'Rating';
+
+  @override
+  String get animeRatingOverall => 'Overall';
+
+  @override
+  String get animeRatingVisual => 'Visuals/Direction';
+
+  @override
+  String get animeRatingStory => 'Story';
+
+  @override
+  String get animeRatingCharacter => 'Characters';
+
+  @override
+  String get animeRatingMusic => 'Music/Sound';
+
+  @override
+  String get animeRatingEnjoyment => 'Enjoyment';
+
+  @override
+  String get animeRatingAutoHint =>
+      'Optional, 0-10. Overall can be averaged from sub-scores.';
+
+  @override
+  String get animeRatingOverallHelper => 'Leave empty to average sub-scores';
+
+  @override
+  String get animeRatingInvalid => 'Enter a score from 0 to 10';
+
+  @override
+  String get animeRatingManualOverall => 'Manual overall score';
+
+  @override
+  String get animeRatingAutoOverall => 'Overall score averaged from sub-scores';
+
+  @override
   String get searchAnimeInfo => 'Search Anime Info';
 
   @override
@@ -493,6 +530,53 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get statsTrend => 'Trend';
+
+  @override
+  String get statsRanking => 'Ranking';
+
+  @override
+  String get statsRankingFilters => 'Filters';
+
+  @override
+  String get statsRankingTimeFilter => 'Time';
+
+  @override
+  String get statsRankingTypeFilter => 'Type';
+
+  @override
+  String get statsRankingAllTypes => 'All types';
+
+  @override
+  String get statsRankingSortBy => 'Sort by';
+
+  @override
+  String get statsRankingDescending => 'High to low';
+
+  @override
+  String get statsRankingAscending => 'Low to high';
+
+  @override
+  String get statsRankingDescShort => 'Desc';
+
+  @override
+  String get statsRankingAscShort => 'Asc';
+
+  @override
+  String get statsRankingCustomRange => 'Custom range';
+
+  @override
+  String get statsRankingStartDate => 'Start date';
+
+  @override
+  String get statsRankingEndDate => 'End date';
+
+  @override
+  String get statsRankingEmpty => 'No rated anime matches these filters';
+
+  @override
+  String statsRankingCount(int count) {
+    return '$count rated anime';
+  }
 
   @override
   String get manageJumpToQuarter => 'Jump to Quarter';

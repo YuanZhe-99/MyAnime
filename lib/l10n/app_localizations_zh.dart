@@ -103,6 +103,42 @@ class AppLocalizationsZh extends AppLocalizations {
   String get animeOpenInfoUrl => '信息';
 
   @override
+  String get animeRating => '评分';
+
+  @override
+  String get animeRatingOverall => '综合';
+
+  @override
+  String get animeRatingVisual => '画面/演出';
+
+  @override
+  String get animeRatingStory => '剧情';
+
+  @override
+  String get animeRatingCharacter => '角色';
+
+  @override
+  String get animeRatingMusic => '音乐/音效';
+
+  @override
+  String get animeRatingEnjoyment => '观感/推荐度';
+
+  @override
+  String get animeRatingAutoHint => '可选，0-10分；综合评分可由子项自动平均。';
+
+  @override
+  String get animeRatingOverallHelper => '留空时按子项平均计算';
+
+  @override
+  String get animeRatingInvalid => '请输入0到10之间的评分';
+
+  @override
+  String get animeRatingManualOverall => '手动综合评分';
+
+  @override
+  String get animeRatingAutoOverall => '综合评分由子项平均计算';
+
+  @override
   String get searchAnimeInfo => '搜索番剧信息';
 
   @override
@@ -490,6 +526,53 @@ class AppLocalizationsZh extends AppLocalizations {
   String get statsTrend => '趋势';
 
   @override
+  String get statsRanking => '排行';
+
+  @override
+  String get statsRankingFilters => '筛选';
+
+  @override
+  String get statsRankingTimeFilter => '时间';
+
+  @override
+  String get statsRankingTypeFilter => '类型';
+
+  @override
+  String get statsRankingAllTypes => '全部类型';
+
+  @override
+  String get statsRankingSortBy => '排序依据';
+
+  @override
+  String get statsRankingDescending => '从高到低';
+
+  @override
+  String get statsRankingAscending => '从低到高';
+
+  @override
+  String get statsRankingDescShort => '降序';
+
+  @override
+  String get statsRankingAscShort => '升序';
+
+  @override
+  String get statsRankingCustomRange => '自定义范围';
+
+  @override
+  String get statsRankingStartDate => '开始日期';
+
+  @override
+  String get statsRankingEndDate => '结束日期';
+
+  @override
+  String get statsRankingEmpty => '没有符合筛选条件的已评分番剧';
+
+  @override
+  String statsRankingCount(int count) {
+    return '$count 部已评分番剧';
+  }
+
+  @override
   String get manageJumpToQuarter => '跳转到季度';
 
   @override
@@ -847,6 +930,42 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
 
   @override
   String get animeOpenInfoUrl => '資訊';
+
+  @override
+  String get animeRating => '評分';
+
+  @override
+  String get animeRatingOverall => '綜合';
+
+  @override
+  String get animeRatingVisual => '畫面/演出';
+
+  @override
+  String get animeRatingStory => '劇情';
+
+  @override
+  String get animeRatingCharacter => '角色';
+
+  @override
+  String get animeRatingMusic => '音樂/音效';
+
+  @override
+  String get animeRatingEnjoyment => '觀感/推薦度';
+
+  @override
+  String get animeRatingAutoHint => '可選，0-10分；綜合評分可由子項自動平均。';
+
+  @override
+  String get animeRatingOverallHelper => '留空時按子項平均計算';
+
+  @override
+  String get animeRatingInvalid => '請輸入0到10之間的評分';
+
+  @override
+  String get animeRatingManualOverall => '手動綜合評分';
+
+  @override
+  String get animeRatingAutoOverall => '綜合評分由子項平均計算';
 
   @override
   String get searchAnimeInfo => '搜尋番劇資訊';
@@ -1234,6 +1353,53 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
 
   @override
   String get statsTrend => '趨勢';
+
+  @override
+  String get statsRanking => '排行';
+
+  @override
+  String get statsRankingFilters => '篩選';
+
+  @override
+  String get statsRankingTimeFilter => '時間';
+
+  @override
+  String get statsRankingTypeFilter => '類型';
+
+  @override
+  String get statsRankingAllTypes => '全部類型';
+
+  @override
+  String get statsRankingSortBy => '排序依據';
+
+  @override
+  String get statsRankingDescending => '從高到低';
+
+  @override
+  String get statsRankingAscending => '從低到高';
+
+  @override
+  String get statsRankingDescShort => '降序';
+
+  @override
+  String get statsRankingAscShort => '升序';
+
+  @override
+  String get statsRankingCustomRange => '自訂範圍';
+
+  @override
+  String get statsRankingStartDate => '開始日期';
+
+  @override
+  String get statsRankingEndDate => '結束日期';
+
+  @override
+  String get statsRankingEmpty => '沒有符合篩選條件的已評分番劇';
+
+  @override
+  String statsRankingCount(int count) {
+    return '$count 部已評分番劇';
+  }
 
   @override
   String get manageJumpToQuarter => '跳轉到季度';

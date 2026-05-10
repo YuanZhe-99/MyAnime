@@ -8,7 +8,7 @@ This file is the operating guide for agents working on **MyAnime!!!!!**. Read it
 - **Description:** A privacy-first anime tracking app with a JST-aware calendar, seasonal quarter management, statistics, multi-source anime search, watch-progress tracking, daily reminders, share/export flows, WebDAV sync, local backup, a desktop local API server, tray behavior, launch-at-startup, and a kana quick-reference module.
 - **Author / package id:** `yuanzhe`, `com.yuanzhe.my_anime`.
 - **License:** GPL-3.0.
-- **Current version:** `0.6.7+29` in `pubspec.yaml`, `0.6.7.0` for MSIX, and `0.6.7` in `installer.iss`.
+- **Current version:** `0.7.0+30` in `pubspec.yaml`, `0.7.0.0` for MSIX, and `0.7.0` in `installer.iss`.
 - **Framework:** Flutter with Dart SDK `^3.11.3`; CI uses Flutter `3.41.6`.
 - **Platforms:** Windows, Android, iOS, macOS. Linux project files exist and desktop services include Linux branches, but Linux is not a primary release target. Web is not targeted.
 - **Repository:** `C:\Users\yuanzhe\src\MyAnime`.
@@ -155,7 +155,8 @@ Important fields and concepts:
 - Episodes: `startEpisode`, `endEpisode`, `episodeStatuses`, and `episodeWeekOffsets` for batch premieres, delays, and schedule corrections.
 - Status: derived from episode statuses, not stored as a separate status field. Completed, watching, dropped/abandoned, and not-started states are computed.
 - Type: `AnimeType` can be auto-detected from episode count or manually overridden. Manual type must take precedence when set.
-- Compatibility: `Anime` and `AnimeData` preserve unknown per-anime and top-level JSON fields.
+- Rating: optional `AnimeRating` stores a manual overall score plus visual/direction, story, character, music/sound, and enjoyment/recommendation sub-scores on a 0-10 scale. Manual overall wins; if empty, the effective overall score is the average of filled sub-scores.
+- Compatibility: `Anime`, `AnimeRating`, and `AnimeData` preserve unknown per-anime, per-rating, and top-level JSON fields.
 
 Quarter placement uses Japanese anime cour conventions. When `manualType` is set, it determines the quarter span. Without `manualType`, placement estimates the actual run based on episode count and `episodeWeekOffsets`, with long-running fallback behavior.
 
@@ -163,7 +164,7 @@ Quarter placement uses Japanese anime cour conventions. When `manualType` is set
 
 - `home_page.dart`: JST-aware calendar and unwatched aired episodes.
 - `management_page.dart`: seasonal quarter browser, global search, dynamic year/quarter picker, and an Other page for anime without `firstAirDate`.
-- `statistics_page.dart`: quarter/year/all scopes, summary counts, trend charts, and expandable lists grouped by derived status.
+- `statistics_page.dart`: quarter/year/all scopes, summary counts, trend charts, expandable lists grouped by derived status, and a separate Ranking view for rating-based ranking. Ranking supports all/quarter/year/custom-date filters, type filtering, overall or sub-score sorting, and ascending/descending order.
 - Creating a new anime navigates to the detail page and returns management to the anime's quarter when applicable.
 
 ### Kana Quick Reference
@@ -397,3 +398,4 @@ Version highlights:
 - `v0.6.5`: Referenced-only image sync and detailed sync error/warning reporting.
 - `v0.6.6`: Periodic auto-sync and forward-compatible JSON field preservation.
 - `v0.6.7`: Kana quick reference module, l10n updates, remotes synchronized to both `origin` and `github`.
+- `v0.7.0`: Optional anime rating system and statistics ranking view with rating filters and sorting.

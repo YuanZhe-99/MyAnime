@@ -29,6 +29,12 @@ class _AnimeEditPageState extends State<AnimeEditPage> {
   final _notesController = TextEditingController();
   final _watchUrlController = TextEditingController();
   final _infoUrlController = TextEditingController();
+  final _ratingOverallController = TextEditingController();
+  final _ratingVisualController = TextEditingController();
+  final _ratingStoryController = TextEditingController();
+  final _ratingCharacterController = TextEditingController();
+  final _ratingMusicController = TextEditingController();
+  final _ratingEnjoymentController = TextEditingController();
 
   int? _airDayOfWeek;
   DateTime? _firstAirDate;
@@ -51,8 +57,9 @@ class _AnimeEditPageState extends State<AnimeEditPage> {
 
   Future<void> _loadExisting() async {
     final data = await AnimeStorage.load();
-    final found =
-        data.animeList.where((a) => a.id == widget.animeId).firstOrNull;
+    final found = data.animeList
+        .where((a) => a.id == widget.animeId)
+        .firstOrNull;
     if (found != null && mounted) {
       setState(() {
         _isEdit = true;
@@ -66,6 +73,12 @@ class _AnimeEditPageState extends State<AnimeEditPage> {
         _notesController.text = found.notes ?? '';
         _watchUrlController.text = found.watchUrl ?? '';
         _infoUrlController.text = found.infoUrl ?? '';
+        _ratingOverallController.text = _formatScore(found.rating?.overall);
+        _ratingVisualController.text = _formatScore(found.rating?.visual);
+        _ratingStoryController.text = _formatScore(found.rating?.story);
+        _ratingCharacterController.text = _formatScore(found.rating?.character);
+        _ratingMusicController.text = _formatScore(found.rating?.music);
+        _ratingEnjoymentController.text = _formatScore(found.rating?.enjoyment);
         _airDayOfWeek = found.airDayOfWeek;
         _firstAirDate = found.firstAirDate;
         _manualType = found.manualType;
@@ -85,6 +98,12 @@ class _AnimeEditPageState extends State<AnimeEditPage> {
     _notesController.dispose();
     _watchUrlController.dispose();
     _infoUrlController.dispose();
+    _ratingOverallController.dispose();
+    _ratingVisualController.dispose();
+    _ratingStoryController.dispose();
+    _ratingCharacterController.dispose();
+    _ratingMusicController.dispose();
+    _ratingEnjoymentController.dispose();
     super.dispose();
   }
 
@@ -114,9 +133,9 @@ class _AnimeEditPageState extends State<AnimeEditPage> {
     );
     if (selectedUrl != null && mounted) {
       setState(() => _watchUrlController.text = selectedUrl);
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(l10n.searchWatchUrlSet)),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(l10n.searchWatchUrlSet)));
     }
   }
 
@@ -127,18 +146,22 @@ class _AnimeEditPageState extends State<AnimeEditPage> {
     final result = await showAnimeSearchDialog(
       context,
       initialQuery: query,
-      currentTitle:
-          _titleController.text.isEmpty ? null : _titleController.text,
-      currentTitleJa:
-          _titleJaController.text.isEmpty ? null : _titleJaController.text,
+      currentTitle: _titleController.text.isEmpty
+          ? null
+          : _titleController.text,
+      currentTitleJa: _titleJaController.text.isEmpty
+          ? null
+          : _titleJaController.text,
       currentEndEp: int.tryParse(_endEpController.text),
       currentFirstAirDate: _firstAirDate,
       currentAirDay: _airDayOfWeek,
-      currentAirTime:
-          _airTimeController.text.isEmpty ? null : _airTimeController.text,
+      currentAirTime: _airTimeController.text.isEmpty
+          ? null
+          : _airTimeController.text,
       currentCoverImage: _coverImage,
-      currentNotes:
-          _notesController.text.isEmpty ? null : _notesController.text,
+      currentNotes: _notesController.text.isEmpty
+          ? null
+          : _notesController.text,
     );
     if (result != null && mounted) {
       setState(() {
@@ -217,6 +240,7 @@ class _AnimeEditPageState extends State<AnimeEditPage> {
 
     final startEp = int.tryParse(_startEpController.text) ?? 1;
     var endEp = int.tryParse(_endEpController.text) ?? 12;
+    final rating = _buildRating();
 
     // If startEpisode > endEpisode, adjust endEpisode to preserve episode count.
     if (startEp > endEp) {
@@ -251,6 +275,8 @@ class _AnimeEditPageState extends State<AnimeEditPage> {
         notes: _notesController.text.trim().isEmpty
             ? null
             : _notesController.text.trim(),
+        rating: rating,
+        clearRating: rating == null,
         modifiedAt: DateTime.now().toUtc(),
       );
       await AnimeStorage.addOrUpdate(updated);
@@ -283,6 +309,7 @@ class _AnimeEditPageState extends State<AnimeEditPage> {
         notes: _notesController.text.trim().isEmpty
             ? null
             : _notesController.text.trim(),
+        rating: rating,
       );
       await AnimeStorage.addOrUpdate(anime);
       if (mounted) context.pop(anime.id);
@@ -290,6 +317,31 @@ class _AnimeEditPageState extends State<AnimeEditPage> {
     }
 
     if (mounted) context.pop();
+  }
+
+  AnimeRating? _buildRating() {
+    final rating = AnimeRating(
+      overall: _parseScore(_ratingOverallController),
+      visual: _parseScore(_ratingVisualController),
+      story: _parseScore(_ratingStoryController),
+      character: _parseScore(_ratingCharacterController),
+      music: _parseScore(_ratingMusicController),
+      enjoyment: _parseScore(_ratingEnjoymentController),
+      extraJson: _existing?.rating?.extraJson ?? const {},
+    );
+    return rating.hasAnyData ? rating : null;
+  }
+
+  double? _parseScore(TextEditingController controller) {
+    final text = controller.text.trim();
+    if (text.isEmpty) return null;
+    return double.tryParse(text);
+  }
+
+  String _formatScore(double? score) {
+    if (score == null) return '';
+    if (score == score.roundToDouble()) return score.toInt().toString();
+    return score.toStringAsFixed(1);
   }
 
   @override
@@ -306,10 +358,7 @@ class _AnimeEditPageState extends State<AnimeEditPage> {
               tooltip: l10n.searchAnimeInfo,
               onPressed: _showSearchDialog,
             ),
-          TextButton(
-            onPressed: _save,
-            child: Text(l10n.save),
-          ),
+          TextButton(onPressed: _save, child: Text(l10n.save)),
         ],
       ),
       body: Form(
@@ -325,9 +374,9 @@ class _AnimeEditPageState extends State<AnimeEditPage> {
                   width: 120,
                   height: 170,
                   decoration: BoxDecoration(
-                    color: Theme.of(context)
-                        .colorScheme
-                        .surfaceContainerHighest,
+                    color: Theme.of(
+                      context,
+                    ).colorScheme.surfaceContainerHighest,
                     borderRadius: BorderRadius.circular(8),
                   ),
                   child: _coverImage != null
@@ -339,15 +388,19 @@ class _AnimeEditPageState extends State<AnimeEditPage> {
                               if (file.existsSync()) {
                                 return ClipRRect(
                                   borderRadius: BorderRadius.circular(8),
-                                  child: Image.file(file,
-                                      fit: BoxFit.cover,
-                                      width: 120,
-                                      height: 170),
+                                  child: Image.file(
+                                    file,
+                                    fit: BoxFit.cover,
+                                    width: 120,
+                                    height: 170,
+                                  ),
                                 );
                               }
                             }
-                            return const Icon(Icons.add_photo_alternate,
-                                size: 40);
+                            return const Icon(
+                              Icons.add_photo_alternate,
+                              size: 40,
+                            );
                           },
                         )
                       : const Icon(Icons.add_photo_alternate, size: 40),
@@ -390,8 +443,9 @@ class _AnimeEditPageState extends State<AnimeEditPage> {
                 hintText: l10n.animeSeasonHint,
                 border: const OutlineInputBorder(),
               ),
-              validator: (v) =>
-                  (v == null || v.trim().isEmpty) ? l10n.animeFieldRequired : null,
+              validator: (v) => (v == null || v.trim().isEmpty)
+                  ? l10n.animeFieldRequired
+                  : null,
             ),
             const SizedBox(height: 12),
 
@@ -435,10 +489,12 @@ class _AnimeEditPageState extends State<AnimeEditPage> {
                   value: null,
                   child: Text(l10n.animeTypeAuto),
                 ),
-                ...AnimeType.values.map((t) => DropdownMenuItem(
-                      value: t,
-                      child: Text(_typeLabel(t, l10n)),
-                    )),
+                ...AnimeType.values.map(
+                  (t) => DropdownMenuItem(
+                    value: t,
+                    child: Text(_typeLabel(t, l10n)),
+                  ),
+                ),
               ],
               onChanged: (v) => setState(() => _manualType = v),
             ),
@@ -454,10 +510,7 @@ class _AnimeEditPageState extends State<AnimeEditPage> {
               items: [
                 const DropdownMenuItem<int?>(value: null, child: Text('-')),
                 for (var i = 1; i <= 7; i++)
-                  DropdownMenuItem(
-                    value: i,
-                    child: Text(_dayName(i)),
-                  ),
+                  DropdownMenuItem(value: i, child: Text(_dayName(i))),
               ],
               onChanged: (v) => setState(() => _airDayOfWeek = v),
             ),
@@ -479,9 +532,11 @@ class _AnimeEditPageState extends State<AnimeEditPage> {
             ListTile(
               contentPadding: EdgeInsets.zero,
               title: Text(l10n.animeFirstAirDate),
-              subtitle: Text(_firstAirDate != null
-                  ? DateFormat.yMMMd().format(_firstAirDate!)
-                  : '-'),
+              subtitle: Text(
+                _firstAirDate != null
+                    ? DateFormat.yMMMd().format(_firstAirDate!)
+                    : '-',
+              ),
               trailing: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
@@ -492,8 +547,7 @@ class _AnimeEditPageState extends State<AnimeEditPage> {
                   if (_firstAirDate != null)
                     IconButton(
                       icon: const Icon(Icons.clear),
-                      onPressed: () =>
-                          setState(() => _firstAirDate = null),
+                      onPressed: () => setState(() => _firstAirDate = null),
                     ),
                 ],
               ),
@@ -534,6 +588,65 @@ class _AnimeEditPageState extends State<AnimeEditPage> {
             const SizedBox(height: 12),
 
             // Notes
+            Card(
+              margin: EdgeInsets.zero,
+              child: ExpansionTile(
+                title: Text(l10n.animeRating),
+                subtitle: Text(l10n.animeRatingAutoHint),
+                childrenPadding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+                children: [
+                  _buildRatingField(
+                    controller: _ratingOverallController,
+                    label: l10n.animeRatingOverall,
+                    helperText: l10n.animeRatingOverallHelper,
+                  ),
+                  const SizedBox(height: 12),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: _buildRatingField(
+                          controller: _ratingVisualController,
+                          label: l10n.animeRatingVisual,
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: _buildRatingField(
+                          controller: _ratingStoryController,
+                          label: l10n.animeRatingStory,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: _buildRatingField(
+                          controller: _ratingCharacterController,
+                          label: l10n.animeRatingCharacter,
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: _buildRatingField(
+                          controller: _ratingMusicController,
+                          label: l10n.animeRatingMusic,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+                  _buildRatingField(
+                    controller: _ratingEnjoymentController,
+                    label: l10n.animeRatingEnjoyment,
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 12),
+
+            // Notes
             TextFormField(
               controller: _notesController,
               decoration: InputDecoration(
@@ -549,9 +662,45 @@ class _AnimeEditPageState extends State<AnimeEditPage> {
     );
   }
 
+  Widget _buildRatingField({
+    required TextEditingController controller,
+    required String label,
+    String? helperText,
+  }) {
+    final l10n = AppLocalizations.of(context)!;
+    return TextFormField(
+      controller: controller,
+      decoration: InputDecoration(
+        labelText: label,
+        helperText: helperText,
+        suffixText: '/ 10',
+        border: const OutlineInputBorder(),
+      ),
+      keyboardType: const TextInputType.numberWithOptions(decimal: true),
+      validator: (value) {
+        final text = value?.trim() ?? '';
+        if (text.isEmpty) return null;
+        final score = double.tryParse(text);
+        if (score == null || score < 0 || score > 10) {
+          return l10n.animeRatingInvalid;
+        }
+        return null;
+      },
+    );
+  }
+
   String _dayName(int dow) {
     final l10n = AppLocalizations.of(context)!;
-    final days = ['', l10n.dayMon, l10n.dayTue, l10n.dayWed, l10n.dayThu, l10n.dayFri, l10n.daySat, l10n.daySun];
+    final days = [
+      '',
+      l10n.dayMon,
+      l10n.dayTue,
+      l10n.dayWed,
+      l10n.dayThu,
+      l10n.dayFri,
+      l10n.daySat,
+      l10n.daySun,
+    ];
     return days[dow.clamp(1, 7)];
   }
 
@@ -575,7 +724,10 @@ class _AnimeEditPageState extends State<AnimeEditPage> {
 class _WatchUrlSearchDialog extends StatefulWidget {
   final String query;
   final List<String> altQueries;
-  const _WatchUrlSearchDialog({required this.query, this.altQueries = const []});
+  const _WatchUrlSearchDialog({
+    required this.query,
+    this.altQueries = const [],
+  });
 
   @override
   State<_WatchUrlSearchDialog> createState() => _WatchUrlSearchDialogState();
@@ -638,8 +790,12 @@ class _WatchUrlSearchDialogState extends State<_WatchUrlSearchDialog> {
         children: [
           const Icon(Icons.play_circle_outline, size: 22),
           const SizedBox(width: 8),
-          Expanded(child: Text(l10n.searchWatchUrlTitle,
-              style: Theme.of(context).textTheme.titleMedium)),
+          Expanded(
+            child: Text(
+              l10n.searchWatchUrlTitle,
+              style: Theme.of(context).textTheme.titleMedium,
+            ),
+          ),
         ],
       ),
       contentPadding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
@@ -658,7 +814,9 @@ class _WatchUrlSearchDialogState extends State<_WatchUrlSearchDialog> {
                       border: const OutlineInputBorder(),
                       isDense: true,
                       contentPadding: const EdgeInsets.symmetric(
-                          horizontal: 12, vertical: 10),
+                        horizontal: 12,
+                        vertical: 10,
+                      ),
                     ),
                     onSubmitted: (_) => _search(),
                   ),
@@ -709,8 +867,8 @@ class _WatchUrlSearchDialogState extends State<_WatchUrlSearchDialog> {
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
             style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                  color: Theme.of(context).colorScheme.primary,
-                ),
+              color: Theme.of(context).colorScheme.primary,
+            ),
           ),
           dense: true,
           onTap: () => Navigator.of(context).pop(r.url),

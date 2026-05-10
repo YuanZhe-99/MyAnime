@@ -45,6 +45,50 @@ void main() {
     expect(editedJson['futureRating'], {'score': 98, 'source': 'newer-app'});
   });
 
+  test(
+    'rating uses manual overall first and preserves unknown rating fields',
+    () {
+      final anime = Anime.fromJson({
+        'id': 'anime-1',
+        'title': 'Rated',
+        'season': 'Season 1',
+        'startEpisode': 1,
+        'endEpisode': 12,
+        'rating': {
+          'overall': 9,
+          'visual': 8.5,
+          'story': 8,
+          'futureCategory': 10,
+        },
+        'createdAt': createdAt,
+        'modifiedAt': modifiedAt,
+      });
+
+      expect(anime.rating?.effectiveOverall, 9);
+      expect(anime.rating?.hasManualOverall, isTrue);
+
+      final json = anime.copyWith(title: 'Edited').toJson();
+      expect(json['title'], 'Edited');
+      expect(json['rating'], {
+        'futureCategory': 10,
+        'overall': 9.0,
+        'visual': 8.5,
+        'story': 8.0,
+      });
+    },
+  );
+
+  test(
+    'rating computes overall from sub-scores when manual overall is empty',
+    () {
+      const rating = AnimeRating(visual: 9, story: 8, music: 7);
+
+      expect(rating.hasManualOverall, isFalse);
+      expect(rating.effectiveOverall, closeTo(8, 0.001));
+      expect(rating.scoreFor(AnimeRatingField.overall), closeTo(8, 0.001));
+    },
+  );
+
   test('auto-resolved sync keeps unknown fields from the non-winning side', () {
     final base = jsonEncode({
       'animes': [
@@ -85,6 +129,7 @@ void main() {
           'endEpisode': 12,
           'episodeStatuses': {'2': 'futureStatus'},
           'futureRating': {'score': 100},
+          'rating': {'futureCategory': 10},
           'createdAt': createdAt,
           'modifiedAt': '2026-01-02T00:00:00.000Z',
         },
@@ -103,6 +148,7 @@ void main() {
     expect(mergedJson['futureRoot'], 'keep-me');
     expect(animeJson['title'], 'Local wins');
     expect(animeJson['futureRating'], {'score': 100});
+    expect(animeJson['rating'], {'futureCategory': 10});
     expect(animeJson['episodeStatuses'], {'1': 'watched', '2': 'futureStatus'});
   });
 }
