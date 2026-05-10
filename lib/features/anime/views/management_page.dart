@@ -9,6 +9,7 @@ import '../../../shared/services/image_service.dart';
 import '../../../shared/widgets/delete_confirm.dart';
 import '../models/anime.dart';
 import '../services/anime_storage.dart';
+import 'quarter_picker_dialog.dart';
 
 class ManagementPage extends StatefulWidget {
   const ManagementPage({super.key});
@@ -38,8 +39,9 @@ class _ManagementPageState extends State<ManagementPage> {
     _load();
     final now = DateTime.now();
     final currentQ = _Quarter(now.year, ((now.month - 1) ~/ 3) + 1);
-    _currentQuarterIndex =
-        _quarters.indexWhere((q) => q.year == currentQ.year && q.q == currentQ.q);
+    _currentQuarterIndex = _quarters.indexWhere(
+      (q) => q.year == currentQ.year && q.q == currentQ.q,
+    );
     if (_currentQuarterIndex < 0) _currentQuarterIndex = 0;
     _pageController = PageController(initialPage: _currentQuarterIndex);
   }
@@ -58,14 +60,13 @@ class _ManagementPageState extends State<ManagementPage> {
   List<Anime> _animeForQuarter(_Quarter quarter) {
     return _allAnime.where((a) {
       return a.airsInQuarter(quarter.year, quarter.q);
-    }).toList()
-      ..sort((a, b) {
-        // Sort by air day of week
-        final aDow = a.airDayOfWeek ?? 8;
-        final bDow = b.airDayOfWeek ?? 8;
-        if (aDow != bDow) return aDow.compareTo(bDow);
-        return a.displayTitle.compareTo(b.displayTitle);
-      });
+    }).toList()..sort((a, b) {
+      // Sort by air day of week
+      final aDow = a.airDayOfWeek ?? 8;
+      final bDow = b.airDayOfWeek ?? 8;
+      if (aDow != bDow) return aDow.compareTo(bDow);
+      return a.displayTitle.compareTo(b.displayTitle);
+    });
   }
 
   /// Anime without a firstAirDate — shown on the "Other" page.
@@ -79,20 +80,34 @@ class _ManagementPageState extends State<ManagementPage> {
     return _allAnime.where((a) {
       return (a.title?.toLowerCase().contains(q) ?? false) ||
           (a.titleJa?.toLowerCase().contains(q) ?? false);
-    }).toList()
-      ..sort((a, b) => a.displayTitle.compareTo(b.displayTitle));
+    }).toList()..sort((a, b) => a.displayTitle.compareTo(b.displayTitle));
   }
 
   String _quarterLabel(_Quarter q) {
     final l10n = AppLocalizations.of(context)!;
-    final seasons = ['', l10n.seasonWinter, l10n.seasonSpring, l10n.seasonSummer, l10n.seasonFall];
+    final seasons = [
+      '',
+      l10n.seasonWinter,
+      l10n.seasonSpring,
+      l10n.seasonSummer,
+      l10n.seasonFall,
+    ];
     return '${q.year} ${seasons[q.q]}';
   }
 
   String _dayLabel(int? dow) {
     if (dow == null) return '?';
     final l10n = AppLocalizations.of(context)!;
-    final days = ['', l10n.dayMon, l10n.dayTue, l10n.dayWed, l10n.dayThu, l10n.dayFri, l10n.daySat, l10n.daySun];
+    final days = [
+      '',
+      l10n.dayMon,
+      l10n.dayTue,
+      l10n.dayWed,
+      l10n.dayThu,
+      l10n.dayFri,
+      l10n.daySat,
+      l10n.daySun,
+    ];
     return days[dow.clamp(1, 7)];
   }
 
@@ -161,8 +176,7 @@ class _ManagementPageState extends State<ManagementPage> {
       return;
     }
     // sq.$2 is already the quarter number (1-4)
-    final idx = _quarters.indexWhere(
-        (q) => q.year == sq.$1 && q.q == sq.$2);
+    final idx = _quarters.indexWhere((q) => q.year == sq.$1 && q.q == sq.$2);
     if (idx >= 0 && idx != _currentQuarterIndex) {
       _pageController.jumpToPage(idx);
     }
@@ -172,7 +186,6 @@ class _ManagementPageState extends State<ManagementPage> {
     final l10n = AppLocalizations.of(context)!;
     final current = _isOtherPage ? null : _quarters[_currentQuarterIndex];
 
-    // Compute year range from anime data
     final dataYears = <int>{};
     for (final anime in _allAnime) {
       final sq = anime.startQuarter;
@@ -184,192 +197,37 @@ class _ManagementPageState extends State<ManagementPage> {
     final minYear = dataYears.reduce((a, b) => a < b ? a : b);
     final maxYear = dataYears.reduce((a, b) => a > b ? a : b);
 
-    const rowHeight = 44.0;
-    final currentRow = current != null ? current.year - minYear : 0;
-    final initialOffset =
-        ((currentRow - 3) * rowHeight).clamp(0.0, double.infinity);
-    final scrollCtrl = ScrollController(initialScrollOffset: initialOffset);
-
-    final otherCount = _otherAnime.length;
-
-    // Use sentinel _Quarter(0, 0) for "Other"
-    final result = await showDialog<_Quarter>(
+    final result = await showQuarterPickerDialog(
       context: context,
-      builder: (dialogContext) {
-        final theme = Theme.of(dialogContext);
-        return AlertDialog(
-          title: Text(l10n.manageJumpToQuarter),
-          contentPadding: const EdgeInsets.fromLTRB(8, 16, 8, 0),
-          content: SizedBox(
-            width: 300,
-            height: 360,
-            child: Column(
-              children: [
-                // Header
-                Padding(
-                  padding: const EdgeInsets.only(bottom: 8),
-                  child: Row(
-                    children: [
-                      const SizedBox(width: 48),
-                      for (final label in ['Q1', 'Q2', 'Q3', 'Q4'])
-                        Expanded(
-                          child: Center(
-                            child: Text(
-                              label,
-                              style: theme.textTheme.labelSmall?.copyWith(
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                          ),
-                        ),
-                    ],
-                  ),
-                ),
-                const Divider(height: 1),
-                // Grid
-                Expanded(
-                  child: ListView.builder(
-                    controller: scrollCtrl,
-                    itemCount: maxYear - minYear + 1,
-                    itemExtent: rowHeight,
-                    itemBuilder: (context, index) {
-                      final year = minYear + index;
-                      return Row(
-                        children: [
-                          SizedBox(
-                            width: 48,
-                            child: Text(
-                              '$year',
-                              style: theme.textTheme.bodySmall,
-                            ),
-                          ),
-                          for (int q = 1; q <= 4; q++)
-                            Expanded(
-                              child: _quarterGridCell(
-                                year, q, current, theme, dialogContext,
-                              ),
-                            ),
-                        ],
-                      );
-                    },
-                  ),
-                ),
-                const Divider(height: 1),
-                // "Other" button
-                Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 4),
-                  child: Material(
-                    color: _isOtherPage
-                        ? theme.colorScheme.primary
-                        : otherCount > 0
-                            ? theme.colorScheme.primaryContainer
-                            : Colors.transparent,
-                    borderRadius: BorderRadius.circular(8),
-                    child: InkWell(
-                      onTap: () =>
-                          Navigator.pop(dialogContext, const _Quarter(0, 0)),
-                      borderRadius: BorderRadius.circular(8),
-                      child: Padding(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 16, vertical: 8),
-                        child: Row(
-                          children: [
-                            Text(
-                              l10n.manageOther,
-                              style: TextStyle(
-                                color: _isOtherPage
-                                    ? theme.colorScheme.onPrimary
-                                    : null,
-                                fontWeight:
-                                    _isOtherPage ? FontWeight.bold : null,
-                              ),
-                            ),
-                            const Spacer(),
-                            if (otherCount > 0)
-                              Text(
-                                '$otherCount',
-                                style: TextStyle(
-                                  fontSize: 12,
-                                  color: _isOtherPage
-                                      ? theme.colorScheme.onPrimary
-                                      : theme.colorScheme.onPrimaryContainer,
-                                ),
-                              ),
-                          ],
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(dialogContext),
-              child: Text(l10n.cancel),
-            ),
-          ],
-        );
-      },
+      title: l10n.manageJumpToQuarter,
+      minYear: minYear,
+      maxYear: maxYear,
+      current: current != null
+          ? QuarterSelection(current.year, current.q)
+          : null,
+      countBuilder: (year, q) =>
+          _allAnime.where((a) => a.airsInQuarter(year, q)).length,
+      includeOther: true,
+      otherLabel: l10n.manageOther,
+      otherCount: _otherAnime.length,
+      isOtherSelected: _isOtherPage,
     );
-    scrollCtrl.dispose();
 
     if (result != null) {
-      // Sentinel _Quarter(0, 0) means "Other" page
-      if (result.year == 0 && result.q == 0) {
+      if (result.isOther) {
         final otherIdx = _quarters.length;
         if (otherIdx != _currentQuarterIndex) {
           _pageController.jumpToPage(otherIdx);
         }
       } else {
         final idx = _quarters.indexWhere(
-            (q) => q.year == result.year && q.q == result.q);
+          (q) => q.year == result.year && q.q == result.quarter,
+        );
         if (idx >= 0 && idx != _currentQuarterIndex) {
           _pageController.jumpToPage(idx);
         }
       }
     }
-  }
-
-  Widget _quarterGridCell(
-    int year,
-    int q,
-    _Quarter? current,
-    ThemeData theme,
-    BuildContext dialogContext,
-  ) {
-    final isCurrent = current != null && year == current.year && q == current.q;
-    final count = _allAnime.where((a) => a.airsInQuarter(year, q)).length;
-    final hasData = count > 0;
-
-    return Padding(
-      padding: const EdgeInsets.all(2),
-      child: Material(
-        color: isCurrent
-            ? theme.colorScheme.primary
-            : hasData
-                ? theme.colorScheme.primaryContainer
-                : Colors.transparent,
-        borderRadius: BorderRadius.circular(8),
-        child: InkWell(
-          onTap: () => Navigator.pop(dialogContext, _Quarter(year, q)),
-          borderRadius: BorderRadius.circular(8),
-          child: Center(
-            child: Text(
-              hasData ? '$count' : '',
-              style: TextStyle(
-                fontSize: 12,
-                color: isCurrent
-                    ? theme.colorScheme.onPrimary
-                    : theme.colorScheme.onPrimaryContainer,
-                fontWeight: isCurrent ? FontWeight.bold : null,
-              ),
-            ),
-          ),
-        ),
-      ),
-    );
   }
 
   @override
@@ -397,7 +255,9 @@ class _ManagementPageState extends State<ManagementPage> {
           ),
         ),
       ),
-      body: isSearching ? _buildSearchResults(theme, l10n) : _buildQuarterView(theme, l10n),
+      body: isSearching
+          ? _buildSearchResults(theme, l10n)
+          : _buildQuarterView(theme, l10n),
       floatingActionButton: FloatingActionButton(
         onPressed: () => _showAddOptions(context),
         tooltip: l10n.animeAdd,
@@ -458,9 +318,11 @@ class _ManagementPageState extends State<ManagementPage> {
                           style: theme.textTheme.titleMedium,
                         ),
                         const SizedBox(width: 4),
-                        Icon(Icons.arrow_drop_down,
-                            size: 20,
-                            color: theme.colorScheme.onSurfaceVariant),
+                        Icon(
+                          Icons.arrow_drop_down,
+                          size: 20,
+                          color: theme.colorScheme.onSurfaceVariant,
+                        ),
                       ],
                     ),
                   ),
@@ -543,7 +405,8 @@ class _ManagementPageState extends State<ManagementPage> {
     final watchedCount = anime.episodeStatuses.values
         .where((s) => s == EpisodeStatus.watched)
         .length;
-    final totalEps = (anime.endEpisode ?? anime.startEpisode) - anime.startEpisode + 1;
+    final totalEps =
+        (anime.endEpisode ?? anime.startEpisode) - anime.startEpisode + 1;
     final progress = totalEps > 0 ? watchedCount / totalEps : 0.0;
     final dayStr = _dayLabel(anime.airDayOfWeek);
 
@@ -579,12 +442,19 @@ class _ManagementPageState extends State<ManagementPage> {
                   if (snap.hasData && snap.data!.existsSync()) {
                     return ClipRRect(
                       borderRadius: BorderRadius.circular(4),
-                      child: Image.file(snap.data!,
-                          width: 40, height: 56, fit: BoxFit.cover),
+                      child: Image.file(
+                        snap.data!,
+                        width: 40,
+                        height: 56,
+                        fit: BoxFit.cover,
+                      ),
                     );
                   }
                   return const SizedBox(
-                      width: 40, height: 56, child: Icon(Icons.movie));
+                    width: 40,
+                    height: 56,
+                    child: Icon(Icons.movie),
+                  );
                 },
               )
             : const SizedBox(width: 40, height: 56, child: Icon(Icons.movie)),

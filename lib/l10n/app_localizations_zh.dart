@@ -559,10 +559,13 @@ class AppLocalizationsZh extends AppLocalizations {
   String get statsRankingCustomRange => '自定义范围';
 
   @override
-  String get statsRankingStartDate => '开始日期';
+  String get statsRankingSelectYear => '选择年度';
 
   @override
-  String get statsRankingEndDate => '结束日期';
+  String get statsRankingStartQuarter => '开始季度';
+
+  @override
+  String get statsRankingEndQuarter => '结束季度';
 
   @override
   String get statsRankingEmpty => '没有符合筛选条件的已评分番剧';
@@ -1388,10 +1391,13 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
   String get statsRankingCustomRange => '自訂範圍';
 
   @override
-  String get statsRankingStartDate => '開始日期';
+  String get statsRankingSelectYear => '選擇年度';
 
   @override
-  String get statsRankingEndDate => '結束日期';
+  String get statsRankingStartQuarter => '開始季度';
+
+  @override
+  String get statsRankingEndQuarter => '結束季度';
 
   @override
   String get statsRankingEmpty => '沒有符合篩選條件的已評分番劇';

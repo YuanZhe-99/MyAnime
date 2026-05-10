@@ -1169,17 +1169,23 @@ abstract class AppLocalizations {
   /// **'Custom range'**
   String get statsRankingCustomRange;
 
-  /// No description provided for @statsRankingStartDate.
+  /// No description provided for @statsRankingSelectYear.
   ///
   /// In en, this message translates to:
-  /// **'Start date'**
-  String get statsRankingStartDate;
+  /// **'Select Year'**
+  String get statsRankingSelectYear;
 
-  /// No description provided for @statsRankingEndDate.
+  /// No description provided for @statsRankingStartQuarter.
   ///
   /// In en, this message translates to:
-  /// **'End date'**
-  String get statsRankingEndDate;
+  /// **'Start quarter'**
+  String get statsRankingStartQuarter;
+
+  /// No description provided for @statsRankingEndQuarter.
+  ///
+  /// In en, this message translates to:
+  /// **'End quarter'**
+  String get statsRankingEndQuarter;
 
   /// No description provided for @statsRankingEmpty.
   ///

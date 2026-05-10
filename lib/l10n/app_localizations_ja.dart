@@ -561,10 +561,13 @@ class AppLocalizationsJa extends AppLocalizations {
   String get statsRankingCustomRange => 'カスタム期間';
 
   @override
-  String get statsRankingStartDate => '開始日';
+  String get statsRankingSelectYear => '年を選択';
 
   @override
-  String get statsRankingEndDate => '終了日';
+  String get statsRankingStartQuarter => '開始クール';
+
+  @override
+  String get statsRankingEndQuarter => '終了クール';
 
   @override
   String get statsRankingEmpty => '条件に一致する評価済みアニメはありません';

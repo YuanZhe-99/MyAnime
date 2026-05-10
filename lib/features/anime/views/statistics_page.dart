@@ -8,6 +8,7 @@ import '../../../l10n/app_localizations.dart';
 import '../../../shared/services/image_service.dart';
 import '../models/anime.dart';
 import '../services/anime_storage.dart';
+import 'quarter_picker_dialog.dart';
 
 enum _StatsView { summary, ranking }
 
@@ -47,8 +48,10 @@ class _StatisticsPageState extends State<StatisticsPage> {
   // For ranking year filter
   late int _rankingSelectedYearOnly;
 
-  DateTime? _rankingStartDate;
-  DateTime? _rankingEndDate;
+  late int _rankingStartYear;
+  late int _rankingStartQuarter;
+  late int _rankingEndYear;
+  late int _rankingEndQuarter;
 
   final ScrollController _trendScrollController = ScrollController();
 
@@ -62,6 +65,10 @@ class _StatisticsPageState extends State<StatisticsPage> {
     _rankingSelectedQuarter = ((now.month - 1) ~/ 3) + 1;
     _selectedYearOnly = now.year;
     _rankingSelectedYearOnly = now.year;
+    _rankingStartYear = now.year;
+    _rankingStartQuarter = ((now.month - 1) ~/ 3) + 1;
+    _rankingEndYear = now.year;
+    _rankingEndQuarter = ((now.month - 1) ~/ 3) + 1;
     _load();
   }
 
@@ -174,17 +181,18 @@ class _StatisticsPageState extends State<StatisticsPage> {
         }
         return false;
       case _RankingTimeFilter.custom:
-        final firstAirDate = anime.firstAirDate;
-        if (firstAirDate == null) return false;
-        final start = _rankingStartDate;
-        final end = _rankingEndDate;
-        if (start != null && firstAirDate.isBefore(_dateOnly(start))) {
-          return false;
+        var startIdx = _quarterIndex(_rankingStartYear, _rankingStartQuarter);
+        var endIdx = _quarterIndex(_rankingEndYear, _rankingEndQuarter);
+        if (endIdx < startIdx) {
+          final tmp = startIdx;
+          startIdx = endIdx;
+          endIdx = tmp;
         }
-        if (end != null && firstAirDate.isAfter(_dateOnly(end))) {
-          return false;
+        for (var idx = startIdx; idx <= endIdx; idx++) {
+          final (year, quarter) = _quarterFromIndex(idx);
+          if (anime.airsInQuarter(year, quarter)) return true;
         }
-        return true;
+        return false;
     }
   }
 
@@ -251,28 +259,217 @@ class _StatisticsPageState extends State<StatisticsPage> {
     });
   }
 
-  Future<void> _pickRankingStartDate() async {
-    final date = await showDatePicker(
-      context: context,
-      initialDate: _rankingStartDate ?? DateTime.now(),
-      firstDate: DateTime(2000),
-      lastDate: DateTime(2040),
-    );
-    if (date != null && mounted) {
-      setState(() => _rankingStartDate = _dateOnly(date));
+  (int, int) get _rankingYearRange {
+    final dataYears = <int>{};
+    for (final anime in _allAnime) {
+      final sq = anime.startQuarter;
+      if (sq != null) dataYears.add(sq.$1);
     }
+    final now = DateTime.now();
+    dataYears.addAll([
+      now.year,
+      now.year + 1,
+      _selectedYear,
+      _selectedYearOnly,
+      _rankingSelectedYear,
+      _rankingSelectedYearOnly,
+      _rankingStartYear,
+      _rankingEndYear,
+    ]);
+    return (
+      dataYears.reduce((a, b) => a < b ? a : b),
+      dataYears.reduce((a, b) => a > b ? a : b),
+    );
   }
 
-  Future<void> _pickRankingEndDate() async {
-    final date = await showDatePicker(
+  Future<void> _pickRankingQuarter() async {
+    final range = _rankingYearRange;
+    final selected = await showQuarterPickerDialog(
       context: context,
-      initialDate: _rankingEndDate ?? _rankingStartDate ?? DateTime.now(),
-      firstDate: DateTime(2000),
-      lastDate: DateTime(2040),
+      title: AppLocalizations.of(context)!.manageJumpToQuarter,
+      minYear: range.$1,
+      maxYear: range.$2,
+      current: QuarterSelection(_rankingSelectedYear, _rankingSelectedQuarter),
+      countBuilder: _countAnimeInQuarter,
     );
-    if (date != null && mounted) {
-      setState(() => _rankingEndDate = _dateOnly(date));
-    }
+    if (selected == null || !mounted) return;
+    setState(() {
+      _rankingSelectedYear = selected.year;
+      _rankingSelectedQuarter = selected.quarter;
+    });
+  }
+
+  Future<void> _pickRankingYear() async {
+    final l10n = AppLocalizations.of(context)!;
+    final range = _rankingYearRange;
+    final selected = await _showYearPickerDialog(
+      title: l10n.statsRankingSelectYear,
+      minYear: range.$1,
+      maxYear: range.$2,
+      currentYear: _rankingSelectedYearOnly,
+    );
+    if (selected == null || !mounted) return;
+    setState(() => _rankingSelectedYearOnly = selected);
+  }
+
+  Future<void> _pickRankingRangeStart() async {
+    final range = _rankingYearRange;
+    final selected = await showQuarterPickerDialog(
+      context: context,
+      title: AppLocalizations.of(context)!.statsRankingStartQuarter,
+      minYear: range.$1,
+      maxYear: range.$2,
+      current: QuarterSelection(_rankingStartYear, _rankingStartQuarter),
+      countBuilder: _countAnimeInQuarter,
+    );
+    if (selected == null || !mounted) return;
+    setState(() {
+      _rankingStartYear = selected.year;
+      _rankingStartQuarter = selected.quarter;
+      _normalizeRankingCustomRange();
+    });
+  }
+
+  Future<void> _pickRankingRangeEnd() async {
+    final range = _rankingYearRange;
+    final selected = await showQuarterPickerDialog(
+      context: context,
+      title: AppLocalizations.of(context)!.statsRankingEndQuarter,
+      minYear: range.$1,
+      maxYear: range.$2,
+      current: QuarterSelection(_rankingEndYear, _rankingEndQuarter),
+      countBuilder: _countAnimeInQuarter,
+    );
+    if (selected == null || !mounted) return;
+    setState(() {
+      _rankingEndYear = selected.year;
+      _rankingEndQuarter = selected.quarter;
+      _normalizeRankingCustomRange();
+    });
+  }
+
+  Future<int?> _showYearPickerDialog({
+    required String title,
+    required int minYear,
+    required int maxYear,
+    required int currentYear,
+  }) async {
+    const itemHeight = 48.0;
+    final initialOffset = ((currentYear - minYear - 3) * itemHeight).clamp(
+      0.0,
+      double.infinity,
+    );
+    final scrollCtrl = ScrollController(initialScrollOffset: initialOffset);
+    final result = await showDialog<int>(
+      context: context,
+      builder: (dialogContext) {
+        final theme = Theme.of(dialogContext);
+        return AlertDialog(
+          title: Text(title),
+          contentPadding: const EdgeInsets.fromLTRB(8, 16, 8, 0),
+          content: SizedBox(
+            width: 260,
+            height: 320,
+            child: ListView.builder(
+              controller: scrollCtrl,
+              itemCount: maxYear - minYear + 1,
+              itemExtent: itemHeight,
+              itemBuilder: (context, index) {
+                final year = minYear + index;
+                final isCurrent = year == currentYear;
+                final count = _countAnimeInYear(year);
+                return Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 2),
+                  child: Material(
+                    color: isCurrent
+                        ? theme.colorScheme.primary
+                        : count > 0
+                        ? theme.colorScheme.primaryContainer
+                        : Colors.transparent,
+                    borderRadius: BorderRadius.circular(8),
+                    child: InkWell(
+                      onTap: () => Navigator.pop(dialogContext, year),
+                      borderRadius: BorderRadius.circular(8),
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 16),
+                        child: Row(
+                          children: [
+                            Text(
+                              '$year',
+                              style: TextStyle(
+                                color: isCurrent
+                                    ? theme.colorScheme.onPrimary
+                                    : null,
+                                fontWeight: isCurrent ? FontWeight.bold : null,
+                              ),
+                            ),
+                            const Spacer(),
+                            if (count > 0)
+                              Text(
+                                '$count',
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  color: isCurrent
+                                      ? theme.colorScheme.onPrimary
+                                      : theme.colorScheme.onPrimaryContainer,
+                                ),
+                              ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                );
+              },
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(dialogContext),
+              child: Text(
+                MaterialLocalizations.of(dialogContext).cancelButtonLabel,
+              ),
+            ),
+          ],
+        );
+      },
+    );
+    scrollCtrl.dispose();
+    return result;
+  }
+
+  int _countAnimeInQuarter(int year, int quarter) {
+    return _allAnime.where((a) => a.airsInQuarter(year, quarter)).length;
+  }
+
+  int _countAnimeInYear(int year) {
+    return _allAnime.where((anime) {
+      for (int q = 1; q <= 4; q++) {
+        if (anime.airsInQuarter(year, q)) return true;
+      }
+      return false;
+    }).length;
+  }
+
+  void _normalizeRankingCustomRange() {
+    final startIdx = _quarterIndex(_rankingStartYear, _rankingStartQuarter);
+    final endIdx = _quarterIndex(_rankingEndYear, _rankingEndQuarter);
+    if (endIdx >= startIdx) return;
+
+    final startYear = _rankingStartYear;
+    final startQuarter = _rankingStartQuarter;
+    _rankingStartYear = _rankingEndYear;
+    _rankingStartQuarter = _rankingEndQuarter;
+    _rankingEndYear = startYear;
+    _rankingEndQuarter = startQuarter;
+  }
+
+  static int _quarterIndex(int year, int quarter) => year * 4 + quarter;
+
+  static (int, int) _quarterFromIndex(int index) {
+    final year = (index - 1) ~/ 4;
+    final quarter = ((index - 1) % 4) + 1;
+    return (year, quarter);
   }
 
   // --- Trend data ---
@@ -378,9 +575,6 @@ class _StatisticsPageState extends State<StatisticsPage> {
     return 4;
   }
 
-  static DateTime _dateOnly(DateTime date) =>
-      DateTime(date.year, date.month, date.day);
-
   // --- Build ---
 
   @override
@@ -403,6 +597,7 @@ class _StatisticsPageState extends State<StatisticsPage> {
                 children: [
                   Expanded(
                     child: SegmentedButton<_TimeScope>(
+                      emptySelectionAllowed: isRanking,
                       segments: [
                         ButtonSegment(
                           value: _TimeScope.quarter,
@@ -417,8 +612,9 @@ class _StatisticsPageState extends State<StatisticsPage> {
                           label: Text(l10n.statsAll),
                         ),
                       ],
-                      selected: {_scope},
+                      selected: isRanking ? <_TimeScope>{} : {_scope},
                       onSelectionChanged: (s) {
+                        if (s.isEmpty) return;
                         setState(() {
                           _scope = s.first;
                           _view = _StatsView.summary;
@@ -641,8 +837,13 @@ class _StatisticsPageState extends State<StatisticsPage> {
                   onPressed: _prevPeriod,
                 ),
                 Expanded(
-                  child: Center(
-                    child: Text(
+                  child: TextButton.icon(
+                    onPressed: _rankingTimeFilter == _RankingTimeFilter.quarter
+                        ? _pickRankingQuarter
+                        : _pickRankingYear,
+                    icon: const Icon(Icons.arrow_drop_down),
+                    iconAlignment: IconAlignment.end,
+                    label: Text(
                       _rankingTimeFilter == _RankingTimeFilter.quarter
                           ? _quarterLabel(
                               _rankingSelectedYear,
@@ -662,32 +863,43 @@ class _StatisticsPageState extends State<StatisticsPage> {
           ),
         if (_rankingTimeFilter == _RankingTimeFilter.custom) ...[
           const SizedBox(height: 8),
-          Row(
-            children: [
-              Expanded(
-                child: OutlinedButton.icon(
-                  onPressed: _pickRankingStartDate,
-                  icon: const Icon(Icons.date_range),
-                  label: Text(
-                    _rankingStartDate != null
-                        ? _formatDate(_rankingStartDate!)
-                        : l10n.statsRankingStartDate,
-                  ),
+          LayoutBuilder(
+            builder: (context, constraints) {
+              final isNarrow = constraints.maxWidth < 560;
+              final startButton = _buildRankingRangeButton(
+                onPressed: _pickRankingRangeStart,
+                icon: Icons.date_range,
+                label: l10n.statsRankingStartQuarter,
+                quarterLabel: _quarterLabel(
+                  _rankingStartYear,
+                  _rankingStartQuarter,
                 ),
-              ),
-              const SizedBox(width: 8),
-              Expanded(
-                child: OutlinedButton.icon(
-                  onPressed: _pickRankingEndDate,
-                  icon: const Icon(Icons.event),
-                  label: Text(
-                    _rankingEndDate != null
-                        ? _formatDate(_rankingEndDate!)
-                        : l10n.statsRankingEndDate,
-                  ),
+              );
+              final endButton = _buildRankingRangeButton(
+                onPressed: _pickRankingRangeEnd,
+                icon: Icons.event,
+                label: l10n.statsRankingEndQuarter,
+                quarterLabel: _quarterLabel(
+                  _rankingEndYear,
+                  _rankingEndQuarter,
                 ),
-              ),
-            ],
+              );
+
+              if (isNarrow) {
+                return Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [startButton, const SizedBox(height: 8), endButton],
+                );
+              }
+
+              return Row(
+                children: [
+                  Expanded(child: startButton),
+                  const SizedBox(width: 8),
+                  Expanded(child: endButton),
+                ],
+              );
+            },
           ),
         ],
         const SizedBox(height: 12),
@@ -759,6 +971,19 @@ class _StatisticsPageState extends State<StatisticsPage> {
     );
   }
 
+  Widget _buildRankingRangeButton({
+    required VoidCallback onPressed,
+    required IconData icon,
+    required String label,
+    required String quarterLabel,
+  }) {
+    return OutlinedButton.icon(
+      onPressed: onPressed,
+      icon: Icon(icon),
+      label: Text('$label: $quarterLabel', overflow: TextOverflow.ellipsis),
+    );
+  }
+
   Widget _buildRankingTile(
     Anime anime,
     int rank,
@@ -770,47 +995,123 @@ class _StatisticsPageState extends State<StatisticsPage> {
 
     return Card(
       margin: const EdgeInsets.only(bottom: 8),
-      child: ListTile(
-        leading: CircleAvatar(
-          backgroundColor: theme.colorScheme.primaryContainer,
-          foregroundColor: theme.colorScheme.onPrimaryContainer,
-          child: Text('$rank'),
-        ),
-        title: Text(
-          anime.displayTitle,
-          maxLines: 1,
-          overflow: TextOverflow.ellipsis,
-        ),
-        subtitle: Text(
-          [
-            _typeLabel(anime.effectiveType, l10n),
-            if (overallScore != null)
-              '${l10n.animeRatingOverall}: ${_formatScore(overallScore)}',
-          ].join(' · '),
-        ),
-        trailing: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.end,
-          children: [
-            Text(
-              _formatScore(sortScore),
-              style: theme.textTheme.titleMedium?.copyWith(
-                color: theme.colorScheme.primary,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-            Text(
-              _ratingFieldLabel(_rankingSortField, l10n),
-              style: theme.textTheme.labelSmall?.copyWith(
-                color: theme.colorScheme.onSurfaceVariant,
-              ),
-            ),
-          ],
-        ),
+      clipBehavior: Clip.antiAlias,
+      child: InkWell(
         onTap: () async {
           await context.push('/anime/detail/${anime.id}');
           await _load();
         },
+        child: Padding(
+          padding: const EdgeInsets.all(12),
+          child: Row(
+            children: [
+              SizedBox(
+                width: 36,
+                height: 36,
+                child: DecoratedBox(
+                  decoration: BoxDecoration(
+                    color: theme.colorScheme.primaryContainer,
+                    shape: BoxShape.circle,
+                  ),
+                  child: Center(
+                    child: Text(
+                      '$rank',
+                      style: theme.textTheme.titleMedium?.copyWith(
+                        color: theme.colorScheme.onPrimaryContainer,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 12),
+              _buildCoverThumbnail(anime),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      anime.displayTitle,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: theme.textTheme.titleMedium,
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      [
+                        _typeLabel(anime.effectiveType, l10n),
+                        if (overallScore != null)
+                          '${l10n.animeRatingOverall}: '
+                              '${_formatScore(overallScore)}',
+                      ].join(' · '),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: theme.textTheme.bodyMedium?.copyWith(
+                        color: theme.colorScheme.onSurfaceVariant,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 8),
+              Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [
+                  Text(
+                    _formatScore(sortScore),
+                    style: theme.textTheme.titleMedium?.copyWith(
+                      color: theme.colorScheme.primary,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  Text(
+                    _ratingFieldLabel(_rankingSortField, l10n),
+                    style: theme.textTheme.labelSmall?.copyWith(
+                      color: theme.colorScheme.onSurfaceVariant,
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildCoverThumbnail(Anime anime) {
+    if (anime.coverImage == null) return _coverPlaceholder();
+    return FutureBuilder<File>(
+      future: ImageService.resolve(anime.coverImage!),
+      builder: (context, snap) {
+        if (snap.hasData && snap.data!.existsSync()) {
+          return ClipRRect(
+            borderRadius: BorderRadius.circular(6),
+            child: Image.file(
+              snap.data!,
+              width: 44,
+              height: 62,
+              fit: BoxFit.cover,
+            ),
+          );
+        }
+        return _coverPlaceholder();
+      },
+    );
+  }
+
+  Widget _coverPlaceholder() {
+    return SizedBox(
+      width: 44,
+      height: 62,
+      child: DecoratedBox(
+        decoration: BoxDecoration(
+          color: Theme.of(context).colorScheme.surfaceContainerHighest,
+          borderRadius: BorderRadius.circular(6),
+        ),
+        child: const Icon(Icons.movie),
       ),
     );
   }
@@ -1196,9 +1497,6 @@ class _StatisticsPageState extends State<StatisticsPage> {
     if (score == score.roundToDouble()) return score.toInt().toString();
     return score.toStringAsFixed(1);
   }
-
-  String _formatDate(DateTime date) =>
-      '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
 }
 
 class _TrendEntry {

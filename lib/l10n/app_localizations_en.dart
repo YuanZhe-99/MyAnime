@@ -565,10 +565,13 @@ class AppLocalizationsEn extends AppLocalizations {
   String get statsRankingCustomRange => 'Custom range';
 
   @override
-  String get statsRankingStartDate => 'Start date';
+  String get statsRankingSelectYear => 'Select Year';
 
   @override
-  String get statsRankingEndDate => 'End date';
+  String get statsRankingStartQuarter => 'Start quarter';
+
+  @override
+  String get statsRankingEndQuarter => 'End quarter';
 
   @override
   String get statsRankingEmpty => 'No rated anime matches these filters';

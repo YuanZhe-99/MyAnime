@@ -8,7 +8,7 @@ This file is the operating guide for agents working on **MyAnime!!!!!**. Read it
 - **Description:** A privacy-first anime tracking app with a JST-aware calendar, seasonal quarter management, statistics, multi-source anime search, watch-progress tracking, daily reminders, share/export flows, WebDAV sync, local backup, a desktop local API server, tray behavior, launch-at-startup, and a kana quick-reference module.
 - **Author / package id:** `yuanzhe`, `com.yuanzhe.my_anime`.
 - **License:** GPL-3.0.
-- **Current version:** `0.7.0+30` in `pubspec.yaml`, `0.7.0.0` for MSIX, and `0.7.0` in `installer.iss`.
+- **Current version:** `0.7.1+31` in `pubspec.yaml`, `0.7.1.0` for MSIX, and `0.7.1` in `installer.iss`.
 - **Framework:** Flutter with Dart SDK `^3.11.3`; CI uses Flutter `3.41.6`.
 - **Platforms:** Windows, Android, iOS, macOS. Linux project files exist and desktop services include Linux branches, but Linux is not a primary release target. Web is not targeted.
 - **Repository:** `C:\Users\yuanzhe\src\MyAnime`.
@@ -92,6 +92,7 @@ lib/
         home_page.dart
         management_page.dart
         statistics_page.dart
+        quarter_picker_dialog.dart
         anime_detail_page.dart
         anime_edit_page.dart
         anime_search_dialog.dart
@@ -165,7 +166,7 @@ Quarter placement uses Japanese anime cour conventions. When `manualType` is set
 
 - `home_page.dart`: JST-aware calendar and unwatched aired episodes.
 - `management_page.dart`: seasonal quarter browser, global search, dynamic year/quarter picker, and an Other page for anime without `firstAirDate`.
-- `statistics_page.dart`: quarter/year/all scopes, summary counts, trend charts, expandable lists grouped by derived status, and a separate Ranking view for rating-based ranking. Ranking supports all/quarter/year/custom-date filters, type filtering, overall or sub-score sorting, and ascending/descending order.
+- `statistics_page.dart`: quarter/year/all scopes, summary counts, trend charts, expandable lists grouped by derived status, and a separate Ranking view for rating-based ranking. Ranking supports all/quarter/year/custom-quarter-range filters, type filtering, overall or sub-score sorting, ascending/descending order, direct quarter/year pickers, and cover thumbnails.
 - Creating a new anime navigates to the detail page and returns management to the anime's quarter when applicable.
 
 ### Kana Quick Reference
@@ -400,3 +401,4 @@ Version highlights:
 - `v0.6.6`: Periodic auto-sync and forward-compatible JSON field preservation.
 - `v0.6.7`: Kana quick reference module, l10n updates, remotes synchronized to both `origin` and `github`.
 - `v0.7.0`: Optional anime rating system and statistics ranking view with rating filters and sorting.
+- `v0.7.1`: Ranking filter UX improvements with reusable quarter/year pickers, quarter-range custom filters, corrected top selection state, and cover thumbnails.
