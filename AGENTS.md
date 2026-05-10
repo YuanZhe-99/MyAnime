@@ -8,7 +8,7 @@ This file is the operating guide for agents working on **MyAnime!!!!!**. Read it
 - **Description:** A privacy-first anime tracking app with a JST-aware calendar, seasonal quarter management, statistics, multi-source anime search, watch-progress tracking, daily reminders, share/export flows, WebDAV sync, local backup, a desktop local API server, tray behavior, launch-at-startup, and a kana quick-reference module.
 - **Author / package id:** `yuanzhe`, `com.yuanzhe.my_anime`.
 - **License:** GPL-3.0.
-- **Current version:** `0.7.1+31` in `pubspec.yaml`, `0.7.1.0` for MSIX, and `0.7.1` in `installer.iss`.
+- **Current version:** `0.7.2+32` in `pubspec.yaml`, `0.7.2.0` for MSIX, and `0.7.2` in `installer.iss`.
 - **Framework:** Flutter with Dart SDK `^3.11.3`; CI uses Flutter `3.41.6`.
 - **Platforms:** Windows, Android, iOS, macOS. Linux project files exist and desktop services include Linux branches, but Linux is not a primary release target. Web is not targeted.
 - **Repository:** `C:\Users\yuanzhe\src\MyAnime`.
@@ -166,7 +166,7 @@ Quarter placement uses Japanese anime cour conventions. When `manualType` is set
 
 - `home_page.dart`: JST-aware calendar and unwatched aired episodes.
 - `management_page.dart`: seasonal quarter browser, global search, dynamic year/quarter picker, and an Other page for anime without `firstAirDate`.
-- `statistics_page.dart`: quarter/year/all scopes, summary counts, trend charts, expandable lists grouped by derived status, and a separate Ranking view for rating-based ranking. Ranking supports all/quarter/year/custom-quarter-range filters, type filtering, overall or sub-score sorting, ascending/descending order, direct quarter/year pickers, and cover thumbnails.
+- `statistics_page.dart`: quarter/year/all scopes, summary counts, trend charts, expandable lists grouped by derived status, and a separate Ranking view for rating-based ranking. Ranking supports all/quarter/year/custom-quarter-range filters, type filtering, overall or sub-score sorting, ascending/descending order, direct quarter/year pickers, cover thumbnails, and image export/share for the current filtered ranking.
 - Creating a new anime navigates to the detail page and returns management to the anime's quarter when applicable.
 
 ### Kana Quick Reference
@@ -197,10 +197,11 @@ Features include result deduplication, Simplified/Traditional Chinese variants f
 
 ### Share and File Import
 
-`share_service.dart` supports sharing an anime as an image card.
+`share_service.dart` supports sharing an anime as an image card and exporting/sharing the current statistics ranking as an image.
 
 - The share flow first asks whether to share as an image or as a data file.
 - Image cards include cover art, titles, season/type/schedule, broadcast progress, notes, selected info/watch URLs as QR codes, the app logo, and the MyAnime!!!!! watermark.
+- Ranking image exports include the current ranking filters, sort/order, ranked anime rows with cover thumbnails and scores, the app logo, and the MyAnime!!!!! watermark. Ranking export is image-only and does not create `.myanimeitem` data files.
 - Android uses a custom `MethodChannel` named `com.yuanzhe.my_anime/share` and `FLAG_ACTIVITY_NEW_TASK` so share targets open outside the MyAnime task stack.
 - iOS uses the system share sheet.
 - Desktop shows a preview dialog and can copy or save the generated image.
@@ -402,3 +403,4 @@ Version highlights:
 - `v0.6.7`: Kana quick reference module, l10n updates, remotes synchronized to both `origin` and `github`.
 - `v0.7.0`: Optional anime rating system and statistics ranking view with rating filters and sorting.
 - `v0.7.1`: Ranking filter UX improvements with reusable quarter/year pickers, quarter-range custom filters, corrected top selection state, and cover thumbnails.
+- `v0.7.2`: Ranking button selected-state contrast, ranking image export/share, and release version metadata updates.

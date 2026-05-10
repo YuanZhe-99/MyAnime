@@ -1,6 +1,5 @@
 import 'dart:io';
 import 'dart:math';
-import 'dart:typed_data';
 import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
@@ -17,12 +16,30 @@ import '../utils/jst_time.dart';
 import 'file_open_service.dart';
 import 'image_service.dart';
 
+class RankingShareEntry {
+  final Anime anime;
+  final int rank;
+  final double score;
+
+  const RankingShareEntry({
+    required this.anime,
+    required this.rank,
+    required this.score,
+  });
+}
+
 class ShareService {
   static const double _cardWidth = 480;
+  static const double _rankingCardWidth = 560;
   static const double _padding = 24;
   static const double _gap = 16;
   static const double _coverWidth = 130;
   static const double _coverHeight = 180;
+  static const double _rankingCoverWidth = 44;
+  static const double _rankingCoverHeight = 62;
+  static const double _rankingRowHeight = 86;
+  static const double _rankingRankSize = 36;
+  static const double _rankingScoreWidth = 68;
   static const double _qrSize = 100;
   static const double _headerHeight = 6;
   static const double _pixelRatio = 3.0;
@@ -70,6 +87,42 @@ class ShareService {
     }
   }
 
+  static Future<void> shareRankingImage(
+    BuildContext context, {
+    required List<RankingShareEntry> entries,
+    required String title,
+    required String subtitle,
+    required String sortLabel,
+    required String orderLabel,
+    required AppLocalizations l10n,
+  }) async {
+    if (entries.isEmpty) return;
+
+    try {
+      final imageBytes = await _generateRankingShareImage(
+        entries: entries,
+        title: title,
+        subtitle: subtitle,
+        sortLabel: sortLabel,
+        orderLabel: orderLabel,
+        l10n: l10n,
+      );
+      if (!context.mounted) return;
+      await _shareImageBytes(
+        context,
+        imageBytes,
+        l10n,
+        fileName: 'myanime_ranking.png',
+      );
+    } catch (_) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(l10n.shareFailed)));
+      }
+    }
+  }
+
   static Future<void> _shareAnimeData(
     BuildContext context,
     Anime anime,
@@ -98,17 +151,17 @@ class ShareService {
         if (result != null) {
           await File(filePath).copy(result);
           if (context.mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(content: Text(l10n.shareSaved)),
-            );
+            ScaffoldMessenger.of(
+              context,
+            ).showSnackBar(SnackBar(content: Text(l10n.shareSaved)));
           }
         }
       }
     } catch (e) {
       if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(l10n.shareFailed)),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(l10n.shareFailed)));
       }
     }
   }
@@ -126,7 +179,11 @@ class ShareService {
 
     if (hasInfoUrl || hasWatchUrl) {
       final result = await _showUrlOptionsDialog(
-        context, l10n, hasInfoUrl, hasWatchUrl);
+        context,
+        l10n,
+        hasInfoUrl,
+        hasWatchUrl,
+      );
       if (result == null) return; // cancelled
       includeInfoUrl = result.includeInfoUrl;
       includeWatchUrl = result.includeWatchUrl;
@@ -134,37 +191,60 @@ class ShareService {
 
     try {
       final imageBytes = await _generateShareImage(
-        anime, l10n,
+        anime,
+        l10n,
         includeInfoUrl: includeInfoUrl,
         includeWatchUrl: includeWatchUrl,
       );
-      final tempDir = await getTemporaryDirectory();
-      final file = File(p.join(tempDir.path, 'myanime_share.png'));
-      await file.writeAsBytes(imageBytes);
-
       if (!context.mounted) return;
-
-      if (Platform.isAndroid) {
-        const channel = MethodChannel('com.yuanzhe.my_anime/share');
-        await channel.invokeMethod('shareFile', {
-          'path': file.path,
-          'mimeType': 'image/png',
-        });
-      } else if (Platform.isIOS) {
-        await Share.shareXFiles([XFile(file.path)]);
-      } else {
-        await _showDesktopPreview(context, imageBytes, file.path, l10n);
-      }
+      await _shareImageBytes(
+        context,
+        imageBytes,
+        l10n,
+        fileName: 'myanime_share.png',
+      );
     } catch (e) {
       if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(l10n.shareFailed)),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(l10n.shareFailed)));
       }
     }
   }
 
-  static Future<({bool includeInfoUrl, bool includeWatchUrl})?> _showUrlOptionsDialog(
+  static Future<void> _shareImageBytes(
+    BuildContext context,
+    Uint8List imageBytes,
+    AppLocalizations l10n, {
+    required String fileName,
+  }) async {
+    final tempDir = await getTemporaryDirectory();
+    final file = File(p.join(tempDir.path, fileName));
+    await file.writeAsBytes(imageBytes);
+
+    if (!context.mounted) return;
+
+    if (Platform.isAndroid) {
+      const channel = MethodChannel('com.yuanzhe.my_anime/share');
+      await channel.invokeMethod('shareFile', {
+        'path': file.path,
+        'mimeType': 'image/png',
+      });
+    } else if (Platform.isIOS) {
+      await Share.shareXFiles([XFile(file.path)]);
+    } else {
+      await _showDesktopPreview(
+        context,
+        imageBytes,
+        file.path,
+        l10n,
+        fileName: fileName,
+      );
+    }
+  }
+
+  static Future<({bool includeInfoUrl, bool includeWatchUrl})?>
+  _showUrlOptionsDialog(
     BuildContext context,
     AppLocalizations l10n,
     bool hasInfoUrl,
@@ -204,9 +284,9 @@ class ShareService {
               child: Text(l10n.cancel),
             ),
             FilledButton(
-              onPressed: () => Navigator.of(ctx).pop(
-                (includeInfoUrl: infoUrl, includeWatchUrl: watchUrl),
-              ),
+              onPressed: () => Navigator.of(
+                ctx,
+              ).pop((includeInfoUrl: infoUrl, includeWatchUrl: watchUrl)),
               child: Text(l10n.animeShare),
             ),
           ],
@@ -257,15 +337,18 @@ class ShareService {
     if (includeInfoUrl && anime.infoUrl != null && anime.infoUrl!.isNotEmpty) {
       shareUrls.add((url: anime.infoUrl!, label: anime.infoUrl!));
     }
-    if (includeWatchUrl && anime.watchUrl != null && anime.watchUrl!.isNotEmpty) {
+    if (includeWatchUrl &&
+        anime.watchUrl != null &&
+        anime.watchUrl!.isNotEmpty) {
       shareUrls.add((url: anime.watchUrl!, label: anime.watchUrl!));
     }
     final hasQr = shareUrls.isNotEmpty;
     final hasNotes = anime.notes != null && anime.notes!.isNotEmpty;
 
     // Info text width (beside cover or full width)
-    final infoWidth =
-        hasCover ? contentWidth - _coverWidth - _gap : contentWidth;
+    final infoWidth = hasCover
+        ? contentWidth - _coverWidth - _gap
+        : contentWidth;
 
     // ── Layout calculation ──
     double y = _padding + _headerHeight + _gap;
@@ -287,7 +370,8 @@ class ShareService {
     // Japanese title (show only when both titles exist and differ)
     TextPainter? titleJaPainter;
     double titleJaY = y;
-    final showJa = anime.titleJa != null &&
+    final showJa =
+        anime.titleJa != null &&
         anime.titleJa!.isNotEmpty &&
         anime.title != null &&
         anime.title!.isNotEmpty &&
@@ -308,8 +392,7 @@ class ShareService {
     final infoLines = <String>[];
 
     // Season + Type
-    infoLines
-        .add('${anime.season} · ${_typeLabel(anime.effectiveType, l10n)}');
+    infoLines.add('${anime.season} · ${_typeLabel(anime.effectiveType, l10n)}');
 
     // Schedule
     if (anime.airDayOfWeek != null) {
@@ -360,8 +443,9 @@ class ShareService {
 
     // Top section height (max of cover and info column)
     final infoHeight = y - topY;
-    final topSectionHeight =
-        hasCover ? max<double>(infoHeight, _coverHeight) : infoHeight;
+    final topSectionHeight = hasCover
+        ? max<double>(infoHeight, _coverHeight)
+        : infoHeight;
     y = topY + topSectionHeight;
 
     // Notes section
@@ -436,8 +520,9 @@ class ShareService {
     );
     final watermarkY = y;
     // Row height = max(logo, text)
-    final watermarkRowHeight =
-        logoImage != null ? max<double>(_logoSize, watermarkPainter.height) : watermarkPainter.height;
+    final watermarkRowHeight = logoImage != null
+        ? max<double>(_logoSize, watermarkPainter.height)
+        : watermarkPainter.height;
     y += watermarkRowHeight;
     y += _padding;
 
@@ -472,24 +557,12 @@ class ShareService {
     // Cover image with BoxFit.cover + rounded corners
     final infoX = hasCover ? _padding + _coverWidth + _gap : _padding;
     if (hasCover) {
-      final srcW = coverImage!.width.toDouble();
-      final srcH = coverImage.height.toDouble();
-      final scale = max(_coverWidth / srcW, _coverHeight / srcH);
-      final cropW = _coverWidth / scale;
-      final cropH = _coverHeight / scale;
-      final srcRect = Rect.fromLTWH(
-        (srcW - cropW) / 2,
-        (srcH - cropH) / 2,
-        cropW,
-        cropH,
+      _drawCoverImage(
+        canvas,
+        coverImage,
+        Rect.fromLTWH(_padding, topY, _coverWidth, _coverHeight),
+        radius: 8,
       );
-      final dstRect =
-          Rect.fromLTWH(_padding, topY, _coverWidth, _coverHeight);
-      canvas.save();
-      canvas.clipRRect(
-          RRect.fromRectAndRadius(dstRect, const Radius.circular(8)));
-      canvas.drawImageRect(coverImage, srcRect, dstRect, Paint());
-      canvas.restore();
     }
 
     // Title
@@ -541,10 +614,7 @@ class ShareService {
 
     // QR code + URL entries
     for (final entry in qrEntries) {
-      final qrPainter = QrPainter(
-        data: entry.url,
-        version: QrVersions.auto,
-      );
+      final qrPainter = QrPainter(data: entry.url, version: QrVersions.auto);
       canvas.save();
       canvas.translate(_padding, entry.y);
       qrPainter.paint(canvas, Size(_qrSize, _qrSize));
@@ -560,32 +630,14 @@ class ShareService {
     }
 
     // Watermark row (right-aligned): [logo] [gap] [MyAnime!!!!!]
-    const logoGap = 6.0;
-    if (logoImage != null) {
-      final logoAspect = logoImage.width / logoImage.height;
-      final logoDrawW = _logoSize * logoAspect;
-      final rowWidth = logoDrawW + logoGap + watermarkPainter.width;
-      final rowX = _cardWidth - _padding - rowWidth;
-      final logoY = watermarkY + (watermarkRowHeight - _logoSize) / 2;
-      final textY = watermarkY + (watermarkRowHeight - watermarkPainter.height) / 2;
-      canvas.drawImageRect(
-        logoImage,
-        Rect.fromLTWH(
-          0,
-          0,
-          logoImage.width.toDouble(),
-          logoImage.height.toDouble(),
-        ),
-        Rect.fromLTWH(rowX, logoY, logoDrawW, _logoSize),
-        Paint(),
-      );
-      watermarkPainter.paint(canvas, Offset(rowX + logoDrawW + logoGap, textY));
-    } else {
-      watermarkPainter.paint(
-        canvas,
-        Offset(_cardWidth - _padding - watermarkPainter.width, watermarkY),
-      );
-    }
+    _drawWatermark(
+      canvas,
+      logoImage,
+      watermarkPainter,
+      watermarkY,
+      watermarkRowHeight,
+      _cardWidth,
+    );
 
     // Encode to PNG
     final picture = recorder.endRecording();
@@ -613,6 +665,340 @@ class ShareService {
     return tp;
   }
 
+  static Future<Uint8List> _generateRankingShareImage({
+    required List<RankingShareEntry> entries,
+    required String title,
+    required String subtitle,
+    required String sortLabel,
+    required String orderLabel,
+    required AppLocalizations l10n,
+  }) async {
+    ui.Image? logoImage;
+    try {
+      final logoData = await rootBundle.load('assets/icon/app_icon.png');
+      final logoCodec = await ui.instantiateImageCodec(
+        logoData.buffer.asUint8List(),
+      );
+      final logoFrame = await logoCodec.getNextFrame();
+      logoImage = logoFrame.image;
+    } catch (_) {
+      // Proceed without logo.
+    }
+
+    final coverImages = <String, ui.Image>{};
+    for (final entry in entries) {
+      final cover = entry.anime.coverImage;
+      if (cover == null || coverImages.containsKey(cover)) continue;
+      try {
+        final file = await ImageService.resolve(cover);
+        if (!file.existsSync()) continue;
+        final bytes = await file.readAsBytes();
+        final codec = await ui.instantiateImageCodec(bytes);
+        final frame = await codec.getNextFrame();
+        coverImages[cover] = frame.image;
+      } catch (_) {
+        // Keep exporting even if one cover is missing or invalid.
+      }
+    }
+
+    final contentWidth = _rankingCardWidth - _padding * 2;
+    double y = _padding + _headerHeight + _gap;
+
+    final titlePainter = _layoutText(
+      title,
+      const TextStyle(
+        color: _textColor,
+        fontSize: 24,
+        fontWeight: FontWeight.bold,
+      ),
+      contentWidth,
+    );
+    final titleY = y;
+    y += titlePainter.height + 6;
+
+    final subtitlePainter = _layoutText(
+      subtitle,
+      const TextStyle(color: _subtitleColor, fontSize: 14),
+      contentWidth,
+      maxLines: 2,
+    );
+    final subtitleY = y;
+    y += subtitlePainter.height + 8;
+
+    final metaPainter = _layoutText(
+      '${l10n.statsRankingSortBy}: $sortLabel · $orderLabel · ${l10n.statsRankingCount(entries.length)}',
+      const TextStyle(color: _textColor, fontSize: 13),
+      contentWidth,
+      maxLines: 2,
+    );
+    final metaY = y;
+    y += metaPainter.height + _gap;
+
+    final rowYs = <double>[];
+    for (final _ in entries) {
+      rowYs.add(y);
+      y += _rankingRowHeight;
+    }
+
+    final watermarkPainter = _layoutText(
+      'MyAnime!!!!!',
+      const TextStyle(
+        color: _accentColor,
+        fontSize: 13,
+        fontWeight: FontWeight.bold,
+      ),
+      contentWidth,
+    );
+    final watermarkY = y + _gap;
+    final watermarkRowHeight = logoImage != null
+        ? max<double>(_logoSize, watermarkPainter.height)
+        : watermarkPainter.height;
+    y = watermarkY + watermarkRowHeight + _padding;
+
+    final cardHeight = y;
+    final recorder = ui.PictureRecorder();
+    final canvas = Canvas(recorder);
+    canvas.scale(_pixelRatio, _pixelRatio);
+
+    canvas.drawRect(
+      Rect.fromLTWH(0, 0, _rankingCardWidth, cardHeight),
+      Paint()..color = _bgColor,
+    );
+    canvas.drawRect(
+      Rect.fromLTWH(0, 0, _rankingCardWidth, cardHeight),
+      Paint()
+        ..color = _borderColor
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 1,
+    );
+    canvas.drawRect(
+      Rect.fromLTWH(0, 0, _rankingCardWidth, _headerHeight),
+      Paint()..color = _accentColor,
+    );
+
+    titlePainter.paint(canvas, Offset(_padding, titleY));
+    subtitlePainter.paint(canvas, Offset(_padding, subtitleY));
+    metaPainter.paint(canvas, Offset(_padding, metaY));
+
+    for (var i = 0; i < entries.length; i++) {
+      final entry = entries[i];
+      final rowY = rowYs[i];
+      _drawRankingRow(canvas, entry, rowY, coverImages, l10n);
+    }
+
+    _drawWatermark(
+      canvas,
+      logoImage,
+      watermarkPainter,
+      watermarkY,
+      watermarkRowHeight,
+      _rankingCardWidth,
+    );
+
+    final picture = recorder.endRecording();
+    final image = await picture.toImage(
+      (_rankingCardWidth * _pixelRatio).toInt(),
+      (cardHeight * _pixelRatio).toInt(),
+    );
+    final byteData = await image.toByteData(format: ui.ImageByteFormat.png);
+    return byteData!.buffer.asUint8List();
+  }
+
+  static void _drawRankingRow(
+    Canvas canvas,
+    RankingShareEntry entry,
+    double rowY,
+    Map<String, ui.Image> coverImages,
+    AppLocalizations l10n,
+  ) {
+    final contentWidth = _rankingCardWidth - _padding * 2;
+    final rowRect = Rect.fromLTWH(
+      _padding,
+      rowY,
+      contentWidth,
+      _rankingRowHeight - 8,
+    );
+    canvas.drawRRect(
+      RRect.fromRectAndRadius(rowRect, const Radius.circular(12)),
+      Paint()..color = const Color(0xFFF7F4FF),
+    );
+    canvas.drawRRect(
+      RRect.fromRectAndRadius(rowRect, const Radius.circular(12)),
+      Paint()
+        ..color = _borderColor
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 1,
+    );
+
+    final rankX = _padding + 12;
+    final rankY = rowY + (rowRect.height - _rankingRankSize) / 2;
+    canvas.drawCircle(
+      Offset(rankX + _rankingRankSize / 2, rankY + _rankingRankSize / 2),
+      _rankingRankSize / 2,
+      Paint()..color = _accentColor,
+    );
+    final rankPainter = _layoutText(
+      '${entry.rank}',
+      const TextStyle(
+        color: Colors.white,
+        fontSize: 16,
+        fontWeight: FontWeight.bold,
+      ),
+      _rankingRankSize,
+    );
+    rankPainter.paint(
+      canvas,
+      Offset(
+        rankX + (_rankingRankSize - rankPainter.width) / 2,
+        rankY + (_rankingRankSize - rankPainter.height) / 2,
+      ),
+    );
+
+    final coverX = rankX + _rankingRankSize + 12;
+    final coverY = rowY + (rowRect.height - _rankingCoverHeight) / 2;
+    final coverRect = Rect.fromLTWH(
+      coverX,
+      coverY,
+      _rankingCoverWidth,
+      _rankingCoverHeight,
+    );
+    final cover = entry.anime.coverImage == null
+        ? null
+        : coverImages[entry.anime.coverImage!];
+    if (cover != null) {
+      _drawCoverImage(canvas, cover, coverRect, radius: 6);
+    } else {
+      canvas.drawRRect(
+        RRect.fromRectAndRadius(coverRect, const Radius.circular(6)),
+        Paint()..color = const Color(0xFFEDE7F6),
+      );
+      final placeholder = _layoutText(
+        '#',
+        const TextStyle(
+          color: _accentColor,
+          fontSize: 20,
+          fontWeight: FontWeight.bold,
+        ),
+        _rankingCoverWidth,
+      );
+      placeholder.paint(
+        canvas,
+        Offset(
+          coverX + (_rankingCoverWidth - placeholder.width) / 2,
+          coverY + (_rankingCoverHeight - placeholder.height) / 2,
+        ),
+      );
+    }
+
+    final scorePainter = _layoutText(
+      _formatScore(entry.score),
+      const TextStyle(
+        color: _accentColor,
+        fontSize: 22,
+        fontWeight: FontWeight.bold,
+      ),
+      _rankingScoreWidth,
+    );
+    final scoreX = _rankingCardWidth - _padding - 12 - _rankingScoreWidth;
+    scorePainter.paint(
+      canvas,
+      Offset(scoreX + _rankingScoreWidth - scorePainter.width, rowY + 18),
+    );
+
+    final textX = coverX + _rankingCoverWidth + 12;
+    final textWidth = scoreX - textX - 12;
+    final titlePainter = _layoutText(
+      entry.anime.displayTitle,
+      const TextStyle(
+        color: _textColor,
+        fontSize: 16,
+        fontWeight: FontWeight.bold,
+      ),
+      textWidth,
+      maxLines: 1,
+    );
+    titlePainter.paint(canvas, Offset(textX, rowY + 14));
+
+    final overall = entry.anime.rating?.effectiveOverall;
+    final detail = [
+      _typeLabel(entry.anime.effectiveType, l10n),
+      if (overall != null)
+        '${l10n.animeRatingOverall}: ${_formatScore(overall)}',
+    ].join(' · ');
+    final detailPainter = _layoutText(
+      detail,
+      const TextStyle(color: _subtitleColor, fontSize: 12),
+      textWidth,
+      maxLines: 1,
+    );
+    detailPainter.paint(canvas, Offset(textX, rowY + 40));
+  }
+
+  static void _drawCoverImage(
+    Canvas canvas,
+    ui.Image image,
+    Rect dstRect, {
+    required double radius,
+  }) {
+    final srcW = image.width.toDouble();
+    final srcH = image.height.toDouble();
+    final scale = max(dstRect.width / srcW, dstRect.height / srcH);
+    final cropW = dstRect.width / scale;
+    final cropH = dstRect.height / scale;
+    final srcRect = Rect.fromLTWH(
+      (srcW - cropW) / 2,
+      (srcH - cropH) / 2,
+      cropW,
+      cropH,
+    );
+    canvas.save();
+    canvas.clipRRect(RRect.fromRectAndRadius(dstRect, Radius.circular(radius)));
+    canvas.drawImageRect(image, srcRect, dstRect, Paint());
+    canvas.restore();
+  }
+
+  static void _drawWatermark(
+    Canvas canvas,
+    ui.Image? logoImage,
+    TextPainter watermarkPainter,
+    double watermarkY,
+    double watermarkRowHeight,
+    double cardWidth,
+  ) {
+    const logoGap = 6.0;
+    if (logoImage != null) {
+      final logoAspect = logoImage.width / logoImage.height;
+      final logoDrawW = _logoSize * logoAspect;
+      final rowWidth = logoDrawW + logoGap + watermarkPainter.width;
+      final rowX = cardWidth - _padding - rowWidth;
+      final logoY = watermarkY + (watermarkRowHeight - _logoSize) / 2;
+      final textY =
+          watermarkY + (watermarkRowHeight - watermarkPainter.height) / 2;
+      canvas.drawImageRect(
+        logoImage,
+        Rect.fromLTWH(
+          0,
+          0,
+          logoImage.width.toDouble(),
+          logoImage.height.toDouble(),
+        ),
+        Rect.fromLTWH(rowX, logoY, logoDrawW, _logoSize),
+        Paint(),
+      );
+      watermarkPainter.paint(canvas, Offset(rowX + logoDrawW + logoGap, textY));
+    } else {
+      watermarkPainter.paint(
+        canvas,
+        Offset(cardWidth - _padding - watermarkPainter.width, watermarkY),
+      );
+    }
+  }
+
+  static String _formatScore(double score) {
+    if (score == score.roundToDouble()) return score.toInt().toString();
+    return score.toStringAsFixed(1);
+  }
+
   static String _typeLabel(AnimeType type, AppLocalizations l10n) {
     switch (type) {
       case AnimeType.singleCour:
@@ -629,7 +1015,16 @@ class ShareService {
   }
 
   static String _dayName(int dow, AppLocalizations l10n) {
-    final days = ['', l10n.dayMon, l10n.dayTue, l10n.dayWed, l10n.dayThu, l10n.dayFri, l10n.daySat, l10n.daySun];
+    final days = [
+      '',
+      l10n.dayMon,
+      l10n.dayTue,
+      l10n.dayWed,
+      l10n.dayThu,
+      l10n.dayFri,
+      l10n.daySat,
+      l10n.daySun,
+    ];
     return days[dow.clamp(1, 7)];
   }
 
@@ -663,8 +1058,9 @@ class ShareService {
     BuildContext context,
     Uint8List imageBytes,
     String tempPath,
-    AppLocalizations l10n,
-  ) async {
+    AppLocalizations l10n, {
+    required String fileName,
+  }) async {
     await showDialog<void>(
       context: context,
       builder: (ctx) => Dialog(
@@ -704,7 +1100,7 @@ class ShareService {
                       onPressed: () async {
                         final result = await FilePicker.platform.saveFile(
                           dialogTitle: l10n.shareSaveAs,
-                          fileName: 'myanime_share.png',
+                          fileName: fileName,
                           type: FileType.image,
                         );
                         if (result != null) {

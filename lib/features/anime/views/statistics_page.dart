@@ -6,6 +6,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../../l10n/app_localizations.dart';
 import '../../../shared/services/image_service.dart';
+import '../../../shared/services/share_service.dart';
 import '../models/anime.dart';
 import '../services/anime_storage.dart';
 import 'quarter_picker_dialog.dart';
@@ -164,6 +165,35 @@ class _StatisticsPageState extends State<StatisticsPage> {
       return a.displayTitle.compareTo(b.displayTitle);
     });
     return filtered;
+  }
+
+  List<RankingShareEntry> _rankingShareEntries(List<Anime> rankedAnime) {
+    return List.generate(rankedAnime.length, (index) {
+      final anime = rankedAnime[index];
+      return RankingShareEntry(
+        anime: anime,
+        rank: index + 1,
+        score: anime.rating!.scoreFor(_rankingSortField)!,
+      );
+    });
+  }
+
+  Future<void> _shareRanking() async {
+    final l10n = AppLocalizations.of(context)!;
+    final rankedAnime = _rankingAnime;
+    if (rankedAnime.isEmpty) return;
+
+    await ShareService.shareRankingImage(
+      context,
+      entries: _rankingShareEntries(rankedAnime),
+      title: l10n.statsRanking,
+      subtitle: _rankingShareSubtitle(l10n),
+      sortLabel: _ratingFieldLabel(_rankingSortField, l10n),
+      orderLabel: _rankingDescending
+          ? l10n.statsRankingDescending
+          : l10n.statsRankingAscending,
+      l10n: l10n,
+    );
   }
 
   bool _matchesRankingTimeFilter(Anime anime) {
@@ -583,9 +613,20 @@ class _StatisticsPageState extends State<StatisticsPage> {
     final theme = Theme.of(context);
     final grouped = _groupedAnime;
     final isRanking = _view == _StatsView.ranking;
+    final rankedAnime = isRanking ? _rankingAnime : const <Anime>[];
 
     return Scaffold(
-      appBar: AppBar(title: Text(l10n.statsTitle)),
+      appBar: AppBar(
+        title: Text(l10n.statsTitle),
+        actions: [
+          if (isRanking)
+            IconButton(
+              icon: const Icon(Icons.ios_share),
+              tooltip: l10n.animeShare,
+              onPressed: rankedAnime.isEmpty ? null : _shareRanking,
+            ),
+        ],
+      ),
       body: RefreshIndicator(
         onRefresh: _load,
         child: ListView(
@@ -630,11 +671,11 @@ class _StatisticsPageState extends State<StatisticsPage> {
                     label: Text(l10n.statsRanking),
                     style: FilledButton.styleFrom(
                       backgroundColor: isRanking
-                          ? theme.colorScheme.secondaryContainer
-                          : null,
+                          ? theme.colorScheme.primary
+                          : theme.colorScheme.surfaceContainerHighest,
                       foregroundColor: isRanking
-                          ? theme.colorScheme.onSecondaryContainer
-                          : null,
+                          ? theme.colorScheme.onPrimary
+                          : theme.colorScheme.onSurfaceVariant,
                     ),
                   ),
                 ],
@@ -642,7 +683,7 @@ class _StatisticsPageState extends State<StatisticsPage> {
             ),
 
             if (isRanking) ...[
-              _buildRankingView(theme, l10n),
+              _buildRankingView(theme, l10n, rankedAnime),
             ] else ...[
               // Period navigation (quarter/year only)
               if (_scope != _TimeScope.all)
@@ -757,9 +798,11 @@ class _StatisticsPageState extends State<StatisticsPage> {
     );
   }
 
-  Widget _buildRankingView(ThemeData theme, AppLocalizations l10n) {
-    final rankedAnime = _rankingAnime;
-
+  Widget _buildRankingView(
+    ThemeData theme,
+    AppLocalizations l10n,
+    List<Anime> rankedAnime,
+  ) {
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
       child: Column(
@@ -1459,6 +1502,25 @@ class _StatisticsPageState extends State<StatisticsPage> {
       case _RankingTimeFilter.custom:
         return l10n.statsRankingCustomRange;
     }
+  }
+
+  String _rankingShareSubtitle(AppLocalizations l10n) {
+    final time = switch (_rankingTimeFilter) {
+      _RankingTimeFilter.all => l10n.statsAll,
+      _RankingTimeFilter.quarter => _quarterLabel(
+        _rankingSelectedYear,
+        _rankingSelectedQuarter,
+      ),
+      _RankingTimeFilter.year => '$_rankingSelectedYearOnly',
+      _RankingTimeFilter.custom =>
+        '${_quarterLabel(_rankingStartYear, _rankingStartQuarter)} - '
+            '${_quarterLabel(_rankingEndYear, _rankingEndQuarter)}',
+    };
+    final type = _rankingTypeFilter == null
+        ? l10n.statsRankingAllTypes
+        : _typeLabel(_rankingTypeFilter!, l10n);
+    return '${l10n.statsRankingTimeFilter}: $time · '
+        '${l10n.statsRankingTypeFilter}: $type';
   }
 
   String _ratingFieldLabel(AnimeRatingField field, AppLocalizations l10n) {
