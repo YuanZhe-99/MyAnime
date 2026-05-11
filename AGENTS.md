@@ -11,7 +11,7 @@ This file is the operating guide for agents working on **MyAnime!!!!!**. Read it
 - **Current version:** `0.7.2+32` in `pubspec.yaml`, `0.7.2.0` for MSIX, and `0.7.2` in `installer.iss`.
 - **Framework:** Flutter with Dart SDK `^3.11.3`; CI uses Flutter `3.41.6`.
 - **Platforms:** Windows, Android, iOS, macOS. Linux project files exist and desktop services include Linux branches, but Linux is not a primary release target. Web is not targeted.
-- **Repository:** `C:\Users\yuanzhe\src\MyAnime`.
+- **Repository:** Use the system-provided workspace or working-directory environment to determine the repository path at runtime; do not hardcode a machine-specific absolute path here.
 - **Remotes:**
   - `origin` -> `<local_gitea_address>`
   - `github` -> `git@github.com:YuanZhe-99/MyAnime.git`
