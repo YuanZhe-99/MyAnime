@@ -14,8 +14,19 @@ import '../services/anime_storage.dart';
 
 class AnimeDetailPage extends StatefulWidget {
   final String animeId;
+
+  /// Purpose: Create a anime detail page instance.
+  /// Inputs: `key`, `animeId`.
+  /// Returns: A new `AnimeDetailPage` instance.
+  /// Side effects: None.
+  /// Notes: None.
   const AnimeDetailPage({super.key, required this.animeId});
 
+  /// Purpose: Create the mutable state object for this widget.
+  /// Inputs: None.
+  /// Returns: A new state object.
+  /// Side effects: None.
+  /// Notes: Flutter lifecycle override.
   @override
   State<AnimeDetailPage> createState() => _AnimeDetailPageState();
 }
@@ -25,12 +36,22 @@ class _AnimeDetailPageState extends State<AnimeDetailPage> {
   String? _prevSeasonId;
   String? _nextSeasonId;
 
+  /// Purpose: Initialize listeners, controllers, and first-load work for this state object.
+  /// Inputs: None.
+  /// Returns: None.
+  /// Side effects: Initializes owned state, listeners, or async work.
+  /// Notes: Flutter lifecycle override.
   @override
   void initState() {
     super.initState();
     _load();
   }
 
+  /// Purpose: Provide the internal load helper for this file.
+  /// Inputs: None.
+  /// Returns: None.
+  /// Side effects: May read or mutate application state, storage, or service resources.
+  /// Notes: Internal helper used within this file only.
   Future<void> _load() async {
     final data = await AnimeStorage.load();
     final found = data.animeList
@@ -66,6 +87,11 @@ class _AnimeDetailPageState extends State<AnimeDetailPage> {
     }
   }
 
+  /// Purpose: Provide the internal toggle episode helper for this file.
+  /// Inputs: `ep`.
+  /// Returns: None.
+  /// Side effects: None.
+  /// Notes: Internal helper used within this file only.
   Future<void> _toggleEpisode(int ep) async {
     if (_anime == null) return;
     final current = _anime!.episodeStatuses[ep] ?? EpisodeStatus.unwatched;
@@ -89,8 +115,11 @@ class _AnimeDetailPageState extends State<AnimeDetailPage> {
     await _load();
   }
 
-  /// Shift episode [ep] and all subsequent episodes by [delta] weeks.
-  /// delta > 0 = delay (push back), delta < 0 = advance (pull forward).
+  /// Purpose: Shift episode [ep] and all subsequent episodes by [delta] weeks.
+  /// Inputs: `ep`, `delta`.
+  /// Returns: None.
+  /// Side effects: None.
+  /// Notes: Internal helper used within this file only. Shift episode [ep] and all subsequent episodes by [delta] weeks. delta > 0 = delay (push back), delta < 0 = advance (pull forward).
   Future<void> _shiftFromEpisode(int ep, int delta) async {
     if (_anime == null) return;
     final offsets = Map<int, int>.of(_anime!.episodeWeekOffsets);
@@ -104,7 +133,11 @@ class _AnimeDetailPageState extends State<AnimeDetailPage> {
     await _load();
   }
 
-  /// Reset all episode week offsets to original schedule based on firstAirDate.
+  /// Purpose: Reset all episode week offsets to original schedule based on firstAirDate.
+  /// Inputs: None.
+  /// Returns: None.
+  /// Side effects: None.
+  /// Notes: Internal helper used within this file only. Reset all episode week offsets to original schedule based on firstAirDate.
   Future<void> _resetSchedule() async {
     if (_anime == null) return;
     final l10n = AppLocalizations.of(context)!;
@@ -134,6 +167,11 @@ class _AnimeDetailPageState extends State<AnimeDetailPage> {
     await _load();
   }
 
+  /// Purpose: Provide the internal delete helper for this file.
+  /// Inputs: None.
+  /// Returns: None.
+  /// Side effects: May read or mutate application state, storage, or service resources.
+  /// Notes: Internal helper used within this file only.
   Future<void> _delete() async {
     if (_anime == null) return;
     final ok = await confirmDelete(context, _anime!.displayTitle);
@@ -142,6 +180,11 @@ class _AnimeDetailPageState extends State<AnimeDetailPage> {
     if (mounted) context.pop();
   }
 
+  /// Purpose: Build the current widget subtree for the active UI state.
+  /// Inputs: `context`.
+  /// Returns: The widget tree for the current state.
+  /// Side effects: Creates UI widgets from the current state.
+  /// Notes: Keep this method cheap because Flutter may call it often.
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
@@ -406,6 +449,11 @@ class _AnimeDetailPageState extends State<AnimeDetailPage> {
     );
   }
 
+  /// Purpose: Provide the internal toggle all watched helper for this file.
+  /// Inputs: None.
+  /// Returns: None.
+  /// Side effects: None.
+  /// Notes: Internal helper used within this file only.
   Future<void> _toggleAllWatched() async {
     if (_anime == null || _anime!.endEpisode == null) return;
     final allWatched = _anime!.isCompleted;
@@ -423,6 +471,11 @@ class _AnimeDetailPageState extends State<AnimeDetailPage> {
     await _load();
   }
 
+  /// Purpose: Provide the internal build abandon or resume helper for this file.
+  /// Inputs: `anime`, `l10n`.
+  /// Returns: `Widget`.
+  /// Side effects: None.
+  /// Notes: Internal helper used within this file only.
   Widget _buildAbandonOrResume(Anime anime, AppLocalizations l10n) {
     final statuses = anime.episodeStatuses;
     final hasUnwatched =
@@ -452,6 +505,11 @@ class _AnimeDetailPageState extends State<AnimeDetailPage> {
     return const SizedBox.shrink();
   }
 
+  /// Purpose: Provide the internal build rating card helper for this file.
+  /// Inputs: `rating`, `theme`, `l10n`.
+  /// Returns: `Widget`.
+  /// Side effects: None.
+  /// Notes: Internal helper used within this file only.
   Widget _buildRatingCard(
     AnimeRating rating,
     ThemeData theme,
@@ -518,12 +576,22 @@ class _AnimeDetailPageState extends State<AnimeDetailPage> {
     );
   }
 
+  /// Purpose: Provide the internal format score helper for this file.
+  /// Inputs: `score`.
+  /// Returns: `String?`.
+  /// Side effects: None.
+  /// Notes: Internal helper used within this file only.
   String? _formatScore(double? score) {
     if (score == null) return null;
     if (score == score.roundToDouble()) return score.toInt().toString();
     return score.toStringAsFixed(1);
   }
 
+  /// Purpose: Provide the internal abandon anime helper for this file.
+  /// Inputs: None.
+  /// Returns: None.
+  /// Side effects: None.
+  /// Notes: Internal helper used within this file only.
   Future<void> _abandonAnime() async {
     if (_anime == null || _anime!.endEpisode == null) return;
     final newStatuses = Map<int, EpisodeStatus>.of(_anime!.episodeStatuses);
@@ -541,6 +609,11 @@ class _AnimeDetailPageState extends State<AnimeDetailPage> {
     await _load();
   }
 
+  /// Purpose: Provide the internal resume anime helper for this file.
+  /// Inputs: None.
+  /// Returns: None.
+  /// Side effects: None.
+  /// Notes: Internal helper used within this file only.
   Future<void> _resumeAnime() async {
     if (_anime == null || _anime!.endEpisode == null) return;
     final newStatuses = Map<int, EpisodeStatus>.of(_anime!.episodeStatuses);
@@ -557,6 +630,11 @@ class _AnimeDetailPageState extends State<AnimeDetailPage> {
     await _load();
   }
 
+  /// Purpose: Provide the internal type label helper for this file.
+  /// Inputs: `type`, `l10n`.
+  /// Returns: `String`.
+  /// Side effects: None.
+  /// Notes: Internal helper used within this file only.
   String _typeLabel(AnimeType type, AppLocalizations l10n) {
     switch (type) {
       case AnimeType.singleCour:
@@ -572,6 +650,11 @@ class _AnimeDetailPageState extends State<AnimeDetailPage> {
     }
   }
 
+  /// Purpose: Provide the internal day name helper for this file.
+  /// Inputs: `dow`, `l10n`.
+  /// Returns: `String`.
+  /// Side effects: None.
+  /// Notes: Internal helper used within this file only.
   String _dayName(int? dow, AppLocalizations l10n) {
     if (dow == null) return '?';
     final days = [
@@ -587,6 +670,11 @@ class _AnimeDetailPageState extends State<AnimeDetailPage> {
     return days[dow.clamp(1, 7)];
   }
 
+  /// Purpose: Provide the internal status icon helper for this file.
+  /// Inputs: `status`, `theme`.
+  /// Returns: `Widget`.
+  /// Side effects: None.
+  /// Notes: Internal helper used within this file only.
   Widget _statusIcon(EpisodeStatus status, ThemeData theme) {
     switch (status) {
       case EpisodeStatus.watched:
@@ -598,6 +686,11 @@ class _AnimeDetailPageState extends State<AnimeDetailPage> {
     }
   }
 
+  /// Purpose: Provide the internal status label helper for this file.
+  /// Inputs: `status`, `l10n`.
+  /// Returns: `String`.
+  /// Side effects: None.
+  /// Notes: Internal helper used within this file only.
   String _statusLabel(EpisodeStatus status, AppLocalizations l10n) {
     switch (status) {
       case EpisodeStatus.watched:
@@ -609,6 +702,11 @@ class _AnimeDetailPageState extends State<AnimeDetailPage> {
     }
   }
 
+  /// Purpose: Provide the internal status color helper for this file.
+  /// Inputs: `status`, `theme`.
+  /// Returns: `Color?`.
+  /// Side effects: None.
+  /// Notes: Internal helper used within this file only.
   Color? _statusColor(EpisodeStatus status, ThemeData theme) {
     switch (status) {
       case EpisodeStatus.watched:

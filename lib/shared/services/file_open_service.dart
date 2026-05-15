@@ -15,6 +15,11 @@ class FileOpenService {
   static String? _pendingFile;
   static const _channel = MethodChannel('com.yuanzhe.my_anime/file_open');
 
+  /// Purpose: Implement the init behavior for this file.
+  /// Inputs: None.
+  /// Returns: None.
+  /// Side effects: None.
+  /// Notes: None.
   static void init() {
     _channel.setMethodCallHandler((call) async {
       if (call.method == 'openFile') {
@@ -25,10 +30,20 @@ class FileOpenService {
     });
   }
 
+  /// Purpose: Update pending file with the provided value.
+  /// Inputs: `path`.
+  /// Returns: None.
+  /// Side effects: None.
+  /// Notes: None.
   static void setPendingFile(String path) {
     _pendingFile = path;
   }
 
+  /// Purpose: Implement the process pending file behavior for this file.
+  /// Inputs: None.
+  /// Returns: None.
+  /// Side effects: None.
+  /// Notes: None.
   static Future<void> processPendingFile() async {
     if (_pendingFile != null) {
       final path = _pendingFile!;
@@ -38,6 +53,11 @@ class FileOpenService {
     }
   }
 
+  /// Purpose: Implement the handle file behavior for this file.
+  /// Inputs: `path`.
+  /// Returns: `Future<String?>`.
+  /// Side effects: None.
+  /// Notes: None.
   static Future<String?> handleFile(String path) async {
     try {
       final file = File(path);
@@ -94,8 +114,11 @@ class FileOpenService {
     }
   }
 
-  /// Open a file picker for the user to select a .myanimeitem file,
-  /// then import it. Returns the imported anime ID, or null on failure/cancel.
+  /// Purpose: Open a file picker for the user to select a .myanimeitem file,.
+  /// Inputs: None.
+  /// Returns: `Future<String?>`.
+  /// Side effects: May read or mutate application state, storage, or service resources.
+  /// Notes: then import it. Returns the imported anime ID, or null on failure/cancel.
   static Future<String?> importFromPicker() async {
     final result = await FilePicker.platform.pickFiles(type: FileType.any);
     if (result == null || result.files.isEmpty) return null;
@@ -104,9 +127,11 @@ class FileOpenService {
     return handleFile(path);
   }
 
-  /// Export an anime to a .myanimeitem JSON file.
-  /// Returns the file path, or null on failure.
-  /// Personal data (episodeStatuses, episodeWeekOffsets) is stripped.
+  /// Purpose: Export an anime to a .myanimeitem JSON file.
+  /// Inputs: `anime`.
+  /// Returns: `Future<String?>`.
+  /// Side effects: May read or mutate application state, storage, or service resources.
+  /// Notes: Export an anime to a .myanimeitem JSON file. Returns the file path, or null on failure. Personal data (episodeStatuses, episodeWeekOffsets) is stripped.
   static Future<String?> exportAnimeItem(Anime anime) async {
     final animeJson = anime.toJson();
     animeJson.remove('episodeStatuses');
@@ -135,9 +160,11 @@ class FileOpenService {
     return filePath;
   }
 
-  /// Sanitize a string for use as a filename.
-  /// Removes characters illegal on Windows/macOS/Linux filesystems,
-  /// keeps CJK, accented, and other Unicode letters.
+  /// Purpose: Sanitize a string for use as a filename.
+  /// Inputs: `name`.
+  /// Returns: `String`.
+  /// Side effects: None.
+  /// Notes: Internal helper used within this file only. Sanitize a string for use as a filename. Removes characters illegal on Windows/macOS/Linux filesystems, keeps CJK, accented, and other Unicode letters.
   static String _sanitizeFileName(String name) {
     // Remove characters illegal in filenames: / \ : * ? " < > |
     // Also remove control characters.

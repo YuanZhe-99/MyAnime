@@ -4,15 +4,35 @@ class QuarterSelection {
   final int year;
   final int quarter;
 
+  /// Purpose: Create a quarter selection instance.
+  /// Inputs: `year`, `quarter`.
+  /// Returns: A new `QuarterSelection` instance.
+  /// Side effects: None.
+  /// Notes: None.
   const QuarterSelection(this.year, this.quarter);
 
+  /// Purpose: Return whether other is true.
+  /// Inputs: None.
+  /// Returns: `bool`.
+  /// Side effects: None.
+  /// Notes: None.
   bool get isOther => year == 0 && quarter == 0;
 
+  /// Purpose: Implement the q behavior for this file.
+  /// Inputs: None.
+  /// Returns: `int`.
+  /// Side effects: None.
+  /// Notes: None.
   int get q => quarter;
 }
 
 typedef QuarterCountBuilder = int Function(int year, int quarter);
 
+/// Purpose: Implement the show quarter picker dialog behavior for this file.
+/// Inputs: `context`, `title`, `minYear`, `maxYear`, `current`, `countBuilder`, `includeOther`, `otherLabel`, `otherCount`, `isOtherSelected`.
+/// Returns: `Future<QuarterSelection?>`.
+/// Side effects: None.
+/// Notes: None.
 Future<QuarterSelection?> showQuarterPickerDialog({
   required BuildContext context,
   required String title,
@@ -168,6 +188,11 @@ Future<QuarterSelection?> showQuarterPickerDialog({
   return result;
 }
 
+/// Purpose: Provide the internal quarter grid cell helper for this file.
+/// Inputs: `year`, `quarter`, `current`, `countBuilder`, `theme`, `dialogContext`.
+/// Returns: `Widget`.
+/// Side effects: None.
+/// Notes: Internal helper used within this file only.
 Widget _quarterGridCell({
   required int year,
   required int quarter,

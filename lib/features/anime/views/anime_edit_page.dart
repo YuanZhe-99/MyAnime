@@ -12,8 +12,19 @@ import 'anime_search_dialog.dart';
 
 class AnimeEditPage extends StatefulWidget {
   final String? animeId;
+
+  /// Purpose: Create a anime edit page instance.
+  /// Inputs: `key`, `animeId`.
+  /// Returns: A new `AnimeEditPage` instance.
+  /// Side effects: None.
+  /// Notes: None.
   const AnimeEditPage({super.key, this.animeId});
 
+  /// Purpose: Create the mutable state object for this widget.
+  /// Inputs: None.
+  /// Returns: A new state object.
+  /// Side effects: None.
+  /// Notes: Flutter lifecycle override.
   @override
   State<AnimeEditPage> createState() => _AnimeEditPageState();
 }
@@ -44,6 +55,11 @@ class _AnimeEditPageState extends State<AnimeEditPage> {
   bool _isEdit = false;
   Anime? _existing;
 
+  /// Purpose: Initialize listeners, controllers, and first-load work for this state object.
+  /// Inputs: None.
+  /// Returns: None.
+  /// Side effects: Initializes owned state, listeners, or async work.
+  /// Notes: Flutter lifecycle override.
   @override
   void initState() {
     super.initState();
@@ -55,6 +71,11 @@ class _AnimeEditPageState extends State<AnimeEditPage> {
     }
   }
 
+  /// Purpose: Provide the internal load existing helper for this file.
+  /// Inputs: None.
+  /// Returns: None.
+  /// Side effects: May read or mutate application state, storage, or service resources.
+  /// Notes: Internal helper used within this file only.
   Future<void> _loadExisting() async {
     final data = await AnimeStorage.load();
     final found = data.animeList
@@ -87,6 +108,11 @@ class _AnimeEditPageState extends State<AnimeEditPage> {
     }
   }
 
+  /// Purpose: Release listeners, controllers, and other owned resources.
+  /// Inputs: None.
+  /// Returns: None.
+  /// Side effects: Disposes controllers, listeners, and other owned resources.
+  /// Notes: Flutter lifecycle override.
   @override
   void dispose() {
     _titleController.dispose();
@@ -107,6 +133,11 @@ class _AnimeEditPageState extends State<AnimeEditPage> {
     super.dispose();
   }
 
+  /// Purpose: Provide the internal pick cover image helper for this file.
+  /// Inputs: None.
+  /// Returns: None.
+  /// Side effects: None.
+  /// Notes: Internal helper used within this file only.
   Future<void> _pickCoverImage() async {
     final path = await ImageService.pickAndSaveImage();
     if (path != null && mounted) {
@@ -114,6 +145,11 @@ class _AnimeEditPageState extends State<AnimeEditPage> {
     }
   }
 
+  /// Purpose: Provide the internal search watch url helper for this file.
+  /// Inputs: None.
+  /// Returns: None.
+  /// Side effects: May perform network or file-system operations.
+  /// Notes: Internal helper used within this file only.
   Future<void> _searchWatchUrl() async {
     final title = _titleController.text.trim();
     final titleJa = _titleJaController.text.trim();
@@ -139,6 +175,11 @@ class _AnimeEditPageState extends State<AnimeEditPage> {
     }
   }
 
+  /// Purpose: Provide the internal show search dialog helper for this file.
+  /// Inputs: None.
+  /// Returns: None.
+  /// Side effects: May perform network or file-system operations.
+  /// Notes: Internal helper used within this file only.
   Future<void> _showSearchDialog() async {
     final query = _titleController.text.isNotEmpty
         ? _titleController.text
@@ -196,6 +237,11 @@ class _AnimeEditPageState extends State<AnimeEditPage> {
     }
   }
 
+  /// Purpose: Provide the internal pick first air date helper for this file.
+  /// Inputs: None.
+  /// Returns: None.
+  /// Side effects: None.
+  /// Notes: Internal helper used within this file only.
   Future<void> _pickFirstAirDate() async {
     final date = await showDatePicker(
       context: context,
@@ -208,6 +254,11 @@ class _AnimeEditPageState extends State<AnimeEditPage> {
     }
   }
 
+  /// Purpose: Provide the internal save helper for this file.
+  /// Inputs: None.
+  /// Returns: None.
+  /// Side effects: May read or mutate application state, storage, or service resources.
+  /// Notes: Internal helper used within this file only.
   Future<void> _save() async {
     if (!_formKey.currentState!.validate()) return;
 
@@ -319,6 +370,11 @@ class _AnimeEditPageState extends State<AnimeEditPage> {
     if (mounted) context.pop();
   }
 
+  /// Purpose: Provide the internal build rating helper for this file.
+  /// Inputs: None.
+  /// Returns: `AnimeRating?`.
+  /// Side effects: None.
+  /// Notes: Internal helper used within this file only.
   AnimeRating? _buildRating() {
     final rating = AnimeRating(
       overall: _parseScore(_ratingOverallController),
@@ -332,18 +388,33 @@ class _AnimeEditPageState extends State<AnimeEditPage> {
     return rating.hasAnyData ? rating : null;
   }
 
+  /// Purpose: Provide the internal parse score helper for this file.
+  /// Inputs: `controller`.
+  /// Returns: `double?`.
+  /// Side effects: None.
+  /// Notes: Internal helper used within this file only.
   double? _parseScore(TextEditingController controller) {
     final text = controller.text.trim();
     if (text.isEmpty) return null;
     return double.tryParse(text);
   }
 
+  /// Purpose: Provide the internal format score helper for this file.
+  /// Inputs: `score`.
+  /// Returns: `String`.
+  /// Side effects: None.
+  /// Notes: Internal helper used within this file only.
   String _formatScore(double? score) {
     if (score == null) return '';
     if (score == score.roundToDouble()) return score.toInt().toString();
     return score.toStringAsFixed(1);
   }
 
+  /// Purpose: Build the current widget subtree for the active UI state.
+  /// Inputs: `context`.
+  /// Returns: The widget tree for the current state.
+  /// Side effects: Creates UI widgets from the current state.
+  /// Notes: Keep this method cheap because Flutter may call it often.
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
@@ -662,6 +733,11 @@ class _AnimeEditPageState extends State<AnimeEditPage> {
     );
   }
 
+  /// Purpose: Provide the internal build rating field helper for this file.
+  /// Inputs: `controller`, `label`, `helperText`.
+  /// Returns: `Widget`.
+  /// Side effects: None.
+  /// Notes: Internal helper used within this file only.
   Widget _buildRatingField({
     required TextEditingController controller,
     required String label,
@@ -689,6 +765,11 @@ class _AnimeEditPageState extends State<AnimeEditPage> {
     );
   }
 
+  /// Purpose: Provide the internal day name helper for this file.
+  /// Inputs: `dow`.
+  /// Returns: `String`.
+  /// Side effects: None.
+  /// Notes: Internal helper used within this file only.
   String _dayName(int dow) {
     final l10n = AppLocalizations.of(context)!;
     final days = [
@@ -704,6 +785,11 @@ class _AnimeEditPageState extends State<AnimeEditPage> {
     return days[dow.clamp(1, 7)];
   }
 
+  /// Purpose: Provide the internal type label helper for this file.
+  /// Inputs: `type`, `l10n`.
+  /// Returns: `String`.
+  /// Side effects: None.
+  /// Notes: Internal helper used within this file only.
   String _typeLabel(AnimeType type, AppLocalizations l10n) {
     switch (type) {
       case AnimeType.singleCour:
@@ -724,11 +810,22 @@ class _AnimeEditPageState extends State<AnimeEditPage> {
 class _WatchUrlSearchDialog extends StatefulWidget {
   final String query;
   final List<String> altQueries;
+
+  /// Purpose: Create a watch url search dialog instance.
+  /// Inputs: `query`, `altQueries`.
+  /// Returns: A new `_WatchUrlSearchDialog` instance.
+  /// Side effects: None.
+  /// Notes: Internal helper used within this file only.
   const _WatchUrlSearchDialog({
     required this.query,
     this.altQueries = const [],
   });
 
+  /// Purpose: Create the mutable state object for this widget.
+  /// Inputs: None.
+  /// Returns: A new state object.
+  /// Side effects: None.
+  /// Notes: Flutter lifecycle override.
   @override
   State<_WatchUrlSearchDialog> createState() => _WatchUrlSearchDialogState();
 }
@@ -739,6 +836,11 @@ class _WatchUrlSearchDialogState extends State<_WatchUrlSearchDialog> {
   bool _loading = false;
   String? _error;
 
+  /// Purpose: Initialize listeners, controllers, and first-load work for this state object.
+  /// Inputs: None.
+  /// Returns: None.
+  /// Side effects: Initializes owned state, listeners, or async work.
+  /// Notes: Flutter lifecycle override.
   @override
   void initState() {
     super.initState();
@@ -746,12 +848,22 @@ class _WatchUrlSearchDialogState extends State<_WatchUrlSearchDialog> {
     _search();
   }
 
+  /// Purpose: Release listeners, controllers, and other owned resources.
+  /// Inputs: None.
+  /// Returns: None.
+  /// Side effects: Disposes controllers, listeners, and other owned resources.
+  /// Notes: Flutter lifecycle override.
   @override
   void dispose() {
     _controller.dispose();
     super.dispose();
   }
 
+  /// Purpose: Provide the internal search helper for this file.
+  /// Inputs: None.
+  /// Returns: None.
+  /// Side effects: May perform network or file-system operations.
+  /// Notes: Internal helper used within this file only.
   Future<void> _search() async {
     final q = _controller.text.trim();
     if (q.isEmpty) return;
@@ -782,6 +894,11 @@ class _WatchUrlSearchDialogState extends State<_WatchUrlSearchDialog> {
     }
   }
 
+  /// Purpose: Build the current widget subtree for the active UI state.
+  /// Inputs: `context`.
+  /// Returns: The widget tree for the current state.
+  /// Side effects: Creates UI widgets from the current state.
+  /// Notes: Keep this method cheap because Flutter may call it often.
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
@@ -842,6 +959,11 @@ class _WatchUrlSearchDialogState extends State<_WatchUrlSearchDialog> {
     );
   }
 
+  /// Purpose: Provide the internal build body helper for this file.
+  /// Inputs: None.
+  /// Returns: `Widget`.
+  /// Side effects: None.
+  /// Notes: Internal helper used within this file only.
   Widget _buildBody() {
     if (_loading) return const Center(child: CircularProgressIndicator());
     if (_error != null) {

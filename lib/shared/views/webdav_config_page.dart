@@ -7,8 +7,18 @@ import '../services/sync_merge.dart';
 import '../services/webdav_service.dart';
 
 class WebDAVConfigPage extends StatefulWidget {
+  /// Purpose: Create a web davconfig page instance.
+  /// Inputs: None.
+  /// Returns: A new `WebDAVConfigPage` instance.
+  /// Side effects: None.
+  /// Notes: None.
   const WebDAVConfigPage({super.key});
 
+  /// Purpose: Create the mutable state object for this widget.
+  /// Inputs: None.
+  /// Returns: A new state object.
+  /// Side effects: None.
+  /// Notes: Flutter lifecycle override.
   @override
   State<WebDAVConfigPage> createState() => _WebDAVConfigPageState();
 }
@@ -24,12 +34,22 @@ class _WebDAVConfigPageState extends State<WebDAVConfigPage> {
   bool _isConfigured = false;
   bool _autoSync = false;
 
+  /// Purpose: Initialize listeners, controllers, and first-load work for this state object.
+  /// Inputs: None.
+  /// Returns: None.
+  /// Side effects: Initializes owned state, listeners, or async work.
+  /// Notes: Flutter lifecycle override.
   @override
   void initState() {
     super.initState();
     _loadConfig();
   }
 
+  /// Purpose: Provide the internal load config helper for this file.
+  /// Inputs: None.
+  /// Returns: None.
+  /// Side effects: May read or mutate application state, storage, or service resources.
+  /// Notes: Internal helper used within this file only.
   Future<void> _loadConfig() async {
     final config = await WebDAVService.loadConfig();
     if (config != null) {
@@ -43,6 +63,11 @@ class _WebDAVConfigPageState extends State<WebDAVConfigPage> {
     if (mounted) setState(() => _loading = false);
   }
 
+  /// Purpose: Release listeners, controllers, and other owned resources.
+  /// Inputs: None.
+  /// Returns: None.
+  /// Side effects: Disposes controllers, listeners, and other owned resources.
+  /// Notes: Flutter lifecycle override.
   @override
   void dispose() {
     _urlController.dispose();
@@ -52,6 +77,11 @@ class _WebDAVConfigPageState extends State<WebDAVConfigPage> {
     super.dispose();
   }
 
+  /// Purpose: Provide the internal current config helper for this file.
+  /// Inputs: `_autoSync`.
+  /// Returns: `WebDAVConfig`.
+  /// Side effects: None.
+  /// Notes: Internal helper used within this file only.
   WebDAVConfig get _currentConfig => WebDAVConfig(
     serverUrl: _urlController.text.trim(),
     username: _userController.text.trim(),
@@ -60,6 +90,11 @@ class _WebDAVConfigPageState extends State<WebDAVConfigPage> {
     autoSync: _autoSync,
   );
 
+  /// Purpose: Provide the internal save config helper for this file.
+  /// Inputs: None.
+  /// Returns: None.
+  /// Side effects: May read or mutate application state, storage, or service resources.
+  /// Notes: Internal helper used within this file only.
   Future<void> _saveConfig() async {
     final config = _currentConfig;
     await WebDAVService.saveConfig(config);
@@ -78,6 +113,11 @@ class _WebDAVConfigPageState extends State<WebDAVConfigPage> {
     }
   }
 
+  /// Purpose: Provide the internal test connection helper for this file.
+  /// Inputs: None.
+  /// Returns: None.
+  /// Side effects: May perform network or file-system operations.
+  /// Notes: Internal helper used within this file only.
   Future<void> _testConnection() async {
     setState(() => _testing = true);
     final ok = await WebDAVService.testConnection(_currentConfig);
@@ -95,6 +135,11 @@ class _WebDAVConfigPageState extends State<WebDAVConfigPage> {
     }
   }
 
+  /// Purpose: Provide the internal sync now helper for this file.
+  /// Inputs: None.
+  /// Returns: None.
+  /// Side effects: May read or mutate application state, storage, or service resources.
+  /// Notes: Internal helper used within this file only.
   Future<void> _syncNow() async {
     setState(() => _syncing = true);
     final result = await WebDAVService.sync(_currentConfig);
@@ -164,6 +209,11 @@ class _WebDAVConfigPageState extends State<WebDAVConfigPage> {
     ).showSnackBar(SnackBar(content: Text(l10n.settingsWebDAVSyncSuccess)));
   }
 
+  /// Purpose: Provide the internal resolve conflicts helper for this file.
+  /// Inputs: `pending`.
+  /// Returns: None.
+  /// Side effects: None.
+  /// Notes: Internal helper used within this file only.
   Future<void> _resolveConflicts(PendingSync pending) async {
     final resolutions = <String, Anime>{};
 
@@ -201,6 +251,11 @@ class _WebDAVConfigPageState extends State<WebDAVConfigPage> {
     }
   }
 
+  /// Purpose: Provide the internal disconnect helper for this file.
+  /// Inputs: None.
+  /// Returns: None.
+  /// Side effects: None.
+  /// Notes: Internal helper used within this file only.
   Future<void> _disconnect() async {
     await WebDAVService.deleteConfig();
     _urlController.clear();
@@ -222,6 +277,11 @@ class _WebDAVConfigPageState extends State<WebDAVConfigPage> {
     }
   }
 
+  /// Purpose: Provide the internal fill nextcloud helper for this file.
+  /// Inputs: None.
+  /// Returns: None.
+  /// Side effects: None.
+  /// Notes: Internal helper used within this file only.
   void _fillNextcloud() {
     _urlController.text =
         'https://your-nextcloud-host/remote.php/dav/files/USERNAME';
@@ -229,6 +289,11 @@ class _WebDAVConfigPageState extends State<WebDAVConfigPage> {
     setState(() {});
   }
 
+  /// Purpose: Build the current widget subtree for the active UI state.
+  /// Inputs: `context`.
+  /// Returns: The widget tree for the current state.
+  /// Side effects: Creates UI widgets from the current state.
+  /// Notes: Keep this method cheap because Flutter may call it often.
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
@@ -348,8 +413,18 @@ class _WebDAVConfigPageState extends State<WebDAVConfigPage> {
 class _ConflictDialog extends StatelessWidget {
   final RecordConflict<Anime> conflict;
 
+  /// Purpose: Create a conflict dialog instance.
+  /// Inputs: None.
+  /// Returns: A new `_ConflictDialog` instance.
+  /// Side effects: None.
+  /// Notes: Internal helper used within this file only.
   const _ConflictDialog({required this.conflict});
 
+  /// Purpose: Build the current widget subtree for the active UI state.
+  /// Inputs: `context`.
+  /// Returns: The widget tree for the current state.
+  /// Side effects: Creates UI widgets from the current state.
+  /// Notes: Keep this method cheap because Flutter may call it often.
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;

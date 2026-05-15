@@ -5,8 +5,18 @@ import '../../../l10n/app_localizations.dart';
 import '../../../shared/services/backup_service.dart';
 
 class BackupPage extends StatefulWidget {
+  /// Purpose: Create a backup page instance.
+  /// Inputs: None.
+  /// Returns: A new `BackupPage` instance.
+  /// Side effects: None.
+  /// Notes: None.
   const BackupPage({super.key});
 
+  /// Purpose: Create the mutable state object for this widget.
+  /// Inputs: None.
+  /// Returns: A new state object.
+  /// Side effects: None.
+  /// Notes: Flutter lifecycle override.
   @override
   State<BackupPage> createState() => _BackupPageState();
 }
@@ -19,12 +29,22 @@ class _BackupPageState extends State<BackupPage> {
 
   static const _retentionOptions = [0, 7, 14, 30, 60, 90];
 
+  /// Purpose: Initialize listeners, controllers, and first-load work for this state object.
+  /// Inputs: None.
+  /// Returns: None.
+  /// Side effects: Initializes owned state, listeners, or async work.
+  /// Notes: Flutter lifecycle override.
   @override
   void initState() {
     super.initState();
     _load();
   }
 
+  /// Purpose: Provide the internal load helper for this file.
+  /// Inputs: None.
+  /// Returns: None.
+  /// Side effects: May read or mutate application state, storage, or service resources.
+  /// Notes: Internal helper used within this file only.
   Future<void> _load() async {
     await BackupService.loadSettings();
     final backups = await BackupService.listBackups();
@@ -38,35 +58,44 @@ class _BackupPageState extends State<BackupPage> {
     }
   }
 
+  /// Purpose: Provide the internal create backup helper for this file.
+  /// Inputs: None.
+  /// Returns: None.
+  /// Side effects: None.
+  /// Notes: Internal helper used within this file only.
   Future<void> _createBackup() async {
     final l10n = AppLocalizations.of(context)!;
     final file = await BackupService.createBackup();
     if (!mounted) return;
     if (file != null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(l10n.backupCreated)),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(l10n.backupCreated)));
       await _load();
     }
   }
 
+  /// Purpose: Provide the internal restore backup helper for this file.
+  /// Inputs: `backup`.
+  /// Returns: None.
+  /// Side effects: None.
+  /// Notes: Internal helper used within this file only.
   Future<void> _restoreBackup(BackupInfo backup) async {
     final l10n = AppLocalizations.of(context)!;
 
     final availableModules = await BackupService.getBackupModules(backup.file);
     if (!mounted) return;
     if (availableModules.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(l10n.backupRestoreFailed)),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(l10n.backupRestoreFailed)));
       return;
     }
 
     final selected = await showDialog<Set<String>>(
       context: context,
-      builder: (ctx) => _RestoreModuleDialog(
-        availableModules: availableModules,
-      ),
+      builder: (ctx) =>
+          _RestoreModuleDialog(availableModules: availableModules),
     );
     if (selected == null || selected.isEmpty) return;
 
@@ -97,13 +126,16 @@ class _BackupPageState extends State<BackupPage> {
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text(
-          ok ? l10n.backupRestored : l10n.backupRestoreFailed,
-        ),
+        content: Text(ok ? l10n.backupRestored : l10n.backupRestoreFailed),
       ),
     );
   }
 
+  /// Purpose: Provide the internal delete backup helper for this file.
+  /// Inputs: `backup`.
+  /// Returns: None.
+  /// Side effects: May read or mutate application state, storage, or service resources.
+  /// Notes: Internal helper used within this file only.
   Future<void> _deleteBackup(BackupInfo backup) async {
     final l10n = AppLocalizations.of(context)!;
     final ok = await showDialog<bool>(
@@ -129,20 +161,38 @@ class _BackupPageState extends State<BackupPage> {
     await _load();
   }
 
+  /// Purpose: Provide the internal toggle auto backup helper for this file.
+  /// Inputs: `value`.
+  /// Returns: None.
+  /// Side effects: None.
+  /// Notes: Internal helper used within this file only.
   Future<void> _toggleAutoBackup(bool value) async {
     setState(() => _autoBackup = value);
     BackupService.autoBackupEnabled = value;
     await BackupService.saveSettings();
   }
 
+  /// Purpose: Provide the internal set retention helper for this file.
+  /// Inputs: `days`.
+  /// Returns: None.
+  /// Side effects: None.
+  /// Notes: Internal helper used within this file only.
   Future<void> _setRetention(int days) async {
     setState(() => _retentionDays = days);
     BackupService.retentionDays = days;
     await BackupService.saveSettings();
   }
 
+  /// Purpose: Provide the internal build section helper for this file.
+  /// Inputs: `context`, `title`, `children`.
+  /// Returns: `Widget`.
+  /// Side effects: None.
+  /// Notes: Internal helper used within this file only.
   Widget _buildSection(
-      BuildContext context, String title, List<Widget> children) {
+    BuildContext context,
+    String title,
+    List<Widget> children,
+  ) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -151,8 +201,8 @@ class _BackupPageState extends State<BackupPage> {
           child: Text(
             title,
             style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                  color: Theme.of(context).colorScheme.primary,
-                ),
+              color: Theme.of(context).colorScheme.primary,
+            ),
           ),
         ),
         ...children,
@@ -160,6 +210,11 @@ class _BackupPageState extends State<BackupPage> {
     );
   }
 
+  /// Purpose: Build the current widget subtree for the active UI state.
+  /// Inputs: `context`.
+  /// Returns: The widget tree for the current state.
+  /// Side effects: Creates UI widgets from the current state.
+  /// Notes: Keep this method cheap because Flutter may call it often.
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
@@ -189,8 +244,7 @@ class _BackupPageState extends State<BackupPage> {
                         final label = d == 0
                             ? l10n.backupKeepForever
                             : l10n.backupKeepDays(d);
-                        return DropdownMenuItem(
-                            value: d, child: Text(label));
+                        return DropdownMenuItem(value: d, child: Text(label));
                       }).toList(),
                       onChanged: (v) {
                         if (v != null) _setRetention(v);
@@ -253,8 +307,19 @@ class _BackupPageState extends State<BackupPage> {
 
 class _RestoreModuleDialog extends StatefulWidget {
   final List<String> availableModules;
+
+  /// Purpose: Create a restore module dialog instance.
+  /// Inputs: None.
+  /// Returns: A new `_RestoreModuleDialog` instance.
+  /// Side effects: None.
+  /// Notes: Internal helper used within this file only.
   const _RestoreModuleDialog({required this.availableModules});
 
+  /// Purpose: Create the mutable state object for this widget.
+  /// Inputs: None.
+  /// Returns: A new state object.
+  /// Side effects: None.
+  /// Notes: Flutter lifecycle override.
   @override
   State<_RestoreModuleDialog> createState() => _RestoreModuleDialogState();
 }
@@ -263,16 +328,24 @@ class _RestoreModuleDialogState extends State<_RestoreModuleDialog> {
   late final Set<String> _selected;
   bool _selectAll = true;
 
-  static const _moduleLabels = {
-    'anime': ('Anime Data', Icons.video_library),
-  };
+  static const _moduleLabels = {'anime': ('Anime Data', Icons.video_library)};
 
+  /// Purpose: Initialize listeners, controllers, and first-load work for this state object.
+  /// Inputs: None.
+  /// Returns: None.
+  /// Side effects: Initializes owned state, listeners, or async work.
+  /// Notes: Flutter lifecycle override.
   @override
   void initState() {
     super.initState();
     _selected = Set.of(widget.availableModules);
   }
 
+  /// Purpose: Build the current widget subtree for the active UI state.
+  /// Inputs: `context`.
+  /// Returns: The widget tree for the current state.
+  /// Side effects: Creates UI widgets from the current state.
+  /// Notes: Keep this method cheap because Flutter may call it often.
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;

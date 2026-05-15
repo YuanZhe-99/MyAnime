@@ -23,8 +23,18 @@ import 'license_page.dart' as app_license;
 import 'privacy_policy_page.dart';
 
 class SettingsPage extends ConsumerStatefulWidget {
+  /// Purpose: Create a settings page instance.
+  /// Inputs: None.
+  /// Returns: A new `SettingsPage` instance.
+  /// Side effects: None.
+  /// Notes: None.
   const SettingsPage({super.key});
 
+  /// Purpose: Create the mutable state object for this widget.
+  /// Inputs: None.
+  /// Returns: A new state object.
+  /// Side effects: None.
+  /// Notes: Flutter lifecycle override.
   @override
   ConsumerState<SettingsPage> createState() => _SettingsPageState();
 }
@@ -45,6 +55,11 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
   String _apiUsername = '';
   String _apiPassword = '';
 
+  /// Purpose: Initialize listeners, controllers, and first-load work for this state object.
+  /// Inputs: None.
+  /// Returns: None.
+  /// Side effects: Initializes owned state, listeners, or async work.
+  /// Notes: Flutter lifecycle override.
   @override
   void initState() {
     super.initState();
@@ -58,6 +73,11 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
     }
   }
 
+  /// Purpose: Provide the internal load version helper for this file.
+  /// Inputs: None.
+  /// Returns: None.
+  /// Side effects: May read or mutate application state, storage, or service resources.
+  /// Notes: Internal helper used within this file only.
   Future<void> _loadVersion() async {
     final info = await PackageInfo.fromPlatform();
     if (mounted) {
@@ -65,6 +85,11 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
     }
   }
 
+  /// Purpose: Provide the internal build section helper for this file.
+  /// Inputs: `title`, `children`.
+  /// Returns: `Widget`.
+  /// Side effects: None.
+  /// Notes: Internal helper used within this file only.
   Widget _buildSection(String title, List<Widget> children) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -74,8 +99,8 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
           child: Text(
             title,
             style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                  color: Theme.of(context).colorScheme.primary,
-                ),
+              color: Theme.of(context).colorScheme.primary,
+            ),
           ),
         ),
         ...children,
@@ -83,10 +108,19 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
     );
   }
 
+  /// Purpose: Provide the internal is desktop helper for this file.
+  /// Inputs: `isLinux`.
+  /// Returns: `bool`.
+  /// Side effects: None.
+  /// Notes: Internal helper used within this file only.
   bool get _isDesktop =>
-      !kIsWeb &&
-      (Platform.isWindows || Platform.isMacOS || Platform.isLinux);
+      !kIsWeb && (Platform.isWindows || Platform.isMacOS || Platform.isLinux);
 
+  /// Purpose: Provide the internal export data helper for this file.
+  /// Inputs: None.
+  /// Returns: None.
+  /// Side effects: May read or mutate application state, storage, or service resources.
+  /// Notes: Internal helper used within this file only.
   Future<void> _exportData() async {
     final l10n = AppLocalizations.of(context)!;
 
@@ -136,12 +170,17 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
     }
     if (!mounted) return;
     if (path != null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(l10n.exportSuccess)),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(l10n.exportSuccess)));
     }
   }
 
+  /// Purpose: Provide the internal import data helper for this file.
+  /// Inputs: None.
+  /// Returns: None.
+  /// Side effects: May read or mutate application state, storage, or service resources.
+  /// Notes: Internal helper used within this file only.
   Future<void> _importData() async {
     final l10n = AppLocalizations.of(context)!;
     final result = await FilePicker.platform.pickFiles(
@@ -169,16 +208,20 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
     );
     if (ok != true || !mounted) return;
 
-    final success =
-        await ImportExportService.importZIP(result.files.single.path!);
+    final success = await ImportExportService.importZIP(
+      result.files.single.path!,
+    );
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(success ? l10n.importSuccess : l10n.importFailed),
-      ),
+      SnackBar(content: Text(success ? l10n.importSuccess : l10n.importFailed)),
     );
   }
 
+  /// Purpose: Provide the internal open data folder helper for this file.
+  /// Inputs: None.
+  /// Returns: None.
+  /// Side effects: None.
+  /// Notes: Internal helper used within this file only.
   Future<void> _openDataFolder() async {
     final appDir = await AnimeStorage.getAppDir();
     if (Platform.isWindows) {
@@ -191,11 +234,21 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
     }
   }
 
+  /// Purpose: Provide the internal load storage path helper for this file.
+  /// Inputs: None.
+  /// Returns: None.
+  /// Side effects: May read or mutate application state, storage, or service resources.
+  /// Notes: Internal helper used within this file only.
   Future<void> _loadStoragePath() async {
     final path = await AnimeStorage.getStoragePath();
     if (mounted) setState(() => _storagePath = path);
   }
 
+  /// Purpose: Provide the internal load reminder helper for this file.
+  /// Inputs: None.
+  /// Returns: None.
+  /// Side effects: May read or mutate application state, storage, or service resources.
+  /// Notes: Internal helper used within this file only.
   Future<void> _loadReminder() async {
     final config = await AnimeStorage.readConfig();
     if (!mounted) return;
@@ -212,6 +265,11 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
     });
   }
 
+  /// Purpose: Provide the internal load tray settings helper for this file.
+  /// Inputs: None.
+  /// Returns: None.
+  /// Side effects: May read or mutate application state, storage, or service resources.
+  /// Notes: Internal helper used within this file only.
   Future<void> _loadTraySettings() async {
     final config = await AnimeStorage.readConfig();
     if (!mounted) return;
@@ -221,12 +279,22 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
     });
   }
 
+  /// Purpose: Provide the internal load auto start status helper for this file.
+  /// Inputs: None.
+  /// Returns: None.
+  /// Side effects: May read or mutate application state, storage, or service resources.
+  /// Notes: Internal helper used within this file only.
   Future<void> _loadAutoStartStatus() async {
     final enabled = await launchAtStartup.isEnabled();
     if (!mounted) return;
     setState(() => _autoStart = enabled);
   }
 
+  /// Purpose: Provide the internal load api settings helper for this file.
+  /// Inputs: None.
+  /// Returns: None.
+  /// Side effects: May read or mutate application state, storage, or service resources.
+  /// Notes: Internal helper used within this file only.
   Future<void> _loadApiSettings() async {
     final config = await AnimeStorage.readConfig();
     if (!mounted) return;
@@ -239,6 +307,11 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
     });
   }
 
+  /// Purpose: Provide the internal show api settings dialog helper for this file.
+  /// Inputs: None.
+  /// Returns: None.
+  /// Side effects: None.
+  /// Notes: Internal helper used within this file only.
   Future<void> _showApiSettingsDialog() async {
     final l10n = AppLocalizations.of(context)!;
     final portCtrl = TextEditingController(text: _apiPort.toString());
@@ -255,7 +328,9 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
           children: [
             TextField(
               controller: addrCtrl,
-              decoration: InputDecoration(labelText: l10n.settingsApiListenAddress),
+              decoration: InputDecoration(
+                labelText: l10n.settingsApiListenAddress,
+              ),
             ),
             const SizedBox(height: 8),
             TextField(
@@ -291,7 +366,9 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
     if (saved != true || !mounted) return;
 
     final newPort = int.tryParse(portCtrl.text.trim()) ?? 7788;
-    final newAddr = addrCtrl.text.trim().isEmpty ? 'localhost' : addrCtrl.text.trim();
+    final newAddr = addrCtrl.text.trim().isEmpty
+        ? 'localhost'
+        : addrCtrl.text.trim();
     final newUser = userCtrl.text.trim();
     final newPass = passCtrl.text.trim();
     final config = await AnimeStorage.readConfig();
@@ -314,6 +391,11 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
     }
   }
 
+  /// Purpose: Provide the internal set reminder enabled helper for this file.
+  /// Inputs: `v`.
+  /// Returns: None.
+  /// Side effects: None.
+  /// Notes: Internal helper used within this file only.
   Future<void> _setReminderEnabled(bool v) async {
     setState(() => _reminderEnabled = v);
     final config = await AnimeStorage.readConfig();
@@ -322,6 +404,11 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
     ReminderService.startPeriodicCheck();
   }
 
+  /// Purpose: Provide the internal pick reminder time helper for this file.
+  /// Inputs: None.
+  /// Returns: None.
+  /// Side effects: None.
+  /// Notes: Internal helper used within this file only.
   Future<void> _pickReminderTime() async {
     final picked = await showTimePicker(
       context: context,
@@ -338,6 +425,11 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
     if (_reminderEnabled) ReminderService.startPeriodicCheck();
   }
 
+  /// Purpose: Provide the internal show storage path dialog helper for this file.
+  /// Inputs: None.
+  /// Returns: None.
+  /// Side effects: None.
+  /// Notes: Internal helper used within this file only.
   Future<void> _showStoragePathDialog() async {
     final l10n = AppLocalizations.of(context)!;
     final controller = TextEditingController(text: _storagePath);
@@ -387,15 +479,22 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(pathToSet == null
-                ? l10n.settingsResetDefaultLocation
-                : l10n.settingsStoragePathUpdated),
+            content: Text(
+              pathToSet == null
+                  ? l10n.settingsResetDefaultLocation
+                  : l10n.settingsStoragePathUpdated,
+            ),
           ),
         );
       }
     }
   }
 
+  /// Purpose: Build the current widget subtree for the active UI state.
+  /// Inputs: `context`.
+  /// Returns: The widget tree for the current state.
+  /// Side effects: Creates UI widgets from the current state.
+  /// Notes: Keep this method cheap because Flutter may call it often.
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
@@ -505,9 +604,10 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
               title: Text(l10n.backupTitle),
               subtitle: Text(l10n.backupSubtitle),
               trailing: const Icon(Icons.chevron_right),
-              onTap: () => Navigator.of(context, rootNavigator: true).push(
-                MaterialPageRoute(builder: (_) => const BackupPage()),
-              ),
+              onTap: () => Navigator.of(
+                context,
+                rootNavigator: true,
+              ).push(MaterialPageRoute(builder: (_) => const BackupPage())),
             ),
             ListTile(
               leading: const Icon(Icons.file_upload_outlined),
@@ -595,11 +695,13 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
                   LocalApiServer.isRunning
                       ? l10n.settingsApiRunning(LocalApiServer.port)
                       : LocalApiServer.lastError == 'credentials_required'
-                          ? l10n.settingsApiNeedCredentials
-                          : LocalApiServer.lastError != null
-                              ? '${l10n.settingsApiStopped} (${LocalApiServer.lastError})'
-                              : l10n.settingsApiStopped,
-                  style: !LocalApiServer.isRunning && LocalApiServer.lastError != null
+                      ? l10n.settingsApiNeedCredentials
+                      : LocalApiServer.lastError != null
+                      ? '${l10n.settingsApiStopped} (${LocalApiServer.lastError})'
+                      : l10n.settingsApiStopped,
+                  style:
+                      !LocalApiServer.isRunning &&
+                          LocalApiServer.lastError != null
                       ? TextStyle(color: Theme.of(context).colorScheme.error)
                       : null,
                 ),
@@ -634,8 +736,8 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
               trailing: Text(
                 _version,
                 style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                      color: Theme.of(context).colorScheme.onSurfaceVariant,
-                    ),
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                ),
               ),
             ),
             ListTile(
@@ -643,8 +745,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
               title: Text(l10n.settingsPrivacyPolicy),
               trailing: const Icon(Icons.chevron_right),
               onTap: () => Navigator.of(context, rootNavigator: true).push(
-                MaterialPageRoute(
-                    builder: (_) => const PrivacyPolicyPage()),
+                MaterialPageRoute(builder: (_) => const PrivacyPolicyPage()),
               ),
             ),
             ListTile(
@@ -653,7 +754,8 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
               trailing: const Icon(Icons.chevron_right),
               onTap: () => Navigator.of(context, rootNavigator: true).push(
                 MaterialPageRoute(
-                    builder: (_) => const app_license.LicensePage()),
+                  builder: (_) => const app_license.LicensePage(),
+                ),
               ),
             ),
             ListTile(

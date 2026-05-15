@@ -7,8 +7,11 @@ import '../../../l10n/app_localizations.dart';
 import '../../../shared/services/image_service.dart';
 import '../services/anime_search_service.dart';
 
-/// Shows the anime search dialog.
-/// Returns a map of field names → values to apply, or null if cancelled.
+/// Purpose: Shows the anime search dialog.
+/// Inputs: `context`, `initialQuery`, `currentTitle`, `currentTitleJa`, `currentEndEp`, `currentFirstAirDate`, `currentAirDay`, `currentAirTime`, `currentCoverImage`, `currentNotes`.
+/// Returns: `Future<Map<String, dynamic>?>`.
+/// Side effects: May perform network or file-system operations.
+/// Notes: Shows the anime search dialog. Returns a map of field names → values to apply, or null if cancelled.
 Future<Map<String, dynamic>?> showAnimeSearchDialog(
   BuildContext context, {
   String? initialQuery,
@@ -50,6 +53,11 @@ class _SearchDialog extends StatefulWidget {
   final String? currentCoverImage;
   final String? currentNotes;
 
+  /// Purpose: Create a search dialog instance.
+  /// Inputs: `initialQuery`, `currentTitle`, `currentTitleJa`, `currentEndEp`, `currentFirstAirDate`, `currentAirDay`, `currentAirTime`, `currentCoverImage`, `currentNotes`.
+  /// Returns: A new `_SearchDialog` instance.
+  /// Side effects: None.
+  /// Notes: Internal helper used within this file only.
   const _SearchDialog({
     this.initialQuery,
     this.currentTitle,
@@ -62,6 +70,11 @@ class _SearchDialog extends StatefulWidget {
     this.currentNotes,
   });
 
+  /// Purpose: Create the mutable state object for this widget.
+  /// Inputs: None.
+  /// Returns: A new state object.
+  /// Side effects: None.
+  /// Notes: Flutter lifecycle override.
   @override
   State<_SearchDialog> createState() => _SearchDialogState();
 }
@@ -83,18 +96,33 @@ class _SearchDialogState extends State<_SearchDialog> {
   String? _fetchedCoverPath;
   ImageProvider? _coverPreview;
 
+  /// Purpose: Initialize listeners, controllers, and first-load work for this state object.
+  /// Inputs: None.
+  /// Returns: None.
+  /// Side effects: Initializes owned state, listeners, or async work.
+  /// Notes: Flutter lifecycle override.
   @override
   void initState() {
     super.initState();
     _queryController = TextEditingController(text: widget.initialQuery ?? '');
   }
 
+  /// Purpose: Release listeners, controllers, and other owned resources.
+  /// Inputs: None.
+  /// Returns: None.
+  /// Side effects: Disposes controllers, listeners, and other owned resources.
+  /// Notes: Flutter lifecycle override.
   @override
   void dispose() {
     _queryController.dispose();
     super.dispose();
   }
 
+  /// Purpose: Provide the internal search helper for this file.
+  /// Inputs: None.
+  /// Returns: None.
+  /// Side effects: May perform network or file-system operations.
+  /// Notes: Internal helper used within this file only.
   Future<void> _search() async {
     final query = _queryController.text.trim();
     if (query.isEmpty) return;
@@ -124,6 +152,11 @@ class _SearchDialogState extends State<_SearchDialog> {
     }
   }
 
+  /// Purpose: Provide the internal select result helper for this file.
+  /// Inputs: `result`.
+  /// Returns: None.
+  /// Side effects: None.
+  /// Notes: Internal helper used within this file only.
   void _selectResult(AnimeSearchResult result) {
     setState(() {
       _selected = result;
@@ -143,12 +176,18 @@ class _SearchDialogState extends State<_SearchDialog> {
     });
   }
 
+  /// Purpose: Provide the internal fetch cover helper for this file.
+  /// Inputs: None.
+  /// Returns: None.
+  /// Side effects: None.
+  /// Notes: Internal helper used within this file only.
   Future<void> _fetchCover() async {
     if (_selected?.coverImageUrl == null) return;
     setState(() => _fetchingCover = true);
     try {
-      final path =
-          await ImageService.saveImageFromUrl(_selected!.coverImageUrl!);
+      final path = await ImageService.saveImageFromUrl(
+        _selected!.coverImageUrl!,
+      );
       if (path != null && mounted) {
         final file = await ImageService.resolve(path);
         setState(() {
@@ -163,12 +202,18 @@ class _SearchDialogState extends State<_SearchDialog> {
     } catch (e) {
       if (mounted) {
         setState(() => _fetchingCover = false);
-        ScaffoldMessenger.of(context)
-            .showSnackBar(SnackBar(content: Text(e.toString())));
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(e.toString())));
       }
     }
   }
 
+  /// Purpose: Provide the internal apply helper for this file.
+  /// Inputs: None.
+  /// Returns: None.
+  /// Side effects: None.
+  /// Notes: Internal helper used within this file only.
   void _apply() {
     if (_selected == null) return;
     final r = _selected!;
@@ -211,6 +256,11 @@ class _SearchDialogState extends State<_SearchDialog> {
     Navigator.of(context).pop(result);
   }
 
+  /// Purpose: Build the current widget subtree for the active UI state.
+  /// Inputs: `context`.
+  /// Returns: The widget tree for the current state.
+  /// Side effects: Creates UI widgets from the current state.
+  /// Notes: Keep this method cheap because Flutter may call it often.
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
@@ -228,6 +278,11 @@ class _SearchDialogState extends State<_SearchDialog> {
 
   // ──── Search view ────
 
+  /// Purpose: Provide the internal build search view helper for this file.
+  /// Inputs: `l10n`.
+  /// Returns: `Widget`.
+  /// Side effects: May perform network or file-system operations.
+  /// Notes: Internal helper used within this file only.
   Widget _buildSearchView(AppLocalizations l10n) {
     return Column(
       children: [
@@ -245,7 +300,9 @@ class _SearchDialogState extends State<_SearchDialog> {
                     border: const OutlineInputBorder(),
                     isDense: true,
                     contentPadding: const EdgeInsets.symmetric(
-                        horizontal: 12, vertical: 10),
+                      horizontal: 12,
+                      vertical: 10,
+                    ),
                   ),
                   onSubmitted: (_) => _search(),
                 ),
@@ -263,6 +320,11 @@ class _SearchDialogState extends State<_SearchDialog> {
     );
   }
 
+  /// Purpose: Provide the internal build search results helper for this file.
+  /// Inputs: `l10n`.
+  /// Returns: `Widget`.
+  /// Side effects: May perform network or file-system operations.
+  /// Notes: Internal helper used within this file only.
   Widget _buildSearchResults(AppLocalizations l10n) {
     if (_searching) {
       return const Center(child: CircularProgressIndicator());
@@ -299,10 +361,7 @@ class _SearchDialogState extends State<_SearchDialog> {
                         const Icon(Icons.image_not_supported, size: 20),
                   ),
                 )
-              : const SizedBox(
-                  width: 36,
-                  child: Icon(Icons.movie_outlined),
-                ),
+              : const SizedBox(width: 36, child: Icon(Icons.movie_outlined)),
           title: Text(
             r.title ?? r.titleJa ?? '?',
             maxLines: 1,
@@ -312,7 +371,8 @@ class _SearchDialogState extends State<_SearchDialog> {
             [
               r.source,
               if (r.titleJa != null && r.title != null) r.titleJa,
-              if (r.episodes != null) AppLocalizations.of(context)!.searchEpisodesCount(r.episodes!),
+              if (r.episodes != null)
+                AppLocalizations.of(context)!.searchEpisodesCount(r.episodes!),
             ].join(' · '),
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
@@ -327,6 +387,11 @@ class _SearchDialogState extends State<_SearchDialog> {
 
   // ──── Preview view ────
 
+  /// Purpose: Provide the internal build preview view helper for this file.
+  /// Inputs: `l10n`.
+  /// Returns: `Widget`.
+  /// Side effects: None.
+  /// Notes: Internal helper used within this file only.
   Widget _buildPreviewView(AppLocalizations l10n) {
     final r = _selected;
     if (r == null) return const SizedBox.shrink();
@@ -364,8 +429,7 @@ class _SearchDialogState extends State<_SearchDialog> {
               ),
               const SizedBox(width: 8),
               FilledButton(
-                onPressed:
-                    _toggles.values.any((v) => v) ? _apply : null,
+                onPressed: _toggles.values.any((v) => v) ? _apply : null,
                 child: Text(l10n.searchApply),
               ),
             ],
@@ -375,6 +439,11 @@ class _SearchDialogState extends State<_SearchDialog> {
     );
   }
 
+  /// Purpose: Provide the internal build field list helper for this file.
+  /// Inputs: `l10n`, `r`.
+  /// Returns: `Widget`.
+  /// Side effects: None.
+  /// Notes: Internal helper used within this file only.
   Widget _buildFieldList(AppLocalizations l10n, AnimeSearchResult r) {
     return ListView(
       padding: const EdgeInsets.symmetric(vertical: 4),
@@ -383,10 +452,18 @@ class _SearchDialogState extends State<_SearchDialog> {
           _fieldTile('title', l10n.animeTitle, widget.currentTitle, r.title!),
         if (r.titleJa?.isNotEmpty == true)
           _fieldTile(
-              'titleJa', l10n.animeTitleJa, widget.currentTitleJa, r.titleJa!),
+            'titleJa',
+            l10n.animeTitleJa,
+            widget.currentTitleJa,
+            r.titleJa!,
+          ),
         if (r.episodes != null)
-          _fieldTile('episodes', l10n.animeEndEp,
-              widget.currentEndEp?.toString(), r.episodes.toString()),
+          _fieldTile(
+            'episodes',
+            l10n.animeEndEp,
+            widget.currentEndEp?.toString(),
+            r.episodes.toString(),
+          ),
         if (r.firstAirDate != null)
           _fieldTile(
             'firstAirDate',
@@ -407,7 +484,11 @@ class _SearchDialogState extends State<_SearchDialog> {
           ),
         if (r.airTime != null)
           _fieldTile(
-              'airTime', l10n.animeAirTime, widget.currentAirTime, r.airTime!),
+            'airTime',
+            l10n.animeAirTime,
+            widget.currentAirTime,
+            r.airTime!,
+          ),
         if (r.summary?.isNotEmpty == true)
           _fieldTile(
             'notes',
@@ -425,13 +506,14 @@ class _SearchDialogState extends State<_SearchDialog> {
                 Checkbox(
                   value: _toggles['cover'] ?? false,
                   onChanged: _fetchedCoverPath != null
-                      ? (v) =>
-                          setState(() => _toggles['cover'] = v ?? false)
+                      ? (v) => setState(() => _toggles['cover'] = v ?? false)
                       : null,
                 ),
                 Expanded(
-                  child: Text(l10n.searchCoverImage,
-                      style: Theme.of(context).textTheme.titleSmall),
+                  child: Text(
+                    l10n.searchCoverImage,
+                    style: Theme.of(context).textTheme.titleSmall,
+                  ),
                 ),
                 if (_fetchingCover)
                   const SizedBox(
@@ -450,22 +532,24 @@ class _SearchDialogState extends State<_SearchDialog> {
           ),
           if (_coverPreview != null)
             Padding(
-              padding:
-                  const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
               child: Row(
                 children: [
                   if (widget.currentCoverImage != null) ...[
                     _coverColumn(
                       l10n.searchCurrent,
                       FutureBuilder<File>(
-                        future:
-                            ImageService.resolve(widget.currentCoverImage!),
+                        future: ImageService.resolve(widget.currentCoverImage!),
                         builder: (context, snap) {
                           if (snap.hasData && snap.data!.existsSync()) {
                             return ClipRRect(
                               borderRadius: BorderRadius.circular(4),
-                              child: Image.file(snap.data!,
-                                  width: 55, height: 77, fit: BoxFit.cover),
+                              child: Image.file(
+                                snap.data!,
+                                width: 55,
+                                height: 77,
+                                fit: BoxFit.cover,
+                              ),
                             );
                           }
                           return const SizedBox(width: 55, height: 77);
@@ -497,6 +581,11 @@ class _SearchDialogState extends State<_SearchDialog> {
     );
   }
 
+  /// Purpose: Provide the internal cover column helper for this file.
+  /// Inputs: `label`, `image`.
+  /// Returns: `Widget`.
+  /// Side effects: None.
+  /// Notes: Internal helper used within this file only.
   Widget _coverColumn(String label, Widget image) {
     return Column(
       children: [
@@ -507,17 +596,22 @@ class _SearchDialogState extends State<_SearchDialog> {
     );
   }
 
-  Widget _fieldTile(
-      String key, String label, String? current, String fetched) {
+  /// Purpose: Provide the internal field tile helper for this file.
+  /// Inputs: `key`, `label`, `current`, `fetched`.
+  /// Returns: `Widget`.
+  /// Side effects: None.
+  /// Notes: Internal helper used within this file only.
+  Widget _fieldTile(String key, String label, String? current, String fetched) {
     final l10n = AppLocalizations.of(context)!;
     return CheckboxListTile(
       value: _toggles[key] ?? false,
       onChanged: (v) => setState(() => _toggles[key] = v ?? false),
-      title: Text(label,
-          style: Theme.of(context)
-              .textTheme
-              .bodyMedium
-              ?.copyWith(fontWeight: FontWeight.w600)),
+      title: Text(
+        label,
+        style: Theme.of(
+          context,
+        ).textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w600),
+      ),
       subtitle: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -525,16 +619,16 @@ class _SearchDialogState extends State<_SearchDialog> {
             Text(
               '${l10n.searchCurrent}: $current',
               style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                    color: Theme.of(context).colorScheme.onSurfaceVariant,
-                  ),
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
+              ),
               maxLines: 2,
               overflow: TextOverflow.ellipsis,
             ),
           Text(
             '${l10n.searchFetched}: $fetched',
             style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                  color: Theme.of(context).colorScheme.primary,
-                ),
+              color: Theme.of(context).colorScheme.primary,
+            ),
             maxLines: 2,
             overflow: TextOverflow.ellipsis,
           ),
@@ -547,6 +641,11 @@ class _SearchDialogState extends State<_SearchDialog> {
 
   // ──── Header ────
 
+  /// Purpose: Provide the internal build header helper for this file.
+  /// Inputs: `l10n`.
+  /// Returns: `Widget`.
+  /// Side effects: None.
+  /// Notes: Internal helper used within this file only.
   Widget _buildHeader(AppLocalizations l10n, {required bool showBack}) {
     return Padding(
       padding: const EdgeInsets.fromLTRB(12, 8, 4, 0),
@@ -558,12 +657,17 @@ class _SearchDialogState extends State<_SearchDialog> {
               onPressed: () => setState(() => _phase = _Phase.search),
               visualDensity: VisualDensity.compact,
             ),
-          Icon(Icons.travel_explore,
-              color: Theme.of(context).colorScheme.primary, size: 20),
+          Icon(
+            Icons.travel_explore,
+            color: Theme.of(context).colorScheme.primary,
+            size: 20,
+          ),
           const SizedBox(width: 8),
           Expanded(
-            child: Text(l10n.searchAnimeInfo,
-                style: Theme.of(context).textTheme.titleMedium),
+            child: Text(
+              l10n.searchAnimeInfo,
+              style: Theme.of(context).textTheme.titleMedium,
+            ),
           ),
           IconButton(
             icon: const Icon(Icons.close, size: 20),
@@ -577,12 +681,31 @@ class _SearchDialogState extends State<_SearchDialog> {
 
   // ──── Helpers ────
 
+  /// Purpose: Provide the internal day name helper for this file.
+  /// Inputs: `dow`.
+  /// Returns: `String`.
+  /// Side effects: None.
+  /// Notes: Internal helper used within this file only.
   String _dayName(int dow) {
     final l10n = AppLocalizations.of(context)!;
-    final days = ['', l10n.dayMon, l10n.dayTue, l10n.dayWed, l10n.dayThu, l10n.dayFri, l10n.daySat, l10n.daySun];
+    final days = [
+      '',
+      l10n.dayMon,
+      l10n.dayTue,
+      l10n.dayWed,
+      l10n.dayThu,
+      l10n.dayFri,
+      l10n.daySat,
+      l10n.daySun,
+    ];
     return days[dow.clamp(1, 7)];
   }
 
+  /// Purpose: Provide the internal truncate helper for this file.
+  /// Inputs: `text`, `maxLen`.
+  /// Returns: `String?`.
+  /// Side effects: None.
+  /// Notes: Internal helper used within this file only.
   String? _truncate(String? text, int maxLen) {
     if (text == null) return null;
     return text.length > maxLen ? '${text.substring(0, maxLen)}...' : text;

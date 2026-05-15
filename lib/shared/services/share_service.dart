@@ -21,6 +21,11 @@ class RankingShareEntry {
   final int rank;
   final double score;
 
+  /// Purpose: Create a ranking share entry instance.
+  /// Inputs: `anime`, `rank`, `score`.
+  /// Returns: A new `RankingShareEntry` instance.
+  /// Side effects: None.
+  /// Notes: None.
   const RankingShareEntry({
     required this.anime,
     required this.rank,
@@ -52,6 +57,11 @@ class ShareService {
   static const _borderColor = Color(0xFFE0E0E0);
   static const _trackColor = Color(0xFFE0E0E0);
 
+  /// Purpose: Share anime through the relevant platform flow.
+  /// Inputs: `context`, `anime`.
+  /// Returns: None.
+  /// Side effects: May read or mutate application state, storage, or service resources.
+  /// Notes: None.
   static Future<void> shareAnime(BuildContext context, Anime anime) async {
     final l10n = AppLocalizations.of(context)!;
 
@@ -87,6 +97,11 @@ class ShareService {
     }
   }
 
+  /// Purpose: Share ranking image through the relevant platform flow.
+  /// Inputs: `context`, `entries`, `title`, `subtitle`, `sortLabel`, `orderLabel`, `l10n`.
+  /// Returns: None.
+  /// Side effects: May read or mutate application state, storage, or service resources.
+  /// Notes: None.
   static Future<void> shareRankingImage(
     BuildContext context, {
     required List<RankingShareEntry> entries,
@@ -123,6 +138,11 @@ class ShareService {
     }
   }
 
+  /// Purpose: Provide the internal share anime data helper for this file.
+  /// Inputs: `context`, `anime`, `l10n`.
+  /// Returns: None.
+  /// Side effects: May read or mutate application state, storage, or service resources.
+  /// Notes: Internal helper used within this file only.
   static Future<void> _shareAnimeData(
     BuildContext context,
     Anime anime,
@@ -166,6 +186,11 @@ class ShareService {
     }
   }
 
+  /// Purpose: Provide the internal share anime image helper for this file.
+  /// Inputs: `context`, `anime`, `l10n`.
+  /// Returns: None.
+  /// Side effects: May read or mutate application state, storage, or service resources.
+  /// Notes: Internal helper used within this file only.
   static Future<void> _shareAnimeImage(
     BuildContext context,
     Anime anime,
@@ -212,6 +237,11 @@ class ShareService {
     }
   }
 
+  /// Purpose: Provide the internal share image bytes helper for this file.
+  /// Inputs: `context`, `imageBytes`, `l10n`, `fileName`.
+  /// Returns: None.
+  /// Side effects: May read or mutate application state, storage, or service resources.
+  /// Notes: Internal helper used within this file only.
   static Future<void> _shareImageBytes(
     BuildContext context,
     Uint8List imageBytes,
@@ -295,6 +325,11 @@ class ShareService {
     );
   }
 
+  /// Purpose: Provide the internal generate share image helper for this file.
+  /// Inputs: `anime`, `l10n`, `includeInfoUrl`, `includeWatchUrl`.
+  /// Returns: `Future<Uint8List>`.
+  /// Side effects: May read or mutate application state, storage, or service resources.
+  /// Notes: Internal helper used within this file only.
   static Future<Uint8List> _generateShareImage(
     Anime anime,
     AppLocalizations l10n, {
@@ -649,6 +684,11 @@ class ShareService {
     return byteData!.buffer.asUint8List();
   }
 
+  /// Purpose: Provide the internal layout text helper for this file.
+  /// Inputs: `text`, `style`, `maxWidth`, `maxLines`.
+  /// Returns: `TextPainter`.
+  /// Side effects: None.
+  /// Notes: Internal helper used within this file only.
   static TextPainter _layoutText(
     String text,
     TextStyle style,
@@ -665,6 +705,11 @@ class ShareService {
     return tp;
   }
 
+  /// Purpose: Provide the internal generate ranking share image helper for this file.
+  /// Inputs: `entries`, `title`, `subtitle`, `sortLabel`, `orderLabel`, `l10n`.
+  /// Returns: `Future<Uint8List>`.
+  /// Side effects: May read or mutate application state, storage, or service resources.
+  /// Notes: Internal helper used within this file only.
   static Future<Uint8List> _generateRankingShareImage({
     required List<RankingShareEntry> entries,
     required String title,
@@ -804,6 +849,11 @@ class ShareService {
     return byteData!.buffer.asUint8List();
   }
 
+  /// Purpose: Provide the internal draw ranking row helper for this file.
+  /// Inputs: `canvas`, `entry`, `rowY`, `coverImages`, `l10n`.
+  /// Returns: None.
+  /// Side effects: None.
+  /// Notes: Internal helper used within this file only.
   static void _drawRankingRow(
     Canvas canvas,
     RankingShareEntry entry,
@@ -934,6 +984,11 @@ class ShareService {
     detailPainter.paint(canvas, Offset(textX, rowY + 40));
   }
 
+  /// Purpose: Provide the internal draw cover image helper for this file.
+  /// Inputs: `canvas`, `image`, `dstRect`, `radius`.
+  /// Returns: None.
+  /// Side effects: None.
+  /// Notes: Internal helper used within this file only.
   static void _drawCoverImage(
     Canvas canvas,
     ui.Image image,
@@ -957,6 +1012,11 @@ class ShareService {
     canvas.restore();
   }
 
+  /// Purpose: Provide the internal draw watermark helper for this file.
+  /// Inputs: `canvas`, `logoImage`, `watermarkPainter`, `watermarkY`, `watermarkRowHeight`, `cardWidth`.
+  /// Returns: None.
+  /// Side effects: None.
+  /// Notes: Internal helper used within this file only.
   static void _drawWatermark(
     Canvas canvas,
     ui.Image? logoImage,
@@ -994,11 +1054,21 @@ class ShareService {
     }
   }
 
+  /// Purpose: Provide the internal format score helper for this file.
+  /// Inputs: `score`.
+  /// Returns: `String`.
+  /// Side effects: None.
+  /// Notes: Internal helper used within this file only.
   static String _formatScore(double score) {
     if (score == score.roundToDouble()) return score.toInt().toString();
     return score.toStringAsFixed(1);
   }
 
+  /// Purpose: Provide the internal type label helper for this file.
+  /// Inputs: `type`, `l10n`.
+  /// Returns: `String`.
+  /// Side effects: None.
+  /// Notes: Internal helper used within this file only.
   static String _typeLabel(AnimeType type, AppLocalizations l10n) {
     switch (type) {
       case AnimeType.singleCour:
@@ -1014,6 +1084,11 @@ class ShareService {
     }
   }
 
+  /// Purpose: Provide the internal day name helper for this file.
+  /// Inputs: `dow`, `l10n`.
+  /// Returns: `String`.
+  /// Side effects: None.
+  /// Notes: Internal helper used within this file only.
   static String _dayName(int dow, AppLocalizations l10n) {
     final days = [
       '',
@@ -1028,7 +1103,11 @@ class ShareService {
     return days[dow.clamp(1, 7)];
   }
 
-  /// Count episodes that have aired as of today (JST).
+  /// Purpose: Count episodes that have aired as of today (JST).
+  /// Inputs: `anime`.
+  /// Returns: `int`.
+  /// Side effects: None.
+  /// Notes: Internal helper used within this file only. Count episodes that have aired as of today (JST).
   static int _countAiredEpisodes(Anime anime) {
     if (anime.endEpisode == null) return 0;
     if (anime.firstAirDate == null) return anime.totalEpisodes ?? 0;
@@ -1054,6 +1133,11 @@ class ShareService {
     return count;
   }
 
+  /// Purpose: Provide the internal show desktop preview helper for this file.
+  /// Inputs: `context`, `imageBytes`, `tempPath`, `l10n`, `fileName`.
+  /// Returns: None.
+  /// Side effects: None.
+  /// Notes: Internal helper used within this file only.
   static Future<void> _showDesktopPreview(
     BuildContext context,
     Uint8List imageBytes,
@@ -1124,6 +1208,11 @@ class ShareService {
     );
   }
 
+  /// Purpose: Provide the internal copy image to clipboard helper for this file.
+  /// Inputs: `imagePath`.
+  /// Returns: None.
+  /// Side effects: None.
+  /// Notes: Internal helper used within this file only.
   static Future<void> _copyImageToClipboard(String imagePath) async {
     if (Platform.isWindows) {
       await Process.run('powershell', [

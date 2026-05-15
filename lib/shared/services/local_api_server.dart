@@ -20,12 +20,46 @@ class LocalApiServer {
   static String? _password;
   static String? _lastError;
 
+  /// Purpose: Return the configured API server port.
+  /// Inputs: None.
+  /// Returns: `int`.
+  /// Side effects: None.
+  /// Notes: None.
   static int get port => _port;
+
+  /// Purpose: Return the configured API server listen address.
+  /// Inputs: None.
+  /// Returns: `String`.
+  /// Side effects: None.
+  /// Notes: None.
   static String get listenAddress => _listenAddress;
+
+  /// Purpose: Return whether the API server is enabled in saved settings.
+  /// Inputs: None.
+  /// Returns: `bool`.
+  /// Side effects: None.
+  /// Notes: None.
   static bool get enabled => _enabled;
+
+  /// Purpose: Return whether running is true.
+  /// Inputs: None.
+  /// Returns: `bool`.
+  /// Side effects: None.
+  /// Notes: None.
   static bool get isRunning => _server != null;
+
+  /// Purpose: Return the last startup or runtime error code for the API server.
+  /// Inputs: None.
+  /// Returns: `String?`.
+  /// Side effects: None.
+  /// Notes: None.
   static String? get lastError => _lastError;
 
+  /// Purpose: Load config into the current workflow or state.
+  /// Inputs: None.
+  /// Returns: None.
+  /// Side effects: May read or mutate application state, storage, or service resources.
+  /// Notes: None.
   static Future<void> loadConfig() async {
     final config = await AnimeStorage.readConfig();
     _port = config['apiPort'] as int? ?? 7788;
@@ -35,6 +69,11 @@ class LocalApiServer {
     _password = config['apiPassword'] as String?;
   }
 
+  /// Purpose: Implement the start behavior for this file.
+  /// Inputs: None.
+  /// Returns: None.
+  /// Side effects: May read or mutate application state, storage, or service resources.
+  /// Notes: None.
   static Future<void> start() async {
     await loadConfig();
     await stop();
@@ -42,9 +81,11 @@ class LocalApiServer {
     if (!_enabled) return;
 
     // Warn about missing credentials on non-loopback
-    final isNonLoopback = _listenAddress == '0.0.0.0' ||
+    final isNonLoopback =
+        _listenAddress == '0.0.0.0' ||
         (_listenAddress != 'localhost' && _listenAddress != '127.0.0.1');
-    final hasCredentials = _username != null &&
+    final hasCredentials =
+        _username != null &&
         _username!.isNotEmpty &&
         _password != null &&
         _password!.isNotEmpty;
@@ -71,16 +112,16 @@ class LocalApiServer {
       final InternetAddress bindAddress;
       if (_listenAddress == '0.0.0.0') {
         bindAddress = InternetAddress.anyIPv4;
-      } else if (_listenAddress == 'localhost' || _listenAddress == '127.0.0.1') {
+      } else if (_listenAddress == 'localhost' ||
+          _listenAddress == '127.0.0.1') {
         bindAddress = InternetAddress.loopbackIPv4;
       } else {
-        bindAddress = InternetAddress(_listenAddress, type: InternetAddressType.any);
+        bindAddress = InternetAddress(
+          _listenAddress,
+          type: InternetAddressType.any,
+        );
       }
-      _server = await shelf_io.serve(
-        handler,
-        bindAddress,
-        _port,
-      );
+      _server = await shelf_io.serve(handler, bindAddress, _port);
       // ignore: avoid_print
       print('[LocalApiServer] listening on port $_port');
     } catch (e) {
@@ -90,11 +131,21 @@ class LocalApiServer {
     }
   }
 
+  /// Purpose: Implement the stop behavior for this file.
+  /// Inputs: None.
+  /// Returns: None.
+  /// Side effects: May read or mutate application state, storage, or service resources.
+  /// Notes: None.
   static Future<void> stop() async {
     await _server?.close(force: true);
     _server = null;
   }
 
+  /// Purpose: Implement the restart behavior for this file.
+  /// Inputs: None.
+  /// Returns: None.
+  /// Side effects: May read or mutate application state, storage, or service resources.
+  /// Notes: None.
   static Future<void> restart() async {
     await loadConfig();
     await start();
@@ -102,10 +153,20 @@ class LocalApiServer {
 
   // ── Route handlers ──
 
+  /// Purpose: Provide the internal handle ping helper for this file.
+  /// Inputs: `request`.
+  /// Returns: `Future<Response>`.
+  /// Side effects: None.
+  /// Notes: Internal helper used within this file only.
   static Future<Response> _handlePing(Request request) async {
     return _json({'status': 'ok'});
   }
 
+  /// Purpose: Provide the internal handle search helper for this file.
+  /// Inputs: `request`.
+  /// Returns: `Future<Response>`.
+  /// Side effects: May perform network or file-system operations.
+  /// Notes: Internal helper used within this file only.
   static Future<Response> _handleSearch(Request request) async {
     final body = await _parseBody(request);
     if (body == null) return _error(400, 'invalid JSON body');
@@ -114,21 +175,31 @@ class LocalApiServer {
       return _error(400, 'query is required');
     }
     final results = await AnimeSearchService.searchAll(query.trim());
-    final list = results.take(5).map((r) => {
-      'source': r.source,
-      'sourceUrl': r.sourceUrl,
-      'title': r.title,
-      'titleJa': r.titleJa,
-      'episodes': r.episodes,
-      'firstAirDate': r.firstAirDate?.toIso8601String(),
-      'airDayOfWeek': r.airDayOfWeek,
-      'airTime': r.airTime,
-      'coverImageUrl': r.coverImageUrl,
-      'summary': r.summary,
-    }).toList();
+    final list = results
+        .take(5)
+        .map(
+          (r) => {
+            'source': r.source,
+            'sourceUrl': r.sourceUrl,
+            'title': r.title,
+            'titleJa': r.titleJa,
+            'episodes': r.episodes,
+            'firstAirDate': r.firstAirDate?.toIso8601String(),
+            'airDayOfWeek': r.airDayOfWeek,
+            'airTime': r.airTime,
+            'coverImageUrl': r.coverImageUrl,
+            'summary': r.summary,
+          },
+        )
+        .toList();
     return _json(list);
   }
 
+  /// Purpose: Provide the internal handle add helper for this file.
+  /// Inputs: `request`.
+  /// Returns: `Future<Response>`.
+  /// Side effects: None.
+  /// Notes: Internal helper used within this file only.
   static Future<Response> _handleAdd(Request request) async {
     final body = await _parseBody(request);
     if (body == null) return _error(400, 'invalid JSON body');
@@ -160,6 +231,11 @@ class LocalApiServer {
     });
   }
 
+  /// Purpose: Provide the internal handle list helper for this file.
+  /// Inputs: `request`.
+  /// Returns: `Future<Response>`.
+  /// Side effects: None.
+  /// Notes: Internal helper used within this file only.
   static Future<Response> _handleList(Request request) async {
     final data = await AnimeStorage.load();
     final allFiltered = _filterBySeason(data.animes, request, sample: false);
@@ -171,6 +247,11 @@ class LocalApiServer {
     });
   }
 
+  /// Purpose: Provide the internal handle unwatched helper for this file.
+  /// Inputs: `request`.
+  /// Returns: `Future<Response>`.
+  /// Side effects: None.
+  /// Notes: Internal helper used within this file only.
   static Future<Response> _handleUnwatched(Request request) async {
     final data = await AnimeStorage.load();
     final now = JstTime.now();
@@ -178,8 +259,7 @@ class LocalApiServer {
     for (final anime in data.animes) {
       final lastEp = anime.endEpisode ?? anime.startEpisode;
       for (var ep = anime.startEpisode; ep <= lastEp; ep++) {
-        final status =
-            anime.episodeStatuses[ep] ?? EpisodeStatus.unwatched;
+        final status = anime.episodeStatuses[ep] ?? EpisodeStatus.unwatched;
         if (status == EpisodeStatus.unwatched) {
           final airDate = anime.getEpisodeAirDate(ep);
           if (airDate != null && !airDate.isAfter(now)) {
@@ -203,6 +283,11 @@ class LocalApiServer {
     return _json(results);
   }
 
+  /// Purpose: Provide the internal handle history helper for this file.
+  /// Inputs: `request`.
+  /// Returns: `Future<Response>`.
+  /// Side effects: None.
+  /// Notes: Internal helper used within this file only.
   static Future<Response> _handleHistory(Request request) async {
     final data = await AnimeStorage.load();
     final allFiltered = _filterBySeason(data.animes, request, sample: false);
@@ -223,15 +308,16 @@ class LocalApiServer {
 
   // ── Helpers ──
 
-  /// Parse `?season=` query param and filter anime list.
-  ///
-  /// Values:
-  /// - absent or `current` → current JST quarter
-  /// - `YYYYQn` (e.g. `2026Q2`) → specific quarter
-  /// - `unassigned` → anime without firstAirDate
-  /// - `all` → all anime (random 40)
-  static List<Anime> _filterBySeason(List<Anime> animes, Request request,
-      {bool sample = true}) {
+  /// Purpose: Parse `?season=` query param and filter anime list.
+  /// Inputs: `animes`, `request`, `sample`.
+  /// Returns: `List<Anime>`.
+  /// Side effects: None.
+  /// Notes: Internal helper used within this file only. Parse `?season=` query param and filter anime list. Values: - absent or `current` → current JST quarter - `YYYYQn` (e.g. `2026Q2`) → specific quarter - `unassigned` → anime without firstAirDate - `all` → all anime (random 40)
+  static List<Anime> _filterBySeason(
+    List<Anime> animes,
+    Request request, {
+    bool sample = true,
+  }) {
     final season = request.url.queryParameters['season']?.trim() ?? 'current';
 
     if (season == 'all') {
@@ -262,6 +348,11 @@ class LocalApiServer {
     return animes.where((a) => a.airsInQuarter(year, quarter)).toList();
   }
 
+  /// Purpose: Provide the internal anime to json helper for this file.
+  /// Inputs: `a`.
+  /// Returns: `Map<String, dynamic>`.
+  /// Side effects: None.
+  /// Notes: Internal helper used within this file only.
   static Map<String, dynamic> _animeToJson(Anime a) {
     final nxt = a.nextUnwatchedEpisode;
     return {
@@ -286,6 +377,11 @@ class LocalApiServer {
     };
   }
 
+  /// Purpose: Provide the internal compute counts helper for this file.
+  /// Inputs: `animes`.
+  /// Returns: `Map<String, int>`.
+  /// Side effects: None.
+  /// Notes: Internal helper used within this file only.
   static Map<String, int> _computeCounts(List<Anime> animes) {
     int completed = 0, inProgress = 0, abandoned = 0, notStarted = 0;
     for (final a in animes) {
@@ -312,26 +408,50 @@ class LocalApiServer {
     };
   }
 
+  /// Purpose: Provide the internal json helper for this file.
+  /// Inputs: `data`.
+  /// Returns: `Response`.
+  /// Side effects: None.
+  /// Notes: Internal helper used within this file only.
   static Response _json(Object data) => Response.ok(
-        jsonEncode(data),
-        headers: {'Content-Type': 'application/json'},
-      );
+    jsonEncode(data),
+    headers: {'Content-Type': 'application/json'},
+  );
 
-  /// Convert a naive JST DateTime to a UTC ISO-8601 string.
+  /// Purpose: Convert a JST-naive `DateTime` into the UTC string format used by the API.
+  /// Inputs: `jst`.
+  /// Returns: `String?`.
+  /// Side effects: None.
+  /// Notes: Internal helper used within this file only.
   static String? _jstToUtcString(DateTime? jst) {
     if (jst == null) return null;
     final utc = jst.subtract(const Duration(hours: 9));
-    return DateTime.utc(utc.year, utc.month, utc.day, utc.hour, utc.minute,
-            utc.second)
-        .toIso8601String();
+    return DateTime.utc(
+      utc.year,
+      utc.month,
+      utc.day,
+      utc.hour,
+      utc.minute,
+      utc.second,
+    ).toIso8601String();
   }
 
+  /// Purpose: Provide the internal error helper for this file.
+  /// Inputs: `status`, `message`.
+  /// Returns: `Response`.
+  /// Side effects: None.
+  /// Notes: Internal helper used within this file only.
   static Response _error(int status, String message) => Response(
-        status,
-        body: jsonEncode({'error': message}),
-        headers: {'Content-Type': 'application/json'},
-      );
+    status,
+    body: jsonEncode({'error': message}),
+    headers: {'Content-Type': 'application/json'},
+  );
 
+  /// Purpose: Provide the internal parse body helper for this file.
+  /// Inputs: `request`.
+  /// Returns: `Future<Map<String, dynamic>?>`.
+  /// Side effects: None.
+  /// Notes: Internal helper used within this file only.
   static Future<Map<String, dynamic>?> _parseBody(Request request) async {
     try {
       final raw = await request.readAsString();
@@ -344,6 +464,11 @@ class LocalApiServer {
 
   // ── Middleware ──
 
+  /// Purpose: Provide the internal cors middleware helper for this file.
+  /// Inputs: None.
+  /// Returns: `Middleware`.
+  /// Side effects: None.
+  /// Notes: Internal helper used within this file only.
   static Middleware _corsMiddleware() {
     return (Handler innerHandler) {
       return (Request request) async {
@@ -362,6 +487,11 @@ class LocalApiServer {
     'Access-Control-Allow-Headers': 'Content-Type, Authorization',
   };
 
+  /// Purpose: Provide the internal auth middleware helper for this file.
+  /// Inputs: None.
+  /// Returns: `Middleware`.
+  /// Side effects: None.
+  /// Notes: Internal helper used within this file only.
   static Middleware _authMiddleware() {
     return (Handler innerHandler) {
       return (Request request) async {
@@ -373,15 +503,21 @@ class LocalApiServer {
 
         // Auth required if credentials are configured and request is not from loopback
         final hasCredentials =
-            _username != null && _username!.isNotEmpty &&
-            _password != null && _password!.isNotEmpty;
+            _username != null &&
+            _username!.isNotEmpty &&
+            _password != null &&
+            _password!.isNotEmpty;
         if (!isLoopback && !hasCredentials) {
-          return _error(403, 'authentication required for non-localhost access');
+          return _error(
+            403,
+            'authentication required for non-localhost access',
+          );
         }
         if (hasCredentials && !isLoopback) {
           final authHeader = request.headers['authorization'];
           if (authHeader == null || !_validateBasicAuth(authHeader)) {
-            return Response(401,
+            return Response(
+              401,
               body: jsonEncode({'error': 'unauthorized'}),
               headers: {
                 'Content-Type': 'application/json',
@@ -395,6 +531,11 @@ class LocalApiServer {
     };
   }
 
+  /// Purpose: Provide the internal validate basic auth helper for this file.
+  /// Inputs: `header`.
+  /// Returns: `bool`.
+  /// Side effects: None.
+  /// Notes: Internal helper used within this file only.
   static bool _validateBasicAuth(String header) {
     if (!header.startsWith('Basic ')) return false;
     try {
@@ -407,6 +548,11 @@ class LocalApiServer {
     }
   }
 
+  /// Purpose: Provide the internal error middleware helper for this file.
+  /// Inputs: None.
+  /// Returns: `Middleware`.
+  /// Side effects: None.
+  /// Notes: Internal helper used within this file only.
   static Middleware _errorMiddleware() {
     return (Handler innerHandler) {
       return (Request request) async {

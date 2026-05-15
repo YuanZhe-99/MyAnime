@@ -4,6 +4,11 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:my_anime/features/anime/models/anime.dart';
 import 'package:my_anime/shared/services/sync_merge.dart';
 
+/// Purpose: Initialize startup services and launch the app entry point.
+/// Inputs: None.
+/// Returns: None.
+/// Side effects: None.
+/// Notes: None.
 void main() {
   const createdAt = '2026-01-01T00:00:00.000Z';
   const modifiedAt = '2026-01-02T00:00:00.000Z';

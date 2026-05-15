@@ -4,11 +4,26 @@
 
 #include "flutter/generated_plugin_registrant.h"
 
+// Purpose: Create a Flutter window wrapper bound to the provided Dart project.
+// Inputs: `project`.
+// Returns: None.
+// Side effects: Stores the project configuration for later window creation.
+// Notes: The hosted Flutter controller is created later in `OnCreate`.
 FlutterWindow::FlutterWindow(const flutter::DartProject& project)
     : project_(project) {}
 
+// Purpose: Destroy the Flutter window wrapper.
+// Inputs: None.
+// Returns: None.
+// Side effects: None.
+// Notes: Cleanup is handled by the owning Win32 window lifecycle.
 FlutterWindow::~FlutterWindow() {}
 
+// Purpose: Create the native Flutter view controller and attach it to the window.
+// Inputs: None.
+// Returns: `true` on success, otherwise `false`.
+// Side effects: Registers plugins, hosts the Flutter view, and shows the window after the first frame.
+// Notes: Forces a redraw so the window is shown even if the first frame finishes very quickly.
 bool FlutterWindow::OnCreate() {
   if (!Win32Window::OnCreate()) {
     return false;
@@ -39,6 +54,11 @@ bool FlutterWindow::OnCreate() {
   return true;
 }
 
+// Purpose: Release the hosted Flutter controller before the base window tears down.
+// Inputs: None.
+// Returns: None.
+// Side effects: Destroys the hosted Flutter view controller.
+// Notes: Called from the Win32 window destruction path.
 void FlutterWindow::OnDestroy() {
   if (flutter_controller_) {
     flutter_controller_ = nullptr;
@@ -47,6 +67,11 @@ void FlutterWindow::OnDestroy() {
   Win32Window::OnDestroy();
 }
 
+// Purpose: Let Flutter process top-level window messages before falling back to Win32 defaults.
+// Inputs: `hwnd`, `message`, `wparam`, `lparam`.
+// Returns: The handled window message result.
+// Side effects: May forward messages into Flutter and reload system fonts on font changes.
+// Notes: Only unhandled messages continue to the base `Win32Window` handler.
 LRESULT
 FlutterWindow::MessageHandler(HWND hwnd, UINT const message,
                               WPARAM const wparam,

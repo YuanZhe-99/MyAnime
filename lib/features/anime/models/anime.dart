@@ -33,6 +33,11 @@ const _ratingJsonKeys = {
 
 const _animeDataJsonKeys = {'animes'};
 
+/// Purpose: Provide the internal unknown json helper for this file.
+/// Inputs: `json`, `knownKeys`.
+/// Returns: `Map<String, dynamic>`.
+/// Side effects: None.
+/// Notes: Internal helper used within this file only.
 Map<String, dynamic> _unknownJson(
   Map<String, dynamic> json,
   Set<String> knownKeys,
@@ -42,10 +47,20 @@ Map<String, dynamic> _unknownJson(
   return extra;
 }
 
+/// Purpose: Provide the internal string keyed map helper for this file.
+/// Inputs: `map`.
+/// Returns: `Map<String, dynamic>`.
+/// Side effects: None.
+/// Notes: Internal helper used within this file only.
 Map<String, dynamic> _stringKeyedMap(Map<dynamic, dynamic> map) => {
   for (final entry in map.entries) entry.key.toString(): entry.value,
 };
 
+/// Purpose: Provide the internal merge json maps helper for this file.
+/// Inputs: `maps`.
+/// Returns: `Map<String, dynamic>`.
+/// Side effects: None.
+/// Notes: Internal helper used within this file only.
 Map<String, dynamic> _mergeJsonMaps(Iterable<Map<String, dynamic>> maps) {
   final merged = <String, dynamic>{};
   for (final map in maps) {
@@ -65,6 +80,11 @@ Map<String, dynamic> _mergeJsonMaps(Iterable<Map<String, dynamic>> maps) {
   return merged;
 }
 
+/// Purpose: Provide the internal parse anime type helper for this file.
+/// Inputs: `value`.
+/// Returns: `AnimeType?`.
+/// Side effects: None.
+/// Notes: Internal helper used within this file only.
 AnimeType? _parseAnimeType(Object? value) {
   if (value is! String) return null;
   for (final type in AnimeType.values) {
@@ -73,6 +93,11 @@ AnimeType? _parseAnimeType(Object? value) {
   return null;
 }
 
+/// Purpose: Provide the internal parse episode status helper for this file.
+/// Inputs: `value`.
+/// Returns: `EpisodeStatus?`.
+/// Side effects: None.
+/// Notes: Internal helper used within this file only.
 EpisodeStatus? _parseEpisodeStatus(Object? value) {
   if (value is! String) return null;
   for (final status in EpisodeStatus.values) {
@@ -118,6 +143,11 @@ class AnimeRating {
   /// JSON fields this app version does not understand yet.
   final Map<String, dynamic> extraJson;
 
+  /// Purpose: Create a anime rating instance.
+  /// Inputs: `overall`, `visual`, `story`, `character`, `music`, `enjoyment`, `extraJson`.
+  /// Returns: A new `AnimeRating` instance.
+  /// Side effects: None.
+  /// Notes: None.
   const AnimeRating({
     this.overall,
     this.visual,
@@ -128,8 +158,18 @@ class AnimeRating {
     this.extraJson = const {},
   });
 
+  /// Purpose: Return the current manual overall value.
+  /// Inputs: None.
+  /// Returns: `bool`.
+  /// Side effects: None.
+  /// Notes: None.
   bool get hasManualOverall => overall != null;
 
+  /// Purpose: Return the current any score value.
+  /// Inputs: None.
+  /// Returns: `bool`.
+  /// Side effects: None.
+  /// Notes: None.
   bool get hasAnyScore =>
       overall != null ||
       visual != null ||
@@ -138,8 +178,18 @@ class AnimeRating {
       music != null ||
       enjoyment != null;
 
+  /// Purpose: Return the current any data value.
+  /// Inputs: None.
+  /// Returns: `bool`.
+  /// Side effects: None.
+  /// Notes: None.
   bool get hasAnyData => hasAnyScore || extraJson.isNotEmpty;
 
+  /// Purpose: Implement the effective overall behavior for this file.
+  /// Inputs: None.
+  /// Returns: `double?`.
+  /// Side effects: None.
+  /// Notes: None.
   double? get effectiveOverall {
     if (overall != null) return overall;
     final scores = [
@@ -154,6 +204,11 @@ class AnimeRating {
     return sum / scores.length;
   }
 
+  /// Purpose: Implement the score for behavior for this file.
+  /// Inputs: `field`.
+  /// Returns: `double?`.
+  /// Side effects: None.
+  /// Notes: None.
   double? scoreFor(AnimeRatingField field) {
     switch (field) {
       case AnimeRatingField.overall:
@@ -171,6 +226,11 @@ class AnimeRating {
     }
   }
 
+  /// Purpose: Create a copy with extra json.
+  /// Inputs: `extraJson`.
+  /// Returns: `AnimeRating`.
+  /// Side effects: None.
+  /// Notes: None.
   AnimeRating withExtraJson(Map<String, dynamic> extraJson) => AnimeRating(
     overall: overall,
     visual: visual,
@@ -181,6 +241,11 @@ class AnimeRating {
     extraJson: extraJson,
   );
 
+  /// Purpose: Serialize this value into a JSON-compatible map.
+  /// Inputs: None.
+  /// Returns: `Map<String, dynamic>`.
+  /// Side effects: None.
+  /// Notes: None.
   Map<String, dynamic> toJson() {
     final json = Map<String, dynamic>.from(extraJson);
     _writeScore(json, 'overall', overall);
@@ -192,6 +257,11 @@ class AnimeRating {
     return json;
   }
 
+  /// Purpose: Create an instance from a JSON-compatible map.
+  /// Inputs: `json`.
+  /// Returns: A new `AnimeRating.fromJson` instance.
+  /// Side effects: None.
+  /// Notes: None.
   factory AnimeRating.fromJson(Map<String, dynamic> json) {
     final extraJson = _unknownJson(json, _ratingJsonKeys);
 
@@ -215,11 +285,21 @@ class AnimeRating {
   }
 }
 
+/// Purpose: Provide the internal parse score helper for this file.
+/// Inputs: `value`.
+/// Returns: `double?`.
+/// Side effects: None.
+/// Notes: Internal helper used within this file only.
 double? _parseScore(Object? value) {
   if (value is num) return value.toDouble();
   return null;
 }
 
+/// Purpose: Provide the internal write score helper for this file.
+/// Inputs: `json`, `key`, `score`.
+/// Returns: None.
+/// Side effects: None.
+/// Notes: Internal helper used within this file only.
 void _writeScore(Map<String, dynamic> json, String key, double? score) {
   if (score != null) {
     json[key] = score;
@@ -293,6 +373,11 @@ class Anime {
   /// written by newer versions during normal edits or sync.
   final Map<String, dynamic> extraJson;
 
+  /// Purpose: Create a anime instance.
+  /// Inputs: `id`, `title`, `titleJa`, `season`, `startEpisode`, `endEpisode`, `manualType`, `airDayOfWeek`, `airTime`, `firstAirDate`, `episodeStatuses`, `coverImage`, `infoUrl`, `watchUrl`, `episodeWeekOffsets`, `notes`, `rating`, `createdAt`, `modifiedAt`, `extraJson`.
+  /// Returns: A new `Anime` instance.
+  /// Side effects: None.
+  /// Notes: None.
   const Anime({
     required this.id,
     this.title,
@@ -316,16 +401,28 @@ class Anime {
     this.extraJson = const {},
   });
 
-  /// The display title: title ?? titleJa ?? ''.
+  /// Purpose: Return the best available title for display.
+  /// Inputs: None.
+  /// Returns: `String`.
+  /// Side effects: None.
+  /// Notes: Prefers `title`, then `titleJa`, and falls back to an empty string.
   String get displayTitle => title?.isNotEmpty == true
       ? title!
       : (titleJa?.isNotEmpty == true ? titleJa! : '');
 
-  /// Total episode count, or null if long-running.
+  /// Purpose: Return the total episode count when the ending episode is known.
+  /// Inputs: None.
+  /// Returns: `int?`.
+  /// Side effects: None.
+  /// Notes: Returns `null` for long-running or open-ended series.
   int? get totalEpisodes =>
       endEpisode != null ? endEpisode! - startEpisode + 1 : null;
 
-  /// Auto-detected type based on episode count.
+  /// Purpose: Infer the anime type from the current episode count.
+  /// Inputs: None.
+  /// Returns: `AnimeType`.
+  /// Side effects: None.
+  /// Notes: Only reflects automatic detection and does not apply the manual override.
   AnimeType get autoType {
     final total = totalEpisodes;
     if (total == null) return AnimeType.longRunning;
@@ -335,29 +432,21 @@ class Anime {
     return AnimeType.longRunning;
   }
 
-  /// Effective type: manual override always wins when set.
+  /// Purpose: Return the anime type that should drive app behavior.
+  /// Inputs: None.
+  /// Returns: `AnimeType`.
+  /// Side effects: None.
+  /// Notes: Uses `manualType` when present and otherwise falls back to `autoType`.
   AnimeType get effectiveType {
     if (manualType != null) return manualType!;
     return autoType;
   }
 
-  /// Whether this anime airs in a given season quarter (1-4).
-  ///
-  /// When [manualType] is set, the anime spans a fixed number of consecutive
-  /// quarters from its start quarter (Japanese anime cour convention):
-  ///   - allAtOnce / singleCour → 1 quarter
-  ///   - halfYear (2クール) → 2 quarters
-  ///   - fullYear (4クール) → 4 quarters
-  ///   - longRunning → falls through to week-based estimation
-  ///
-  /// When no manual type is set, the actual run duration is calculated from
-  /// episode count + [episodeWeekOffsets], then mapped to cour boundaries:
-  ///   - ≤13 weeks → 1 quarter
-  ///   - ≤26 weeks → 2 quarters
-  ///   - ≤52 weeks → 4 quarters
-  ///
-  /// For long-running anime (no end episode), falls back to date overlap
-  /// estimation.
+  /// Purpose: Determine whether this anime should appear in the requested quarter.
+  /// Inputs: `year`, `quarter`.
+  /// Returns: `bool`.
+  /// Side effects: None.
+  /// Notes: Manual type overrides use cour-style spans; otherwise the method estimates quarter coverage from episode count, offsets, and fallback date overlap.
   bool airsInQuarter(int year, int quarter) {
     if (firstAirDate == null) return false;
 
@@ -418,8 +507,11 @@ class Anime {
         estimatedEnd.isAfter(quarterStart);
   }
 
-  /// The season quarter this anime starts in.
-  /// Returns (year, quarterStartMonth).
+  /// Purpose: Return the starting broadcast quarter for this anime.
+  /// Inputs: None.
+  /// Returns: `(int, int)?`.
+  /// Side effects: None.
+  /// Notes: Returns `(year, quarter)` when `firstAirDate` is known.
   (int, int)? get startQuarter {
     if (firstAirDate == null) return null;
     final month = firstAirDate!.month;
@@ -430,7 +522,11 @@ class Anime {
     return (year, 4);
   }
 
-  /// Get the total week offset for a specific episode from [episodeWeekOffsets].
+  /// Purpose: Sum all configured week adjustments that affect the requested episode.
+  /// Inputs: `episodeNumber`.
+  /// Returns: `int`.
+  /// Side effects: None.
+  /// Notes: Uses cumulative offsets from every entry whose key is less than or equal to the episode number.
   int weekOffsetFor(int episodeNumber) {
     int offset = 0;
     for (final entry in episodeWeekOffsets.entries) {
@@ -439,8 +535,11 @@ class Anime {
     return offset;
   }
 
-  /// Get the air DateTime for a specific episode (in Japan time).
-  /// Returns null if not enough info to calculate.
+  /// Purpose: Compute the JST air timestamp for the requested episode when scheduling data is complete.
+  /// Inputs: `episodeNumber`.
+  /// Returns: `DateTime?`.
+  /// Side effects: None.
+  /// Notes: Returns `null` when the anime lacks enough timing data to calculate the episode air time.
   DateTime? getEpisodeAirDate(int episodeNumber) {
     if (firstAirDate == null) return null;
     if (effectiveType == AnimeType.allAtOnce) return firstAirDate;
@@ -480,9 +579,11 @@ class Anime {
     return airDate;
   }
 
-  /// Get the calendar date (date-only) for a specific episode.
-  /// Unlike [getEpisodeAirDate], this always returns the date corresponding
-  /// to [airDayOfWeek], even for late-night times like 24:00 or 25:00.
+  /// Purpose: Compute the JST calendar date for the requested episode without applying late-night rollover.
+  /// Inputs: `episodeNumber`.
+  /// Returns: `DateTime?`.
+  /// Side effects: None.
+  /// Notes: Unlike `getEpisodeAirDate`, this stays on the scheduled broadcast date even for `24:00` or `25:00` times.
   DateTime? getEpisodeCalendarDate(int episodeNumber) {
     if (firstAirDate == null) return null;
     if (effectiveType == AnimeType.allAtOnce) {
@@ -506,7 +607,11 @@ class Anime {
     return DateTime(dayDate.year, dayDate.month, dayDate.day);
   }
 
-  /// Get the next unwatched episode number, or null if all watched.
+  /// Purpose: Return the first episode number that is still unwatched.
+  /// Inputs: None.
+  /// Returns: `int?`.
+  /// Side effects: None.
+  /// Notes: Returns `null` when every tracked episode is already watched or skipped.
   int? get nextUnwatchedEpisode {
     final end = endEpisode ?? (startEpisode + 999);
     for (int ep = startEpisode; ep <= end; ep++) {
@@ -518,7 +623,11 @@ class Anime {
     return null;
   }
 
-  /// Whether all episodes have been watched.
+  /// Purpose: Whether all episodes have been watched.
+  /// Inputs: None.
+  /// Returns: `bool`.
+  /// Side effects: None.
+  /// Notes: Whether all episodes have been watched.
   bool get isCompleted {
     if (endEpisode == null) return false;
     for (int ep = startEpisode; ep <= endEpisode!; ep++) {
@@ -527,6 +636,11 @@ class Anime {
     return true;
   }
 
+  /// Purpose: Create a copy with selected fields replaced.
+  /// Inputs: `title`, `titleJa`, `season`, `startEpisode`, `endEpisode`, `clearEndEpisode`, `manualType`, `clearManualType`, `airDayOfWeek`, `clearAirDayOfWeek`, `airTime`, `clearAirTime`, `firstAirDate`, `clearFirstAirDate`, `episodeStatuses`, `coverImage`, `clearCoverImage`, `infoUrl`, `clearInfoUrl`, `watchUrl`, `clearWatchUrl`, `episodeWeekOffsets`, `notes`, `clearNotes`, `rating`, `clearRating`, `modifiedAt`.
+  /// Returns: `Anime`.
+  /// Side effects: None.
+  /// Notes: None.
   Anime copyWith({
     String? title,
     String? titleJa,
@@ -584,6 +698,11 @@ class Anime {
     );
   }
 
+  /// Purpose: Create a copy with extra json.
+  /// Inputs: `extraJson`.
+  /// Returns: `Anime`.
+  /// Side effects: None.
+  /// Notes: None.
   Anime withExtraJson(Map<String, dynamic> extraJson) => Anime(
     id: id,
     title: title,
@@ -607,6 +726,11 @@ class Anime {
     extraJson: extraJson,
   );
 
+  /// Purpose: Create a copy with preserved unknown json.
+  /// Inputs: `fallbackSources`.
+  /// Returns: `Anime`.
+  /// Side effects: None.
+  /// Notes: None.
   Anime withPreservedUnknownJson(Iterable<Anime?> fallbackSources) {
     final sources = fallbackSources.toList();
     final mergedRatingExtraJson = _mergeJsonMaps([
@@ -648,6 +772,11 @@ class Anime {
     );
   }
 
+  /// Purpose: Serialize this value into a JSON-compatible map.
+  /// Inputs: None.
+  /// Returns: `Map<String, dynamic>`.
+  /// Side effects: None.
+  /// Notes: None.
   Map<String, dynamic> toJson() {
     final json = Map<String, dynamic>.from(extraJson);
 
@@ -744,6 +873,11 @@ class Anime {
     return json;
   }
 
+  /// Purpose: Create an instance from a JSON-compatible map.
+  /// Inputs: `json`.
+  /// Returns: A new `Anime.fromJson` instance.
+  /// Side effects: None.
+  /// Notes: None.
   factory Anime.fromJson(Map<String, dynamic> json) {
     final extraJson = _unknownJson(json, _animeJsonKeys);
 
@@ -829,7 +963,11 @@ class Anime {
     );
   }
 
-  /// Create a new Anime with sensible defaults.
+  /// Purpose: Create a new anime record with default values for manual entry.
+  /// Inputs: `title`, `titleJa`, `season`, `startEpisode`, `endEpisode`, `manualType`, `airDayOfWeek`, `airTime`, `firstAirDate`, `coverImage`, `infoUrl`, `watchUrl`, `notes`, `rating`.
+  /// Returns: A new `Anime.create` instance.
+  /// Side effects: None.
+  /// Notes: Generates a new UUID and initializes UTC creation and modification timestamps.
   factory Anime.create({
     String? title,
     String? titleJa,
@@ -874,13 +1012,28 @@ class AnimeData {
   final List<Anime> animes;
   final Map<String, dynamic> extraJson;
 
+  /// Purpose: Implement the anime list behavior for this file.
+  /// Inputs: None.
+  /// Returns: `List<Anime>`.
+  /// Side effects: None.
+  /// Notes: None.
   List<Anime> get animeList => animes;
 
   const AnimeData({this.animes = const [], this.extraJson = const {}});
 
+  /// Purpose: Create a copy with extra json.
+  /// Inputs: `extraJson`.
+  /// Returns: `AnimeData`.
+  /// Side effects: None.
+  /// Notes: None.
   AnimeData withExtraJson(Map<String, dynamic> extraJson) =>
       AnimeData(animes: animes, extraJson: extraJson);
 
+  /// Purpose: Create a copy with preserved unknown json.
+  /// Inputs: `fallbackSources`.
+  /// Returns: `AnimeData`.
+  /// Side effects: None.
+  /// Notes: None.
   AnimeData withPreservedUnknownJson(Iterable<AnimeData?> fallbackSources) =>
       withExtraJson(
         _mergeJsonMaps([
@@ -890,11 +1043,21 @@ class AnimeData {
         ]),
       );
 
+  /// Purpose: Serialize this value into a JSON-compatible map.
+  /// Inputs: None.
+  /// Returns: `Map<String, dynamic>`.
+  /// Side effects: None.
+  /// Notes: None.
   Map<String, dynamic> toJson() => {
     ...extraJson,
     'animes': animes.map((a) => a.toJson()).toList(),
   };
 
+  /// Purpose: Create an instance from a JSON-compatible map.
+  /// Inputs: `json`.
+  /// Returns: A new `AnimeData.fromJson` instance.
+  /// Side effects: None.
+  /// Notes: None.
   factory AnimeData.fromJson(Map<String, dynamic> json) {
     final list =
         (json['animes'] as List<dynamic>?)

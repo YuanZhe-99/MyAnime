@@ -1,6 +1,11 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 
+/// Purpose: Initialize startup services and launch the app entry point.
+/// Inputs: None.
+/// Returns: None.
+/// Side effects: None.
+/// Notes: None.
 void main() async {
   print('=== SEASON PAGE JSON-LD ===');
   final seasonResp = await http.get(
@@ -11,7 +16,10 @@ void main() async {
   final sBody = seasonResp.body;
 
   // Extract JSON-LD
-  final ldPattern = RegExp(r'<script[^>]*type="application/ld\+json"[^>]*>(.*?)</script>', dotAll: true);
+  final ldPattern = RegExp(
+    r'<script[^>]*type="application/ld\+json"[^>]*>(.*?)</script>',
+    dotAll: true,
+  );
   for (final m in ldPattern.allMatches(sBody)) {
     final jsonStr = m.group(1)!;
     try {
@@ -37,11 +45,13 @@ void main() async {
     } catch (e) {
       print('JSON parse error: $e');
       // Still show a snippet
-      print('JSON snippet: ${jsonStr.substring(0, 500.clamp(0, jsonStr.length))}');
+      print(
+        'JSON snippet: ${jsonStr.substring(0, 500.clamp(0, jsonStr.length))}',
+      );
     }
   }
 
-  // Also test: can we parse the HTML for anime_name divs?  
+  // Also test: can we parse the HTML for anime_name divs?
   print('\n\n=== HTML anime_name divs ===');
   final nameRegex = RegExp(r'<div class="anime_name">([^<]+)</div>');
   int count = 0;
@@ -50,6 +60,3 @@ void main() async {
     print('anime_name: ${m.group(1)}');
   }
 }
-
-
-

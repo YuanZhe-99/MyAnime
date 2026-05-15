@@ -7,6 +7,11 @@
 
 import 'package:flutter_test/flutter_test.dart';
 
+/// Purpose: Initialize startup services and launch the app entry point.
+/// Inputs: None.
+/// Returns: None.
+/// Side effects: None.
+/// Notes: None.
 void main() {
   testWidgets('App smoke test', (WidgetTester tester) async {
     // Placeholder for integration tests

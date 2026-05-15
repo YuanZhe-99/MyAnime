@@ -20,6 +20,11 @@ class AnimeStorage {
   /// Whether config has been loaded from disk.
   static bool _configLoaded = false;
 
+  /// Purpose: Provide the internal get default app dir helper for this file.
+  /// Inputs: None.
+  /// Returns: `Future<Directory>`.
+  /// Side effects: None.
+  /// Notes: Internal helper used within this file only.
   static Future<Directory> _getDefaultAppDir() async {
     final dir = await getApplicationDocumentsDirectory();
     final appDir = Directory(p.join(dir.path, 'MyAnime'));
@@ -29,13 +34,21 @@ class AnimeStorage {
     return appDir;
   }
 
-  /// Config file always lives in the default location.
+  /// Purpose: Config file always lives in the default location.
+  /// Inputs: None.
+  /// Returns: `Future<File>`.
+  /// Side effects: None.
+  /// Notes: Internal helper used within this file only. Config file always lives in the default location.
   static Future<File> _getConfigFile() async {
     final dir = await _getDefaultAppDir();
     return File(p.join(dir.path, _configFileName));
   }
 
-  /// Load the storage path from config file (once).
+  /// Purpose: Load the storage path from config file (once).
+  /// Inputs: None.
+  /// Returns: None.
+  /// Side effects: May read or mutate application state, storage, or service resources.
+  /// Notes: Internal helper used within this file only. Load the storage path from config file (once).
   static Future<void> _loadConfig() async {
     if (_configLoaded) return;
     try {
@@ -49,6 +62,11 @@ class AnimeStorage {
     _configLoaded = true;
   }
 
+  /// Purpose: Return the current app dir value.
+  /// Inputs: None.
+  /// Returns: `Future<Directory>`.
+  /// Side effects: None.
+  /// Notes: None.
   static Future<Directory> getAppDir() async {
     await _loadConfig();
     if (_customPath != null && _customPath!.isNotEmpty) {
@@ -61,24 +79,38 @@ class AnimeStorage {
     return _getDefaultAppDir();
   }
 
+  /// Purpose: Provide the internal get file helper for this file.
+  /// Inputs: `name`.
+  /// Returns: `Future<File>`.
+  /// Side effects: None.
+  /// Notes: Internal helper used within this file only.
   static Future<File> _getFile(String name) async {
     final appDir = await getAppDir();
     return File(p.join(appDir.path, name));
   }
 
-  /// Get the data file for direct access (e.g. password verification).
+  /// Purpose: Return the main anime data file for direct low-level access.
+  /// Inputs: None.
+  /// Returns: `Future<File>`.
+  /// Side effects: None.
+  /// Notes: Useful for flows that need the file path instead of serialized model data.
   static Future<File> getDataFile() => _getFile(_dataFileName);
 
-  /// Get the storage directory path for display.
+  /// Purpose: Return the active storage directory path for UI display.
+  /// Inputs: None.
+  /// Returns: `Future<String>`.
+  /// Side effects: None.
+  /// Notes: Respects the configured custom storage path when one is set.
   static Future<String> getStoragePath() async {
     final appDir = await getAppDir();
     return appDir.path;
   }
 
-  /// Set a custom storage directory path.
-  /// Pass null to reset to default.
-  /// If the new path already has data files, uses those;
-  /// otherwise moves existing data files to the new location.
+  /// Purpose: Update the custom storage directory and migrate managed files when needed.
+  /// Inputs: `newPath`.
+  /// Returns: `Future<bool>`.
+  /// Side effects: May read or mutate application state, storage, or service resources.
+  /// Notes: Passing `null` resets to the default location; existing destination data wins over migrated files.
   static Future<bool> setStoragePath(String? newPath) async {
     try {
       final oldDir = await getAppDir();
@@ -112,6 +144,11 @@ class AnimeStorage {
 
   // ── Data persistence ──
 
+  /// Purpose: Implement the load behavior for this file.
+  /// Inputs: None.
+  /// Returns: `Future<AnimeData>`.
+  /// Side effects: May read or mutate application state, storage, or service resources.
+  /// Notes: None.
   static Future<AnimeData> load() async {
     final file = await _getFile(_dataFileName);
     if (!await file.exists()) return const AnimeData();
@@ -121,6 +158,11 @@ class AnimeStorage {
     return AnimeData.fromJson(json);
   }
 
+  /// Purpose: Implement the save behavior for this file.
+  /// Inputs: `data`.
+  /// Returns: None.
+  /// Side effects: May read or mutate application state, storage, or service resources.
+  /// Notes: None.
   static Future<void> save(AnimeData data) async {
     final file = await _getFile(_dataFileName);
     final jsonStr = const JsonEncoder.withIndent('  ').convert(data.toJson());
@@ -130,6 +172,11 @@ class AnimeStorage {
 
   // ── CRUD operations ──
 
+  /// Purpose: Implement the add or update behavior for this file.
+  /// Inputs: `anime`.
+  /// Returns: None.
+  /// Side effects: May read or mutate application state, storage, or service resources.
+  /// Notes: None.
   static Future<void> addOrUpdate(Anime anime) async {
     final data = await load();
     final list = List<Anime>.of(data.animes);
@@ -142,6 +189,11 @@ class AnimeStorage {
     await save(AnimeData(animes: list));
   }
 
+  /// Purpose: Delete anime from the relevant storage or state.
+  /// Inputs: `id`.
+  /// Returns: None.
+  /// Side effects: May read or mutate application state, storage, or service resources.
+  /// Notes: None.
   static Future<void> deleteAnime(String id) async {
     final data = await load();
     final list = data.animes.where((a) => a.id != id).toList();
@@ -150,6 +202,11 @@ class AnimeStorage {
 
   // ── Config persistence ──
 
+  /// Purpose: Implement the read config behavior for this file.
+  /// Inputs: None.
+  /// Returns: `Future<Map<String, dynamic>>`.
+  /// Side effects: None.
+  /// Notes: None.
   static Future<Map<String, dynamic>> readConfig() async {
     final file = await _getConfigFile();
     if (!await file.exists()) return {};
@@ -158,6 +215,11 @@ class AnimeStorage {
     return jsonDecode(raw) as Map<String, dynamic>;
   }
 
+  /// Purpose: Implement the write config behavior for this file.
+  /// Inputs: `config`.
+  /// Returns: None.
+  /// Side effects: None.
+  /// Notes: None.
   static Future<void> writeConfig(Map<String, dynamic> config) async {
     final file = await _getConfigFile();
     await file.writeAsString(
@@ -165,11 +227,21 @@ class AnimeStorage {
     );
   }
 
+  /// Purpose: Return the current theme mode value.
+  /// Inputs: None.
+  /// Returns: `Future<String?>`.
+  /// Side effects: None.
+  /// Notes: None.
   static Future<String?> getThemeMode() async {
     final config = await readConfig();
     return config['themeMode'] as String?;
   }
 
+  /// Purpose: Update theme mode with the provided value.
+  /// Inputs: `mode`.
+  /// Returns: None.
+  /// Side effects: None.
+  /// Notes: None.
   static Future<void> setThemeMode(String? mode) async {
     final config = await readConfig();
     if (mode == null) {
@@ -180,11 +252,21 @@ class AnimeStorage {
     await writeConfig(config);
   }
 
+  /// Purpose: Return the current locale tag value.
+  /// Inputs: None.
+  /// Returns: `Future<String?>`.
+  /// Side effects: None.
+  /// Notes: None.
   static Future<String?> getLocaleTag() async {
     final config = await readConfig();
     return config['locale'] as String?;
   }
 
+  /// Purpose: Update locale tag with the provided value.
+  /// Inputs: `tag`.
+  /// Returns: None.
+  /// Side effects: None.
+  /// Notes: None.
   static Future<void> setLocaleTag(String? tag) async {
     final config = await readConfig();
     if (tag == null) {

@@ -15,10 +15,13 @@ class BackupService {
   static DateTime? _lastAutoBackup;
 
   /// Data module identifiers used for per-module restore.
-  static const modules = <String, String>{
-    'anime_data.json': 'anime',
-  };
+  static const modules = <String, String>{'anime_data.json': 'anime'};
 
+  /// Purpose: Provide the internal get backup dir helper for this file.
+  /// Inputs: None.
+  /// Returns: `Future<Directory>`.
+  /// Side effects: None.
+  /// Notes: Internal helper used within this file only.
   static Future<Directory> _getBackupDir() async {
     final appDir = await AnimeStorage.getAppDir();
     final dir = Directory(p.join(appDir.path, _backupDir));
@@ -28,14 +31,22 @@ class BackupService {
     return dir;
   }
 
-  /// Load backup settings from config.
+  /// Purpose: Load backup settings from config.
+  /// Inputs: None.
+  /// Returns: None.
+  /// Side effects: May read or mutate application state, storage, or service resources.
+  /// Notes: Load backup settings from config.
   static Future<void> loadSettings() async {
     final config = await AnimeStorage.readConfig();
     autoBackupEnabled = config['autoBackupEnabled'] as bool? ?? false;
     retentionDays = config['backupRetentionDays'] as int? ?? 0;
   }
 
-  /// Save backup settings to config.
+  /// Purpose: Save backup settings to config.
+  /// Inputs: None.
+  /// Returns: None.
+  /// Side effects: May read or mutate application state, storage, or service resources.
+  /// Notes: Save backup settings to config.
   static Future<void> saveSettings() async {
     final config = await AnimeStorage.readConfig();
     config['autoBackupEnabled'] = autoBackupEnabled;
@@ -43,7 +54,11 @@ class BackupService {
     await AnimeStorage.writeConfig(config);
   }
 
-  /// Create a backup now. Returns the backup file, or null on failure.
+  /// Purpose: Create a backup now. Returns the backup file, or null on failure.
+  /// Inputs: None.
+  /// Returns: `Future<File?>`.
+  /// Side effects: None.
+  /// Notes: Create a backup now. Returns the backup file, or null on failure.
   static Future<File?> createBackup() async {
     try {
       final appDir = await AnimeStorage.getAppDir();
@@ -83,7 +98,11 @@ class BackupService {
     }
   }
 
-  /// Run auto-backup if enabled and not yet done today.
+  /// Purpose: Run auto-backup if enabled and not yet done today.
+  /// Inputs: None.
+  /// Returns: None.
+  /// Side effects: None.
+  /// Notes: Run auto-backup if enabled and not yet done today.
   static Future<void> runAutoBackupIfNeeded() async {
     await loadSettings();
     if (!autoBackupEnabled) return;
@@ -116,7 +135,11 @@ class BackupService {
     _lastAutoBackup = now;
   }
 
-  /// List all backups sorted by date descending.
+  /// Purpose: List all backups sorted by date descending.
+  /// Inputs: None.
+  /// Returns: `Future<List<BackupInfo>>`.
+  /// Side effects: None.
+  /// Notes: List all backups sorted by date descending.
   static Future<List<BackupInfo>> listBackups() async {
     final backupDir = await _getBackupDir();
     if (!await backupDir.exists()) return [];
@@ -135,18 +158,18 @@ class BackupService {
         } catch (_) {
           date = stat.modified;
         }
-        files.add(BackupInfo(
-          file: entity,
-          date: date,
-          sizeBytes: stat.size,
-        ));
+        files.add(BackupInfo(file: entity, date: date, sizeBytes: stat.size));
       }
     }
     files.sort((a, b) => b.date.compareTo(a.date));
     return files;
   }
 
-  /// Read a backup's content and return module names it contains.
+  /// Purpose: Read a backup's content and return module names it contains.
+  /// Inputs: `file`.
+  /// Returns: `Future<List<String>>`.
+  /// Side effects: None.
+  /// Notes: Read a backup's content and return module names it contains.
   static Future<List<String>> getBackupModules(File file) async {
     try {
       final raw = await file.readAsString();
@@ -160,7 +183,11 @@ class BackupService {
     }
   }
 
-  /// Restore from a backup file, optionally only specific modules.
+  /// Purpose: Restore from a backup file, optionally only specific modules.
+  /// Inputs: `file`, `moduleKeys`.
+  /// Returns: `Future<bool>`.
+  /// Side effects: None.
+  /// Notes: Restore from a backup file, optionally only specific modules.
   static Future<bool> restoreBackup(
     File file, {
     Set<String>? moduleKeys,
@@ -199,13 +226,22 @@ class BackupService {
     }
   }
 
-  /// Delete a specific backup.
+  /// Purpose: Delete a specific backup.
+  /// Inputs: `file`.
+  /// Returns: None.
+  /// Side effects: May read or mutate application state, storage, or service resources.
+  /// Notes: Delete a specific backup.
   static Future<void> deleteBackup(File file) async {
     if (await file.exists()) {
       await file.delete();
     }
   }
 
+  /// Purpose: Provide the internal clean old backups helper for this file.
+  /// Inputs: None.
+  /// Returns: None.
+  /// Side effects: None.
+  /// Notes: Internal helper used within this file only.
   static Future<void> _cleanOldBackups() async {
     if (retentionDays <= 0) return;
     final cutoff = DateTime.now().subtract(Duration(days: retentionDays));
@@ -223,12 +259,22 @@ class BackupInfo {
   final DateTime date;
   final int sizeBytes;
 
+  /// Purpose: Create a backup info instance.
+  /// Inputs: `file`, `date`, `sizeBytes`.
+  /// Returns: A new `BackupInfo` instance.
+  /// Side effects: None.
+  /// Notes: None.
   const BackupInfo({
     required this.file,
     required this.date,
     required this.sizeBytes,
   });
 
+  /// Purpose: Implement the display size behavior for this file.
+  /// Inputs: None.
+  /// Returns: `String`.
+  /// Side effects: None.
+  /// Notes: None.
   String get displaySize {
     if (sizeBytes < 1024) return '$sizeBytes B';
     if (sizeBytes < 1024 * 1024) {

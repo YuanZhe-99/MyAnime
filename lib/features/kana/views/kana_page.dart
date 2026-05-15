@@ -5,8 +5,18 @@ import '../../../l10n/app_localizations.dart';
 enum _KanaScript { hiragana, katakana }
 
 class KanaPage extends StatefulWidget {
+  /// Purpose: Create a kana page instance.
+  /// Inputs: None.
+  /// Returns: A new `KanaPage` instance.
+  /// Side effects: None.
+  /// Notes: None.
   const KanaPage({super.key});
 
+  /// Purpose: Create the mutable state object for this widget.
+  /// Inputs: None.
+  /// Returns: A new state object.
+  /// Side effects: None.
+  /// Notes: Flutter lifecycle override.
   @override
   State<KanaPage> createState() => _KanaPageState();
 }
@@ -16,12 +26,22 @@ class _KanaPageState extends State<KanaPage> {
   _KanaScript _script = _KanaScript.hiragana;
   String _query = '';
 
+  /// Purpose: Release listeners, controllers, and other owned resources.
+  /// Inputs: None.
+  /// Returns: None.
+  /// Side effects: Disposes controllers, listeners, and other owned resources.
+  /// Notes: Flutter lifecycle override.
   @override
   void dispose() {
     _searchController.dispose();
     super.dispose();
   }
 
+  /// Purpose: Build the current widget subtree for the active UI state.
+  /// Inputs: `context`.
+  /// Returns: The widget tree for the current state.
+  /// Side effects: Creates UI widgets from the current state.
+  /// Notes: Keep this method cheap because Flutter may call it often.
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
@@ -112,6 +132,11 @@ class _KanaPageState extends State<KanaPage> {
     );
   }
 
+  /// Purpose: Provide the internal matching entries helper for this file.
+  /// Inputs: `query`.
+  /// Returns: `List<_KanaEntry>`.
+  /// Side effects: None.
+  /// Notes: Internal helper used within this file only.
   List<_KanaEntry> _matchingEntries(String query) {
     final seen = <String>{};
     final entries = <_KanaEntry>[];
@@ -125,6 +150,11 @@ class _KanaPageState extends State<KanaPage> {
     return entries;
   }
 
+  /// Purpose: Provide the internal build kana table helper for this file.
+  /// Inputs: `theme`, `title`, `columns`, `rows`.
+  /// Returns: `Widget`.
+  /// Side effects: None.
+  /// Notes: Internal helper used within this file only.
   Widget _buildKanaTable(
     ThemeData theme,
     String title,
@@ -162,6 +192,11 @@ class _KanaPageState extends State<KanaPage> {
     );
   }
 
+  /// Purpose: Provide the internal build header row helper for this file.
+  /// Inputs: `theme`, `columns`.
+  /// Returns: `Widget`.
+  /// Side effects: None.
+  /// Notes: Internal helper used within this file only.
   Widget _buildHeaderRow(ThemeData theme, List<String> columns) {
     return SizedBox(
       height: 36,
@@ -185,6 +220,11 @@ class _KanaPageState extends State<KanaPage> {
     );
   }
 
+  /// Purpose: Provide the internal build kana row helper for this file.
+  /// Inputs: `theme`, `row`.
+  /// Returns: `Widget`.
+  /// Side effects: None.
+  /// Notes: Internal helper used within this file only.
   Widget _buildKanaRow(ThemeData theme, _KanaRow row) {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.center,
@@ -206,6 +246,11 @@ class _KanaPageState extends State<KanaPage> {
     );
   }
 
+  /// Purpose: Provide the internal build kana cell helper for this file.
+  /// Inputs: `theme`, `entry`.
+  /// Returns: `Widget`.
+  /// Side effects: None.
+  /// Notes: Internal helper used within this file only.
   Widget _buildKanaCell(ThemeData theme, _KanaEntry? entry) {
     return Expanded(
       child: Padding(
@@ -248,6 +293,11 @@ class _KanaPageState extends State<KanaPage> {
     );
   }
 
+  /// Purpose: Provide the internal build search results helper for this file.
+  /// Inputs: `theme`, `l10n`, `matches`.
+  /// Returns: `Widget`.
+  /// Side effects: May perform network or file-system operations.
+  /// Notes: Internal helper used within this file only.
   Widget _buildSearchResults(
     ThemeData theme,
     AppLocalizations l10n,
@@ -290,6 +340,11 @@ class _KanaPageState extends State<KanaPage> {
     );
   }
 
+  /// Purpose: Provide the internal build result tile helper for this file.
+  /// Inputs: `theme`, `entry`.
+  /// Returns: `Widget`.
+  /// Side effects: None.
+  /// Notes: Internal helper used within this file only.
   Widget _buildResultTile(ThemeData theme, _KanaEntry entry) {
     return Container(
       padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 8),
@@ -319,6 +374,11 @@ class _KanaPageState extends State<KanaPage> {
     );
   }
 
+  /// Purpose: Provide the internal build rules helper for this file.
+  /// Inputs: `theme`, `l10n`.
+  /// Returns: `Widget`.
+  /// Side effects: None.
+  /// Notes: Internal helper used within this file only.
   Widget _buildRules(ThemeData theme, AppLocalizations l10n) {
     final rules = [
       _KanaRule(
@@ -402,6 +462,11 @@ class _KanaPageState extends State<KanaPage> {
     );
   }
 
+  /// Purpose: Provide the internal build rule card helper for this file.
+  /// Inputs: `theme`, `rule`.
+  /// Returns: `Widget`.
+  /// Side effects: None.
+  /// Notes: Internal helper used within this file only.
   Widget _buildRuleCard(ThemeData theme, _KanaRule rule) {
     return Card(
       margin: EdgeInsets.zero,
@@ -447,6 +512,11 @@ class _KanaPageState extends State<KanaPage> {
     );
   }
 
+  /// Purpose: Provide the internal section title helper for this file.
+  /// Inputs: `theme`, `icon`, `title`.
+  /// Returns: `Widget`.
+  /// Side effects: None.
+  /// Notes: Internal helper used within this file only.
   Widget _sectionTitle(ThemeData theme, IconData icon, String title) {
     return Row(
       children: [
@@ -468,8 +538,18 @@ class _KanaEntry {
   final String katakana;
   final String romaji;
 
+  /// Purpose: Create a kana entry instance.
+  /// Inputs: `hiragana`, `katakana`, `romaji`.
+  /// Returns: A new `_KanaEntry` instance.
+  /// Side effects: None.
+  /// Notes: Internal helper used within this file only.
   const _KanaEntry(this.hiragana, this.katakana, this.romaji);
 
+  /// Purpose: Implement the kana behavior for this file.
+  /// Inputs: `script`.
+  /// Returns: `String`.
+  /// Side effects: None.
+  /// Notes: None.
   String kana(_KanaScript script) {
     return switch (script) {
       _KanaScript.hiragana => hiragana,
@@ -477,6 +557,11 @@ class _KanaEntry {
     };
   }
 
+  /// Purpose: Implement the matches behavior for this file.
+  /// Inputs: `query`.
+  /// Returns: `bool`.
+  /// Side effects: None.
+  /// Notes: None.
   bool matches(String query) {
     return hiragana.contains(query) ||
         katakana.contains(query) ||
@@ -488,6 +573,11 @@ class _KanaRow {
   final String label;
   final List<_KanaEntry?> entries;
 
+  /// Purpose: Create a kana row instance.
+  /// Inputs: `label`, `entries`.
+  /// Returns: A new `_KanaRow` instance.
+  /// Side effects: None.
+  /// Notes: Internal helper used within this file only.
   const _KanaRow(this.label, this.entries);
 }
 
@@ -498,6 +588,11 @@ class _KanaRule {
   final Color iconBackground;
   final Color iconColor;
 
+  /// Purpose: Create a kana rule instance.
+  /// Inputs: `icon`, `title`, `body`, `iconBackground`, `iconColor`.
+  /// Returns: A new `_KanaRule` instance.
+  /// Side effects: None.
+  /// Notes: Internal helper used within this file only.
   const _KanaRule(
     this.icon,
     this.title,

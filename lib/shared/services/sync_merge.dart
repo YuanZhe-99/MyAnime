@@ -11,6 +11,11 @@ class RecordConflict<T> {
   final T remoteRecord;
   final String displayName;
 
+  /// Purpose: Create a record conflict instance.
+  /// Inputs: `id`, `localRecord`, `remoteRecord`, `displayName`.
+  /// Returns: A new `RecordConflict` instance.
+  /// Side effects: None.
+  /// Notes: None.
   const RecordConflict({
     required this.id,
     required this.localRecord,
@@ -27,16 +32,11 @@ class RecordMergeResult<T> {
   const RecordMergeResult({required this.merged, this.conflicts = const []});
 }
 
-/// Three-way merge for a list of records by ID.
-///
-/// Uses [base] (last synced version) to detect which side changed:
-/// - Only local changed → use local
-/// - Only remote changed → use remote
-/// - Both changed → conflict (or LWW when [autoResolve] is true)
-/// - Neither changed → use either
-/// - New record on one side only → include it
-/// - Record deleted on one side, unchanged on other → exclude
-/// - Record deleted on one side, modified on other → keep the modification
+/// Purpose: Merge record lists by ID using the last synced base snapshot.
+/// Inputs: `local`, `remote`, `base`, `getId`, `getModifiedAt`, `getDisplayName`, `autoResolve`.
+/// Returns: `RecordMergeResult<T>`.
+/// Side effects: None.
+/// Notes: Uses the base snapshot to distinguish pure edits, deletions, and true conflicts.
 RecordMergeResult<T> mergeRecords<T>({
   required List<T> local,
   required List<T> remote,
@@ -130,16 +130,29 @@ class AnimeMergeResult {
   final List<RecordConflict<Anime>> conflicts;
   final Map<String, dynamic> extraJson;
 
+  /// Purpose: Create a anime merge result instance.
+  /// Inputs: `merged`, `conflicts`, `extraJson`.
+  /// Returns: A new `AnimeMergeResult` instance.
+  /// Side effects: None.
+  /// Notes: None.
   const AnimeMergeResult({
     required this.merged,
     this.conflicts = const [],
     this.extraJson = const {},
   });
 
+  /// Purpose: Return the current conflicts value.
+  /// Inputs: None.
+  /// Returns: `bool`.
+  /// Side effects: None.
+  /// Notes: None.
   bool get hasConflicts => conflicts.isNotEmpty;
 
-  /// Build final AnimeData applying user resolutions for conflicts.
-  /// [resolutions] maps anime ID → chosen Anime record.
+  /// Purpose: Build the final merged anime dataset from conflict resolutions.
+  /// Inputs: `resolutions`.
+  /// Returns: `AnimeData`.
+  /// Side effects: None.
+  /// Notes: `resolutions` maps each conflicting anime ID to the chosen record.
   AnimeData buildResolved(Map<String, Anime> resolutions) {
     final all = <Anime>[...merged];
     for (final c in conflicts) {
@@ -150,7 +163,11 @@ class AnimeMergeResult {
   }
 }
 
-/// Three-way merge for anime data.
+/// Purpose: Merge local, remote, and base anime JSON into one conflict-aware result.
+/// Inputs: `localJson`, `remoteJson`, `baseJson`, `autoResolve`.
+/// Returns: `AnimeMergeResult`.
+/// Side effects: None.
+/// Notes: Preserves unknown JSON fields while delegating per-record decisions to `mergeRecords`.
 AnimeMergeResult mergeAnimeData(
   String localJson,
   String remoteJson,

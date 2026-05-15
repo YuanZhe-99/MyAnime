@@ -5,6 +5,11 @@
 #include "flutter_window.h"
 #include "utils.h"
 
+// Purpose: Launch the Windows runner, enforce single-instance behavior, and start the message loop.
+// Inputs: `instance`, `prev`, `command_line`, `show_command`.
+// Returns: The process exit code.
+// Side effects: Creates or activates the app window, initializes COM, and may attach a console.
+// Notes: Reuses an existing window when another instance is already running.
 int APIENTRY wWinMain(_In_ HINSTANCE instance, _In_opt_ HINSTANCE prev,
                       _In_ wchar_t *command_line, _In_ int show_command) {
   // Single instance check: if already running, activate existing window.

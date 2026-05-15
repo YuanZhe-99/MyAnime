@@ -23,6 +23,11 @@ import '../utils/jst_time.dart';
 ///
 /// On Desktop (Windows/macOS/Linux): uses Timer.periodic + local_notifier.
 class ReminderService {
+  /// Purpose: Prevent direct instantiation and expose only static members.
+  /// Inputs: None.
+  /// Returns: A new `ReminderService._` instance.
+  /// Side effects: Implementation-dependent.
+  /// Notes: Implementations should preserve this contract.
   ReminderService._();
 
   static final _plugin = FlutterLocalNotificationsPlugin();
@@ -36,7 +41,11 @@ class ReminderService {
   static bool _isMobile = false;
   static Timer? _timer;
 
-  /// Resolve the current l10n instance from saved locale or platform default.
+  /// Purpose: Resolve the current l10n instance from saved locale or platform default.
+  /// Inputs: None.
+  /// Returns: `Future<AppLocalizations>`.
+  /// Side effects: None.
+  /// Notes: Internal helper used within this file only. Resolve the current l10n instance from saved locale or platform default.
   static Future<AppLocalizations> _getL10n() async {
     final tag = await AnimeStorage.getLocaleTag();
     Locale locale;
@@ -49,7 +58,11 @@ class ReminderService {
     return lookupAppLocalizations(locale);
   }
 
-  /// Initialize the notification plugin.
+  /// Purpose: Initialize the notification plugin.
+  /// Inputs: None.
+  /// Returns: None.
+  /// Side effects: None.
+  /// Notes: Initialize the notification plugin.
   static Future<void> init() async {
     if (kIsWeb) return;
 
@@ -79,8 +92,9 @@ class ReminderService {
       }
     }
 
-    const androidSettings =
-        AndroidInitializationSettings('@mipmap/ic_launcher');
+    const androidSettings = AndroidInitializationSettings(
+      '@mipmap/ic_launcher',
+    );
 
     const darwinSettings = DarwinInitializationSettings(
       requestAlertPermission: true,
@@ -99,7 +113,8 @@ class ReminderService {
     if (Platform.isAndroid) {
       await _plugin
           .resolvePlatformSpecificImplementation<
-              AndroidFlutterLocalNotificationsPlugin>()
+            AndroidFlutterLocalNotificationsPlugin
+          >()
           ?.requestNotificationsPermission();
     }
 
@@ -107,13 +122,17 @@ class ReminderService {
     if (Platform.isIOS) {
       await _plugin
           .resolvePlatformSpecificImplementation<
-              IOSFlutterLocalNotificationsPlugin>()
+            IOSFlutterLocalNotificationsPlugin
+          >()
           ?.requestPermissions(alert: true, badge: true, sound: true);
     }
   }
 
-  /// Schedule or cancel the daily Android notification via zonedSchedule.
-  /// The OS delivers this notification even when the app is killed.
+  /// Purpose: Schedule or cancel the daily Android notification via zonedSchedule.
+  /// Inputs: None.
+  /// Returns: None.
+  /// Side effects: None.
+  /// Notes: Internal helper used within this file only. Schedule or cancel the daily Android notification via zonedSchedule. The OS delivers this notification even when the app is killed.
   static Future<void> _scheduleMobileNotification() async {
     if (!_isMobile) return;
 
@@ -134,7 +153,13 @@ class ReminderService {
 
     final now = tz.TZDateTime.now(tz.local);
     var scheduledDate = tz.TZDateTime(
-      tz.local, now.year, now.month, now.day, rHour, rMinute);
+      tz.local,
+      now.year,
+      now.month,
+      now.day,
+      rHour,
+      rMinute,
+    );
     if (scheduledDate.isBefore(now)) {
       scheduledDate = scheduledDate.add(const Duration(days: 1));
     }
@@ -155,19 +180,17 @@ class ReminderService {
       'MyAnime!!!!!',
       l10n.reminderNotifBody,
       scheduledDate,
-      const NotificationDetails(
-        android: androidDetails,
-        iOS: darwinDetails,
-      ),
+      const NotificationDetails(android: androidDetails, iOS: darwinDetails),
       androidScheduleMode: AndroidScheduleMode.inexactAllowWhileIdle,
       matchDateTimeComponents: DateTimeComponents.time,
     );
   }
 
-  /// Start periodic reminder checks.
-  /// On Android/iOS: schedules an OS-level daily notification via zonedSchedule.
-  /// On desktop: uses Timer.periodic (every 60 seconds).
-  /// Safe to call multiple times.
+  /// Purpose: Start periodic reminder checks.
+  /// Inputs: None.
+  /// Returns: None.
+  /// Side effects: May read or mutate application state, storage, or service resources.
+  /// Notes: Start periodic reminder checks. On Android/iOS: schedules an OS-level daily notification via zonedSchedule. On desktop: uses Timer.periodic (every 60 seconds). Safe to call multiple times.
   static void startPeriodicCheck() {
     if (!kIsWeb && _isMobile) {
       _scheduleMobileNotification();
@@ -184,7 +207,11 @@ class ReminderService {
     checkAndNotify();
   }
 
-  /// Check conditions and show reminder if needed.
+  /// Purpose: Check conditions and show reminder if needed.
+  /// Inputs: None.
+  /// Returns: None.
+  /// Side effects: May read or mutate application state, storage, or service resources.
+  /// Notes: Check conditions and show reminder if needed.
   static Future<void> checkAndNotify() async {
     try {
       final config = await AnimeStorage.readConfig();
@@ -197,8 +224,13 @@ class ReminderService {
       final rMinute = int.parse(parts[1]);
 
       final now = DateTime.now(); // local timezone
-      final reminderToday =
-          DateTime(now.year, now.month, now.day, rHour, rMinute);
+      final reminderToday = DateTime(
+        now.year,
+        now.month,
+        now.day,
+        rHour,
+        rMinute,
+      );
 
       // Not yet time.
       if (now.isBefore(reminderToday)) return;
@@ -228,8 +260,7 @@ class ReminderService {
           }
           // Count first unwatched episode per anime.
           if (!countedUnwatched) {
-            final s =
-                anime.episodeStatuses[ep] ?? EpisodeStatus.unwatched;
+            final s = anime.episodeStatuses[ep] ?? EpisodeStatus.unwatched;
             if (s == EpisodeStatus.unwatched) {
               final airDate = anime.getEpisodeAirDate(ep);
               if (airDate != null && !airDate.isAfter(jstNow)) {
@@ -265,12 +296,14 @@ class ReminderService {
 
   static int _showCounter = 0;
 
+  /// Purpose: Provide the internal show helper for this file.
+  /// Inputs: `title`, `body`.
+  /// Returns: None.
+  /// Side effects: None.
+  /// Notes: Internal helper used within this file only.
   static Future<void> _show(String title, String body) async {
     if (_isDesktop) {
-      final notification = LocalNotification(
-        title: title,
-        body: body,
-      );
+      final notification = LocalNotification(title: title, body: body);
       notification.show();
       return;
     }
@@ -290,10 +323,7 @@ class ReminderService {
       _showCounter++,
       title,
       body,
-      const NotificationDetails(
-        android: androidDetails,
-        iOS: darwinDetails,
-      ),
+      const NotificationDetails(android: androidDetails, iOS: darwinDetails),
     );
   }
 }

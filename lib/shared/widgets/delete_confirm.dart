@@ -5,9 +5,11 @@ import '../../l10n/app_localizations.dart';
 /// Global "don't ask" state: if non-null and still in the future, skip confirmation.
 DateTime? _suppressUntil;
 
-/// Returns true if delete should proceed, false to cancel.
-/// Shows a confirmation dialog with a "Don't ask for 5 min" option.
-/// If the user previously chose to suppress, returns true immediately.
+/// Purpose: Ask the user to confirm deletion and optionally suppress prompts briefly.
+/// Inputs: `context`, `itemLabel`.
+/// Returns: `Future<bool>`.
+/// Side effects: May read or mutate application state, storage, or service resources.
+/// Notes: Returns immediately when the global suppression window is still active.
 Future<bool> confirmDelete(BuildContext context, String itemLabel) async {
   // If suppressed, allow immediately
   if (_suppressUntil != null && DateTime.now().isBefore(_suppressUntil!)) {
@@ -20,14 +22,16 @@ Future<bool> confirmDelete(BuildContext context, String itemLabel) async {
     builder: (ctx) => StatefulBuilder(
       builder: (ctx, setDialogState) => AlertDialog(
         title: Text(
-            AppLocalizations.of(context)?.commonDelete ?? 'Confirm Delete'),
+          AppLocalizations.of(context)?.commonDelete ?? 'Confirm Delete',
+        ),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(AppLocalizations.of(context)
-                    ?.commonDeleteConfirm(itemLabel) ??
-                'Delete $itemLabel?'),
+            Text(
+              AppLocalizations.of(context)?.commonDeleteConfirm(itemLabel) ??
+                  'Delete $itemLabel?',
+            ),
             const SizedBox(height: 12),
             Row(
               children: [
@@ -56,16 +60,14 @@ Future<bool> confirmDelete(BuildContext context, String itemLabel) async {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx, false),
-            child: Text(
-                AppLocalizations.of(context)?.commonCancel ?? 'Cancel'),
+            child: Text(AppLocalizations.of(context)?.commonCancel ?? 'Cancel'),
           ),
           FilledButton(
             style: FilledButton.styleFrom(
               backgroundColor: Theme.of(ctx).colorScheme.error,
             ),
             onPressed: () => Navigator.pop(ctx, true),
-            child: Text(
-                AppLocalizations.of(context)?.commonDelete ?? 'Delete'),
+            child: Text(AppLocalizations.of(context)?.commonDelete ?? 'Delete'),
           ),
         ],
       ),

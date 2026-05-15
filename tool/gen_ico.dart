@@ -3,6 +3,11 @@ import 'dart:typed_data';
 
 import 'package:image/image.dart' as img;
 
+/// Purpose: Initialize startup services and launch the app entry point.
+/// Inputs: None.
+/// Returns: None.
+/// Side effects: None.
+/// Notes: None.
 void main() async {
   final srcBytes = await File('assets/icon/app_icon.png').readAsBytes();
   final srcImage = img.decodePng(srcBytes)!;
@@ -13,8 +18,12 @@ void main() async {
   // Encode each size as PNG
   final pngDataList = <Uint8List>[];
   for (final size in sizes) {
-    final resized = img.copyResize(srcImage,
-        width: size, height: size, interpolation: img.Interpolation.average);
+    final resized = img.copyResize(
+      srcImage,
+      width: size,
+      height: size,
+      interpolation: img.Interpolation.average,
+    );
     final pngData = Uint8List.fromList(img.encodePng(resized));
     pngDataList.add(pngData);
     print('  ${size}x$size -> ${pngData.length} bytes');
@@ -51,13 +60,25 @@ void main() async {
 
   final result = ico.toBytes();
   await File('windows/runner/resources/app_icon.ico').writeAsBytes(result);
-  print('Generated ICO: ${result.length} bytes (${sizes.length} sizes: ${sizes.join(", ")})');
+  print(
+    'Generated ICO: ${result.length} bytes (${sizes.length} sizes: ${sizes.join(", ")})',
+  );
 }
 
+/// Purpose: Provide the internal add uint16 helper for this file.
+/// Inputs: `b`, `value`.
+/// Returns: None.
+/// Side effects: None.
+/// Notes: Internal helper used within this file only.
 void _addUint16(BytesBuilder b, int value) {
   b.add([value & 0xFF, (value >> 8) & 0xFF]);
 }
 
+/// Purpose: Provide the internal add uint32 helper for this file.
+/// Inputs: `b`, `value`.
+/// Returns: None.
+/// Side effects: None.
+/// Notes: Internal helper used within this file only.
 void _addUint32(BytesBuilder b, int value) {
   b.add([
     value & 0xFF,

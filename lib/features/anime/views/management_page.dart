@@ -12,8 +12,18 @@ import '../services/anime_storage.dart';
 import 'quarter_picker_dialog.dart';
 
 class ManagementPage extends StatefulWidget {
+  /// Purpose: Create a management page instance.
+  /// Inputs: None.
+  /// Returns: A new `ManagementPage` instance.
+  /// Side effects: None.
+  /// Notes: None.
   const ManagementPage({super.key});
 
+  /// Purpose: Create the mutable state object for this widget.
+  /// Inputs: None.
+  /// Returns: A new state object.
+  /// Side effects: None.
+  /// Notes: Flutter lifecycle override.
   @override
   State<ManagementPage> createState() => _ManagementPageState();
 }
@@ -31,8 +41,18 @@ class _ManagementPageState extends State<ManagementPage> {
       for (var q = 1; q <= 4; q++) _Quarter(y, q),
   ];
 
+  /// Purpose: Provide the internal is other page helper for this file.
+  /// Inputs: None.
+  /// Returns: `bool`.
+  /// Side effects: None.
+  /// Notes: Internal helper used within this file only.
   bool get _isOtherPage => _currentQuarterIndex == _quarters.length;
 
+  /// Purpose: Initialize listeners, controllers, and first-load work for this state object.
+  /// Inputs: None.
+  /// Returns: None.
+  /// Side effects: Initializes owned state, listeners, or async work.
+  /// Notes: Flutter lifecycle override.
   @override
   void initState() {
     super.initState();
@@ -46,17 +66,32 @@ class _ManagementPageState extends State<ManagementPage> {
     _pageController = PageController(initialPage: _currentQuarterIndex);
   }
 
+  /// Purpose: Release listeners, controllers, and other owned resources.
+  /// Inputs: None.
+  /// Returns: None.
+  /// Side effects: Disposes controllers, listeners, and other owned resources.
+  /// Notes: Flutter lifecycle override.
   @override
   void dispose() {
     _pageController.dispose();
     super.dispose();
   }
 
+  /// Purpose: Provide the internal load helper for this file.
+  /// Inputs: None.
+  /// Returns: None.
+  /// Side effects: May read or mutate application state, storage, or service resources.
+  /// Notes: Internal helper used within this file only.
   Future<void> _load() async {
     final data = await AnimeStorage.load();
     if (mounted) setState(() => _allAnime = data.animeList);
   }
 
+  /// Purpose: Provide the internal anime for quarter helper for this file.
+  /// Inputs: `quarter`.
+  /// Returns: `List<Anime>`.
+  /// Side effects: None.
+  /// Notes: Internal helper used within this file only.
   List<Anime> _animeForQuarter(_Quarter quarter) {
     return _allAnime.where((a) {
       return a.airsInQuarter(quarter.year, quarter.q);
@@ -69,12 +104,21 @@ class _ManagementPageState extends State<ManagementPage> {
     });
   }
 
-  /// Anime without a firstAirDate — shown on the "Other" page.
+  /// Purpose: Anime without a firstAirDate — shown on the "Other" page.
+  /// Inputs: None.
+  /// Returns: `List<Anime>`.
+  /// Side effects: None.
+  /// Notes: Internal helper used within this file only. Anime without a firstAirDate — shown on the "Other" page.
   List<Anime> get _otherAnime {
     return _allAnime.where((a) => a.firstAirDate == null).toList()
       ..sort((a, b) => a.displayTitle.compareTo(b.displayTitle));
   }
 
+  /// Purpose: Provide the internal search results helper for this file.
+  /// Inputs: None.
+  /// Returns: `List<Anime>`.
+  /// Side effects: May perform network or file-system operations.
+  /// Notes: Internal helper used within this file only.
   List<Anime> _searchResults() {
     final q = _searchQuery.toLowerCase();
     return _allAnime.where((a) {
@@ -83,6 +127,11 @@ class _ManagementPageState extends State<ManagementPage> {
     }).toList()..sort((a, b) => a.displayTitle.compareTo(b.displayTitle));
   }
 
+  /// Purpose: Provide the internal quarter label helper for this file.
+  /// Inputs: `q`.
+  /// Returns: `String`.
+  /// Side effects: None.
+  /// Notes: Internal helper used within this file only.
   String _quarterLabel(_Quarter q) {
     final l10n = AppLocalizations.of(context)!;
     final seasons = [
@@ -95,6 +144,11 @@ class _ManagementPageState extends State<ManagementPage> {
     return '${q.year} ${seasons[q.q]}';
   }
 
+  /// Purpose: Provide the internal day label helper for this file.
+  /// Inputs: `dow`.
+  /// Returns: `String`.
+  /// Side effects: None.
+  /// Notes: Internal helper used within this file only.
   String _dayLabel(int? dow) {
     if (dow == null) return '?';
     final l10n = AppLocalizations.of(context)!;
@@ -111,6 +165,11 @@ class _ManagementPageState extends State<ManagementPage> {
     return days[dow.clamp(1, 7)];
   }
 
+  /// Purpose: Provide the internal delete anime helper for this file.
+  /// Inputs: `anime`.
+  /// Returns: None.
+  /// Side effects: May read or mutate application state, storage, or service resources.
+  /// Notes: Internal helper used within this file only.
   Future<void> _deleteAnime(Anime anime) async {
     final ok = await confirmDelete(context, anime.displayTitle);
     if (!ok) return;
@@ -118,6 +177,11 @@ class _ManagementPageState extends State<ManagementPage> {
     await _load();
   }
 
+  /// Purpose: Provide the internal show add options helper for this file.
+  /// Inputs: `context`.
+  /// Returns: None.
+  /// Side effects: None.
+  /// Notes: Internal helper used within this file only.
   Future<void> _showAddOptions(BuildContext context) async {
     final l10n = AppLocalizations.of(context)!;
     final choice = await showDialog<String>(
@@ -163,6 +227,11 @@ class _ManagementPageState extends State<ManagementPage> {
     }
   }
 
+  /// Purpose: Provide the internal jump to anime quarter helper for this file.
+  /// Inputs: `animeId`.
+  /// Returns: None.
+  /// Side effects: None.
+  /// Notes: Internal helper used within this file only.
   void _jumpToAnimeQuarter(String animeId) {
     final anime = _allAnime.where((a) => a.id == animeId).firstOrNull;
     if (anime == null) return;
@@ -182,6 +251,11 @@ class _ManagementPageState extends State<ManagementPage> {
     }
   }
 
+  /// Purpose: Provide the internal show quarter picker helper for this file.
+  /// Inputs: None.
+  /// Returns: None.
+  /// Side effects: None.
+  /// Notes: Internal helper used within this file only.
   Future<void> _showQuarterPicker() async {
     final l10n = AppLocalizations.of(context)!;
     final current = _isOtherPage ? null : _quarters[_currentQuarterIndex];
@@ -230,6 +304,11 @@ class _ManagementPageState extends State<ManagementPage> {
     }
   }
 
+  /// Purpose: Build the current widget subtree for the active UI state.
+  /// Inputs: `context`.
+  /// Returns: The widget tree for the current state.
+  /// Side effects: Creates UI widgets from the current state.
+  /// Notes: Keep this method cheap because Flutter may call it often.
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
@@ -266,6 +345,11 @@ class _ManagementPageState extends State<ManagementPage> {
     );
   }
 
+  /// Purpose: Provide the internal build search results helper for this file.
+  /// Inputs: `theme`, `l10n`.
+  /// Returns: `Widget`.
+  /// Side effects: May perform network or file-system operations.
+  /// Notes: Internal helper used within this file only.
   Widget _buildSearchResults(ThemeData theme, AppLocalizations l10n) {
     final results = _searchResults();
     if (results.isEmpty) {
@@ -285,6 +369,11 @@ class _ManagementPageState extends State<ManagementPage> {
     );
   }
 
+  /// Purpose: Provide the internal build quarter view helper for this file.
+  /// Inputs: `theme`, `l10n`.
+  /// Returns: `Widget`.
+  /// Side effects: None.
+  /// Notes: Internal helper used within this file only.
   Widget _buildQuarterView(ThemeData theme, AppLocalizations l10n) {
     return Column(
       children: [
@@ -401,6 +490,11 @@ class _ManagementPageState extends State<ManagementPage> {
     );
   }
 
+  /// Purpose: Provide the internal build anime tile helper for this file.
+  /// Inputs: `anime`, `theme`, `l10n`.
+  /// Returns: `Widget`.
+  /// Side effects: None.
+  /// Notes: Internal helper used within this file only.
   Widget _buildAnimeTile(Anime anime, ThemeData theme, AppLocalizations l10n) {
     final watchedCount = anime.episodeStatuses.values
         .where((s) => s == EpisodeStatus.watched)
@@ -487,5 +581,11 @@ class _ManagementPageState extends State<ManagementPage> {
 class _Quarter {
   final int year;
   final int q;
+
+  /// Purpose: Create a quarter instance.
+  /// Inputs: `year`, `q`.
+  /// Returns: A new `_Quarter` instance.
+  /// Side effects: None.
+  /// Notes: Internal helper used within this file only.
   const _Quarter(this.year, this.q);
 }

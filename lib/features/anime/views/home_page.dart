@@ -14,8 +14,18 @@ import '../models/anime.dart';
 import '../services/anime_storage.dart';
 
 class HomePage extends StatefulWidget {
+  /// Purpose: Create a home page instance.
+  /// Inputs: None.
+  /// Returns: A new `HomePage` instance.
+  /// Side effects: None.
+  /// Notes: None.
   const HomePage({super.key});
 
+  /// Purpose: Create the mutable state object for this widget.
+  /// Inputs: None.
+  /// Returns: A new state object.
+  /// Side effects: None.
+  /// Notes: Flutter lifecycle override.
   @override
   State<HomePage> createState() => _HomePageState();
 }
@@ -26,6 +36,11 @@ class _HomePageState extends State<HomePage> {
   List<Anime> _allAnime = [];
   CalendarFormat _calendarFormat = CalendarFormat.month;
 
+  /// Purpose: Initialize listeners, controllers, and first-load work for this state object.
+  /// Inputs: None.
+  /// Returns: None.
+  /// Side effects: Initializes owned state, listeners, or async work.
+  /// Notes: Flutter lifecycle override.
   @override
   void initState() {
     super.initState();
@@ -33,12 +48,21 @@ class _HomePageState extends State<HomePage> {
     _load();
   }
 
+  /// Purpose: Provide the internal load helper for this file.
+  /// Inputs: None.
+  /// Returns: None.
+  /// Side effects: May read or mutate application state, storage, or service resources.
+  /// Notes: Internal helper used within this file only.
   Future<void> _load() async {
     final data = await AnimeStorage.load();
     if (mounted) setState(() => _allAnime = data.animeList);
   }
 
-  /// Get anime episodes airing on a specific day.
+  /// Purpose: Collect airing episodes scheduled for the requested calendar day.
+  /// Inputs: `day`.
+  /// Returns: `List<_AiringEpisode>`.
+  /// Side effects: None.
+  /// Notes: Internal helper used within this file only.
   List<_AiringEpisode> _getEventsForDay(DateTime day) {
     final events = <_AiringEpisode>[];
     final dayOnly = DateTime(day.year, day.month, day.day);
@@ -54,7 +78,11 @@ class _HomePageState extends State<HomePage> {
     return events;
   }
 
-  /// Get the earliest unwatched episode per anime, sorted by air date.
+  /// Purpose: Build the earliest unwatched aired episode for each anime and sort them by air date.
+  /// Inputs: None.
+  /// Returns: `List<_AiringEpisode>`.
+  /// Side effects: None.
+  /// Notes: Internal helper used within this file only.
   List<_AiringEpisode> _getUnwatchedEpisodes() {
     final episodes = <_AiringEpisode>[];
     for (final anime in _allAnime) {
@@ -81,6 +109,11 @@ class _HomePageState extends State<HomePage> {
     return episodes;
   }
 
+  /// Purpose: Provide the internal toggle watched helper for this file.
+  /// Inputs: `ep`.
+  /// Returns: None.
+  /// Side effects: None.
+  /// Notes: Internal helper used within this file only.
   Future<void> _toggleWatched(_AiringEpisode ep) async {
     final current =
         ep.anime.episodeStatuses[ep.episode] ?? EpisodeStatus.unwatched;
@@ -96,6 +129,11 @@ class _HomePageState extends State<HomePage> {
     await _load();
   }
 
+  /// Purpose: Provide the internal show add options helper for this file.
+  /// Inputs: `context`.
+  /// Returns: None.
+  /// Side effects: None.
+  /// Notes: Internal helper used within this file only.
   Future<void> _showAddOptions(BuildContext context) async {
     final l10n = AppLocalizations.of(context)!;
     final choice = await showDialog<String>(
@@ -139,17 +177,25 @@ class _HomePageState extends State<HomePage> {
     }
   }
 
+  /// Purpose: Build the current widget subtree for the active UI state.
+  /// Inputs: `context`.
+  /// Returns: The widget tree for the current state.
+  /// Side effects: Creates UI widgets from the current state.
+  /// Notes: Keep this method cheap because Flutter may call it often.
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
     final theme = Theme.of(context);
-    final selectedEvents =
-        _selectedDay != null ? _getEventsForDay(_selectedDay!) : <_AiringEpisode>[];
+    final selectedEvents = _selectedDay != null
+        ? _getEventsForDay(_selectedDay!)
+        : <_AiringEpisode>[];
     // Sort: skipped episodes go to the end
     selectedEvents.sort((a, b) {
-      final aSkipped = (a.anime.episodeStatuses[a.episode] ?? EpisodeStatus.unwatched) ==
+      final aSkipped =
+          (a.anime.episodeStatuses[a.episode] ?? EpisodeStatus.unwatched) ==
           EpisodeStatus.skippedThisWeek;
-      final bSkipped = (b.anime.episodeStatuses[b.episode] ?? EpisodeStatus.unwatched) ==
+      final bSkipped =
+          (b.anime.episodeStatuses[b.episode] ?? EpisodeStatus.unwatched) ==
           EpisodeStatus.skippedThisWeek;
       if (aSkipped != bSkipped) return aSkipped ? 1 : -1;
       return 0;
@@ -157,9 +203,7 @@ class _HomePageState extends State<HomePage> {
     final unwatched = _getUnwatchedEpisodes();
 
     return Scaffold(
-      appBar: AppBar(
-        title: Text(l10n.appTitle),
-      ),
+      appBar: AppBar(title: Text(l10n.appTitle)),
       body: RefreshIndicator(
         onRefresh: _load,
         child: ListView(
@@ -189,7 +233,8 @@ class _HomePageState extends State<HomePage> {
                 markerBuilder: (context, day, events) {
                   if (events.isEmpty) return null;
                   final allWatched = events.every((ep) {
-                    final s = ep.anime.episodeStatuses[ep.episode] ??
+                    final s =
+                        ep.anime.episodeStatuses[ep.episode] ??
                         EpisodeStatus.unwatched;
                     return s == EpisodeStatus.watched;
                   });
@@ -239,8 +284,7 @@ class _HomePageState extends State<HomePage> {
               Padding(
                 padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
                 child: Text(
-                  l10n.homeAiringOn(
-                      DateFormat.MMMd().format(_selectedDay!)),
+                  l10n.homeAiringOn(DateFormat.MMMd().format(_selectedDay!)),
                   style: theme.textTheme.titleSmall?.copyWith(
                     color: theme.colorScheme.primary,
                   ),
@@ -288,8 +332,16 @@ class _HomePageState extends State<HomePage> {
     );
   }
 
+  /// Purpose: Provide the internal build episode tile helper for this file.
+  /// Inputs: `ep`, `theme`, `l10n`.
+  /// Returns: `Widget`.
+  /// Side effects: None.
+  /// Notes: Internal helper used within this file only.
   Widget _buildEpisodeTile(
-      _AiringEpisode ep, ThemeData theme, AppLocalizations l10n) {
+    _AiringEpisode ep,
+    ThemeData theme,
+    AppLocalizations l10n,
+  ) {
     final status =
         ep.anime.episodeStatuses[ep.episode] ?? EpisodeStatus.unwatched;
     final isWatched = status == EpisodeStatus.watched;
@@ -307,12 +359,19 @@ class _HomePageState extends State<HomePage> {
                   if (snap.hasData && snap.data!.existsSync()) {
                     return ClipRRect(
                       borderRadius: BorderRadius.circular(4),
-                      child: Image.file(snap.data!,
-                          width: 40, height: 56, fit: BoxFit.cover),
+                      child: Image.file(
+                        snap.data!,
+                        width: 40,
+                        height: 56,
+                        fit: BoxFit.cover,
+                      ),
                     );
                   }
                   return const SizedBox(
-                      width: 40, height: 56, child: Icon(Icons.movie));
+                    width: 40,
+                    height: 56,
+                    child: Icon(Icons.movie),
+                  );
                 },
               )
             : const SizedBox(width: 40, height: 56, child: Icon(Icons.movie)),
@@ -326,12 +385,18 @@ class _HomePageState extends State<HomePage> {
             Text('${l10n.animeEpisodeShort(ep.episode)}  $airStr'),
             if (isSkipped) ...[
               const SizedBox(width: 6),
-              Icon(Icons.skip_next, size: 16, color: theme.colorScheme.tertiary),
+              Icon(
+                Icons.skip_next,
+                size: 16,
+                color: theme.colorScheme.tertiary,
+              ),
               const SizedBox(width: 2),
-              Text(l10n.animeSkipped,
+              Text(
+                l10n.animeSkipped,
                 style: theme.textTheme.bodySmall?.copyWith(
                   color: theme.colorScheme.tertiary,
-                )),
+                ),
+              ),
             ],
           ],
         ),
@@ -340,8 +405,10 @@ class _HomePageState extends State<HomePage> {
           children: [
             if (ep.anime.watchUrl != null)
               IconButton(
-                icon: Icon(Icons.open_in_browser,
-                    color: theme.colorScheme.tertiary),
+                icon: Icon(
+                  Icons.open_in_browser,
+                  color: theme.colorScheme.tertiary,
+                ),
                 tooltip: l10n.animeOpenUrl,
                 onPressed: () => launchUrl(
                   Uri.parse(ep.anime.watchUrl!),
@@ -353,13 +420,13 @@ class _HomePageState extends State<HomePage> {
                 isSkipped
                     ? Icons.skip_next
                     : isWatched
-                        ? Icons.check_circle
-                        : Icons.radio_button_unchecked,
+                    ? Icons.check_circle
+                    : Icons.radio_button_unchecked,
                 color: isSkipped
                     ? theme.colorScheme.tertiary
                     : isWatched
-                        ? theme.colorScheme.primary
-                        : null,
+                    ? theme.colorScheme.primary
+                    : null,
               ),
               onPressed: () => _toggleWatched(ep),
             ),
@@ -377,5 +444,11 @@ class _HomePageState extends State<HomePage> {
 class _AiringEpisode {
   final Anime anime;
   final int episode;
+
+  /// Purpose: Create a airing episode instance.
+  /// Inputs: `anime`, `episode`.
+  /// Returns: A new `_AiringEpisode` instance.
+  /// Side effects: None.
+  /// Notes: Internal helper used within this file only.
   const _AiringEpisode({required this.anime, required this.episode});
 }

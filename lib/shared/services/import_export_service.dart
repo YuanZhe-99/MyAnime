@@ -9,8 +9,11 @@ import '../../features/anime/models/anime.dart';
 import '../../features/anime/services/anime_storage.dart';
 
 class ImportExportService {
-  /// Export all anime data as a ZIP file containing anime_data.json and images/.
-  /// Returns the exported file path, or null on failure.
+  /// Purpose: Export all anime data as a ZIP file containing anime_data.json and images/.
+  /// Inputs: `destDir`.
+  /// Returns: `Future<String?>`.
+  /// Side effects: May read or mutate application state, storage, or service resources.
+  /// Notes: Export all anime data as a ZIP file containing anime_data.json and images/. Returns the exported file path, or null on failure.
   static Future<String?> exportZIP(String destDir) async {
     try {
       final appDir = await AnimeStorage.getAppDir();
@@ -45,8 +48,11 @@ class ImportExportService {
     }
   }
 
-  /// Import data from a previously exported ZIP file.
-  /// Returns true on success.
+  /// Purpose: Import data from a previously exported ZIP file.
+  /// Inputs: `filePath`.
+  /// Returns: `Future<bool>`.
+  /// Side effects: May read or mutate application state, storage, or service resources.
+  /// Notes: Import data from a previously exported ZIP file. Returns true on success.
   static Future<bool> importZIP(String filePath) async {
     try {
       final file = File(filePath);
@@ -79,9 +85,11 @@ class ImportExportService {
     }
   }
 
-  /// Export all anime data as a Markdown file, sorted by first air date.
-  /// Designed for LLM personalization / learning context.
-  /// Returns the exported file path, or null on failure.
+  /// Purpose: Export all anime data as a Markdown file, sorted by first air date.
+  /// Inputs: `destDir`.
+  /// Returns: `Future<String?>`.
+  /// Side effects: May read or mutate application state, storage, or service resources.
+  /// Notes: Export all anime data as a Markdown file, sorted by first air date. Designed for LLM personalization / learning context. Returns the exported file path, or null on failure.
   static Future<String?> exportMarkdown(String destDir) async {
     try {
       final appDir = await AnimeStorage.getAppDir();
@@ -107,7 +115,8 @@ class ImportExportService {
       buf.writeln('# MyAnime!!!!! — Anime Tracking Record');
       buf.writeln();
       buf.writeln(
-          'Exported: ${DateFormat('yyyy-MM-dd HH:mm').format(DateTime.now())}');
+        'Exported: ${DateFormat('yyyy-MM-dd HH:mm').format(DateTime.now())}',
+      );
       buf.writeln('Total: ${sorted.length} anime');
       buf.writeln();
       buf.writeln('---');
@@ -135,13 +144,15 @@ class ImportExportService {
         // Air schedule
         if (anime.firstAirDate != null) {
           buf.writeln(
-              '- **First Air Date:** ${DateFormat('yyyy-MM-dd').format(anime.firstAirDate!)}');
+            '- **First Air Date:** ${DateFormat('yyyy-MM-dd').format(anime.firstAirDate!)}',
+          );
         }
         if (anime.airDayOfWeek != null) {
           final day = _dayLabel(anime.airDayOfWeek!);
           final time = anime.airTime ?? '';
           buf.writeln(
-              '- **Air Schedule:** $day${time.isNotEmpty ? ' $time JST' : ''}');
+            '- **Air Schedule:** $day${time.isNotEmpty ? ' $time JST' : ''}',
+          );
         }
 
         // Episodes
@@ -160,7 +171,8 @@ class ImportExportService {
             .length;
         final statusLabel = _deriveStatus(anime);
         buf.writeln(
-            '- **Status:** $statusLabel (Watched: $watched${total != null ? '/$total' : ''}${skipped > 0 ? ', Skipped: $skipped' : ''})');
+          '- **Status:** $statusLabel (Watched: $watched${total != null ? '/$total' : ''}${skipped > 0 ? ', Skipped: $skipped' : ''})',
+        );
 
         // URLs
         if (anime.infoUrl != null) {
@@ -177,8 +189,7 @@ class ImportExportService {
       }
 
       final stamp = DateFormat('yyyyMMdd_HHmmss').format(DateTime.now());
-      final outFile =
-          File(p.join(destDir, 'myanime_export_$stamp.md'));
+      final outFile = File(p.join(destDir, 'myanime_export_$stamp.md'));
       await outFile.writeAsString(buf.toString());
       return outFile.path;
     } catch (_) {
@@ -186,6 +197,11 @@ class ImportExportService {
     }
   }
 
+  /// Purpose: Provide the internal type label helper for this file.
+  /// Inputs: `type`.
+  /// Returns: `String`.
+  /// Side effects: None.
+  /// Notes: Internal helper used within this file only.
   static String _typeLabel(AnimeType type) {
     switch (type) {
       case AnimeType.singleCour:
@@ -201,6 +217,11 @@ class ImportExportService {
     }
   }
 
+  /// Purpose: Provide the internal day label helper for this file.
+  /// Inputs: `dow`.
+  /// Returns: `String`.
+  /// Side effects: None.
+  /// Notes: Internal helper used within this file only.
   static String _dayLabel(int dow) {
     const days = [
       '',
@@ -210,24 +231,34 @@ class ImportExportService {
       'Thursday',
       'Friday',
       'Saturday',
-      'Sunday'
+      'Sunday',
     ];
     return dow >= 1 && dow <= 7 ? days[dow] : '';
   }
 
+  /// Purpose: Provide the internal derive status helper for this file.
+  /// Inputs: `anime`.
+  /// Returns: `String`.
+  /// Side effects: None.
+  /// Notes: Internal helper used within this file only.
   static String _deriveStatus(Anime anime) {
     if (anime.isCompleted) return 'Completed';
-    final hasWatched = anime.episodeStatuses.values
-        .any((s) => s == EpisodeStatus.watched);
-    final hasUnwatched = anime.endEpisode != null &&
+    final hasWatched = anime.episodeStatuses.values.any(
+      (s) => s == EpisodeStatus.watched,
+    );
+    final hasUnwatched =
+        anime.endEpisode != null &&
         Iterable.generate(
           anime.endEpisode! - anime.startEpisode + 1,
           (i) => anime.startEpisode + i,
-        ).any((ep) =>
-            anime.episodeStatuses[ep] == null ||
-            anime.episodeStatuses[ep] == EpisodeStatus.unwatched);
-    final hasSkipped = anime.episodeStatuses.values
-        .any((s) => s == EpisodeStatus.skippedThisWeek);
+        ).any(
+          (ep) =>
+              anime.episodeStatuses[ep] == null ||
+              anime.episodeStatuses[ep] == EpisodeStatus.unwatched,
+        );
+    final hasSkipped = anime.episodeStatuses.values.any(
+      (s) => s == EpisodeStatus.skippedThisWeek,
+    );
     if (hasSkipped && !hasUnwatched) return 'Dropped';
     if (hasWatched && hasUnwatched) return 'Watching';
     if (hasWatched) return 'Watching';

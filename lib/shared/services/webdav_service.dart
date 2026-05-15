@@ -18,6 +18,11 @@ class WebDAVConfig {
   final String remotePath;
   final bool autoSync;
 
+  /// Purpose: Create a web davconfig instance.
+  /// Inputs: `serverUrl`, `username`, `password`, `remotePath`, `autoSync`.
+  /// Returns: A new `WebDAVConfig` instance.
+  /// Side effects: None.
+  /// Notes: None.
   const WebDAVConfig({
     required this.serverUrl,
     required this.username,
@@ -26,9 +31,19 @@ class WebDAVConfig {
     this.autoSync = false,
   });
 
+  /// Purpose: Return whether configured is true.
+  /// Inputs: None.
+  /// Returns: `bool`.
+  /// Side effects: None.
+  /// Notes: None.
   bool get isConfigured =>
       serverUrl.isNotEmpty && username.isNotEmpty && password.isNotEmpty;
 
+  /// Purpose: Create a copy with selected fields replaced.
+  /// Inputs: None.
+  /// Returns: `WebDAVConfig`.
+  /// Side effects: None.
+  /// Notes: None.
   WebDAVConfig copyWith({bool? autoSync}) => WebDAVConfig(
     serverUrl: serverUrl,
     username: username,
@@ -37,6 +52,11 @@ class WebDAVConfig {
     autoSync: autoSync ?? this.autoSync,
   );
 
+  /// Purpose: Serialize this value into a JSON-compatible map.
+  /// Inputs: None.
+  /// Returns: `Map<String, dynamic>`.
+  /// Side effects: None.
+  /// Notes: None.
   Map<String, dynamic> toJson() => {
     'serverUrl': serverUrl,
     'username': username,
@@ -45,6 +65,11 @@ class WebDAVConfig {
     'autoSync': autoSync,
   };
 
+  /// Purpose: Create an instance from a JSON-compatible map.
+  /// Inputs: `json`.
+  /// Returns: A new `WebDAVConfig.fromJson` instance.
+  /// Side effects: None.
+  /// Notes: None.
   factory WebDAVConfig.fromJson(Map<String, dynamic> json) => WebDAVConfig(
     serverUrl: json['serverUrl'] as String? ?? '',
     username: json['username'] as String? ?? '',
@@ -53,6 +78,11 @@ class WebDAVConfig {
     autoSync: json['autoSync'] as bool? ?? false,
   );
 
+  /// Purpose: Create a web davconfig instance.
+  /// Inputs: `host`, `username`, `password`.
+  /// Returns: A new `WebDAVConfig.nextcloud` instance.
+  /// Side effects: None.
+  /// Notes: None.
   factory WebDAVConfig.nextcloud(
     String host,
     String username,
@@ -73,6 +103,11 @@ class SyncResult {
   /// Non-fatal warnings collected during sync (e.g. individual image failures).
   final List<String> warnings;
 
+  /// Purpose: Create a sync result instance.
+  /// Inputs: `success`, `error`, `pending`, `warnings`.
+  /// Returns: A new `SyncResult` instance.
+  /// Side effects: None.
+  /// Notes: None.
   const SyncResult({
     required this.success,
     this.error,
@@ -80,6 +115,11 @@ class SyncResult {
     this.warnings = const [],
   });
 
+  /// Purpose: Return the current conflicts value.
+  /// Inputs: None.
+  /// Returns: `bool`.
+  /// Side effects: None.
+  /// Notes: None.
   bool get hasConflicts => pending != null;
 }
 
@@ -87,8 +127,18 @@ class SyncResult {
 class PendingSync {
   final AnimeMergeResult? animeMerge;
 
+  /// Purpose: Create a pending sync instance.
+  /// Inputs: None.
+  /// Returns: A new `PendingSync` instance.
+  /// Side effects: None.
+  /// Notes: None.
   const PendingSync({this.animeMerge});
 
+  /// Purpose: Implement the all conflicts behavior for this file.
+  /// Inputs: None.
+  /// Returns: `List<RecordConflict<Anime>>`.
+  /// Side effects: None.
+  /// Notes: None.
   List<RecordConflict<Anime>> get allConflicts => [...?animeMerge?.conflicts];
 }
 
@@ -103,15 +153,22 @@ class WebDAVService {
   /// Whether the last sync wrote changes to local data files.
   static bool _localDataChanged = false;
 
-  /// Returns true (and resets the flag) if the last sync wrote local changes.
+  /// Purpose: Report whether the previous sync changed local files and clear that flag.
+  /// Inputs: None.
+  /// Returns: `bool`.
+  /// Side effects: None.
+  /// Notes: Call this after sync completion when callers need a one-shot change signal.
   static bool consumeLocalDataChanged() {
     final v = _localDataChanged;
     _localDataChanged = false;
     return v;
   }
 
-  /// Atomic write: write to .tmp then rename, preventing corruption if the
-  /// app is killed mid-write.
+  /// Purpose: Write a file atomically through a temporary file and rename step.
+  /// Inputs: `file`, `content`.
+  /// Returns: None.
+  /// Side effects: None.
+  /// Notes: Internal helper used within this file only; protects against mid-write app termination.
   static Future<void> _atomicWrite(File file, String content) async {
     final tmp = File('${file.path}.tmp');
     await tmp.writeAsString(content);
@@ -120,6 +177,11 @@ class WebDAVService {
 
   // ── Config persistence ──
 
+  /// Purpose: Load config into the current workflow or state.
+  /// Inputs: None.
+  /// Returns: `Future<WebDAVConfig?>`.
+  /// Side effects: May read or mutate application state, storage, or service resources.
+  /// Notes: None.
   static Future<WebDAVConfig?> loadConfig() async {
     try {
       final dir = await AnimeStorage.getAppDir();
@@ -133,12 +195,22 @@ class WebDAVService {
     }
   }
 
+  /// Purpose: Save config to the relevant storage or service layer.
+  /// Inputs: `config`.
+  /// Returns: None.
+  /// Side effects: May read or mutate application state, storage, or service resources.
+  /// Notes: None.
   static Future<void> saveConfig(WebDAVConfig config) async {
     final dir = await AnimeStorage.getAppDir();
     final file = File('${dir.path}/$_configFileName');
     await file.writeAsString(jsonEncode(config.toJson()));
   }
 
+  /// Purpose: Delete config from the relevant storage or state.
+  /// Inputs: None.
+  /// Returns: None.
+  /// Side effects: May read or mutate application state, storage, or service resources.
+  /// Notes: None.
   static Future<void> deleteConfig() async {
     final dir = await AnimeStorage.getAppDir();
     final file = File('${dir.path}/$_configFileName');
@@ -147,6 +219,11 @@ class WebDAVService {
 
   // ── Base (last-synced) file management ──
 
+  /// Purpose: Provide the internal get base dir helper for this file.
+  /// Inputs: None.
+  /// Returns: `Future<Directory>`.
+  /// Side effects: None.
+  /// Notes: Internal helper used within this file only.
   static Future<Directory> _getBaseDir() async {
     final appDir = await AnimeStorage.getAppDir();
     final dir = Directory('${appDir.path}/$_syncBaseDirName');
@@ -154,6 +231,11 @@ class WebDAVService {
     return dir;
   }
 
+  /// Purpose: Provide the internal read base helper for this file.
+  /// Inputs: `fileName`.
+  /// Returns: `Future<String?>`.
+  /// Side effects: None.
+  /// Notes: Internal helper used within this file only.
   static Future<String?> _readBase(String fileName) async {
     try {
       final dir = await _getBaseDir();
@@ -165,6 +247,11 @@ class WebDAVService {
     }
   }
 
+  /// Purpose: Provide the internal save base helper for this file.
+  /// Inputs: `fileName`, `content`.
+  /// Returns: None.
+  /// Side effects: May read or mutate application state, storage, or service resources.
+  /// Notes: Internal helper used within this file only.
   static Future<void> _saveBase(String fileName, String content) async {
     final dir = await _getBaseDir();
     final file = File('${dir.path}/$fileName');
@@ -173,6 +260,11 @@ class WebDAVService {
 
   // ── HTTP helpers ──
 
+  /// Purpose: Provide the internal auth headers helper for this file.
+  /// Inputs: `config`.
+  /// Returns: `Map<String, String>`.
+  /// Side effects: None.
+  /// Notes: Internal helper used within this file only.
   static Map<String, String> _authHeaders(WebDAVConfig config) {
     final creds = base64Encode(
       utf8.encode('${config.username}:${config.password}'),
@@ -180,6 +272,11 @@ class WebDAVService {
     return {'Authorization': 'Basic $creds'};
   }
 
+  /// Purpose: Provide the internal remote file url helper for this file.
+  /// Inputs: `config`, `fileName`.
+  /// Returns: `String`.
+  /// Side effects: None.
+  /// Notes: Internal helper used within this file only.
   static String _remoteFileUrl(WebDAVConfig config, String fileName) {
     final base = config.serverUrl.endsWith('/')
         ? config.serverUrl.substring(0, config.serverUrl.length - 1)
@@ -190,6 +287,11 @@ class WebDAVService {
     return '$base$path$fileName';
   }
 
+  /// Purpose: Test connection and report the outcome.
+  /// Inputs: `config`.
+  /// Returns: `Future<bool>`.
+  /// Side effects: May perform network or file-system operations.
+  /// Notes: None.
   static Future<bool> testConnection(WebDAVConfig config) async {
     try {
       final base = config.serverUrl.endsWith('/')
@@ -212,6 +314,11 @@ class WebDAVService {
     }
   }
 
+  /// Purpose: Provide the internal ensure remote dir helper for this file.
+  /// Inputs: `config`.
+  /// Returns: None.
+  /// Side effects: None.
+  /// Notes: Internal helper used within this file only.
   static Future<void> _ensureRemoteDir(WebDAVConfig config) async {
     try {
       final base = config.serverUrl.endsWith('/')
@@ -224,6 +331,11 @@ class WebDAVService {
     } catch (_) {}
   }
 
+  /// Purpose: Provide the internal upload helper for this file.
+  /// Inputs: `config`, `fileName`, `content`.
+  /// Returns: `Future<bool>`.
+  /// Side effects: May read or mutate application state, storage, or service resources.
+  /// Notes: Internal helper used within this file only.
   static Future<bool> _upload(
     WebDAVConfig config,
     String fileName,
@@ -247,6 +359,11 @@ class WebDAVService {
     }
   }
 
+  /// Purpose: Provide the internal upload bytes helper for this file.
+  /// Inputs: `config`, `fileName`, `bytes`.
+  /// Returns: `Future<bool>`.
+  /// Side effects: May read or mutate application state, storage, or service resources.
+  /// Notes: Internal helper used within this file only.
   static Future<bool> _uploadBytes(
     WebDAVConfig config,
     String fileName,
@@ -269,6 +386,11 @@ class WebDAVService {
     return true;
   }
 
+  /// Purpose: Provide the internal download helper for this file.
+  /// Inputs: `config`, `fileName`.
+  /// Returns: `Future<String?>`.
+  /// Side effects: May read or mutate application state, storage, or service resources.
+  /// Notes: Internal helper used within this file only.
   static Future<String?> _download(WebDAVConfig config, String fileName) async {
     try {
       final url = Uri.parse(_remoteFileUrl(config, fileName));
@@ -282,6 +404,11 @@ class WebDAVService {
     }
   }
 
+  /// Purpose: Provide the internal download bytes helper for this file.
+  /// Inputs: `config`, `fileName`.
+  /// Returns: `Future<Uint8List?>`.
+  /// Side effects: May read or mutate application state, storage, or service resources.
+  /// Notes: Internal helper used within this file only.
   static Future<Uint8List?> _downloadBytes(
     WebDAVConfig config,
     String fileName,
@@ -294,7 +421,11 @@ class WebDAVService {
     throw Exception('HTTP ${response.statusCode}');
   }
 
-  /// List file names inside a remote subdirectory via PROPFIND.
+  /// Purpose: List file names inside a remote subdirectory via PROPFIND.
+  /// Inputs: `config`, `subPath`.
+  /// Returns: `Future<List<String>>`.
+  /// Side effects: None.
+  /// Notes: Internal helper used within this file only. List file names inside a remote subdirectory via PROPFIND.
   static Future<List<String>> _listRemoteFiles(
     WebDAVConfig config,
     String subPath,
@@ -338,6 +469,11 @@ class WebDAVService {
 
   // ── Image sync ──
 
+  /// Purpose: Provide the internal ensure remote sub dir helper for this file.
+  /// Inputs: `config`, `subPath`.
+  /// Returns: None.
+  /// Side effects: None.
+  /// Notes: Internal helper used within this file only.
   static Future<void> _ensureRemoteSubDir(
     WebDAVConfig config,
     String subPath,
@@ -356,7 +492,11 @@ class WebDAVService {
     } catch (_) {}
   }
 
-  /// Extract basenames of cover images referenced by any anime in [json].
+  /// Purpose: Extract basenames of cover images referenced by any anime in [json].
+  /// Inputs: `json`.
+  /// Returns: `Set<String>`.
+  /// Side effects: None.
+  /// Notes: Internal helper used within this file only. Extract basenames of cover images referenced by any anime in [json].
   static Set<String> _getReferencedImageNames(String? json) {
     if (json == null) return {};
     try {
@@ -371,12 +511,11 @@ class WebDAVService {
     }
   }
 
-  /// Sync only images that are referenced by actual anime records.
-  ///
-  /// [referencedImages] is the union of basenames from local + remote anime
-  /// data, so images from both sides are covered without syncing orphans.
-  ///
-  /// Returns a list of non-fatal error strings for individual transfer failures.
+  /// Purpose: Sync only images that are referenced by actual anime records.
+  /// Inputs: `config`, `appDir`, `referencedImages`.
+  /// Returns: `Future<List<String>>`.
+  /// Side effects: May read or mutate application state, storage, or service resources.
+  /// Notes: Internal helper used within this file only. Sync only images that are referenced by actual anime records. [referencedImages] is the union of basenames from local + remote anime data, so images from both sides are covered without syncing orphans. Returns a list of non-fatal error strings for individual transfer failures.
   static Future<List<String>> _syncImages(
     WebDAVConfig config,
     Directory appDir,
@@ -439,16 +578,11 @@ class WebDAVService {
 
   // ── Per-record merge sync ──
 
-  /// Sync data files with the remote server using per-record three-way merge.
-  ///
-  /// For each data file:
-  /// - Reads local, remote, and base (last-synced) versions
-  /// - Merges per-record using `modifiedAt` timestamps
-  /// - Auto-resolves when only one side changed
-  /// - Returns conflicts when both sides modified the same record
-  ///
-  /// When [autoResolve] is true, conflicts are resolved automatically using
-  /// last-writer-wins per record. Used by auto-sync to prevent blocking.
+  /// Purpose: Sync data files with the remote server using per-record three-way merge.
+  /// Inputs: `config`, `autoResolve`.
+  /// Returns: `Future<SyncResult>`.
+  /// Side effects: May read or mutate application state, storage, or service resources.
+  /// Notes: Sync data files with the remote server using per-record three-way merge. For each data file: - Reads local, remote, and base (last-synced) versions - Merges per-record using `modifiedAt` timestamps - Auto-resolves when only one side changed - Returns conflicts when both sides modified the same record When [autoResolve] is true, conflicts are resolved automatically using last-writer-wins per record. Used by auto-sync to prevent blocking.
   static Future<SyncResult> sync(
     WebDAVConfig config, {
     bool autoResolve = false,
@@ -567,9 +701,11 @@ class WebDAVService {
     }
   }
 
-  /// Finalize sync by applying user's conflict resolutions.
-  ///
-  /// [resolutions] maps anime ID → the chosen Anime record.
+  /// Purpose: Finalize sync by applying user's conflict resolutions.
+  /// Inputs: `config`, `pending`, `resolutions`.
+  /// Returns: `Future<bool>`.
+  /// Side effects: May read or mutate application state, storage, or service resources.
+  /// Notes: Finalize sync by applying user's conflict resolutions. [resolutions] maps anime ID → the chosen Anime record.
   static Future<bool> finalizePendingSync(
     WebDAVConfig config,
     PendingSync pending,

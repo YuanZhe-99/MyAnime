@@ -20,8 +20,18 @@ enum _RankingTimeFilter { all, quarter, year, custom }
 enum _AnimeStatus { watching, completed, dropped, notStarted }
 
 class StatisticsPage extends StatefulWidget {
+  /// Purpose: Create a statistics page instance.
+  /// Inputs: None.
+  /// Returns: A new `StatisticsPage` instance.
+  /// Side effects: None.
+  /// Notes: None.
   const StatisticsPage({super.key});
 
+  /// Purpose: Create the mutable state object for this widget.
+  /// Inputs: None.
+  /// Returns: A new state object.
+  /// Side effects: None.
+  /// Notes: Flutter lifecycle override.
   @override
   State<StatisticsPage> createState() => _StatisticsPageState();
 }
@@ -56,6 +66,11 @@ class _StatisticsPageState extends State<StatisticsPage> {
 
   final ScrollController _trendScrollController = ScrollController();
 
+  /// Purpose: Initialize listeners, controllers, and first-load work for this state object.
+  /// Inputs: None.
+  /// Returns: None.
+  /// Side effects: Initializes owned state, listeners, or async work.
+  /// Notes: Flutter lifecycle override.
   @override
   void initState() {
     super.initState();
@@ -73,12 +88,22 @@ class _StatisticsPageState extends State<StatisticsPage> {
     _load();
   }
 
+  /// Purpose: Release listeners, controllers, and other owned resources.
+  /// Inputs: None.
+  /// Returns: None.
+  /// Side effects: Disposes controllers, listeners, and other owned resources.
+  /// Notes: Flutter lifecycle override.
   @override
   void dispose() {
     _trendScrollController.dispose();
     super.dispose();
   }
 
+  /// Purpose: Provide the internal load helper for this file.
+  /// Inputs: None.
+  /// Returns: None.
+  /// Side effects: May read or mutate application state, storage, or service resources.
+  /// Notes: Internal helper used within this file only.
   Future<void> _load() async {
     final data = await AnimeStorage.load();
     if (mounted) {
@@ -87,6 +112,11 @@ class _StatisticsPageState extends State<StatisticsPage> {
     }
   }
 
+  /// Purpose: Provide the internal scroll trend to end helper for this file.
+  /// Inputs: None.
+  /// Returns: None.
+  /// Side effects: None.
+  /// Notes: Internal helper used within this file only.
   void _scrollTrendToEnd() {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (_trendScrollController.hasClients) {
@@ -99,6 +129,11 @@ class _StatisticsPageState extends State<StatisticsPage> {
 
   // --- Status derivation ---
 
+  /// Purpose: Provide the internal derive status helper for this file.
+  /// Inputs: `anime`.
+  /// Returns: `_AnimeStatus`.
+  /// Side effects: None.
+  /// Notes: Internal helper used within this file only.
   static _AnimeStatus _deriveStatus(Anime anime) {
     if (anime.isCompleted) return _AnimeStatus.completed;
 
@@ -127,6 +162,11 @@ class _StatisticsPageState extends State<StatisticsPage> {
 
   // --- Filtering ---
 
+  /// Purpose: Provide the internal filtered anime helper for this file.
+  /// Inputs: None.
+  /// Returns: `List<Anime>`.
+  /// Side effects: None.
+  /// Notes: Internal helper used within this file only.
   List<Anime> get _filteredAnime {
     switch (_scope) {
       case _TimeScope.quarter:
@@ -145,6 +185,11 @@ class _StatisticsPageState extends State<StatisticsPage> {
     }
   }
 
+  /// Purpose: Provide the internal ranking anime helper for this file.
+  /// Inputs: None.
+  /// Returns: `List<Anime>`.
+  /// Side effects: None.
+  /// Notes: Internal helper used within this file only.
   List<Anime> get _rankingAnime {
     final filtered = _allAnime.where((anime) {
       if (!_matchesRankingTimeFilter(anime)) return false;
@@ -167,6 +212,11 @@ class _StatisticsPageState extends State<StatisticsPage> {
     return filtered;
   }
 
+  /// Purpose: Provide the internal ranking share entries helper for this file.
+  /// Inputs: `rankedAnime`.
+  /// Returns: `List<RankingShareEntry>`.
+  /// Side effects: May read or mutate application state, storage, or service resources.
+  /// Notes: Internal helper used within this file only.
   List<RankingShareEntry> _rankingShareEntries(List<Anime> rankedAnime) {
     return List.generate(rankedAnime.length, (index) {
       final anime = rankedAnime[index];
@@ -178,6 +228,11 @@ class _StatisticsPageState extends State<StatisticsPage> {
     });
   }
 
+  /// Purpose: Provide the internal share ranking helper for this file.
+  /// Inputs: None.
+  /// Returns: None.
+  /// Side effects: May read or mutate application state, storage, or service resources.
+  /// Notes: Internal helper used within this file only.
   Future<void> _shareRanking() async {
     final l10n = AppLocalizations.of(context)!;
     final rankedAnime = _rankingAnime;
@@ -196,6 +251,11 @@ class _StatisticsPageState extends State<StatisticsPage> {
     );
   }
 
+  /// Purpose: Provide the internal matches ranking time filter helper for this file.
+  /// Inputs: `anime`.
+  /// Returns: `bool`.
+  /// Side effects: None.
+  /// Notes: Internal helper used within this file only.
   bool _matchesRankingTimeFilter(Anime anime) {
     switch (_rankingTimeFilter) {
       case _RankingTimeFilter.all:
@@ -226,6 +286,11 @@ class _StatisticsPageState extends State<StatisticsPage> {
     }
   }
 
+  /// Purpose: Provide the internal grouped anime helper for this file.
+  /// Inputs: None.
+  /// Returns: `Map<_AnimeStatus, List<Anime>>`.
+  /// Side effects: None.
+  /// Notes: Internal helper used within this file only.
   Map<_AnimeStatus, List<Anime>> get _groupedAnime {
     final map = <_AnimeStatus, List<Anime>>{
       _AnimeStatus.watching: [],
@@ -241,6 +306,11 @@ class _StatisticsPageState extends State<StatisticsPage> {
 
   // --- Navigation helpers ---
 
+  /// Purpose: Provide the internal prev period helper for this file.
+  /// Inputs: None.
+  /// Returns: None.
+  /// Side effects: None.
+  /// Notes: Internal helper used within this file only.
   void _prevPeriod() {
     setState(() {
       if (_view == _StatsView.ranking &&
@@ -265,6 +335,11 @@ class _StatisticsPageState extends State<StatisticsPage> {
     });
   }
 
+  /// Purpose: Provide the internal next period helper for this file.
+  /// Inputs: None.
+  /// Returns: None.
+  /// Side effects: None.
+  /// Notes: Internal helper used within this file only.
   void _nextPeriod() {
     setState(() {
       if (_view == _StatsView.ranking &&
@@ -289,6 +364,11 @@ class _StatisticsPageState extends State<StatisticsPage> {
     });
   }
 
+  /// Purpose: Provide the internal ranking year range helper for this file.
+  /// Inputs: `int`.
+  /// Returns: `(int, int)`.
+  /// Side effects: None.
+  /// Notes: Internal helper used within this file only.
   (int, int) get _rankingYearRange {
     final dataYears = <int>{};
     for (final anime in _allAnime) {
@@ -312,6 +392,11 @@ class _StatisticsPageState extends State<StatisticsPage> {
     );
   }
 
+  /// Purpose: Provide the internal pick ranking quarter helper for this file.
+  /// Inputs: None.
+  /// Returns: None.
+  /// Side effects: None.
+  /// Notes: Internal helper used within this file only.
   Future<void> _pickRankingQuarter() async {
     final range = _rankingYearRange;
     final selected = await showQuarterPickerDialog(
@@ -329,6 +414,11 @@ class _StatisticsPageState extends State<StatisticsPage> {
     });
   }
 
+  /// Purpose: Provide the internal pick ranking year helper for this file.
+  /// Inputs: None.
+  /// Returns: None.
+  /// Side effects: None.
+  /// Notes: Internal helper used within this file only.
   Future<void> _pickRankingYear() async {
     final l10n = AppLocalizations.of(context)!;
     final range = _rankingYearRange;
@@ -342,6 +432,11 @@ class _StatisticsPageState extends State<StatisticsPage> {
     setState(() => _rankingSelectedYearOnly = selected);
   }
 
+  /// Purpose: Provide the internal pick ranking range start helper for this file.
+  /// Inputs: None.
+  /// Returns: None.
+  /// Side effects: May read or mutate application state, storage, or service resources.
+  /// Notes: Internal helper used within this file only.
   Future<void> _pickRankingRangeStart() async {
     final range = _rankingYearRange;
     final selected = await showQuarterPickerDialog(
@@ -360,6 +455,11 @@ class _StatisticsPageState extends State<StatisticsPage> {
     });
   }
 
+  /// Purpose: Provide the internal pick ranking range end helper for this file.
+  /// Inputs: None.
+  /// Returns: None.
+  /// Side effects: None.
+  /// Notes: Internal helper used within this file only.
   Future<void> _pickRankingRangeEnd() async {
     final range = _rankingYearRange;
     final selected = await showQuarterPickerDialog(
@@ -378,6 +478,11 @@ class _StatisticsPageState extends State<StatisticsPage> {
     });
   }
 
+  /// Purpose: Provide the internal show year picker dialog helper for this file.
+  /// Inputs: `title`, `minYear`, `maxYear`, `currentYear`.
+  /// Returns: `Future<int?>`.
+  /// Side effects: None.
+  /// Notes: Internal helper used within this file only.
   Future<int?> _showYearPickerDialog({
     required String title,
     required int minYear,
@@ -468,10 +573,20 @@ class _StatisticsPageState extends State<StatisticsPage> {
     return result;
   }
 
+  /// Purpose: Provide the internal count anime in quarter helper for this file.
+  /// Inputs: `year`, `quarter`.
+  /// Returns: `int`.
+  /// Side effects: None.
+  /// Notes: Internal helper used within this file only.
   int _countAnimeInQuarter(int year, int quarter) {
     return _allAnime.where((a) => a.airsInQuarter(year, quarter)).length;
   }
 
+  /// Purpose: Provide the internal count anime in year helper for this file.
+  /// Inputs: `year`.
+  /// Returns: `int`.
+  /// Side effects: None.
+  /// Notes: Internal helper used within this file only.
   int _countAnimeInYear(int year) {
     return _allAnime.where((anime) {
       for (int q = 1; q <= 4; q++) {
@@ -481,6 +596,11 @@ class _StatisticsPageState extends State<StatisticsPage> {
     }).length;
   }
 
+  /// Purpose: Provide the internal normalize ranking custom range helper for this file.
+  /// Inputs: None.
+  /// Returns: None.
+  /// Side effects: None.
+  /// Notes: Internal helper used within this file only.
   void _normalizeRankingCustomRange() {
     final startIdx = _quarterIndex(_rankingStartYear, _rankingStartQuarter);
     final endIdx = _quarterIndex(_rankingEndYear, _rankingEndQuarter);
@@ -494,6 +614,11 @@ class _StatisticsPageState extends State<StatisticsPage> {
     _rankingEndQuarter = startQuarter;
   }
 
+  /// Purpose: Provide the internal quarter index helper for this file.
+  /// Inputs: `year`, `quarter`.
+  /// Returns: `int`.
+  /// Side effects: None.
+  /// Notes: Internal helper used within this file only.
   static int _quarterIndex(int year, int quarter) => year * 4 + quarter;
 
   static (int, int) _quarterFromIndex(int index) {
@@ -504,6 +629,11 @@ class _StatisticsPageState extends State<StatisticsPage> {
 
   // --- Trend data ---
 
+  /// Purpose: Provide the internal trend data helper for this file.
+  /// Inputs: None.
+  /// Returns: `List<_TrendEntry>`.
+  /// Side effects: None.
+  /// Notes: Internal helper used within this file only.
   List<_TrendEntry> get _trendData {
     // Collect quarters that have data
     final quarterSet = <(int, int)>{};
@@ -598,6 +728,11 @@ class _StatisticsPageState extends State<StatisticsPage> {
     }).toList();
   }
 
+  /// Purpose: Provide the internal month to quarter helper for this file.
+  /// Inputs: `month`.
+  /// Returns: `int`.
+  /// Side effects: None.
+  /// Notes: Internal helper used within this file only.
   static int _monthToQuarter(int month) {
     if (month <= 3) return 1;
     if (month <= 6) return 2;
@@ -607,6 +742,11 @@ class _StatisticsPageState extends State<StatisticsPage> {
 
   // --- Build ---
 
+  /// Purpose: Build the current widget subtree for the active UI state.
+  /// Inputs: `context`.
+  /// Returns: The widget tree for the current state.
+  /// Side effects: Creates UI widgets from the current state.
+  /// Notes: Keep this method cheap because Flutter may call it often.
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
@@ -763,6 +903,11 @@ class _StatisticsPageState extends State<StatisticsPage> {
     );
   }
 
+  /// Purpose: Provide the internal build summary card helper for this file.
+  /// Inputs: `theme`, `label`, `count`, `color`.
+  /// Returns: `Widget`.
+  /// Side effects: None.
+  /// Notes: Internal helper used within this file only.
   Widget _buildSummaryCard(
     ThemeData theme,
     String label,
@@ -798,6 +943,11 @@ class _StatisticsPageState extends State<StatisticsPage> {
     );
   }
 
+  /// Purpose: Provide the internal build ranking view helper for this file.
+  /// Inputs: `theme`, `l10n`, `rankedAnime`.
+  /// Returns: `Widget`.
+  /// Side effects: None.
+  /// Notes: Internal helper used within this file only.
   Widget _buildRankingView(
     ThemeData theme,
     AppLocalizations l10n,
@@ -846,6 +996,11 @@ class _StatisticsPageState extends State<StatisticsPage> {
     );
   }
 
+  /// Purpose: Provide the internal build ranking filters helper for this file.
+  /// Inputs: `theme`, `l10n`.
+  /// Returns: `Widget`.
+  /// Side effects: None.
+  /// Notes: Internal helper used within this file only.
   Widget _buildRankingFilters(ThemeData theme, AppLocalizations l10n) {
     return Column(
       children: [
@@ -1014,6 +1169,11 @@ class _StatisticsPageState extends State<StatisticsPage> {
     );
   }
 
+  /// Purpose: Provide the internal build ranking range button helper for this file.
+  /// Inputs: `onPressed`, `icon`, `label`, `quarterLabel`.
+  /// Returns: `Widget`.
+  /// Side effects: None.
+  /// Notes: Internal helper used within this file only.
   Widget _buildRankingRangeButton({
     required VoidCallback onPressed,
     required IconData icon,
@@ -1027,6 +1187,11 @@ class _StatisticsPageState extends State<StatisticsPage> {
     );
   }
 
+  /// Purpose: Provide the internal build ranking tile helper for this file.
+  /// Inputs: `anime`, `rank`, `theme`, `l10n`.
+  /// Returns: `Widget`.
+  /// Side effects: None.
+  /// Notes: Internal helper used within this file only.
   Widget _buildRankingTile(
     Anime anime,
     int rank,
@@ -1124,6 +1289,11 @@ class _StatisticsPageState extends State<StatisticsPage> {
     );
   }
 
+  /// Purpose: Provide the internal build cover thumbnail helper for this file.
+  /// Inputs: `anime`.
+  /// Returns: `Widget`.
+  /// Side effects: None.
+  /// Notes: Internal helper used within this file only.
   Widget _buildCoverThumbnail(Anime anime) {
     if (anime.coverImage == null) return _coverPlaceholder();
     return FutureBuilder<File>(
@@ -1145,6 +1315,11 @@ class _StatisticsPageState extends State<StatisticsPage> {
     );
   }
 
+  /// Purpose: Provide the internal cover placeholder helper for this file.
+  /// Inputs: None.
+  /// Returns: `Widget`.
+  /// Side effects: None.
+  /// Notes: Internal helper used within this file only.
   Widget _coverPlaceholder() {
     return SizedBox(
       width: 44,
@@ -1159,6 +1334,11 @@ class _StatisticsPageState extends State<StatisticsPage> {
     );
   }
 
+  /// Purpose: Provide the internal build trend chart helper for this file.
+  /// Inputs: `theme`, `l10n`.
+  /// Returns: `Widget`.
+  /// Side effects: None.
+  /// Notes: Internal helper used within this file only.
   Widget _buildTrendChart(ThemeData theme, AppLocalizations l10n) {
     final data = _trendData;
     if (data.isEmpty) return const SizedBox.shrink();
@@ -1217,6 +1397,11 @@ class _StatisticsPageState extends State<StatisticsPage> {
     );
   }
 
+  /// Purpose: Provide the internal build yaxis stub helper for this file.
+  /// Inputs: `maxY`, `theme`.
+  /// Returns: `Widget`.
+  /// Side effects: None.
+  /// Notes: Internal helper used within this file only.
   Widget _buildYAxisStub(int maxY, ThemeData theme) {
     final interval = maxY > 10 ? (maxY / 5).ceilToDouble() : 1.0;
     return BarChart(
@@ -1258,6 +1443,11 @@ class _StatisticsPageState extends State<StatisticsPage> {
     );
   }
 
+  /// Purpose: Provide the internal build bar chart helper for this file.
+  /// Inputs: `data`, `maxY`, `theme`, `l10n`, `showLeftTitles`.
+  /// Returns: `Widget`.
+  /// Side effects: None.
+  /// Notes: Internal helper used within this file only.
   Widget _buildBarChart(
     List<_TrendEntry> data,
     int maxY,
@@ -1374,6 +1564,11 @@ class _StatisticsPageState extends State<StatisticsPage> {
     );
   }
 
+  /// Purpose: Provide the internal legend dot helper for this file.
+  /// Inputs: `color`, `label`.
+  /// Returns: `Widget`.
+  /// Side effects: None.
+  /// Notes: Internal helper used within this file only.
   Widget _legendDot(Color color, String label) {
     return Row(
       mainAxisSize: MainAxisSize.min,
@@ -1392,6 +1587,11 @@ class _StatisticsPageState extends State<StatisticsPage> {
     );
   }
 
+  /// Purpose: Provide the internal build grouped lists helper for this file.
+  /// Inputs: `grouped`, `theme`, `l10n`.
+  /// Returns: `List<Widget>`.
+  /// Side effects: None.
+  /// Notes: Internal helper used within this file only.
   List<Widget> _buildGroupedLists(
     Map<_AnimeStatus, List<Anime>> grouped,
     ThemeData theme,
@@ -1476,6 +1676,11 @@ class _StatisticsPageState extends State<StatisticsPage> {
     }).toList();
   }
 
+  /// Purpose: Provide the internal quarter label helper for this file.
+  /// Inputs: `year`, `quarter`.
+  /// Returns: `String`.
+  /// Side effects: None.
+  /// Notes: Internal helper used within this file only.
   String _quarterLabel(int year, int quarter) {
     final l10n = AppLocalizations.of(context)!;
     final seasons = [
@@ -1488,6 +1693,11 @@ class _StatisticsPageState extends State<StatisticsPage> {
     return '$year ${seasons[quarter]}';
   }
 
+  /// Purpose: Provide the internal ranking time filter label helper for this file.
+  /// Inputs: `filter`, `l10n`.
+  /// Returns: `String`.
+  /// Side effects: None.
+  /// Notes: Internal helper used within this file only.
   String _rankingTimeFilterLabel(
     _RankingTimeFilter filter,
     AppLocalizations l10n,
@@ -1504,6 +1714,11 @@ class _StatisticsPageState extends State<StatisticsPage> {
     }
   }
 
+  /// Purpose: Provide the internal ranking share subtitle helper for this file.
+  /// Inputs: `l10n`.
+  /// Returns: `String`.
+  /// Side effects: May read or mutate application state, storage, or service resources.
+  /// Notes: Internal helper used within this file only.
   String _rankingShareSubtitle(AppLocalizations l10n) {
     final time = switch (_rankingTimeFilter) {
       _RankingTimeFilter.all => l10n.statsAll,
@@ -1523,6 +1738,11 @@ class _StatisticsPageState extends State<StatisticsPage> {
         '${l10n.statsRankingTypeFilter}: $type';
   }
 
+  /// Purpose: Provide the internal rating field label helper for this file.
+  /// Inputs: `field`, `l10n`.
+  /// Returns: `String`.
+  /// Side effects: None.
+  /// Notes: Internal helper used within this file only.
   String _ratingFieldLabel(AnimeRatingField field, AppLocalizations l10n) {
     switch (field) {
       case AnimeRatingField.overall:
@@ -1540,6 +1760,11 @@ class _StatisticsPageState extends State<StatisticsPage> {
     }
   }
 
+  /// Purpose: Provide the internal type label helper for this file.
+  /// Inputs: `type`, `l10n`.
+  /// Returns: `String`.
+  /// Side effects: None.
+  /// Notes: Internal helper used within this file only.
   String _typeLabel(AnimeType type, AppLocalizations l10n) {
     switch (type) {
       case AnimeType.singleCour:
@@ -1555,6 +1780,11 @@ class _StatisticsPageState extends State<StatisticsPage> {
     }
   }
 
+  /// Purpose: Provide the internal format score helper for this file.
+  /// Inputs: `score`.
+  /// Returns: `String`.
+  /// Side effects: None.
+  /// Notes: Internal helper used within this file only.
   String _formatScore(double score) {
     if (score == score.roundToDouble()) return score.toInt().toString();
     return score.toStringAsFixed(1);
@@ -1568,6 +1798,11 @@ class _TrendEntry {
   final int completed;
   final int dropped;
 
+  /// Purpose: Create a trend entry instance.
+  /// Inputs: `year`, `quarter`, `tracked`, `completed`, `dropped`.
+  /// Returns: A new `_TrendEntry` instance.
+  /// Side effects: None.
+  /// Notes: Internal helper used within this file only.
   const _TrendEntry({
     required this.year,
     required this.quarter,

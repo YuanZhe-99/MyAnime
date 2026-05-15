@@ -1,8 +1,17 @@
 /// Simplified ↔ Traditional Chinese character conversion for search.
 class ChineseConvert {
+  /// Purpose: Prevent direct instantiation and expose only static members.
+  /// Inputs: None.
+  /// Returns: A new `ChineseConvert._` instance.
+  /// Side effects: Implementation-dependent.
+  /// Notes: Implementations should preserve this contract.
   ChineseConvert._();
 
-  /// Convert simplified Chinese to traditional Chinese.
+  /// Purpose: Convert simplified Chinese characters to their traditional variants.
+  /// Inputs: `text`.
+  /// Returns: `String`.
+  /// Side effects: None.
+  /// Notes: None.
   static String toTraditional(String text) {
     final buf = StringBuffer();
     for (final ch in text.runes) {
@@ -13,7 +22,11 @@ class ChineseConvert {
     return buf.toString();
   }
 
-  /// Convert traditional Chinese to simplified Chinese.
+  /// Purpose: Convert traditional Chinese characters to their simplified variants.
+  /// Inputs: `text`.
+  /// Returns: `String`.
+  /// Side effects: None.
+  /// Notes: None.
   static String toSimplified(String text) {
     final buf = StringBuffer();
     for (final ch in text.runes) {

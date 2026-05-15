@@ -3,6 +3,11 @@
 /// Pass `--dart-define=FLAVOR=store` for App Store / Google Play builds
 /// (online search disabled). Default is `full`.
 class AppFlavor {
+  /// Purpose: Prevent direct instantiation and expose only static members.
+  /// Inputs: None.
+  /// Returns: A new `AppFlavor._` instance.
+  /// Side effects: Implementation-dependent.
+  /// Notes: Implementations should preserve this contract.
   AppFlavor._();
 
   static const _flavor = String.fromEnvironment('FLAVOR', defaultValue: 'full');

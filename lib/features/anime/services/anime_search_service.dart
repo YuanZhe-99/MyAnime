@@ -17,6 +17,11 @@ class AnimeSearchResult {
   final String? coverImageUrl;
   final String? summary;
 
+  /// Purpose: Create a anime search result instance.
+  /// Inputs: `source`, `sourceUrl`, `title`, `titleJa`, `episodes`, `firstAirDate`, `airDayOfWeek`, `airTime`, `coverImageUrl`, `summary`.
+  /// Returns: A new `AnimeSearchResult` instance.
+  /// Side effects: None.
+  /// Notes: None.
   const AnimeSearchResult({
     required this.source,
     this.sourceUrl,
@@ -34,8 +39,11 @@ class AnimeSearchResult {
 class AnimeSearchService {
   static const _userAgent = 'MyAnime/0.6.6 (anime tracker)';
 
-  /// Search all sources in parallel and return combined results.
-  /// Automatically tries S↔T Chinese variants on Chinese-language sources.
+  /// Purpose: Search all sources in parallel and return combined results.
+  /// Inputs: `query`.
+  /// Returns: `Future<List<AnimeSearchResult>>`.
+  /// Side effects: May perform network or file-system operations.
+  /// Notes: Search all sources in parallel and return combined results. Automatically tries S↔T Chinese variants on Chinese-language sources.
   static Future<List<AnimeSearchResult>> searchAll(String query) async {
     final simplified = ChineseConvert.toSimplified(query);
 
@@ -66,7 +74,11 @@ class AnimeSearchService {
     return deduped;
   }
 
-  /// bangumi.tv — uses legacy search API.
+  /// Purpose: bangumi.tv — uses legacy search API.
+  /// Inputs: `query`.
+  /// Returns: `Future<List<AnimeSearchResult>>`.
+  /// Side effects: May perform network or file-system operations.
+  /// Notes: Internal helper used within this file only. bangumi.tv — uses legacy search API.
   static Future<List<AnimeSearchResult>> _searchBangumi(String query) async {
     final url = Uri.parse(
       'https://api.bgm.tv/search/subject/${Uri.encodeComponent(query)}'
@@ -107,7 +119,11 @@ class AnimeSearchService {
     }).toList();
   }
 
-  /// MyAnimeList — uses Jikan v4 API.
+  /// Purpose: MyAnimeList — uses Jikan v4 API.
+  /// Inputs: `query`.
+  /// Returns: `Future<List<AnimeSearchResult>>`.
+  /// Side effects: May perform network or file-system operations.
+  /// Notes: Internal helper used within this file only. MyAnimeList — uses Jikan v4 API.
   static Future<List<AnimeSearchResult>> _searchMAL(String query) async {
     final url = Uri.parse(
       'https://api.jikan.moe/v4/anime'
@@ -159,7 +175,11 @@ class AnimeSearchService {
     }).toList();
   }
 
-  /// acgsecrets.hk — scrape seasonal page JSON-LD data and fuzzy-match.
+  /// Purpose: acgsecrets.hk — scrape seasonal page JSON-LD data and fuzzy-match.
+  /// Inputs: `query`.
+  /// Returns: `Future<List<AnimeSearchResult>>`.
+  /// Side effects: May perform network or file-system operations.
+  /// Notes: Internal helper used within this file only. acgsecrets.hk — scrape seasonal page JSON-LD data and fuzzy-match.
   static Future<List<AnimeSearchResult>> _searchAcgsecrets(String query) async {
     final seasons = _recentSeasons();
     final allResults = <(AnimeSearchResult, double)>[];
@@ -239,7 +259,11 @@ class AnimeSearchService {
     return allResults.take(5).map((e) => e.$1).toList();
   }
 
-  /// Return recent season codes (YYYYMM) for scraping, newest first.
+  /// Purpose: Return recent season codes (YYYYMM) for scraping, newest first.
+  /// Inputs: None.
+  /// Returns: `List<String>`.
+  /// Side effects: None.
+  /// Notes: Internal helper used within this file only. Return recent season codes (YYYYMM) for scraping, newest first.
   static List<String> _recentSeasons() {
     final now = DateTime.now();
     final y = now.year;
@@ -256,7 +280,11 @@ class AnimeSearchService {
     return seasons;
   }
 
-  /// Check if a string contains Japanese kana characters.
+  /// Purpose: Check if a string contains Japanese kana characters.
+  /// Inputs: `s`.
+  /// Returns: `bool`.
+  /// Side effects: None.
+  /// Notes: Internal helper used within this file only. Check if a string contains Japanese kana characters.
   static bool _containsJapanese(String s) {
     for (final c in s.runes) {
       // Hiragana: 3040-309F, Katakana: 30A0-30FF
@@ -267,7 +295,11 @@ class AnimeSearchService {
     return false;
   }
 
-  /// filmarks.com — HTML scraping.
+  /// Purpose: filmarks.com — HTML scraping.
+  /// Inputs: `query`.
+  /// Returns: `Future<List<AnimeSearchResult>>`.
+  /// Side effects: May perform network or file-system operations.
+  /// Notes: Internal helper used within this file only. filmarks.com — HTML scraping.
   static Future<List<AnimeSearchResult>> _searchFilmarks(String query) async {
     final url = Uri.parse(
       'https://filmarks.com/search/animes'
@@ -327,7 +359,11 @@ class AnimeSearchService {
     return results;
   }
 
-  /// AniList — GraphQL API.
+  /// Purpose: AniList — GraphQL API.
+  /// Inputs: `query`.
+  /// Returns: `Future<List<AnimeSearchResult>>`.
+  /// Side effects: May perform network or file-system operations.
+  /// Notes: Internal helper used within this file only. AniList — GraphQL API.
   static Future<List<AnimeSearchResult>> _searchAniList(String query) async {
     const graphqlQuery = r'''
 query ($search: String) {
@@ -422,6 +458,11 @@ query ($search: String) {
     }).toList();
   }
 
+  /// Purpose: Provide the internal parse day of week helper for this file.
+  /// Inputs: `day`.
+  /// Returns: `int?`.
+  /// Side effects: None.
+  /// Notes: Internal helper used within this file only.
   static int? _parseDayOfWeek(String day) {
     final d = day.toLowerCase();
     if (d.startsWith('mon')) return 1;
@@ -502,8 +543,11 @@ query ($search: String) {
     return allResults.take(10).toList();
   }
 
-  /// Compute the best similarity score of [title] against any of [queries].
-  /// Returns 0.0..1.0.
+  /// Purpose: Compute the best similarity score of [title] against any of [queries].
+  /// Inputs: `title`, `queries`.
+  /// Returns: `double`.
+  /// Side effects: None.
+  /// Notes: Internal helper used within this file only. Compute the best similarity score of [title] against any of [queries]. Returns 0.0..1.0.
   static double _bestSimilarity(String title, List<String> queries) {
     double best = 0;
     for (final q in queries) {
@@ -513,8 +557,11 @@ query ($search: String) {
     return best;
   }
 
-  /// Fuzzy similarity combining LCS, Dice (set-based), and containment.
-  /// Also compares S↔T normalized forms.  Returns 0.0..1.0.
+  /// Purpose: Fuzzy similarity combining LCS, Dice (set-based), and containment.
+  /// Inputs: `a`, `b`.
+  /// Returns: `double`.
+  /// Side effects: None.
+  /// Notes: Internal helper used within this file only. Fuzzy similarity combining LCS, Dice (set-based), and containment. Also compares S↔T normalized forms.  Returns 0.0..1.0.
   static double _similarity(String a, String b) {
     if (a.isEmpty || b.isEmpty) return 0;
     final aNorm = ChineseConvert.toTraditional(a);
@@ -544,7 +591,11 @@ query ($search: String) {
     return best;
   }
 
-  /// Longest common subsequence length (O(n*m) but strings are short titles).
+  /// Purpose: Longest common subsequence length (O(n*m) but strings are short titles).
+  /// Inputs: `a`, `b`.
+  /// Returns: `int`.
+  /// Side effects: None.
+  /// Notes: Internal helper used within this file only. Longest common subsequence length (O(n*m) but strings are short titles).
   static int _lcsLength(String a, String b) {
     final n = a.length, m = b.length;
     // Use two rows to save memory.
@@ -636,6 +687,11 @@ query ($search: String) {
     return results;
   }
 
+  /// Purpose: Provide the internal decode html entities helper for this file.
+  /// Inputs: `text`.
+  /// Returns: `String`.
+  /// Side effects: None.
+  /// Notes: Internal helper used within this file only.
   static String _decodeHtmlEntities(String text) {
     return text
         .replaceAll('&amp;', '&')

@@ -15,6 +15,11 @@ import 'shared/services/local_api_server.dart';
 import 'shared/services/reminder_service.dart';
 import 'shared/services/tray_service.dart';
 
+/// Purpose: Initialize startup services and launch the app entry point.
+/// Inputs: `args`.
+/// Returns: None.
+/// Side effects: None.
+/// Notes: None.
 void main(List<String> args) async {
   WidgetsFlutterBinding.ensureInitialized();
 
@@ -53,9 +58,7 @@ void main(List<String> args) async {
   FileOpenService.init();
 
   // Check command-line args for .myanimeitem file (desktop cold start)
-  final openFile = args
-      .where((a) => a.endsWith('.myanimeitem'))
-      .firstOrNull;
+  final openFile = args.where((a) => a.endsWith('.myanimeitem')).firstOrNull;
   if (openFile != null) {
     FileOpenService.setPendingFile(openFile);
   }
@@ -63,9 +66,7 @@ void main(List<String> args) async {
   runApp(
     DevicePreview(
       enabled: kDebugMode,
-      builder: (_) => const ProviderScope(
-        child: MyAnimeApp(),
-      ),
+      builder: (_) => const ProviderScope(child: MyAnimeApp()),
     ),
   );
 
@@ -76,5 +77,3 @@ void main(List<String> args) async {
     });
   }
 }
-
-

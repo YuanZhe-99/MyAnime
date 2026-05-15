@@ -3,8 +3,18 @@ import 'package:flutter/material.dart';
 import '../../../l10n/app_localizations.dart';
 
 class LicensePage extends StatelessWidget {
+  /// Purpose: Create a license page instance.
+  /// Inputs: None.
+  /// Returns: A new `LicensePage` instance.
+  /// Side effects: None.
+  /// Notes: None.
   const LicensePage({super.key});
 
+  /// Purpose: Build the current widget subtree for the active UI state.
+  /// Inputs: `context`.
+  /// Returns: The widget tree for the current state.
+  /// Side effects: Creates UI widgets from the current state.
+  /// Notes: Keep this method cheap because Flutter may call it often.
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;

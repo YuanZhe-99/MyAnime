@@ -7,6 +7,11 @@
 
 #include <iostream>
 
+// Purpose: Create a debug console and attach stdout and stderr to it.
+// Inputs: None.
+// Returns: None.
+// Side effects: Allocates a console window and rebinds standard output streams.
+// Notes: Used when running the Windows runner with an attached debugger.
 void CreateAndAttachConsole() {
   if (::AllocConsole()) {
     FILE *unused;
@@ -21,6 +26,11 @@ void CreateAndAttachConsole() {
   }
 }
 
+// Purpose: Return UTF-8 encoded command-line arguments for the Flutter engine.
+// Inputs: None.
+// Returns: The command-line arguments excluding the executable path.
+// Side effects: Allocates and frees the temporary Win32 argument array.
+// Notes: Returns an empty vector when argument decoding fails.
 std::vector<std::string> GetCommandLineArguments() {
   // Convert the UTF-16 command line arguments to UTF-8 for the Engine to use.
   int argc;
@@ -41,6 +51,11 @@ std::vector<std::string> GetCommandLineArguments() {
   return command_line_arguments;
 }
 
+// Purpose: Convert a UTF-16 Windows string into UTF-8.
+// Inputs: `utf16_string`.
+// Returns: The converted UTF-8 string, or an empty string on failure.
+// Side effects: None.
+// Notes: Returns an empty string when the input is `nullptr` or conversion fails.
 std::string Utf8FromUtf16(const wchar_t* utf16_string) {
   if (utf16_string == nullptr) {
     return std::string();

@@ -11,6 +11,13 @@ import java.io.File
 class MainActivity : FlutterActivity() {
     private var fileOpenChannel: MethodChannel? = null
 
+    /**
+     * Purpose: Register Android share and file-open channels for the Flutter engine.
+     * Inputs: `flutterEngine`.
+     * Returns: None.
+     * Side effects: Installs method-channel handlers and may dispatch the launch intent into Flutter.
+     * Notes: Runs during activity startup and reuses the existing launch intent for cold-start file opens.
+     */
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
         super.configureFlutterEngine(flutterEngine)
 
@@ -45,11 +52,25 @@ class MainActivity : FlutterActivity() {
         handleIntent(intent)
     }
 
+    /**
+     * Purpose: Forward new Android intents to the shared file-open handler.
+     * Inputs: `intent`.
+     * Returns: None.
+     * Side effects: May trigger `.myanimeitem` import delivery to Flutter.
+     * Notes: Keeps warm-start file opens consistent with cold-start handling.
+     */
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
         handleIntent(intent)
     }
 
+    /**
+     * Purpose: Extract supported file-open intents and notify Flutter with a local file path.
+     * Inputs: `intent`.
+     * Returns: None.
+     * Side effects: May copy content into cache storage and invoke the Flutter file-open channel.
+     * Notes: Ignores intents that are not `ACTION_VIEW` or that cannot be copied locally.
+     */
     private fun handleIntent(intent: Intent) {
         if (intent.action == Intent.ACTION_VIEW) {
             val uri = intent.data ?: return
@@ -58,6 +79,13 @@ class MainActivity : FlutterActivity() {
         }
     }
 
+    /**
+     * Purpose: Copy an opened Android content URI into a temporary local `.myanimeitem` file.
+     * Inputs: `uri`.
+     * Returns: The cached file path, or `null` on failure.
+     * Side effects: Reads from the content resolver and writes a temporary file in the app cache.
+     * Notes: The imported file is timestamped to avoid name collisions.
+     */
     private fun copyToLocal(uri: Uri): String? {
         return try {
             val inputStream = contentResolver.openInputStream(uri) ?: return null
