@@ -364,12 +364,12 @@ class _StatisticsPageState extends State<StatisticsPage> {
     });
   }
 
-  /// Purpose: Provide the internal ranking year range helper for this file.
-  /// Inputs: `int`.
+  /// Purpose: Build the selectable year range for summary and ranking pickers.
+  /// Inputs: None.
   /// Returns: `(int, int)`.
   /// Side effects: None.
-  /// Notes: Internal helper used within this file only.
-  (int, int) get _rankingYearRange {
+  /// Notes: Includes anime data years, current context, and current/future year defaults.
+  (int, int) get _availableYearRange {
     final dataYears = <int>{};
     for (final anime in _allAnime) {
       final sq = anime.startQuarter;
@@ -392,13 +392,55 @@ class _StatisticsPageState extends State<StatisticsPage> {
     );
   }
 
+  /// Purpose: Let the user directly choose the summary quarter.
+  /// Inputs: None.
+  /// Returns: None.
+  /// Side effects: Shows a dialog and mutates selected summary quarter state.
+  /// Notes: Internal helper used within this file only.
+  Future<void> _pickSummaryQuarter() async {
+    final range = _availableYearRange;
+    final selected = await showQuarterPickerDialog(
+      context: context,
+      title: AppLocalizations.of(context)!.manageJumpToQuarter,
+      minYear: range.$1,
+      maxYear: range.$2,
+      current: QuarterSelection(_selectedYear, _selectedQuarter),
+      countBuilder: _countAnimeInQuarter,
+    );
+    if (selected == null || !mounted) return;
+    setState(() {
+      _selectedYear = selected.year;
+      _selectedQuarter = selected.quarter;
+    });
+    _scrollTrendToEnd();
+  }
+
+  /// Purpose: Let the user directly choose the summary year.
+  /// Inputs: None.
+  /// Returns: None.
+  /// Side effects: Shows a dialog and mutates selected summary year state.
+  /// Notes: Internal helper used within this file only.
+  Future<void> _pickSummaryYear() async {
+    final l10n = AppLocalizations.of(context)!;
+    final range = _availableYearRange;
+    final selected = await _showYearPickerDialog(
+      title: l10n.statsRankingSelectYear,
+      minYear: range.$1,
+      maxYear: range.$2,
+      currentYear: _selectedYearOnly,
+    );
+    if (selected == null || !mounted) return;
+    setState(() => _selectedYearOnly = selected);
+    _scrollTrendToEnd();
+  }
+
   /// Purpose: Provide the internal pick ranking quarter helper for this file.
   /// Inputs: None.
   /// Returns: None.
-  /// Side effects: None.
+  /// Side effects: Shows a dialog and mutates selected ranking quarter state.
   /// Notes: Internal helper used within this file only.
   Future<void> _pickRankingQuarter() async {
-    final range = _rankingYearRange;
+    final range = _availableYearRange;
     final selected = await showQuarterPickerDialog(
       context: context,
       title: AppLocalizations.of(context)!.manageJumpToQuarter,
@@ -417,11 +459,11 @@ class _StatisticsPageState extends State<StatisticsPage> {
   /// Purpose: Provide the internal pick ranking year helper for this file.
   /// Inputs: None.
   /// Returns: None.
-  /// Side effects: None.
+  /// Side effects: Shows a dialog and mutates selected ranking year state.
   /// Notes: Internal helper used within this file only.
   Future<void> _pickRankingYear() async {
     final l10n = AppLocalizations.of(context)!;
-    final range = _rankingYearRange;
+    final range = _availableYearRange;
     final selected = await _showYearPickerDialog(
       title: l10n.statsRankingSelectYear,
       minYear: range.$1,
@@ -438,7 +480,7 @@ class _StatisticsPageState extends State<StatisticsPage> {
   /// Side effects: May read or mutate application state, storage, or service resources.
   /// Notes: Internal helper used within this file only.
   Future<void> _pickRankingRangeStart() async {
-    final range = _rankingYearRange;
+    final range = _availableYearRange;
     final selected = await showQuarterPickerDialog(
       context: context,
       title: AppLocalizations.of(context)!.statsRankingStartQuarter,
@@ -461,7 +503,7 @@ class _StatisticsPageState extends State<StatisticsPage> {
   /// Side effects: None.
   /// Notes: Internal helper used within this file only.
   Future<void> _pickRankingRangeEnd() async {
-    final range = _rankingYearRange;
+    final range = _availableYearRange;
     final selected = await showQuarterPickerDialog(
       context: context,
       title: AppLocalizations.of(context)!.statsRankingEndQuarter,
@@ -839,8 +881,13 @@ class _StatisticsPageState extends State<StatisticsPage> {
                         onPressed: _prevPeriod,
                       ),
                       Expanded(
-                        child: Center(
-                          child: Text(
+                        child: TextButton.icon(
+                          onPressed: _scope == _TimeScope.quarter
+                              ? _pickSummaryQuarter
+                              : _pickSummaryYear,
+                          icon: const Icon(Icons.arrow_drop_down),
+                          iconAlignment: IconAlignment.end,
+                          label: Text(
                             _scope == _TimeScope.quarter
                                 ? _quarterLabel(_selectedYear, _selectedQuarter)
                                 : '$_selectedYearOnly',

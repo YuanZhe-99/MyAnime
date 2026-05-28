@@ -32,8 +32,8 @@ class AppLocalizationsZh extends AppLocalizations {
   }
 
   @override
-  String homeUnwatched(int count) {
-    return '未看 ($count)';
+  String homeUnwatched(int animeCount, int episodeCount) {
+    return '未看番剧 $animeCount 部，$episodeCount 话';
   }
 
   @override
@@ -621,13 +621,13 @@ class AppLocalizationsZh extends AppLocalizations {
   String get reminderNotifBody => '查看你的动漫日程！';
 
   @override
-  String reminderAiringToday(int count) {
-    return '今日放送: $count话';
+  String reminderAiringToday(int animeCount, int episodeCount) {
+    return '今日放送 $animeCount 部番剧，$episodeCount 话';
   }
 
   @override
-  String reminderUnwatched(int count) {
-    return '未观看: $count话';
+  String reminderUnwatched(int animeCount, int episodeCount) {
+    return '待看 $animeCount 部番剧，$episodeCount 话';
   }
 
   @override
@@ -864,8 +864,8 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
   }
 
   @override
-  String homeUnwatched(int count) {
-    return '未看 ($count)';
+  String homeUnwatched(int animeCount, int episodeCount) {
+    return '未看番劇 $animeCount 部，$episodeCount 話';
   }
 
   @override
@@ -1453,13 +1453,13 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
   String get reminderNotifBody => '查看你的動漫日程！';
 
   @override
-  String reminderAiringToday(int count) {
-    return '今日放送: $count話';
+  String reminderAiringToday(int animeCount, int episodeCount) {
+    return '今日放送 $animeCount 部番劇，$episodeCount 話';
   }
 
   @override
-  String reminderUnwatched(int count) {
-    return '未觀看: $count話';
+  String reminderUnwatched(int animeCount, int episodeCount) {
+    return '待看 $animeCount 部番劇，$episodeCount 話';
   }
 
   @override

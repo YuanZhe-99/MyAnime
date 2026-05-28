@@ -207,11 +207,11 @@ class ReminderService {
     checkAndNotify();
   }
 
-  /// Purpose: Check conditions and show reminder if needed.
+  /// Purpose: Check due reminder conditions and show the daily schedule summary.
   /// Inputs: None.
   /// Returns: None.
   /// Side effects: May read or mutate application state, storage, or service resources.
-  /// Notes: Check conditions and show reminder if needed.
+  /// Notes: Counts both anime titles and episode totals for today's airing and aired unwatched work.
   static Future<void> checkAndNotify() async {
     try {
       final config = await AnimeStorage.readConfig();
@@ -246,42 +246,48 @@ class ReminderService {
       final jstToday = JstTime.today();
       final jstNow = JstTime.now();
 
-      int airingToday = 0;
-      int unwatchedCount = 0;
+      final airingAnimeIds = <String>{};
+      var airingEpisodeCount = 0;
+      final unwatchedAnimeIds = <String>{};
+      var unwatchedEpisodeCount = 0;
 
       for (final anime in data.animeList) {
         final lastEp = anime.endEpisode ?? anime.startEpisode;
-        bool countedUnwatched = false;
         for (var ep = anime.startEpisode; ep <= lastEp; ep++) {
-          // Count episodes airing today.
           final calDate = anime.getEpisodeCalendarDate(ep);
           if (calDate != null && calDate == jstToday) {
-            airingToday++;
+            airingAnimeIds.add(anime.id);
+            airingEpisodeCount++;
           }
-          // Count first unwatched episode per anime.
-          if (!countedUnwatched) {
-            final s = anime.episodeStatuses[ep] ?? EpisodeStatus.unwatched;
-            if (s == EpisodeStatus.unwatched) {
-              final airDate = anime.getEpisodeAirDate(ep);
-              if (airDate != null && !airDate.isAfter(jstNow)) {
-                unwatchedCount++;
-              }
-              countedUnwatched = true;
+
+          final s = anime.episodeStatuses[ep] ?? EpisodeStatus.unwatched;
+          if (s == EpisodeStatus.unwatched) {
+            final airDate = anime.getEpisodeAirDate(ep);
+            if (airDate != null && !airDate.isAfter(jstNow)) {
+              unwatchedAnimeIds.add(anime.id);
+              unwatchedEpisodeCount++;
             }
           }
         }
       }
 
-      if (airingToday == 0 && unwatchedCount == 0) return;
+      if (airingEpisodeCount == 0 && unwatchedEpisodeCount == 0) return;
 
       // Build notification body.
       final l10n = await _getL10n();
       final lines = <String>[];
-      if (airingToday > 0) {
-        lines.add(l10n.reminderAiringToday(airingToday));
+      if (airingEpisodeCount > 0) {
+        lines.add(
+          l10n.reminderAiringToday(airingAnimeIds.length, airingEpisodeCount),
+        );
       }
-      if (unwatchedCount > 0) {
-        lines.add(l10n.reminderUnwatched(unwatchedCount));
+      if (unwatchedEpisodeCount > 0) {
+        lines.add(
+          l10n.reminderUnwatched(
+            unwatchedAnimeIds.length,
+            unwatchedEpisodeCount,
+          ),
+        );
       }
 
       await _show('MyAnime!!!!!', lines.join(' · '));

@@ -32,8 +32,8 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String homeUnwatched(int count) {
-    return 'Unwatched ($count)';
+  String homeUnwatched(int animeCount, int episodeCount) {
+    return 'Unwatched: $animeCount anime, $episodeCount episode(s)';
   }
 
   @override
@@ -627,13 +627,13 @@ class AppLocalizationsEn extends AppLocalizations {
   String get reminderNotifBody => 'Check your anime schedule!';
 
   @override
-  String reminderAiringToday(int count) {
-    return '$count episode(s) airing today';
+  String reminderAiringToday(int animeCount, int episodeCount) {
+    return 'Today: $animeCount anime airing, $episodeCount episode(s)';
   }
 
   @override
-  String reminderUnwatched(int count) {
-    return '$count unwatched episode(s)';
+  String reminderUnwatched(int animeCount, int episodeCount) {
+    return 'To watch: $animeCount anime, $episodeCount episode(s)';
   }
 
   @override

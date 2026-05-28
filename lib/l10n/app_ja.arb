@@ -10,7 +10,7 @@
   "navSettings": "設定",
 
   "homeAiringOn": "{date} 放送",
-  "homeUnwatched": "未視聴 ({count})",
+  "homeUnwatched": "未視聴: {animeCount}作品、{episodeCount}話",
   "homeEmpty": "アニメがありません。追加して始めましょう！",
 
   "animeTitle": "タイトル",
@@ -216,10 +216,10 @@
   "seasonFall": "秋",
 
   "reminderNotifBody": "アニメのスケジュールを確認してください！",
-  "reminderAiringToday": "今日放送: {count}話",
-  "@reminderAiringToday": { "placeholders": { "count": { "type": "int" } } },
-  "reminderUnwatched": "未視聴: {count}話",
-  "@reminderUnwatched": { "placeholders": { "count": { "type": "int" } } },
+  "reminderAiringToday": "今日放送: {animeCount}作品、{episodeCount}話",
+  "@reminderAiringToday": { "placeholders": { "animeCount": { "type": "int" }, "episodeCount": { "type": "int" } } },
+  "reminderUnwatched": "未視聴: {animeCount}作品、{episodeCount}話",
+  "@reminderUnwatched": { "placeholders": { "animeCount": { "type": "int" }, "episodeCount": { "type": "int" } } },
 
   "syncConflictTitle": "同期競合: {name}",
   "@syncConflictTitle": { "placeholders": { "name": { "type": "String" } } },

@@ -10,7 +10,7 @@
   "navSettings": "設定",
 
   "homeAiringOn": "{date} 播出",
-  "homeUnwatched": "未看 ({count})",
+  "homeUnwatched": "未看番劇 {animeCount} 部，{episodeCount} 話",
   "homeEmpty": "還沒有番劇，新增一部開始追番吧！",
 
   "animeTitle": "標題",
@@ -216,10 +216,10 @@
   "seasonFall": "秋",
 
   "reminderNotifBody": "查看你的動漫日程！",
-  "reminderAiringToday": "今日放送: {count}話",
-  "@reminderAiringToday": { "placeholders": { "count": { "type": "int" } } },
-  "reminderUnwatched": "未觀看: {count}話",
-  "@reminderUnwatched": { "placeholders": { "count": { "type": "int" } } },
+  "reminderAiringToday": "今日放送 {animeCount} 部番劇，{episodeCount} 話",
+  "@reminderAiringToday": { "placeholders": { "animeCount": { "type": "int" }, "episodeCount": { "type": "int" } } },
+  "reminderUnwatched": "待看 {animeCount} 部番劇，{episodeCount} 話",
+  "@reminderUnwatched": { "placeholders": { "animeCount": { "type": "int" }, "episodeCount": { "type": "int" } } },
 
   "syncConflictTitle": "同步衝突: {name}",
   "@syncConflictTitle": { "placeholders": { "name": { "type": "String" } } },

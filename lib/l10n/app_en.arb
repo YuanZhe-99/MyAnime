@@ -11,8 +11,8 @@
 
   "homeAiringOn": "Airing on {date}",
   "@homeAiringOn": { "placeholders": { "date": { "type": "String" } } },
-  "homeUnwatched": "Unwatched ({count})",
-  "@homeUnwatched": { "placeholders": { "count": { "type": "int" } } },
+  "homeUnwatched": "Unwatched: {animeCount} anime, {episodeCount} episode(s)",
+  "@homeUnwatched": { "placeholders": { "animeCount": { "type": "int" }, "episodeCount": { "type": "int" } } },
   "homeEmpty": "No anime yet. Add one to get started!",
 
   "animeTitle": "Title",
@@ -223,10 +223,10 @@
   "seasonFall": "Fall",
 
   "reminderNotifBody": "Check your anime schedule!",
-  "reminderAiringToday": "{count} episode(s) airing today",
-  "@reminderAiringToday": { "placeholders": { "count": { "type": "int" } } },
-  "reminderUnwatched": "{count} unwatched episode(s)",
-  "@reminderUnwatched": { "placeholders": { "count": { "type": "int" } } },
+  "reminderAiringToday": "Today: {animeCount} anime airing, {episodeCount} episode(s)",
+  "@reminderAiringToday": { "placeholders": { "animeCount": { "type": "int" }, "episodeCount": { "type": "int" } } },
+  "reminderUnwatched": "To watch: {animeCount} anime, {episodeCount} episode(s)",
+  "@reminderUnwatched": { "placeholders": { "animeCount": { "type": "int" }, "episodeCount": { "type": "int" } } },
 
   "syncConflictTitle": "Sync Conflict: {name}",
   "@syncConflictTitle": { "placeholders": { "name": { "type": "String" } } },

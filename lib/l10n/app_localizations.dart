@@ -146,8 +146,8 @@ abstract class AppLocalizations {
   /// No description provided for @homeUnwatched.
   ///
   /// In en, this message translates to:
-  /// **'Unwatched ({count})'**
-  String homeUnwatched(int count);
+  /// **'Unwatched: {animeCount} anime, {episodeCount} episode(s)'**
+  String homeUnwatched(int animeCount, int episodeCount);
 
   /// No description provided for @homeEmpty.
   ///
@@ -1292,14 +1292,14 @@ abstract class AppLocalizations {
   /// No description provided for @reminderAiringToday.
   ///
   /// In en, this message translates to:
-  /// **'{count} episode(s) airing today'**
-  String reminderAiringToday(int count);
+  /// **'Today: {animeCount} anime airing, {episodeCount} episode(s)'**
+  String reminderAiringToday(int animeCount, int episodeCount);
 
   /// No description provided for @reminderUnwatched.
   ///
   /// In en, this message translates to:
-  /// **'{count} unwatched episode(s)'**
-  String reminderUnwatched(int count);
+  /// **'To watch: {animeCount} anime, {episodeCount} episode(s)'**
+  String reminderUnwatched(int animeCount, int episodeCount);
 
   /// No description provided for @syncConflictTitle.
   ///

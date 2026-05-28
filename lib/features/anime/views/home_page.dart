@@ -82,7 +82,7 @@ class _HomePageState extends State<HomePage> {
   /// Inputs: None.
   /// Returns: `List<_AiringEpisode>`.
   /// Side effects: None.
-  /// Notes: Internal helper used within this file only.
+  /// Notes: Keeps the visible list focused on the next episode to watch per anime.
   List<_AiringEpisode> _getUnwatchedEpisodes() {
     final episodes = <_AiringEpisode>[];
     for (final anime in _allAnime) {
@@ -109,6 +109,29 @@ class _HomePageState extends State<HomePage> {
     return episodes;
   }
 
+  /// Purpose: Count all aired unwatched episodes across every anime.
+  /// Inputs: None.
+  /// Returns: `int`.
+  /// Side effects: None.
+  /// Notes: Used for summary text while the visible list still shows one row per anime.
+  int _countUnwatchedAiredEpisodes() {
+    var count = 0;
+    final now = JstTime.now();
+    for (final anime in _allAnime) {
+      final lastEp = anime.endEpisode ?? anime.startEpisode;
+      for (var ep = anime.startEpisode; ep <= lastEp; ep++) {
+        final status = anime.episodeStatuses[ep] ?? EpisodeStatus.unwatched;
+        if (status != EpisodeStatus.unwatched) continue;
+
+        final airDate = anime.getEpisodeAirDate(ep);
+        if (airDate != null && !airDate.isAfter(now)) {
+          count++;
+        }
+      }
+    }
+    return count;
+  }
+
   /// Purpose: Provide the internal toggle watched helper for this file.
   /// Inputs: `ep`.
   /// Returns: None.
@@ -129,12 +152,12 @@ class _HomePageState extends State<HomePage> {
     await _load();
   }
 
-  /// Purpose: Provide the internal show add options helper for this file.
-  /// Inputs: `context`.
+  /// Purpose: Show add/import choices and open the created or imported anime.
+  /// Inputs: None.
   /// Returns: None.
-  /// Side effects: None.
+  /// Side effects: Shows dialogs, navigates, imports files, and reloads anime data.
   /// Notes: Internal helper used within this file only.
-  Future<void> _showAddOptions(BuildContext context) async {
+  Future<void> _showAddOptions() async {
     final l10n = AppLocalizations.of(context)!;
     final choice = await showDialog<String>(
       context: context,
@@ -201,6 +224,7 @@ class _HomePageState extends State<HomePage> {
       return 0;
     });
     final unwatched = _getUnwatchedEpisodes();
+    final unwatchedEpisodeCount = _countUnwatchedAiredEpisodes();
 
     return Scaffold(
       appBar: AppBar(title: Text(l10n.appTitle)),
@@ -232,11 +256,11 @@ class _HomePageState extends State<HomePage> {
               calendarBuilders: CalendarBuilders(
                 markerBuilder: (context, day, events) {
                   if (events.isEmpty) return null;
-                  final allWatched = events.every((ep) {
+                  final hasUnwatched = events.any((ep) {
                     final s =
                         ep.anime.episodeStatuses[ep.episode] ??
                         EpisodeStatus.unwatched;
-                    return s == EpisodeStatus.watched;
+                    return s == EpisodeStatus.unwatched;
                   });
                   return Positioned(
                     bottom: 1,
@@ -244,9 +268,9 @@ class _HomePageState extends State<HomePage> {
                       width: 7,
                       height: 7,
                       decoration: BoxDecoration(
-                        color: allWatched
-                            ? theme.colorScheme.outlineVariant
-                            : theme.colorScheme.primary,
+                        color: hasUnwatched
+                            ? theme.colorScheme.primary
+                            : theme.colorScheme.outlineVariant,
                         shape: BoxShape.circle,
                       ),
                     ),
@@ -298,7 +322,7 @@ class _HomePageState extends State<HomePage> {
               Padding(
                 padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
                 child: Text(
-                  l10n.homeUnwatched(unwatched.length),
+                  l10n.homeUnwatched(unwatched.length, unwatchedEpisodeCount),
                   style: theme.textTheme.titleSmall?.copyWith(
                     color: theme.colorScheme.error,
                   ),
@@ -325,7 +349,7 @@ class _HomePageState extends State<HomePage> {
         ),
       ),
       floatingActionButton: FloatingActionButton(
-        onPressed: () => _showAddOptions(context),
+        onPressed: _showAddOptions,
         tooltip: l10n.animeAdd,
         child: const Icon(Icons.add),
       ),
