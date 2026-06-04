@@ -40,6 +40,22 @@ class AppLocalizationsEn extends AppLocalizations {
   String get homeEmpty => 'No anime yet. Add one to get started!';
 
   @override
+  String get homeCalendarTimeNoteJst => 'Calendar dates use Japan time (UTC+9)';
+
+  @override
+  String get homeCalendarTimeNoteLocal =>
+      'Calendar dates use device local time; airing times stay in Japan time';
+
+  @override
+  String get calendarFormatMonth => 'Month';
+
+  @override
+  String get calendarFormatTwoWeeks => '2 weeks';
+
+  @override
+  String get calendarFormatWeek => 'Week';
+
+  @override
   String get animeTitle => 'Title';
 
   @override
@@ -289,6 +305,35 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get settingsLanguageSystem => 'System';
+
+  @override
+  String get settingsHomeCalendarLayout => 'Home Calendar Style';
+
+  @override
+  String get settingsHomeCalendarLayoutLocal => 'Local';
+
+  @override
+  String get settingsHomeCalendarLayoutJapanese => 'Japanese (日月火水木金土)';
+
+  @override
+  String get settingsWeekStartDay => 'Week Starts On';
+
+  @override
+  String get settingsWeekStartLockedJapanese =>
+      'Japanese calendar always starts on Sunday';
+
+  @override
+  String get settingsHomeCalendarTimeBasis => 'Home Calendar Time';
+
+  @override
+  String get settingsHomeCalendarTimeBasisJst => 'Japan Time';
+
+  @override
+  String get settingsHomeCalendarTimeBasisLocal => 'Local Time';
+
+  @override
+  String get settingsHomeCalendarTimeBasisDesc =>
+      'Anime airing times are still calculated in Japan time.';
 
   @override
   String get settingsReminder => 'Daily Reminder';

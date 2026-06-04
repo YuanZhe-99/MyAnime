@@ -40,6 +40,21 @@ class AppLocalizationsZh extends AppLocalizations {
   String get homeEmpty => '还没有番剧，添加一部开始追番吧！';
 
   @override
+  String get homeCalendarTimeNoteJst => '日历日期使用日本时间（UTC+9）';
+
+  @override
+  String get homeCalendarTimeNoteLocal => '日历日期使用设备本地时间；番剧播出时间仍按日本时间计算';
+
+  @override
+  String get calendarFormatMonth => '月视图';
+
+  @override
+  String get calendarFormatTwoWeeks => '两周';
+
+  @override
+  String get calendarFormatWeek => '周';
+
+  @override
   String get animeTitle => '标题';
 
   @override
@@ -287,6 +302,33 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get settingsLanguageSystem => '跟随系统';
+
+  @override
+  String get settingsHomeCalendarLayout => '首页日历样式';
+
+  @override
+  String get settingsHomeCalendarLayoutLocal => '本地';
+
+  @override
+  String get settingsHomeCalendarLayoutJapanese => '日本（日月火水木金土）';
+
+  @override
+  String get settingsWeekStartDay => '每周开始于';
+
+  @override
+  String get settingsWeekStartLockedJapanese => '日本日历固定从周日开始';
+
+  @override
+  String get settingsHomeCalendarTimeBasis => '首页日历时间';
+
+  @override
+  String get settingsHomeCalendarTimeBasisJst => '日本时间';
+
+  @override
+  String get settingsHomeCalendarTimeBasisLocal => '本地时间';
+
+  @override
+  String get settingsHomeCalendarTimeBasisDesc => '番剧播出时间仍按日本时间计算。';
 
   @override
   String get settingsReminder => '每日提醒';
@@ -872,6 +914,21 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
   String get homeEmpty => '還沒有番劇，新增一部開始追番吧！';
 
   @override
+  String get homeCalendarTimeNoteJst => '日曆日期使用日本時間（UTC+9）';
+
+  @override
+  String get homeCalendarTimeNoteLocal => '日曆日期使用裝置本地時間；番劇播出時間仍按日本時間計算';
+
+  @override
+  String get calendarFormatMonth => '月檢視';
+
+  @override
+  String get calendarFormatTwoWeeks => '兩週';
+
+  @override
+  String get calendarFormatWeek => '週';
+
+  @override
   String get animeTitle => '標題';
 
   @override
@@ -1119,6 +1176,33 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
 
   @override
   String get settingsLanguageSystem => '跟隨系統';
+
+  @override
+  String get settingsHomeCalendarLayout => '首頁日曆樣式';
+
+  @override
+  String get settingsHomeCalendarLayoutLocal => '本地';
+
+  @override
+  String get settingsHomeCalendarLayoutJapanese => '日本（日月火水木金土）';
+
+  @override
+  String get settingsWeekStartDay => '每週開始於';
+
+  @override
+  String get settingsWeekStartLockedJapanese => '日本日曆固定從週日開始';
+
+  @override
+  String get settingsHomeCalendarTimeBasis => '首頁日曆時間';
+
+  @override
+  String get settingsHomeCalendarTimeBasisJst => '日本時間';
+
+  @override
+  String get settingsHomeCalendarTimeBasisLocal => '本地時間';
+
+  @override
+  String get settingsHomeCalendarTimeBasisDesc => '番劇播出時間仍按日本時間計算。';
 
   @override
   String get settingsReminder => '每日提醒';

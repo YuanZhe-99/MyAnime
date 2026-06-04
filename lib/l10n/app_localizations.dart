@@ -155,6 +155,36 @@ abstract class AppLocalizations {
   /// **'No anime yet. Add one to get started!'**
   String get homeEmpty;
 
+  /// No description provided for @homeCalendarTimeNoteJst.
+  ///
+  /// In en, this message translates to:
+  /// **'Calendar dates use Japan time (UTC+9)'**
+  String get homeCalendarTimeNoteJst;
+
+  /// No description provided for @homeCalendarTimeNoteLocal.
+  ///
+  /// In en, this message translates to:
+  /// **'Calendar dates use device local time; airing times stay in Japan time'**
+  String get homeCalendarTimeNoteLocal;
+
+  /// No description provided for @calendarFormatMonth.
+  ///
+  /// In en, this message translates to:
+  /// **'Month'**
+  String get calendarFormatMonth;
+
+  /// No description provided for @calendarFormatTwoWeeks.
+  ///
+  /// In en, this message translates to:
+  /// **'2 weeks'**
+  String get calendarFormatTwoWeeks;
+
+  /// No description provided for @calendarFormatWeek.
+  ///
+  /// In en, this message translates to:
+  /// **'Week'**
+  String get calendarFormatWeek;
+
   /// No description provided for @animeTitle.
   ///
   /// In en, this message translates to:
@@ -640,6 +670,60 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'System'**
   String get settingsLanguageSystem;
+
+  /// No description provided for @settingsHomeCalendarLayout.
+  ///
+  /// In en, this message translates to:
+  /// **'Home Calendar Style'**
+  String get settingsHomeCalendarLayout;
+
+  /// No description provided for @settingsHomeCalendarLayoutLocal.
+  ///
+  /// In en, this message translates to:
+  /// **'Local'**
+  String get settingsHomeCalendarLayoutLocal;
+
+  /// No description provided for @settingsHomeCalendarLayoutJapanese.
+  ///
+  /// In en, this message translates to:
+  /// **'Japanese (日月火水木金土)'**
+  String get settingsHomeCalendarLayoutJapanese;
+
+  /// No description provided for @settingsWeekStartDay.
+  ///
+  /// In en, this message translates to:
+  /// **'Week Starts On'**
+  String get settingsWeekStartDay;
+
+  /// No description provided for @settingsWeekStartLockedJapanese.
+  ///
+  /// In en, this message translates to:
+  /// **'Japanese calendar always starts on Sunday'**
+  String get settingsWeekStartLockedJapanese;
+
+  /// No description provided for @settingsHomeCalendarTimeBasis.
+  ///
+  /// In en, this message translates to:
+  /// **'Home Calendar Time'**
+  String get settingsHomeCalendarTimeBasis;
+
+  /// No description provided for @settingsHomeCalendarTimeBasisJst.
+  ///
+  /// In en, this message translates to:
+  /// **'Japan Time'**
+  String get settingsHomeCalendarTimeBasisJst;
+
+  /// No description provided for @settingsHomeCalendarTimeBasisLocal.
+  ///
+  /// In en, this message translates to:
+  /// **'Local Time'**
+  String get settingsHomeCalendarTimeBasisLocal;
+
+  /// No description provided for @settingsHomeCalendarTimeBasisDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'Anime airing times are still calculated in Japan time.'**
+  String get settingsHomeCalendarTimeBasisDesc;
 
   /// No description provided for @settingsReminder.
   ///

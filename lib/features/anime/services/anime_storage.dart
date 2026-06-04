@@ -5,6 +5,7 @@ import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
 
 import '../../../shared/services/auto_sync_service.dart';
+import '../../../shared/utils/calendar_preferences.dart';
 import '../models/anime.dart';
 
 class AnimeStorage {
@@ -273,6 +274,82 @@ class AnimeStorage {
       config.remove('locale');
     } else {
       config['locale'] = tag;
+    }
+    await writeConfig(config);
+  }
+
+  /// Purpose: Return the persisted global calendar week start day.
+  /// Inputs: None.
+  /// Returns: `Future<int>`.
+  /// Side effects: None.
+  /// Notes: Weekday values use Dart's Monday=1 through Sunday=7 numbering and default to Sunday.
+  static Future<int> getWeekStartDay() async {
+    final config = await readConfig();
+    return normalizeWeekStartDay(config['weekStartDay'] as int?);
+  }
+
+  /// Purpose: Persist the global calendar week start day.
+  /// Inputs: `weekday`.
+  /// Returns: None.
+  /// Side effects: Writes `storage_config.json`.
+  /// Notes: The default Sunday value is removed from config instead of stored.
+  static Future<void> setWeekStartDay(int weekday) async {
+    final normalized = normalizeWeekStartDay(weekday);
+    final config = await readConfig();
+    if (normalized == defaultWeekStartDay) {
+      config.remove('weekStartDay');
+    } else {
+      config['weekStartDay'] = normalized;
+    }
+    await writeConfig(config);
+  }
+
+  /// Purpose: Return the persisted home calendar layout value.
+  /// Inputs: None.
+  /// Returns: `Future<String?>`.
+  /// Side effects: None.
+  /// Notes: `null` means the default local calendar layout.
+  static Future<String?> getHomeCalendarLayout() async {
+    final config = await readConfig();
+    return config['homeCalendarLayout'] as String?;
+  }
+
+  /// Purpose: Persist the home calendar layout value.
+  /// Inputs: `layout`.
+  /// Returns: None.
+  /// Side effects: Writes `storage_config.json`.
+  /// Notes: Passing `null` removes the value and restores the default local layout.
+  static Future<void> setHomeCalendarLayout(String? layout) async {
+    final config = await readConfig();
+    if (layout == null) {
+      config.remove('homeCalendarLayout');
+    } else {
+      config['homeCalendarLayout'] = layout;
+    }
+    await writeConfig(config);
+  }
+
+  /// Purpose: Return the persisted home calendar time basis value.
+  /// Inputs: None.
+  /// Returns: `Future<String?>`.
+  /// Side effects: None.
+  /// Notes: `null` means the default Japan Standard Time calendar basis.
+  static Future<String?> getHomeCalendarTimeBasis() async {
+    final config = await readConfig();
+    return config['homeCalendarTimeBasis'] as String?;
+  }
+
+  /// Purpose: Persist the home calendar time basis value.
+  /// Inputs: `basis`.
+  /// Returns: None.
+  /// Side effects: Writes `storage_config.json`.
+  /// Notes: Passing `null` removes the value and restores the default JST basis.
+  static Future<void> setHomeCalendarTimeBasis(String? basis) async {
+    final config = await readConfig();
+    if (basis == null) {
+      config.remove('homeCalendarTimeBasis');
+    } else {
+      config['homeCalendarTimeBasis'] = basis;
     }
     await writeConfig(config);
   }

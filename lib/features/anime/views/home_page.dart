@@ -1,19 +1,22 @@
 import 'dart:io';
 
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import 'package:table_calendar/table_calendar.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../../../l10n/app_localizations.dart';
+import '../../../shared/providers/app_settings.dart';
 import '../../../shared/services/file_open_service.dart';
 import '../../../shared/services/image_service.dart';
+import '../../../shared/utils/calendar_preferences.dart';
 import '../../../shared/utils/jst_time.dart';
 import '../models/anime.dart';
 import '../services/anime_storage.dart';
 
-class HomePage extends StatefulWidget {
+class HomePage extends ConsumerStatefulWidget {
   /// Purpose: Create a home page instance.
   /// Inputs: None.
   /// Returns: A new `HomePage` instance.
@@ -27,11 +30,11 @@ class HomePage extends StatefulWidget {
   /// Side effects: None.
   /// Notes: Flutter lifecycle override.
   @override
-  State<HomePage> createState() => _HomePageState();
+  ConsumerState<HomePage> createState() => _HomePageState();
 }
 
-class _HomePageState extends State<HomePage> {
-  DateTime _focusedDay = JstTime.today();
+class _HomePageState extends ConsumerState<HomePage> {
+  DateTime? _focusedDay;
   DateTime? _selectedDay;
   List<Anime> _allAnime = [];
   CalendarFormat _calendarFormat = CalendarFormat.month;
@@ -44,7 +47,6 @@ class _HomePageState extends State<HomePage> {
   @override
   void initState() {
     super.initState();
-    _selectedDay = JstTime.today();
     _load();
   }
 
@@ -59,23 +61,83 @@ class _HomePageState extends State<HomePage> {
   }
 
   /// Purpose: Collect airing episodes scheduled for the requested calendar day.
-  /// Inputs: `day`.
+  /// Inputs: `day`, `timeBasis`.
   /// Returns: `List<_AiringEpisode>`.
   /// Side effects: None.
   /// Notes: Internal helper used within this file only.
-  List<_AiringEpisode> _getEventsForDay(DateTime day) {
+  List<_AiringEpisode> _getEventsForDay(
+    DateTime day,
+    HomeCalendarTimeBasis timeBasis,
+  ) {
     final events = <_AiringEpisode>[];
     final dayOnly = DateTime(day.year, day.month, day.day);
     for (final anime in _allAnime) {
       final lastEp = anime.endEpisode ?? anime.startEpisode;
       for (var ep = anime.startEpisode; ep <= lastEp; ep++) {
-        final calDate = anime.getEpisodeCalendarDate(ep);
+        final calDate = _getEpisodeCalendarDate(anime, ep, timeBasis);
         if (calDate != null && calDate == dayOnly) {
           events.add(_AiringEpisode(anime: anime, episode: ep));
         }
       }
     }
     return events;
+  }
+
+  /// Purpose: Return the current date for the selected home calendar time basis.
+  /// Inputs: `timeBasis`.
+  /// Returns: `DateTime`.
+  /// Side effects: None.
+  /// Notes: The returned value is date-only in either JST or local time.
+  DateTime _today(HomeCalendarTimeBasis timeBasis) {
+    return switch (timeBasis) {
+      HomeCalendarTimeBasis.jst => JstTime.today(),
+      HomeCalendarTimeBasis.local => JstTime.localToday(),
+    };
+  }
+
+  /// Purpose: Return the calendar date for an episode under the selected home calendar time basis.
+  /// Inputs: `anime`, `episode`, `timeBasis`.
+  /// Returns: `DateTime?`.
+  /// Side effects: None.
+  /// Notes: Local mode converts episode air timestamps to the device timezone; all-at-once releases keep their release date.
+  DateTime? _getEpisodeCalendarDate(
+    Anime anime,
+    int episode,
+    HomeCalendarTimeBasis timeBasis,
+  ) {
+    if (timeBasis == HomeCalendarTimeBasis.jst) {
+      return anime.getEpisodeCalendarDate(episode);
+    }
+
+    if (anime.effectiveType == AnimeType.allAtOnce) {
+      return anime.getEpisodeCalendarDate(episode);
+    }
+
+    final airDate = anime.getEpisodeAirDate(episode);
+    if (airDate == null) return anime.getEpisodeCalendarDate(episode);
+    final local = JstTime.toLocal(airDate);
+    return DateTime(local.year, local.month, local.day);
+  }
+
+  /// Purpose: Return the display air date for an episode under the selected home calendar time basis.
+  /// Inputs: `anime`, `episode`, `timeBasis`.
+  /// Returns: `DateTime?`.
+  /// Side effects: None.
+  /// Notes: The anime model still calculates the source timestamp in Japan time; all-at-once releases keep their release date.
+  DateTime? _getEpisodeDisplayAirDate(
+    Anime anime,
+    int episode,
+    HomeCalendarTimeBasis timeBasis,
+  ) {
+    if (anime.effectiveType == AnimeType.allAtOnce) {
+      return anime.getEpisodeCalendarDate(episode);
+    }
+
+    final airDate = anime.getEpisodeAirDate(episode);
+    if (airDate == null) return null;
+    return timeBasis == HomeCalendarTimeBasis.local
+        ? JstTime.toLocal(airDate)
+        : airDate;
   }
 
   /// Purpose: Build the earliest unwatched aired episode for each anime and sort them by air date.
@@ -209,9 +271,14 @@ class _HomePageState extends State<HomePage> {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
     final theme = Theme.of(context);
-    final selectedEvents = _selectedDay != null
-        ? _getEventsForDay(_selectedDay!)
-        : <_AiringEpisode>[];
+    final settings = ref.watch(appSettingsProvider);
+    final calendarToday = _today(settings.homeCalendarTimeBasis);
+    final focusedDay = _focusedDay ?? calendarToday;
+    final selectedDay = _selectedDay ?? calendarToday;
+    final selectedEvents = _getEventsForDay(
+      selectedDay,
+      settings.homeCalendarTimeBasis,
+    );
     // Sort: skipped episodes go to the end
     selectedEvents.sort((a, b) {
       final aSkipped =
@@ -236,10 +303,19 @@ class _HomePageState extends State<HomePage> {
             TableCalendar<_AiringEpisode>(
               firstDay: DateTime(2020),
               lastDay: DateTime(2030),
-              focusedDay: _focusedDay,
-              currentDay: JstTime.today(),
+              focusedDay: focusedDay,
+              currentDay: calendarToday,
+              locale: _calendarDateLocale(settings, l10n),
+              startingDayOfWeek: _startingDayOfWeek(
+                settings.effectiveWeekStartDay,
+              ),
+              availableCalendarFormats: {
+                CalendarFormat.month: l10n.calendarFormatMonth,
+                CalendarFormat.twoWeeks: l10n.calendarFormatTwoWeeks,
+                CalendarFormat.week: l10n.calendarFormatWeek,
+              },
               calendarFormat: _calendarFormat,
-              selectedDayPredicate: (day) => isSameDay(_selectedDay, day),
+              selectedDayPredicate: (day) => isSameDay(selectedDay, day),
               onDaySelected: (selectedDay, focusedDay) {
                 setState(() {
                   _selectedDay = selectedDay;
@@ -252,7 +328,22 @@ class _HomePageState extends State<HomePage> {
               onPageChanged: (focusedDay) {
                 _focusedDay = focusedDay;
               },
-              eventLoader: _getEventsForDay,
+              eventLoader: (day) =>
+                  _getEventsForDay(day, settings.homeCalendarTimeBasis),
+              headerStyle: HeaderStyle(
+                titleTextFormatter: (date, _) => _formatCalendarMonth(
+                  date,
+                  settings.homeCalendarLayout,
+                  l10n,
+                ),
+              ),
+              daysOfWeekStyle: DaysOfWeekStyle(
+                dowTextFormatter: (date, _) => _calendarWeekdayLabel(
+                  date.weekday,
+                  settings.homeCalendarLayout,
+                  l10n,
+                ),
+              ),
               calendarBuilders: CalendarBuilders(
                 markerBuilder: (context, day, events) {
                   if (events.isEmpty) return null;
@@ -295,7 +386,7 @@ class _HomePageState extends State<HomePage> {
               child: Align(
                 alignment: Alignment.centerRight,
                 child: Text(
-                  l10n.homeCalendarJst,
+                  _calendarTimeNote(settings.homeCalendarTimeBasis, l10n),
                   style: theme.textTheme.bodySmall?.copyWith(
                     color: theme.colorScheme.onSurfaceVariant,
                   ),
@@ -308,13 +399,19 @@ class _HomePageState extends State<HomePage> {
               Padding(
                 padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
                 child: Text(
-                  l10n.homeAiringOn(DateFormat.MMMd().format(_selectedDay!)),
+                  l10n.homeAiringOn(
+                    DateFormat.MMMd(
+                      _calendarDateLocale(settings, l10n),
+                    ).format(selectedDay),
+                  ),
                   style: theme.textTheme.titleSmall?.copyWith(
                     color: theme.colorScheme.primary,
                   ),
                 ),
               ),
-              ...selectedEvents.map((ep) => _buildEpisodeTile(ep, theme, l10n)),
+              ...selectedEvents.map(
+                (ep) => _buildEpisodeTile(ep, theme, l10n, settings),
+              ),
             ],
 
             // Unwatched section
@@ -328,7 +425,9 @@ class _HomePageState extends State<HomePage> {
                   ),
                 ),
               ),
-              ...unwatched.map((ep) => _buildEpisodeTile(ep, theme, l10n)),
+              ...unwatched.map(
+                (ep) => _buildEpisodeTile(ep, theme, l10n, settings),
+              ),
             ],
 
             if (selectedEvents.isEmpty && unwatched.isEmpty)
@@ -356,8 +455,86 @@ class _HomePageState extends State<HomePage> {
     );
   }
 
+  /// Purpose: Return the locale used for home calendar month and date labels.
+  /// Inputs: `settings`, `l10n`.
+  /// Returns: `String`.
+  /// Side effects: None.
+  /// Notes: Japanese calendar layout intentionally uses Japanese month/day labels.
+  String _calendarDateLocale(AppSettings settings, AppLocalizations l10n) {
+    return settings.homeCalendarLayout == HomeCalendarLayout.japanese
+        ? 'ja'
+        : l10n.localeName;
+  }
+
+  /// Purpose: Return a localized calendar header month label.
+  /// Inputs: `date`, `layout`, `l10n`.
+  /// Returns: `String`.
+  /// Side effects: None.
+  /// Notes: Japanese layout uses Japanese month names regardless of the app language.
+  String _formatCalendarMonth(
+    DateTime date,
+    HomeCalendarLayout layout,
+    AppLocalizations l10n,
+  ) {
+    final locale = layout == HomeCalendarLayout.japanese
+        ? 'ja'
+        : l10n.localeName;
+    return DateFormat.yMMMM(locale).format(date);
+  }
+
+  /// Purpose: Return the weekday label shown in the home calendar header row.
+  /// Inputs: `weekday`, `layout`, `l10n`.
+  /// Returns: `String`.
+  /// Side effects: None.
+  /// Notes: Japanese layout uses single-character 日月火水木金土 labels.
+  String _calendarWeekdayLabel(
+    int weekday,
+    HomeCalendarLayout layout,
+    AppLocalizations l10n,
+  ) {
+    if (layout == HomeCalendarLayout.japanese) {
+      const days = ['', '月', '火', '水', '木', '金', '土', '日'];
+      return days[weekday.clamp(1, 7)];
+    }
+    final days = [
+      '',
+      l10n.dayMon,
+      l10n.dayTue,
+      l10n.dayWed,
+      l10n.dayThu,
+      l10n.dayFri,
+      l10n.daySat,
+      l10n.daySun,
+    ];
+    return days[weekday.clamp(1, 7)];
+  }
+
+  /// Purpose: Convert a Dart weekday value into TableCalendar's week-start enum.
+  /// Inputs: `weekday`.
+  /// Returns: `StartingDayOfWeek`.
+  /// Side effects: None.
+  /// Notes: Weekday values use Dart's Monday=1 through Sunday=7 numbering.
+  StartingDayOfWeek _startingDayOfWeek(int weekday) {
+    return StartingDayOfWeek.values[normalizeWeekStartDay(weekday) - 1];
+  }
+
+  /// Purpose: Return the explanatory note for the selected home calendar time basis.
+  /// Inputs: `timeBasis`, `l10n`.
+  /// Returns: `String`.
+  /// Side effects: None.
+  /// Notes: Anime broadcast timestamps remain Japan-time based in both modes.
+  String _calendarTimeNote(
+    HomeCalendarTimeBasis timeBasis,
+    AppLocalizations l10n,
+  ) {
+    return switch (timeBasis) {
+      HomeCalendarTimeBasis.jst => l10n.homeCalendarTimeNoteJst,
+      HomeCalendarTimeBasis.local => l10n.homeCalendarTimeNoteLocal,
+    };
+  }
+
   /// Purpose: Provide the internal build episode tile helper for this file.
-  /// Inputs: `ep`, `theme`, `l10n`.
+  /// Inputs: `ep`, `theme`, `l10n`, `settings`.
   /// Returns: `Widget`.
   /// Side effects: None.
   /// Notes: Internal helper used within this file only.
@@ -365,13 +542,20 @@ class _HomePageState extends State<HomePage> {
     _AiringEpisode ep,
     ThemeData theme,
     AppLocalizations l10n,
+    AppSettings settings,
   ) {
     final status =
         ep.anime.episodeStatuses[ep.episode] ?? EpisodeStatus.unwatched;
     final isWatched = status == EpisodeStatus.watched;
     final isSkipped = status == EpisodeStatus.skippedThisWeek;
-    final airDate = ep.anime.getEpisodeAirDate(ep.episode);
-    final airStr = airDate != null ? DateFormat.MMMd().format(airDate) : '';
+    final airDate = _getEpisodeDisplayAirDate(
+      ep.anime,
+      ep.episode,
+      settings.homeCalendarTimeBasis,
+    );
+    final airStr = airDate != null
+        ? DateFormat.MMMd(_calendarDateLocale(settings, l10n)).format(airDate)
+        : '';
 
     return Opacity(
       opacity: isSkipped ? 0.5 : 1.0,

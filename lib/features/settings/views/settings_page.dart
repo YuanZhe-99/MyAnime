@@ -16,6 +16,7 @@ import '../../../shared/services/import_export_service.dart';
 import '../../../shared/services/local_api_server.dart';
 import '../../../shared/services/reminder_service.dart';
 import '../../../shared/services/tray_service.dart';
+import '../../../shared/utils/calendar_preferences.dart';
 import '../../../shared/views/webdav_config_page.dart';
 import '../../anime/services/anime_storage.dart';
 import 'backup_page.dart';
@@ -106,6 +107,55 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
         ...children,
       ],
     );
+  }
+
+  /// Purpose: Return the localized label for a home calendar layout option.
+  /// Inputs: `layout`, `l10n`.
+  /// Returns: `String`.
+  /// Side effects: None.
+  /// Notes: Internal helper used within this file only.
+  String _calendarLayoutLabel(
+    HomeCalendarLayout layout,
+    AppLocalizations l10n,
+  ) {
+    return switch (layout) {
+      HomeCalendarLayout.local => l10n.settingsHomeCalendarLayoutLocal,
+      HomeCalendarLayout.japanese => l10n.settingsHomeCalendarLayoutJapanese,
+    };
+  }
+
+  /// Purpose: Return the localized label for a home calendar time basis option.
+  /// Inputs: `basis`, `l10n`.
+  /// Returns: `String`.
+  /// Side effects: None.
+  /// Notes: Internal helper used within this file only.
+  String _homeCalendarTimeBasisLabel(
+    HomeCalendarTimeBasis basis,
+    AppLocalizations l10n,
+  ) {
+    return switch (basis) {
+      HomeCalendarTimeBasis.jst => l10n.settingsHomeCalendarTimeBasisJst,
+      HomeCalendarTimeBasis.local => l10n.settingsHomeCalendarTimeBasisLocal,
+    };
+  }
+
+  /// Purpose: Return a localized weekday label for settings controls.
+  /// Inputs: `weekday`, `l10n`.
+  /// Returns: `String`.
+  /// Side effects: None.
+  /// Notes: Weekday values use Dart's Monday=1 through Sunday=7 numbering.
+  String _weekdayLabel(int weekday, AppLocalizations l10n) {
+    final days = [
+      '',
+      l10n.dayMon,
+      l10n.dayTue,
+      l10n.dayWed,
+      l10n.dayThu,
+      l10n.dayFri,
+      l10n.daySat,
+      l10n.daySun,
+    ];
+    return days[weekday.clamp(1, 7)];
   }
 
   /// Purpose: Provide the internal is desktop helper for this file.
@@ -500,6 +550,8 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
     final l10n = AppLocalizations.of(context)!;
     final settings = ref.watch(appSettingsProvider);
     final notifier = ref.read(appSettingsProvider.notifier);
+    final usesJapaneseCalendar =
+        settings.homeCalendarLayout == HomeCalendarLayout.japanese;
 
     return Scaffold(
       appBar: AppBar(title: Text(l10n.navSettings)),
@@ -564,6 +616,68 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
                   ),
                 ],
                 onChanged: (locale) => notifier.setLocale(locale),
+              ),
+            ),
+            ListTile(
+              leading: const Icon(Icons.calendar_month_outlined),
+              title: Text(l10n.settingsHomeCalendarLayout),
+              trailing: DropdownButton<HomeCalendarLayout>(
+                value: settings.homeCalendarLayout,
+                underline: const SizedBox.shrink(),
+                items: [
+                  for (final layout in HomeCalendarLayout.values)
+                    DropdownMenuItem(
+                      value: layout,
+                      child: Text(_calendarLayoutLabel(layout, l10n)),
+                    ),
+                ],
+                onChanged: (layout) {
+                  if (layout != null) notifier.setHomeCalendarLayout(layout);
+                },
+              ),
+            ),
+            ListTile(
+              leading: const Icon(Icons.view_week_outlined),
+              title: Text(l10n.settingsWeekStartDay),
+              subtitle: usesJapaneseCalendar
+                  ? Text(l10n.settingsWeekStartLockedJapanese)
+                  : null,
+              trailing: DropdownButton<int>(
+                value: settings.effectiveWeekStartDay,
+                underline: const SizedBox.shrink(),
+                items: [
+                  for (final weekday in weekdaySequence(defaultWeekStartDay))
+                    DropdownMenuItem(
+                      value: weekday,
+                      child: Text(_weekdayLabel(weekday, l10n)),
+                    ),
+                ],
+                onChanged: usesJapaneseCalendar
+                    ? null
+                    : (weekday) {
+                        if (weekday != null) notifier.setWeekStartDay(weekday);
+                      },
+              ),
+            ),
+            ListTile(
+              leading: const Icon(Icons.schedule_outlined),
+              title: Text(l10n.settingsHomeCalendarTimeBasis),
+              subtitle: Text(l10n.settingsHomeCalendarTimeBasisDesc),
+              trailing: DropdownButton<HomeCalendarTimeBasis>(
+                value: settings.homeCalendarTimeBasis,
+                underline: const SizedBox.shrink(),
+                items: [
+                  for (final basis in HomeCalendarTimeBasis.values)
+                    DropdownMenuItem(
+                      value: basis,
+                      child: Text(_homeCalendarTimeBasisLabel(basis, l10n)),
+                    ),
+                ],
+                onChanged: (basis) {
+                  if (basis != null) {
+                    notifier.setHomeCalendarTimeBasis(basis);
+                  }
+                },
               ),
             ),
             SwitchListTile(
