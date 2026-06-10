@@ -149,7 +149,7 @@ Primary tests currently include:
 - `test/anime_json_test.dart`: unknown JSON preservation and auto-resolved sync merge behavior.
 - `test/widget_test.dart`: basic widget smoke coverage.
 
-The `tool/` directory contains ad hoc scripts such as icon generation and search-source validation. Prefer focused tests for production behavior and keep tool scripts out of release-critical paths unless the user asks for them.
+The `tool/` directory contains ad hoc scripts such as icon generation and search-source validation. `tool/generate_ios_icons.dart` derives padded iOS default, dark, and tinted icon sources from `assets/icon/app_icon.png` and writes preview PNGs under `/tmp`; after changing iOS icon sources, regenerate `ios/Runner/Assets.xcassets/AppIcon.appiconset/` with `flutter_launcher_icons`. Prefer focused tests for production behavior and keep tool scripts out of release-critical paths unless the user asks for them.
 
 ## Core Architecture
 
@@ -343,6 +343,7 @@ Default app data directory is `Documents/MyAnime` on desktop or the platform app
 
 - `CFBundleDisplayName` is `MyAnime!!!!!` in `Info.plist`.
 - HTTPS network access needs no special entitlement.
+- iOS app icons use dedicated padded sources for default, dark, and tinted modes: `assets/icon/app_icon_ios.png`, `assets/icon/app_icon_ios_dark.png`, and `assets/icon/app_icon_ios_tinted.png`.
 - `.myanimeitem` file association uses the same UTI declarations as macOS.
 - App Store IPA requires signing/provisioning and is not built by CI.
 
