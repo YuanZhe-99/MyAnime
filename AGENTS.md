@@ -374,6 +374,7 @@ Important workflow caveats:
 - Keep workflow Flutter version aligned with the Dart SDK constraint.
 - GitHub `secrets` cannot be used directly in step `if` expressions; route through job-level `env`.
 - Windows ARM64 output is controlled by `iscc /DARM64 installer.iss`.
+- Windows CI jobs define `CL=/D_SILENCE_EXPERIMENTAL_COROUTINE_DEPRECATION_WARNINGS` because newer MSVC toolchains promote deprecated `<experimental/coroutine>` usage, reached through current Windows plugin dependencies, to a build-stopping assertion. Remove this compatibility macro once the dependency chain no longer includes that header.
 - The ARM64 Flutter master cache is weekly so Windows Defender reputation can accumulate for reused DLL hashes. Once stable Flutter ships suitable ARM64 support, switch this job back to a stable-channel setup.
 
 ## Useful Commands

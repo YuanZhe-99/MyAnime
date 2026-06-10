@@ -63,6 +63,10 @@ jobs:
   # ── Windows x64 installer (full) ──
   windows-x64:
     runs-on: windows-latest
+    env:
+      # VS/MSVC 18 promotes <experimental/coroutine> deprecation to a build error.
+      # flutter_local_notifications_windows still reaches that header through winrt.
+      CL: /D_SILENCE_EXPERIMENTAL_COROUTINE_DEPRECATION_WARNINGS
     steps:
       - uses: actions/checkout@v4
 
@@ -93,6 +97,10 @@ jobs:
   #    reputation to accumulate. Without caching, every build produces a fresh unknown hash → false positive.) ──
   windows-arm64:
     runs-on: windows-11-arm
+    env:
+      # Keep Windows builds aligned while plugin dependencies still use winrt headers
+      # that include deprecated <experimental/coroutine> on newer MSVC toolchains.
+      CL: /D_SILENCE_EXPERIMENTAL_COROUTINE_DEPRECATION_WARNINGS
     steps:
       - uses: actions/checkout@v4
 
