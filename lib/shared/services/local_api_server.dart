@@ -919,17 +919,18 @@ class LocalApiServer {
   /// Inputs: None.
   /// Returns: `Middleware`.
   /// Side effects: None.
-  /// Notes: Internal helper used within this file only.
+  /// Notes: Internal helper used within this file only. When credentials are
+  /// configured, Basic Auth is required for every request including loopback,
+  /// because permissive CORS would otherwise let any local web page read the
+  /// API. Without credentials only loopback requests are allowed.
   static Middleware _authMiddleware() {
     return (Handler innerHandler) {
       return (Request request) async {
-        // Skip auth for loopback addresses
         final remoteAddr =
             (request.context['shelf.io.connection_info'] as HttpConnectionInfo?)
                 ?.remoteAddress;
         final isLoopback = remoteAddr == null || remoteAddr.isLoopback;
 
-        // Auth required if credentials are configured and request is not from loopback
         final hasCredentials =
             _username != null &&
             _username!.isNotEmpty &&
@@ -941,7 +942,7 @@ class LocalApiServer {
             'authentication required for non-localhost access',
           );
         }
-        if (hasCredentials && !isLoopback) {
+        if (hasCredentials) {
           final authHeader = request.headers['authorization'];
           if (authHeader == null || !_validateBasicAuth(authHeader)) {
             return Response(

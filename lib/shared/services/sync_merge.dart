@@ -33,10 +33,13 @@ class RecordMergeResult<T> {
 }
 
 /// Purpose: Merge record lists by ID using the last synced base snapshot.
-/// Inputs: `local`, `remote`, `base`, `getId`, `getModifiedAt`, `getDisplayName`, `autoResolve`.
+/// Inputs: `local`, `remote`, `base`, `getId`, `getModifiedAt`, `getDisplayName`, `autoResolve`, optional `serialize`.
 /// Returns: `RecordMergeResult<T>`.
 /// Side effects: None.
 /// Notes: Uses the base snapshot to distinguish pure edits, deletions, and true conflicts.
+/// When `serialize` is provided, records whose serialized content is identical are
+/// merged without raising a conflict even if both sides bumped `modifiedAt` (e.g.
+/// after a stale base caused by an earlier failed upload).
 RecordMergeResult<T> mergeRecords<T>({
   required List<T> local,
   required List<T> remote,
@@ -45,6 +48,7 @@ RecordMergeResult<T> mergeRecords<T>({
   required DateTime Function(T) getModifiedAt,
   required String Function(T) getDisplayName,
   bool autoResolve = false,
+  String Function(T)? serialize,
 }) {
   final localMap = {for (final r in local) getId(r): r};
   final remoteMap = {for (final r in remote) getId(r): r};
@@ -69,7 +73,10 @@ RecordMergeResult<T> mergeRecords<T>({
         final remoteChanged = getModifiedAt(r).isAfter(getModifiedAt(b));
 
         if (localChanged && remoteChanged) {
-          if (autoResolve) {
+          if (serialize != null && serialize(l) == serialize(r)) {
+            // Identical content on both sides is not a real conflict.
+            merged.add(l);
+          } else if (autoResolve) {
             // LWW per record: pick the one with newer modifiedAt
             merged.add(getModifiedAt(l).isAfter(getModifiedAt(r)) ? l : r);
           } else {
@@ -194,6 +201,7 @@ AnimeMergeResult mergeAnimeData(
     getModifiedAt: (a) => a.modifiedAt,
     getDisplayName: (a) => a.displayTitle,
     autoResolve: autoResolve,
+    serialize: (a) => jsonEncode(a.toJson()),
   );
   final merged = result.merged
       .map(

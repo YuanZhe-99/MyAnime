@@ -5,6 +5,7 @@ import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
 
 import '../../../shared/services/auto_sync_service.dart';
+import '../../../shared/services/reminder_service.dart';
 import '../../../shared/utils/calendar_preferences.dart';
 import '../models/anime.dart';
 
@@ -163,12 +164,14 @@ class AnimeStorage {
   /// Inputs: `data`.
   /// Returns: None.
   /// Side effects: May read or mutate application state, storage, or service resources.
-  /// Notes: None.
+  /// Notes: Notifies auto-sync and refreshes mobile reminder schedules so
+  /// scheduled notification bodies track the latest data.
   static Future<void> save(AnimeData data) async {
     final file = await _getFile(_dataFileName);
     final jsonStr = const JsonEncoder.withIndent('  ').convert(data.toJson());
     await file.writeAsString(jsonStr);
     AutoSyncService.instance.notifySaved();
+    ReminderService.notifyDataChanged();
   }
 
   // ── CRUD operations ──

@@ -1,7 +1,7 @@
 [Setup]
 AppId={{C3D4E5F6-A7B8-9012-CDEF-123456789ABC}
 AppName=MyAnime!!!!!
-AppVersion=0.8.0
+AppVersion=1.0.0
 AppPublisher=yuanzhe
 AppPublisherURL=https://github.com/yuanzhe
 DefaultDirName={autopf}\MyAnime!!!!!
@@ -9,15 +9,15 @@ DefaultGroupName=MyAnime!!!!!
 UninstallDisplayIcon={app}\my_anime.exe
 OutputDir=build\installer
 #ifdef ARM64
-OutputBaseFilename=MyAnime_0.8.0_arm64_Setup
+OutputBaseFilename=MyAnime_1.0.0_arm64_Setup
 #else
-OutputBaseFilename=MyAnime_0.8.0_Setup
+OutputBaseFilename=MyAnime_1.0.0_Setup
 #endif
-VersionInfoVersion=0.8.0.0
+VersionInfoVersion=1.0.0.0
 VersionInfoCompany=yuanzhe
 VersionInfoDescription=MyAnime!!!!! Installer
 VersionInfoProductName=MyAnime!!!!!
-VersionInfoProductVersion=0.8.0
+VersionInfoProductVersion=1.0.0
 Compression=lzma2
 SolidCompression=yes
 #ifdef ARM64

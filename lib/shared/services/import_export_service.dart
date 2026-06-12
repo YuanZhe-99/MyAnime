@@ -53,6 +53,9 @@ class ImportExportService {
   /// Returns: `Future<bool>`.
   /// Side effects: May read or mutate application state, storage, or service resources.
   /// Notes: Import data from a previously exported ZIP file. Returns true on success.
+  /// Only allowlisted entries (`anime_data.json` and flat files under `images/`)
+  /// are extracted, and the resolved output path must stay inside the app dir,
+  /// so a crafted ZIP cannot overwrite configuration such as `webdav_config.json`.
   static Future<bool> importZIP(String filePath) async {
     try {
       final file = File(filePath);
@@ -64,17 +67,23 @@ class ImportExportService {
 
       for (final entry in archive) {
         if (entry.isFile) {
-          // Prevent path traversal attacks
-          final normalized = p.normalize(entry.name);
-          if (p.isAbsolute(normalized) || normalized.startsWith('..')) continue;
+          final normalizedName = p.normalize(entry.name).replaceAll('\\', '/');
+          final allowed =
+              normalizedName == 'anime_data.json' ||
+              (normalizedName.startsWith('images/') &&
+                  normalizedName.split('/').length == 2);
+          if (!allowed || normalizedName.contains('..')) continue;
 
-          final outPath = p.join(appDir.path, normalized);
+          final outFile = File(p.join(appDir.path, normalizedName));
+          final normalizedOut = p.normalize(outFile.absolute.path);
+          final normalizedAppDir = p.normalize(appDir.absolute.path);
+          if (!p.isWithin(normalizedAppDir, normalizedOut)) continue;
+
           // Ensure parent directory exists
-          final parent = Directory(p.dirname(outPath));
+          final parent = Directory(p.dirname(normalizedOut));
           if (!await parent.exists()) {
             await parent.create(recursive: true);
           }
-          final outFile = File(outPath);
           await outFile.writeAsBytes(entry.content as List<int>);
         }
       }

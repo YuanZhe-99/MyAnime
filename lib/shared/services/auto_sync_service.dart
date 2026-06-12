@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/widgets.dart';
 
 import 'backup_service.dart';
+import 'reminder_service.dart';
 import 'webdav_service.dart';
 
 /// Singleton service that triggers WebDAV sync automatically when enabled.
@@ -96,12 +97,14 @@ class AutoSyncService with WidgetsBindingObserver {
   /// Inputs: `state`.
   /// Returns: None.
   /// Side effects: None.
-  /// Notes: None.
+  /// Notes: On resume also refreshes mobile reminder schedules so per-day
+  /// notification bodies are recomputed from current data after suspension.
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state == AppLifecycleState.resumed) {
       requestSyncNow();
       BackupService.runAutoBackupIfNeeded();
+      ReminderService.notifyDataChanged();
     }
   }
 

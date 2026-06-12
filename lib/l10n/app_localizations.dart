@@ -1367,12 +1367,6 @@ abstract class AppLocalizations {
   /// **'Fall'**
   String get seasonFall;
 
-  /// No description provided for @reminderNotifBody.
-  ///
-  /// In en, this message translates to:
-  /// **'Check your anime schedule!'**
-  String get reminderNotifBody;
-
   /// No description provided for @reminderAiringToday.
   ///
   /// In en, this message translates to:

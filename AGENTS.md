@@ -28,7 +28,7 @@ Maintenance rules:
 - **Description:** A privacy-first anime tracking app with a JST-aware calendar, seasonal quarter management, statistics, multi-source anime search, watch-progress tracking, daily reminders, share/export flows, WebDAV sync, local backup, a desktop local API server, tray behavior, launch-at-startup, and a kana quick-reference module.
 - **Author / package id:** `yuanzhe`, `com.yuanzhe.my_anime`.
 - **License:** GPL-3.0.
-- **Current version:** `0.8.0+36` in `pubspec.yaml`, `0.8.0.0` for MSIX, and `0.8.0` in `installer.iss`.
+- **Current version:** `1.0.0+37` in `pubspec.yaml`, `1.0.0.0` for MSIX, and `1.0.0` in `installer.iss`.
 - **Framework:** Flutter with Dart SDK `^3.11.3`; CI uses Flutter `3.41.6`.
 - **Platforms:** Windows, Android, iOS, macOS. Linux project files exist and desktop services include Linux branches, but Linux is not a primary release target. Web is not targeted.
 - **Repository:** Use the system-provided workspace or working-directory environment to determine the repository path at runtime; do not hardcode a machine-specific absolute path here.
@@ -147,6 +147,7 @@ lib/
 Primary tests currently include:
 
 - `test/anime_json_test.dart`: unknown JSON preservation and auto-resolved sync merge behavior.
+- `test/audit_fixes_test.dart`: identical-content conflict suppression and forward-snapped episode air dates.
 - `test/widget_test.dart`: basic widget smoke coverage.
 
 The `tool/` directory contains ad hoc scripts such as icon generation and search-source validation. `tool/generate_ios_icons.dart` derives padded iOS default, dark, and tinted icon sources from `assets/icon/app_icon.png` and writes preview PNGs under `/tmp`; after changing iOS icon sources, regenerate `ios/Runner/Assets.xcassets/AppIcon.appiconset/` with `flutter_launcher_icons`. Prefer focused tests for production behavior and keep tool scripts out of release-critical paths unless the user asks for them.
@@ -173,7 +174,7 @@ Important fields and concepts:
 
 - Identity: UUID `id`, main `title`, optional Japanese `titleJa`.
 - URLs: `infoUrl` for source/reference pages and `watchUrl` for streaming/watch pages.
-- Schedule: `airDayOfWeek` where Monday is 1 and Sunday is 7, `airTime` with late-night values such as `25:00`, and optional `firstAirDate`.
+- Schedule: `airDayOfWeek` where Monday is 1 and Sunday is 7, `airTime` with late-night values such as `25:00`, and optional `firstAirDate`. When `airDayOfWeek` disagrees with the weekday of `firstAirDate`, episode dates snap forward to the next occurrence of the air day so episode 1 never lands before `firstAirDate`.
 - Episodes: `startEpisode`, `endEpisode`, `episodeStatuses`, and `episodeWeekOffsets` for batch premieres, delays, and schedule corrections.
 - Status: derived from episode statuses, not stored as a separate status field. Completed, watching, dropped/abandoned, and not-started states are computed.
 - Type: `AnimeType` can be auto-detected from episode count or manually overridden. Manual type must take precedence when set.
@@ -238,18 +239,20 @@ Platform file association is configured on Android, iOS, macOS, and Windows. Win
 - `backup_service.dart`: local auto-backup once per day, manual backups, retention, and selective restore.
 - `import_export_service.dart`: ZIP export/import and Markdown export.
 - ZIP export includes `anime_data.json` and `images/`.
-- ZIP import must keep path traversal protection.
+- ZIP import must keep path traversal protection: only allowlisted entries (`anime_data.json` and flat files under `images/`) are extracted and the resolved output path must stay inside the app dir, so a crafted ZIP cannot overwrite configuration such as `webdav_config.json`.
 - Markdown export is LLM-friendly, sorted by `firstAirDate` with nulls last, and includes titles, type, air schedule, episode range, derived viewing status, watched/total counts, URLs, and notes.
 - `image_service.dart`: image download and caching. Cover images live under `images/`.
 
 ### Reminder Notifications
 
 - Reminder settings are stored in `storage_config.json`.
-- Android/iOS use `flutter_local_notifications` with `zonedSchedule()` and `DateTimeComponents.time` for OS-level daily scheduling.
-- Desktop uses a 60-second periodic check through `local_notifier`.
+- Android/iOS use `flutter_local_notifications` with `zonedSchedule()` to schedule per-day one-shot notifications for the next 7 days. Each day's body is computed from current anime data (airing + unwatched counts) and days with nothing to watch are skipped, so no generic or empty reminder fires.
+- Mobile schedules are refreshed on app launch, on reminder-settings change, after anime data saves (`ReminderService.notifyDataChanged()`, debounced), and on app resume.
+- The timezone database location is resolved from the OS IANA zone id via `flutter_timezone`; never use `DateTime.now().timeZoneName` (it is an abbreviation the tz database cannot look up).
+- Desktop uses a 60-second periodic check through `local_notifier`; the in-process check is desktop-only so mobile is never double-notified.
+- Desktop reminders fire when now ≥ reminder time and not yet notified today; `lastReminderDate` prevents duplicates.
 - Reminder counts include today's JST airing episodes and unwatched episodes that have already aired.
-- `lastReminderDate` prevents duplicate reminders.
-- Android requires notification, boot, and exact alarm permissions, plus `ScheduledNotificationReceiver` and `ScheduledNotificationBootReceiver` in `AndroidManifest.xml`.
+- Android requires notification and boot permissions, plus `ScheduledNotificationReceiver` and `ScheduledNotificationBootReceiver` in `AndroidManifest.xml`. `SCHEDULE_EXACT_ALARM` is intentionally not requested because scheduling uses `inexactAllowWhileIdle`.
 - When reminder settings change, call `ReminderService.startPeriodicCheck()` to reschedule.
 
 ### Desktop API, Tray, and Startup
@@ -261,7 +264,7 @@ Platform file association is configured on Android, iOS, macOS, and Windows. Win
 - Users may set `0.0.0.0` for LAN access.
 - Non-loopback listening requires API credentials; unsafe non-localhost startup without credentials is refused.
 - CORS is permissive.
-- Loopback requests skip Basic Auth; non-loopback requests require configured HTTP Basic Auth.
+- When credentials are configured, HTTP Basic Auth is required for every non-OPTIONS request including loopback (permissive CORS would otherwise let any local web page read the API). Without credentials, loopback requests are allowed and non-loopback requests are rejected.
 - Endpoints include `GET /ping`, `POST /anime/search`, `POST /anime/add`, `GET /anime/list`, `GET /anime/unwatched`, `GET /anime/history`, and `GET /anime/ranking`.
 - `/anime/list` and `/anime/history` return objects with `total`, `counts`, and `data`.
 - Anime API item JSON includes the derived `status` (`completed`, `watching`, `dropped`, or `notStarted`), progress counts, URLs, cover path, notes, modified timestamp, and optional rating summary while preserving older fields.
@@ -277,15 +280,16 @@ WebDAV sync is per-record three-way merge, not whole-file replacement.
 
 Flow:
 
-1. Download remote `anime_data.json`.
+1. Download remote `anime_data.json` with a discriminated result: only HTTP 404 counts as "missing on remote"; any other failure (auth/server/network) aborts the sync with a visible error so local data is never uploaded over an unreadable remote file.
 2. Load local `anime_data.json` and `.sync_base/anime_data.json`.
-3. Merge per anime using `modifiedAt`.
+3. Merge per anime using `modifiedAt`. Records whose serialized content is identical on both sides merge without a conflict.
 4. Auto-resolve when only one side changed.
 5. Detect conflict when the same anime changed on both sides after the last sync.
-6. Upload merged data.
-7. Save the new base snapshot only after upload succeeds.
+6. Re-read the local file to detect concurrent saves made during network I/O and re-merge if it changed.
+7. Upload merged data. Uploads send `If-Match` with the strong ETag captured at download (first uploads send `If-None-Match: *`); HTTP 412 means another device wrote concurrently and surfaces as a sync error — run sync again.
+8. Save the new base snapshot only after upload succeeds.
 
-Manual sync uses `autoResolve: false` and shows conflict dialogs. Auto-sync uses `autoResolve: true` and last-writer-wins per record without blocking the UI.
+Manual sync uses `autoResolve: false` and shows conflict dialogs. Auto-sync uses `autoResolve: true` and last-writer-wins per record without blocking the UI. `finalizePendingSync` returns false when applying or uploading the resolution fails (including If-Match 412) so the UI reports the failure; the base snapshot stays untouched and the next sync re-merges.
 
 Important sync constraints:
 
@@ -294,6 +298,7 @@ Important sync constraints:
 - `_syncing` prevents concurrent syncs.
 - `_atomicWrite()` uses tmp-then-rename to avoid corrupting local files.
 - Local files are re-read after network I/O to detect concurrent user edits during sync.
+- Servers without ETags fall back to unconditional PUTs (previous behavior); weak ETags are never used in `If-Match`.
 - Images sync additively and only for cover images referenced by local or remote anime records.
 - The referenced image set is the union of `coverImage` basenames from local and remote anime data.
 - Orphaned images are not uploaded or downloaded, but they are also not automatically deleted.
@@ -436,3 +441,4 @@ Version highlights:
 - `v0.7.4`: Configurable home calendar localization, week start, Japanese calendar layout, JST/local date-grid mode, and release version metadata updates.
 - `v0.7.5`: Full-range statistics trend scrolling with focused quarter/year selection, all-scope quarter/year trend granularity, collapsed all-scope status lists, current-format home calendar button text, and release version metadata updates.
 - `v0.8.0`: Local API status/rating/progress field refresh, `/anime/ranking` endpoint, shared viewing-status derivation, and release version metadata updates.
+- `v1.0.0`: Pre-release audit hardening — WebDAV downloads distinguish 404 from errors so transient failures can never overwrite the remote or cascade into cross-device deletions, ETag `If-Match`/`If-None-Match` preconditions on data uploads with visible 412 errors, fresh local re-read before writing merged data, identical-content concurrent edits no longer raise conflicts, conflict-resolution upload failures are reported, content-aware per-day mobile reminder scheduling (empty days skipped, no duplicate in-app notification), IANA timezone resolution via `flutter_timezone`, Basic Auth enforced on loopback when API credentials are configured, allowlist-based ZIP import, removed unused `SCHEDULE_EXACT_ALARM` permission, forward-snapped episode air dates, and versions unified to `1.0.0+37` / MSIX `1.0.0.0` / installer `1.0.0`.

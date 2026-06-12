@@ -660,9 +660,6 @@ class AppLocalizationsZh extends AppLocalizations {
   String get seasonFall => '秋';
 
   @override
-  String get reminderNotifBody => '查看你的动漫日程！';
-
-  @override
   String reminderAiringToday(int animeCount, int episodeCount) {
     return '今日放送 $animeCount 部番剧，$episodeCount 话';
   }
@@ -1532,9 +1529,6 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
 
   @override
   String get seasonFall => '秋';
-
-  @override
-  String get reminderNotifBody => '查看你的動漫日程！';
 
   @override
   String reminderAiringToday(int animeCount, int episodeCount) {

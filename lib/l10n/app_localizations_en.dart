@@ -669,9 +669,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get seasonFall => 'Fall';
 
   @override
-  String get reminderNotifBody => 'Check your anime schedule!';
-
-  @override
   String reminderAiringToday(int animeCount, int episodeCount) {
     return 'Today: $animeCount anime airing, $episodeCount episode(s)';
   }

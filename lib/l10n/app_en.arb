@@ -236,7 +236,6 @@
   "seasonSummer": "Summer",
   "seasonFall": "Fall",
 
-  "reminderNotifBody": "Check your anime schedule!",
   "reminderAiringToday": "Today: {animeCount} anime airing, {episodeCount} episode(s)",
   "@reminderAiringToday": { "placeholders": { "animeCount": { "type": "int" }, "episodeCount": { "type": "int" } } },
   "reminderUnwatched": "To watch: {animeCount} anime, {episodeCount} episode(s)",

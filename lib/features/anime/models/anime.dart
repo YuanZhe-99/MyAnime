@@ -555,9 +555,11 @@ class Anime {
     final totalWeeks = episodeOffset + weekOffsetFor(episodeNumber);
     final baseDate = firstAirDate!.add(Duration(days: totalWeeks * 7));
 
-    // Adjust to the correct day of week
+    // Adjust to the correct day of week, snapping forward so episode 1 never
+    // lands before firstAirDate when airDayOfWeek disagrees with its weekday.
     final currentDow = baseDate.weekday; // 1=Mon..7=Sun
-    final diff = airDayOfWeek! - currentDow;
+    var diff = airDayOfWeek! - currentDow;
+    if (diff < 0) diff += 7;
     var airDate = baseDate.add(Duration(days: diff));
 
     // Apply air time
@@ -604,8 +606,11 @@ class Anime {
     final totalWeeks = episodeOffset + weekOffsetFor(episodeNumber);
     final baseDate = firstAirDate!.add(Duration(days: totalWeeks * 7));
 
+    // Snap forward (matching getEpisodeAirDate) so calendar placement never
+    // precedes firstAirDate.
     final currentDow = baseDate.weekday;
-    final diff = airDayOfWeek! - currentDow;
+    var diff = airDayOfWeek! - currentDow;
+    if (diff < 0) diff += 7;
     final dayDate = baseDate.add(Duration(days: diff));
     return DateTime(dayDate.year, dayDate.month, dayDate.day);
   }
