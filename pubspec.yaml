@@ -2,7 +2,7 @@ name: my_anime
 description: "MyAnime!!!!! — Your anime tracking companion"
 publish_to: 'none'
 
-version: 0.7.5+35
+version: 0.8.0+36
 
 environment:
   sdk: ^3.11.3
@@ -90,7 +90,7 @@ msix_config:
   display_name: MyAnime!!!!!
   publisher_display_name: yuanzhe
   identity_name: com.yuanzhe.myanime
-  msix_version: 0.7.5.0
+  msix_version: 0.8.0.0
   logo_path: assets/icon/app_icon.png
   capabilities: internetClient
   install_certificate: false

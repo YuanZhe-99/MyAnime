@@ -19,8 +19,6 @@ enum _TrendGranularity { quarter, year }
 
 enum _RankingTimeFilter { all, quarter, year, custom }
 
-enum _AnimeStatus { watching, completed, dropped, notStarted }
-
 class StatisticsPage extends StatefulWidget {
   /// Purpose: Create a statistics page instance.
   /// Inputs: None.
@@ -162,39 +160,6 @@ class _StatisticsPageState extends State<StatisticsPage> {
     });
   }
 
-  // --- Status derivation ---
-
-  /// Purpose: Provide the internal derive status helper for this file.
-  /// Inputs: `anime`.
-  /// Returns: `_AnimeStatus`.
-  /// Side effects: None.
-  /// Notes: Internal helper used within this file only.
-  static _AnimeStatus _deriveStatus(Anime anime) {
-    if (anime.isCompleted) return _AnimeStatus.completed;
-
-    final statuses = anime.episodeStatuses;
-    final end = anime.endEpisode;
-    if (end == null) {
-      // Long-running: check if has any watched
-      final hasWatched = statuses.values.any((s) => s == EpisodeStatus.watched);
-      return hasWatched ? _AnimeStatus.watching : _AnimeStatus.notStarted;
-    }
-
-    bool hasUnwatched = false;
-    bool hasWatched = false;
-    bool hasSkipped = false;
-    for (int ep = anime.startEpisode; ep <= end; ep++) {
-      final s = statuses[ep] ?? EpisodeStatus.unwatched;
-      if (s == EpisodeStatus.unwatched) hasUnwatched = true;
-      if (s == EpisodeStatus.watched) hasWatched = true;
-      if (s == EpisodeStatus.skippedThisWeek) hasSkipped = true;
-    }
-
-    if (hasSkipped && !hasUnwatched) return _AnimeStatus.dropped;
-    if (hasWatched) return _AnimeStatus.watching;
-    return _AnimeStatus.notStarted;
-  }
-
   // --- Filtering ---
 
   /// Purpose: Provide the internal filtered anime helper for this file.
@@ -323,18 +288,18 @@ class _StatisticsPageState extends State<StatisticsPage> {
 
   /// Purpose: Provide the internal grouped anime helper for this file.
   /// Inputs: None.
-  /// Returns: `Map<_AnimeStatus, List<Anime>>`.
+  /// Returns: `Map<AnimeViewingStatus, List<Anime>>`.
   /// Side effects: None.
   /// Notes: Internal helper used within this file only.
-  Map<_AnimeStatus, List<Anime>> get _groupedAnime {
-    final map = <_AnimeStatus, List<Anime>>{
-      _AnimeStatus.watching: [],
-      _AnimeStatus.completed: [],
-      _AnimeStatus.dropped: [],
-      _AnimeStatus.notStarted: [],
+  Map<AnimeViewingStatus, List<Anime>> get _groupedAnime {
+    final map = <AnimeViewingStatus, List<Anime>>{
+      AnimeViewingStatus.watching: [],
+      AnimeViewingStatus.completed: [],
+      AnimeViewingStatus.dropped: [],
+      AnimeViewingStatus.notStarted: [],
     };
     for (final anime in _filteredAnime) {
-      map[_deriveStatus(anime)]!.add(anime);
+      map[anime.viewingStatus]!.add(anime);
     }
     return map;
   }
@@ -818,10 +783,10 @@ class _StatisticsPageState extends State<StatisticsPage> {
       quarter: yearQuarter.$2,
       tracked: animeInQuarter.length,
       completed: animeInQuarter
-          .where((a) => _deriveStatus(a) == _AnimeStatus.completed)
+          .where((a) => a.viewingStatus == AnimeViewingStatus.completed)
           .length,
       dropped: animeInQuarter
-          .where((a) => _deriveStatus(a) == _AnimeStatus.dropped)
+          .where((a) => a.viewingStatus == AnimeViewingStatus.dropped)
           .length,
     );
   }
@@ -843,10 +808,10 @@ class _StatisticsPageState extends State<StatisticsPage> {
       quarter: 0,
       tracked: animeInYear.length,
       completed: animeInYear
-          .where((a) => _deriveStatus(a) == _AnimeStatus.completed)
+          .where((a) => a.viewingStatus == AnimeViewingStatus.completed)
           .length,
       dropped: animeInYear
-          .where((a) => _deriveStatus(a) == _AnimeStatus.dropped)
+          .where((a) => a.viewingStatus == AnimeViewingStatus.dropped)
           .length,
     );
   }
@@ -1002,25 +967,25 @@ class _StatisticsPageState extends State<StatisticsPage> {
                     _buildSummaryCard(
                       theme,
                       l10n.statsWatching,
-                      grouped[_AnimeStatus.watching]!.length,
+                      grouped[AnimeViewingStatus.watching]!.length,
                       theme.colorScheme.primary,
                     ),
                     _buildSummaryCard(
                       theme,
                       l10n.statsCompleted,
-                      grouped[_AnimeStatus.completed]!.length,
+                      grouped[AnimeViewingStatus.completed]!.length,
                       Colors.green,
                     ),
                     _buildSummaryCard(
                       theme,
                       l10n.statsDropped,
-                      grouped[_AnimeStatus.dropped]!.length,
+                      grouped[AnimeViewingStatus.dropped]!.length,
                       Colors.red,
                     ),
                     _buildSummaryCard(
                       theme,
                       l10n.statsNotStarted,
-                      grouped[_AnimeStatus.notStarted]!.length,
+                      grouped[AnimeViewingStatus.notStarted]!.length,
                       theme.colorScheme.outline,
                     ),
                   ],
@@ -1775,15 +1740,23 @@ class _StatisticsPageState extends State<StatisticsPage> {
   /// Side effects: None.
   /// Notes: Internal helper used within this file only.
   List<Widget> _buildGroupedLists(
-    Map<_AnimeStatus, List<Anime>> grouped,
+    Map<AnimeViewingStatus, List<Anime>> grouped,
     ThemeData theme,
     AppLocalizations l10n,
   ) {
     final order = [
-      (_AnimeStatus.completed, l10n.statsCompleted, _scope != _TimeScope.all),
-      (_AnimeStatus.watching, l10n.statsWatching, _scope != _TimeScope.all),
-      (_AnimeStatus.dropped, l10n.statsDropped, false),
-      (_AnimeStatus.notStarted, l10n.statsNotStarted, false),
+      (
+        AnimeViewingStatus.completed,
+        l10n.statsCompleted,
+        _scope != _TimeScope.all,
+      ),
+      (
+        AnimeViewingStatus.watching,
+        l10n.statsWatching,
+        _scope != _TimeScope.all,
+      ),
+      (AnimeViewingStatus.dropped, l10n.statsDropped, false),
+      (AnimeViewingStatus.notStarted, l10n.statsNotStarted, false),
     ];
 
     return order.map((entry) {

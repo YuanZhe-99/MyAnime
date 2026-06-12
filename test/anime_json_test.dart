@@ -2,6 +2,7 @@ import 'dart:convert';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:my_anime/features/anime/models/anime.dart';
+import 'package:my_anime/shared/services/local_api_server.dart';
 import 'package:my_anime/shared/services/sync_merge.dart';
 
 /// Purpose: Initialize startup services and launch the app entry point.
@@ -93,6 +94,94 @@ void main() {
       expect(rating.scoreFor(AnimeRatingField.overall), closeTo(8, 0.001));
     },
   );
+
+  test('anime viewing status is derived consistently', () {
+    final baseAnime = Anime.create(
+      title: 'Status test',
+      endEpisode: 3,
+      firstAirDate: DateTime(2026, 1, 1),
+    );
+
+    expect(baseAnime.viewingStatus, AnimeViewingStatus.notStarted);
+    expect(
+      baseAnime
+          .copyWith(
+            episodeStatuses: {1: EpisodeStatus.watched},
+            modifiedAt: DateTime.parse(modifiedAt),
+          )
+          .viewingStatus,
+      AnimeViewingStatus.watching,
+    );
+    expect(
+      baseAnime
+          .copyWith(
+            episodeStatuses: {
+              1: EpisodeStatus.watched,
+              2: EpisodeStatus.watched,
+              3: EpisodeStatus.watched,
+            },
+            modifiedAt: DateTime.parse(modifiedAt),
+          )
+          .viewingStatus,
+      AnimeViewingStatus.completed,
+    );
+    expect(
+      baseAnime
+          .copyWith(
+            episodeStatuses: {
+              1: EpisodeStatus.watched,
+              2: EpisodeStatus.skippedThisWeek,
+              3: EpisodeStatus.skippedThisWeek,
+            },
+            modifiedAt: DateTime.parse(modifiedAt),
+          )
+          .viewingStatus,
+      AnimeViewingStatus.dropped,
+    );
+  });
+
+  test('local API ranking filters and sorts rated anime', () {
+    final high = Anime.create(
+      title: 'High',
+      endEpisode: 12,
+      firstAirDate: DateTime(2026, 4, 1),
+      rating: const AnimeRating(visual: 9, story: 8),
+    );
+    final low = Anime.create(
+      title: 'Low',
+      endEpisode: 12,
+      firstAirDate: DateTime(2026, 4, 1),
+      rating: const AnimeRating(overall: 6, visual: 10),
+    );
+    final unrated = Anime.create(
+      title: 'Unrated',
+      endEpisode: 12,
+      firstAirDate: DateTime(2026, 4, 1),
+    );
+    final outsideQuarter = Anime.create(
+      title: 'Outside',
+      endEpisode: 12,
+      firstAirDate: DateTime(2026, 7, 1),
+      rating: const AnimeRating(overall: 10),
+    );
+
+    final result = LocalApiServer.buildRankingSnapshotForQuery(
+      [low, unrated, outsideQuarter, high],
+      {'time': 'quarter', 'season': '2026Q2', 'field': 'overall'},
+    );
+
+    expect(result.error, isNull);
+    final data = result.data!;
+    expect(data['total'], 2);
+    expect(data['filters'], containsPair('season', '2026Q2'));
+
+    final rows = data['data'] as List<dynamic>;
+    expect(rows.map((row) => row['title']).toList(), ['High', 'Low']);
+    expect(rows.first['rank'], 1);
+    expect(rows.first['score'], closeTo(8.5, 0.001));
+    expect(rows.first['rating']['effectiveOverall'], closeTo(8.5, 0.001));
+    expect(rows.first['status'], AnimeViewingStatus.notStarted.name);
+  });
 
   test('auto-resolved sync keeps unknown fields from the non-winning side', () {
     final base = jsonEncode({

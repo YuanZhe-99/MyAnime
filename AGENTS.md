@@ -28,7 +28,7 @@ Maintenance rules:
 - **Description:** A privacy-first anime tracking app with a JST-aware calendar, seasonal quarter management, statistics, multi-source anime search, watch-progress tracking, daily reminders, share/export flows, WebDAV sync, local backup, a desktop local API server, tray behavior, launch-at-startup, and a kana quick-reference module.
 - **Author / package id:** `yuanzhe`, `com.yuanzhe.my_anime`.
 - **License:** GPL-3.0.
-- **Current version:** `0.7.5+35` in `pubspec.yaml`, `0.7.5.0` for MSIX, and `0.7.5` in `installer.iss`.
+- **Current version:** `0.8.0+36` in `pubspec.yaml`, `0.8.0.0` for MSIX, and `0.8.0` in `installer.iss`.
 - **Framework:** Flutter with Dart SDK `^3.11.3`; CI uses Flutter `3.41.6`.
 - **Platforms:** Windows, Android, iOS, macOS. Linux project files exist and desktop services include Linux branches, but Linux is not a primary release target. Web is not targeted.
 - **Repository:** Use the system-provided workspace or working-directory environment to determine the repository path at runtime; do not hardcode a machine-specific absolute path here.
@@ -262,8 +262,10 @@ Platform file association is configured on Android, iOS, macOS, and Windows. Win
 - Non-loopback listening requires API credentials; unsafe non-localhost startup without credentials is refused.
 - CORS is permissive.
 - Loopback requests skip Basic Auth; non-loopback requests require configured HTTP Basic Auth.
-- Endpoints include `GET /ping`, `POST /anime/search`, `POST /anime/add`, `GET /anime/list`, `GET /anime/unwatched`, and `GET /anime/history`.
+- Endpoints include `GET /ping`, `POST /anime/search`, `POST /anime/add`, `GET /anime/list`, `GET /anime/unwatched`, `GET /anime/history`, and `GET /anime/ranking`.
 - `/anime/list` and `/anime/history` return objects with `total`, `counts`, and `data`.
+- Anime API item JSON includes the derived `status` (`completed`, `watching`, `dropped`, or `notStarted`), progress counts, URLs, cover path, notes, modified timestamp, and optional rating summary while preserving older fields.
+- `/anime/ranking` returns rated anime with `total`, `filters`, `sort`, `limit`, and ranked `data`; filters include all/quarter/year/range, anime type, rating field, sort order, and result limit.
 - Season filters include `current`, `YYYYQn`, `unassigned`, and `all`; `all` may sample returned rows while keeping full counts.
 - API date serialization converts JST-derived episode dates to UTC strings with `Z`.
 
@@ -433,3 +435,4 @@ Version highlights:
 - `v0.7.3`: Statistics quick quarter/year pickers, quieter skipped-only calendar markers, richer unwatched episode counts, and reminder wording/count updates.
 - `v0.7.4`: Configurable home calendar localization, week start, Japanese calendar layout, JST/local date-grid mode, and release version metadata updates.
 - `v0.7.5`: Full-range statistics trend scrolling with focused quarter/year selection, all-scope quarter/year trend granularity, collapsed all-scope status lists, current-format home calendar button text, and release version metadata updates.
+- `v0.8.0`: Local API status/rating/progress field refresh, `/anime/ranking` endpoint, shared viewing-status derivation, and release version metadata updates.

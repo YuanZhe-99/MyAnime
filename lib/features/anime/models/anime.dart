@@ -127,6 +127,9 @@ enum AnimeType {
 /// Per-episode watch status.
 enum EpisodeStatus { unwatched, watched, skippedThisWeek }
 
+/// Derived viewing status for an anime.
+enum AnimeViewingStatus { completed, watching, dropped, notStarted }
+
 /// Rating fields available for sorting and display.
 enum AnimeRatingField { overall, visual, story, character, music, enjoyment }
 
@@ -634,6 +637,39 @@ class Anime {
       if (episodeStatuses[ep] != EpisodeStatus.watched) return false;
     }
     return true;
+  }
+
+  /// Purpose: Return the derived viewing status for this anime.
+  /// Inputs: None.
+  /// Returns: `AnimeViewingStatus`.
+  /// Side effects: None.
+  /// Notes: Dropped means every tracked episode is either watched or skipped, with at least one skipped episode.
+  AnimeViewingStatus get viewingStatus {
+    if (isCompleted) return AnimeViewingStatus.completed;
+
+    final end = endEpisode;
+    if (end == null) {
+      final hasWatched = episodeStatuses.values.any(
+        (status) => status == EpisodeStatus.watched,
+      );
+      return hasWatched
+          ? AnimeViewingStatus.watching
+          : AnimeViewingStatus.notStarted;
+    }
+
+    var hasUnwatched = false;
+    var hasWatched = false;
+    var hasSkipped = false;
+    for (var ep = startEpisode; ep <= end; ep++) {
+      final status = episodeStatuses[ep] ?? EpisodeStatus.unwatched;
+      if (status == EpisodeStatus.unwatched) hasUnwatched = true;
+      if (status == EpisodeStatus.watched) hasWatched = true;
+      if (status == EpisodeStatus.skippedThisWeek) hasSkipped = true;
+    }
+
+    if (hasSkipped && !hasUnwatched) return AnimeViewingStatus.dropped;
+    if (hasWatched) return AnimeViewingStatus.watching;
+    return AnimeViewingStatus.notStarted;
   }
 
   /// Purpose: Create a copy with selected fields replaced.

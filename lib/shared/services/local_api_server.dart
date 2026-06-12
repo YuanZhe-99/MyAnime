@@ -11,6 +11,41 @@ import '../../features/anime/services/anime_search_service.dart';
 import '../../features/anime/services/anime_storage.dart';
 import '../utils/jst_time.dart';
 
+enum _ApiRankingTime { all, quarter, year, range }
+
+class _RankingQuery {
+  final _ApiRankingTime time;
+  final int? year;
+  final int? quarter;
+  final int? startYear;
+  final int? startQuarter;
+  final int? endYear;
+  final int? endQuarter;
+  final AnimeType? type;
+  final AnimeRatingField field;
+  final bool descending;
+  final int limit;
+
+  /// Purpose: Create parsed API ranking query options.
+  /// Inputs: `time`, `year`, `quarter`, `startYear`, `startQuarter`, `endYear`, `endQuarter`, `type`, `field`, `descending`, `limit`.
+  /// Returns: A new `_RankingQuery` instance.
+  /// Side effects: None.
+  /// Notes: Internal value object used by `/anime/ranking`.
+  const _RankingQuery({
+    required this.time,
+    this.year,
+    this.quarter,
+    this.startYear,
+    this.startQuarter,
+    this.endYear,
+    this.endQuarter,
+    this.type,
+    required this.field,
+    required this.descending,
+    required this.limit,
+  });
+}
+
 class LocalApiServer {
   static HttpServer? _server;
   static int _port = 7788;
@@ -101,6 +136,7 @@ class LocalApiServer {
     router.get('/anime/list', _handleList);
     router.get('/anime/unwatched', _handleUnwatched);
     router.get('/anime/history', _handleHistory);
+    router.get('/anime/ranking', _handleRanking);
 
     final handler = const Pipeline()
         .addMiddleware(_corsMiddleware())
@@ -257,7 +293,7 @@ class LocalApiServer {
     final now = JstTime.now();
     final results = <Map<String, dynamic>>[];
     for (final anime in data.animes) {
-      final lastEp = anime.endEpisode ?? anime.startEpisode;
+      final lastEp = _episodeScanEnd(anime);
       for (var ep = anime.startEpisode; ep <= lastEp; ep++) {
         final status = anime.episodeStatuses[ep] ?? EpisodeStatus.unwatched;
         if (status == EpisodeStatus.unwatched) {
@@ -292,21 +328,85 @@ class LocalApiServer {
     final data = await AnimeStorage.load();
     final allFiltered = _filterBySeason(data.animes, request, sample: false);
     final sampled = _filterBySeason(data.animes, request);
-    final list = sampled.map((a) {
-      final json = _animeToJson(a);
-      json['watchedEpisodes'] = a.episodeStatuses.values
-          .where((s) => s == EpisodeStatus.watched)
-          .length;
-      return json;
-    }).toList();
     return _json({
       'total': allFiltered.length,
       'counts': _computeCounts(allFiltered),
-      'data': list,
+      'data': sampled.map(_animeToJson).toList(),
     });
   }
 
+  /// Purpose: Return ranked anime with personal scores.
+  /// Inputs: `request`.
+  /// Returns: `Future<Response>`.
+  /// Side effects: Reads anime storage.
+  /// Notes: Supports time, type, score field, order, and limit query parameters.
+  static Future<Response> _handleRanking(Request request) async {
+    final data = await AnimeStorage.load();
+    final result = buildRankingSnapshotForQuery(
+      data.animes,
+      request.url.queryParameters,
+    );
+    final error = result.error;
+    if (error != null) return _error(400, error);
+    return _json(result.data!);
+  }
+
   // ── Helpers ──
+
+  /// Purpose: Build the `/anime/ranking` response from anime data and query parameters.
+  /// Inputs: `animes`, `queryParameters`.
+  /// Returns: A record containing response data or an error message.
+  /// Side effects: None.
+  /// Notes: Shared by the route handler and tests so ranking semantics stay verifiable.
+  static ({Map<String, dynamic>? data, String? error})
+  buildRankingSnapshotForQuery(
+    List<Anime> animes,
+    Map<String, String> queryParameters,
+  ) {
+    final parsed = _parseRankingQuery(queryParameters);
+    final error = parsed.error;
+    if (error != null) return (data: null, error: error);
+
+    final query = parsed.query!;
+    final ranked = animes.where((anime) {
+      if (!_matchesRankingQuery(anime, query)) return false;
+      return anime.rating?.scoreFor(query.field) != null;
+    }).toList();
+
+    ranked.sort((a, b) {
+      final aScore = a.rating!.scoreFor(query.field)!;
+      final bScore = b.rating!.scoreFor(query.field)!;
+      final scoreCompare = query.descending
+          ? bScore.compareTo(aScore)
+          : aScore.compareTo(bScore);
+      if (scoreCompare != 0) return scoreCompare;
+      return a.displayTitle.compareTo(b.displayTitle);
+    });
+
+    final limited = ranked.take(query.limit).toList();
+    final rows = List<Map<String, dynamic>>.generate(limited.length, (index) {
+      final anime = limited[index];
+      return {
+        'rank': index + 1,
+        'score': anime.rating!.scoreFor(query.field),
+        ..._animeToJson(anime),
+      };
+    });
+
+    return (
+      data: {
+        'total': ranked.length,
+        'filters': _rankingFiltersToJson(query),
+        'sort': {
+          'field': query.field.name,
+          'order': query.descending ? 'desc' : 'asc',
+        },
+        'limit': query.limit,
+        'data': rows,
+      },
+      error: null,
+    );
+  }
 
   /// Purpose: Parse `?season=` query param and filter anime list.
   /// Inputs: `animes`, `request`, `sample`.
@@ -348,11 +448,244 @@ class LocalApiServer {
     return animes.where((a) => a.airsInQuarter(year, quarter)).toList();
   }
 
-  /// Purpose: Provide the internal anime to json helper for this file.
-  /// Inputs: `a`.
+  /// Purpose: Parse `/anime/ranking` query parameters into typed options.
+  /// Inputs: `queryParameters`.
+  /// Returns: A record containing parsed query options or an error message.
+  /// Side effects: None.
+  /// Notes: Internal helper used within this file only.
+  static ({_RankingQuery? query, String? error}) _parseRankingQuery(
+    Map<String, String> queryParameters,
+  ) {
+    final timeValue = (queryParameters['time'] ?? 'all').trim();
+    final time = switch (timeValue) {
+      '' || 'all' => _ApiRankingTime.all,
+      'quarter' => _ApiRankingTime.quarter,
+      'year' => _ApiRankingTime.year,
+      'range' => _ApiRankingTime.range,
+      _ => null,
+    };
+    if (time == null) {
+      return (query: null, error: 'invalid time filter');
+    }
+
+    int? year;
+    int? quarter;
+    int? startYear;
+    int? startQuarter;
+    int? endYear;
+    int? endQuarter;
+    switch (time) {
+      case _ApiRankingTime.all:
+        break;
+      case _ApiRankingTime.quarter:
+        final parsed = _parseQuarterId(
+          queryParameters['season']?.trim() ?? 'current',
+          allowCurrent: true,
+        );
+        if (parsed == null) {
+          return (query: null, error: 'invalid season');
+        }
+        year = parsed.$1;
+        quarter = parsed.$2;
+      case _ApiRankingTime.year:
+        final yearText = queryParameters['year']?.trim();
+        year = yearText == null || yearText.isEmpty
+            ? JstTime.now().year
+            : int.tryParse(yearText);
+        if (year == null || year < 1) {
+          return (query: null, error: 'invalid year');
+        }
+      case _ApiRankingTime.range:
+        final start = _parseQuarterId(queryParameters['start']?.trim());
+        final end = _parseQuarterId(queryParameters['end']?.trim());
+        if (start == null || end == null) {
+          return (query: null, error: 'invalid range');
+        }
+        startYear = start.$1;
+        startQuarter = start.$2;
+        endYear = end.$1;
+        endQuarter = end.$2;
+    }
+
+    final type = _parseAnimeTypeParam(queryParameters['type']);
+    if (type.error != null) return (query: null, error: type.error);
+
+    final field = _parseRatingFieldParam(queryParameters['field']);
+    if (field.error != null) return (query: null, error: field.error);
+
+    final orderValue = (queryParameters['order'] ?? 'desc').trim();
+    final descending = switch (orderValue) {
+      '' || 'desc' => true,
+      'asc' => false,
+      _ => null,
+    };
+    if (descending == null) {
+      return (query: null, error: 'invalid order');
+    }
+
+    final limitText = queryParameters['limit']?.trim();
+    final limit = limitText == null || limitText.isEmpty
+        ? 20
+        : int.tryParse(limitText);
+    if (limit == null || limit < 1 || limit > 100) {
+      return (query: null, error: 'invalid limit');
+    }
+
+    return (
+      query: _RankingQuery(
+        time: time,
+        year: year,
+        quarter: quarter,
+        startYear: startYear,
+        startQuarter: startQuarter,
+        endYear: endYear,
+        endQuarter: endQuarter,
+        type: type.value,
+        field: field.value!,
+        descending: descending,
+        limit: limit,
+      ),
+      error: null,
+    );
+  }
+
+  /// Purpose: Parse a `YYYYQn` quarter identifier.
+  /// Inputs: `value`, `allowCurrent`.
+  /// Returns: A `(year, quarter)` record or null.
+  /// Side effects: None.
+  /// Notes: Internal helper used within this file only.
+  static (int, int)? _parseQuarterId(
+    String? value, {
+    bool allowCurrent = false,
+  }) {
+    if (allowCurrent &&
+        (value == null || value.isEmpty || value == 'current')) {
+      final now = JstTime.now();
+      return (now.year, (now.month - 1) ~/ 3 + 1);
+    }
+    if (value == null) return null;
+    final match = RegExp(r'^(\d{4})Q([1-4])$').firstMatch(value);
+    if (match == null) return null;
+    return (int.parse(match.group(1)!), int.parse(match.group(2)!));
+  }
+
+  /// Purpose: Parse an optional anime type query parameter.
+  /// Inputs: `value`.
+  /// Returns: A record containing the type filter or an error message.
+  /// Side effects: None.
+  /// Notes: `all` and empty values mean no type filter.
+  static ({AnimeType? value, String? error}) _parseAnimeTypeParam(
+    String? value,
+  ) {
+    final trimmed = value?.trim() ?? 'all';
+    if (trimmed.isEmpty || trimmed == 'all') {
+      return (value: null, error: null);
+    }
+    for (final type in AnimeType.values) {
+      if (type.name == trimmed) return (value: type, error: null);
+    }
+    return (value: null, error: 'invalid type');
+  }
+
+  /// Purpose: Parse a rating field query parameter.
+  /// Inputs: `value`.
+  /// Returns: A record containing the rating field or an error message.
+  /// Side effects: None.
+  /// Notes: Empty values default to overall.
+  static ({AnimeRatingField? value, String? error}) _parseRatingFieldParam(
+    String? value,
+  ) {
+    final trimmed = value?.trim() ?? 'overall';
+    final normalized = trimmed.isEmpty ? 'overall' : trimmed;
+    for (final field in AnimeRatingField.values) {
+      if (field.name == normalized) return (value: field, error: null);
+    }
+    return (value: null, error: 'invalid field');
+  }
+
+  /// Purpose: Return whether an anime matches parsed ranking filters.
+  /// Inputs: `anime`, `query`.
+  /// Returns: `bool`.
+  /// Side effects: None.
+  /// Notes: Internal helper used within this file only.
+  static bool _matchesRankingQuery(Anime anime, _RankingQuery query) {
+    if (query.type != null && anime.effectiveType != query.type) return false;
+
+    switch (query.time) {
+      case _ApiRankingTime.all:
+        return true;
+      case _ApiRankingTime.quarter:
+        return anime.airsInQuarter(query.year!, query.quarter!);
+      case _ApiRankingTime.year:
+        for (var quarter = 1; quarter <= 4; quarter++) {
+          if (anime.airsInQuarter(query.year!, quarter)) return true;
+        }
+        return false;
+      case _ApiRankingTime.range:
+        var startIndex = _quarterIndex(query.startYear!, query.startQuarter!);
+        var endIndex = _quarterIndex(query.endYear!, query.endQuarter!);
+        if (endIndex < startIndex) {
+          final temp = startIndex;
+          startIndex = endIndex;
+          endIndex = temp;
+        }
+        for (var index = startIndex; index <= endIndex; index++) {
+          final (year, quarter) = _quarterFromIndex(index);
+          if (anime.airsInQuarter(year, quarter)) return true;
+        }
+        return false;
+    }
+  }
+
+  /// Purpose: Convert parsed ranking filters into response JSON.
+  /// Inputs: `query`.
   /// Returns: `Map<String, dynamic>`.
   /// Side effects: None.
   /// Notes: Internal helper used within this file only.
+  static Map<String, dynamic> _rankingFiltersToJson(_RankingQuery query) {
+    return {
+      'time': query.time.name,
+      if (query.year != null && query.quarter != null)
+        'season': _quarterId(query.year!, query.quarter!),
+      if (query.time == _ApiRankingTime.year) 'year': query.year,
+      if (query.startYear != null && query.startQuarter != null)
+        'start': _quarterId(query.startYear!, query.startQuarter!),
+      if (query.endYear != null && query.endQuarter != null)
+        'end': _quarterId(query.endYear!, query.endQuarter!),
+      'type': query.type?.name ?? 'all',
+    };
+  }
+
+  /// Purpose: Convert a year and quarter into a sortable index.
+  /// Inputs: `year`, `quarter`.
+  /// Returns: `int`.
+  /// Side effects: None.
+  /// Notes: Internal helper used within this file only.
+  static int _quarterIndex(int year, int quarter) => year * 4 + quarter;
+
+  /// Purpose: Convert a sortable quarter index back into year and quarter.
+  /// Inputs: `index`.
+  /// Returns: `(int, int)`.
+  /// Side effects: None.
+  /// Notes: Internal helper used within this file only.
+  static (int, int) _quarterFromIndex(int index) {
+    final year = (index - 1) ~/ 4;
+    final quarter = ((index - 1) % 4) + 1;
+    return (year, quarter);
+  }
+
+  /// Purpose: Format a year and quarter as an API quarter identifier.
+  /// Inputs: `year`, `quarter`.
+  /// Returns: `String`.
+  /// Side effects: None.
+  /// Notes: Internal helper used within this file only.
+  static String _quarterId(int year, int quarter) => '${year}Q$quarter';
+
+  /// Purpose: Serialize an anime for local API responses.
+  /// Inputs: `a`.
+  /// Returns: `Map<String, dynamic>`.
+  /// Side effects: None.
+  /// Notes: Internal helper used within this file only. Existing keys are preserved and newer keys are additive.
   static Map<String, dynamic> _animeToJson(Anime a) {
     final nxt = a.nextUnwatchedEpisode;
     return {
@@ -367,43 +700,138 @@ class LocalApiServer {
       'airDayOfWeek': a.airDayOfWeek,
       'airTime': a.airTime,
       'infoUrl': a.infoUrl,
+      'watchUrl': a.watchUrl,
+      'coverImage': a.coverImage,
+      'notes': a.notes,
       'isCompleted': a.isCompleted,
+      'status': a.viewingStatus.name,
       'nextUnwatchedEpisode': nxt,
       'nextEpisodeAirDate': nxt != null
           ? _jstToUtcString(a.getEpisodeAirDate(nxt))
           : null,
       'type': a.effectiveType.name,
+      'manualType': a.manualType?.name,
+      'watchedEpisodes': _episodeStatusCount(a, EpisodeStatus.watched),
+      'skippedEpisodes': _episodeStatusCount(a, EpisodeStatus.skippedThisWeek),
+      'airedEpisodes': _airedEpisodeCount(a),
+      'airedUnwatchedEpisodes': _airedUnwatchedEpisodeCount(a),
+      'rating': _ratingToJson(a.rating),
       'createdAt': a.createdAt.toIso8601String(),
+      'modifiedAt': a.modifiedAt.toIso8601String(),
     };
   }
 
-  /// Purpose: Provide the internal compute counts helper for this file.
+  /// Purpose: Count episodes with a specific status.
+  /// Inputs: `anime`, `status`.
+  /// Returns: `int`.
+  /// Side effects: None.
+  /// Notes: Internal helper used within this file only.
+  static int _episodeStatusCount(Anime anime, EpisodeStatus status) {
+    return anime.episodeStatuses.values
+        .where((value) => value == status)
+        .length;
+  }
+
+  /// Purpose: Return the last episode number worth scanning for progress data.
+  /// Inputs: `anime`.
+  /// Returns: `int`.
+  /// Side effects: None.
+  /// Notes: Unknown-end anime scan through known statuses and the next unwatched episode only.
+  static int _episodeScanEnd(Anime anime) {
+    if (anime.endEpisode != null) return anime.endEpisode!;
+    var last = anime.startEpisode;
+    for (final episode in anime.episodeStatuses.keys) {
+      if (episode > last) last = episode;
+    }
+    final next = anime.nextUnwatchedEpisode;
+    if (next != null && next > last) last = next;
+    return max(last, anime.startEpisode);
+  }
+
+  /// Purpose: Count aired episodes for API progress summaries.
+  /// Inputs: `anime`.
+  /// Returns: `int?`.
+  /// Side effects: None.
+  /// Notes: Returns null when schedule data is incomplete.
+  static int? _airedEpisodeCount(Anime anime) {
+    final now = JstTime.now();
+    var count = 0;
+    final end = _episodeScanEnd(anime);
+    for (var episode = anime.startEpisode; episode <= end; episode++) {
+      final airDate = anime.getEpisodeAirDate(episode);
+      if (airDate == null) return null;
+      if (airDate.isAfter(now)) break;
+      count++;
+    }
+    return count;
+  }
+
+  /// Purpose: Count aired episodes that are still unwatched.
+  /// Inputs: `anime`.
+  /// Returns: `int?`.
+  /// Side effects: None.
+  /// Notes: Returns null when schedule data is incomplete.
+  static int? _airedUnwatchedEpisodeCount(Anime anime) {
+    final now = JstTime.now();
+    var count = 0;
+    final end = _episodeScanEnd(anime);
+    for (var episode = anime.startEpisode; episode <= end; episode++) {
+      final airDate = anime.getEpisodeAirDate(episode);
+      if (airDate == null) return null;
+      if (airDate.isAfter(now)) break;
+      final status = anime.episodeStatuses[episode] ?? EpisodeStatus.unwatched;
+      if (status == EpisodeStatus.unwatched) count++;
+    }
+    return count;
+  }
+
+  /// Purpose: Serialize a rating for local API responses.
+  /// Inputs: `rating`.
+  /// Returns: `Map<String, dynamic>?`.
+  /// Side effects: None.
+  /// Notes: Unknown future rating fields are intentionally not exposed through the API.
+  static Map<String, dynamic>? _ratingToJson(AnimeRating? rating) {
+    if (rating == null || !rating.hasAnyScore) return null;
+    return {
+      'overall': rating.overall,
+      'effectiveOverall': rating.effectiveOverall,
+      'hasManualOverall': rating.hasManualOverall,
+      'visual': rating.visual,
+      'story': rating.story,
+      'character': rating.character,
+      'music': rating.music,
+      'enjoyment': rating.enjoyment,
+    };
+  }
+
+  /// Purpose: Compute anime counts by derived viewing status.
   /// Inputs: `animes`.
   /// Returns: `Map<String, int>`.
   /// Side effects: None.
-  /// Notes: Internal helper used within this file only.
+  /// Notes: Keeps legacy `inProgress` and `abandoned` aliases for existing API consumers.
   static Map<String, int> _computeCounts(List<Anime> animes) {
-    int completed = 0, inProgress = 0, abandoned = 0, notStarted = 0;
+    var completed = 0;
+    var watching = 0;
+    var dropped = 0;
+    var notStarted = 0;
     for (final a in animes) {
-      if (a.isCompleted) {
-        completed++;
-      } else if (a.nextUnwatchedEpisode == null) {
-        abandoned++;
-      } else {
-        final watched = a.episodeStatuses.values
-            .where((s) => s == EpisodeStatus.watched)
-            .length;
-        if (watched > 0) {
-          inProgress++;
-        } else {
+      switch (a.viewingStatus) {
+        case AnimeViewingStatus.completed:
+          completed++;
+        case AnimeViewingStatus.watching:
+          watching++;
+        case AnimeViewingStatus.dropped:
+          dropped++;
+        case AnimeViewingStatus.notStarted:
           notStarted++;
-        }
       }
     }
     return {
       'completed': completed,
-      'inProgress': inProgress,
-      'abandoned': abandoned,
+      'watching': watching,
+      'inProgress': watching,
+      'dropped': dropped,
+      'abandoned': dropped,
       'notStarted': notStarted,
     };
   }

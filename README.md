@@ -6,8 +6,10 @@ A clean, privacy-first anime tracking app for Windows and Android.
 
 - **Calendar View** — See which anime air each day and track unwatched episodes at a glance.
 - **Seasonal Management** — Browse anime by season with search, filtering, and progress bars.
-- **Multi-Source Search** *(full flavor only)* — Fetch titles, covers, episode counts, and summaries from bangumi.tv, MyAnimeList, acgsecrets.hk, and filmarks.com in one search.
+- **Statistics & Ranking** — Review seasonal progress, long-range trends, and rating-based rankings.
+- **Multi-Source Search** *(full flavor only)* — Fetch titles, covers, episode counts, and summaries from bangumi.tv, MyAnimeList, AniList, acgsecrets.hk, anime1.me, and filmarks.com in one search.
 - **Episode Tracking** — Mark episodes as watched / unwatched / skipped. Supports the late-night 25:00 JST format.
+- **Desktop Local API** — Query lists, unwatched episodes, history, search, add anime, and rating rankings from local integrations.
 - **WebDAV Cloud Sync** — Sync data to your own cloud (e.g. Nextcloud) via WebDAV, with auto or manual sync.
 - **Backup & Restore** — One-tap full backup (data + images). Optional auto-backup with retention policies.
 - **Zip Export / Import** — Export all data as a `.zip` archive for easy migration or sharing.
