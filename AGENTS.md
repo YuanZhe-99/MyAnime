@@ -28,7 +28,7 @@ Maintenance rules:
 - **Description:** A privacy-first anime tracking app with a JST-aware calendar, seasonal quarter management, statistics, multi-source anime search, watch-progress tracking, daily reminders, share/export flows, WebDAV sync, local backup, a desktop local API server, tray behavior, launch-at-startup, and a kana quick-reference module.
 - **Author / package id:** `yuanzhe`, `com.yuanzhe.my_anime`.
 - **License:** GPL-3.0.
-- **Current version:** `0.7.4+34` in `pubspec.yaml`, `0.7.4.0` for MSIX, and `0.7.4` in `installer.iss`.
+- **Current version:** `0.7.5+35` in `pubspec.yaml`, `0.7.5.0` for MSIX, and `0.7.5` in `installer.iss`.
 - **Framework:** Flutter with Dart SDK `^3.11.3`; CI uses Flutter `3.41.6`.
 - **Platforms:** Windows, Android, iOS, macOS. Linux project files exist and desktop services include Linux branches, but Linux is not a primary release target. Web is not targeted.
 - **Repository:** Use the system-provided workspace or working-directory environment to determine the repository path at runtime; do not hardcode a machine-specific absolute path here.
@@ -184,10 +184,10 @@ Quarter placement uses Japanese anime cour conventions. When `manualType` is set
 
 ### Home, Management, and Statistics
 
-- `home_page.dart`: JST-aware calendar, optional local-time date grid, localized/Japanese calendar labels, configurable week start, and unwatched aired episodes.
+- `home_page.dart`: JST-aware calendar, optional local-time date grid, localized/Japanese calendar labels, configurable week start, current-format calendar button text, and unwatched aired episodes.
 - The home calendar can display either localized app-language month/weekday labels or Japanese 日月火水木金土 labels. The global week-start preference defaults to Sunday; Japanese calendar layout locks the effective week start to Sunday. The home calendar date grid defaults to Japan time, can be switched to the device local timezone, and still calculates anime airing timestamps in Japan time with blank air times treated as 23:59 JST by the anime model.
 - `management_page.dart`: seasonal quarter browser, global search, dynamic year/quarter picker, and an Other page for anime without `firstAirDate`.
-- `statistics_page.dart`: quarter/year/all scopes, summary counts, trend charts, expandable lists grouped by derived status, and a separate Ranking view for rating-based ranking. Ranking supports all/quarter/year/custom-quarter-range filters, type filtering, overall or sub-score sorting, ascending/descending order, direct quarter/year pickers, cover thumbnails, and image export/share for the current filtered ranking.
+- `statistics_page.dart`: quarter/year/all scopes, summary counts, full-range scrollable trend charts with focused quarter/year selection, quarter/year granularity for all-scope trends, expandable lists grouped by derived status, and a separate Ranking view for rating-based ranking. Ranking supports all/quarter/year/custom-quarter-range filters, type filtering, overall or sub-score sorting, ascending/descending order, direct quarter/year pickers, cover thumbnails, and image export/share for the current filtered ranking.
 - Creating a new anime navigates to the detail page and returns management to the anime's quarter when applicable.
 
 ### Kana Quick Reference
@@ -432,3 +432,4 @@ Version highlights:
 - `v0.7.2`: Ranking button selected-state contrast, ranking image export/share, and release version metadata updates.
 - `v0.7.3`: Statistics quick quarter/year pickers, quieter skipped-only calendar markers, richer unwatched episode counts, and reminder wording/count updates.
 - `v0.7.4`: Configurable home calendar localization, week start, Japanese calendar layout, JST/local date-grid mode, and release version metadata updates.
+- `v0.7.5`: Full-range statistics trend scrolling with focused quarter/year selection, all-scope quarter/year trend granularity, collapsed all-scope status lists, current-format home calendar button text, and release version metadata updates.

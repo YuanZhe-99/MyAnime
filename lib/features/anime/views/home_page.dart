@@ -331,6 +331,7 @@ class _HomePageState extends ConsumerState<HomePage> {
               eventLoader: (day) =>
                   _getEventsForDay(day, settings.homeCalendarTimeBasis),
               headerStyle: HeaderStyle(
+                formatButtonShowsNext: false,
                 titleTextFormatter: (date, _) => _formatCalendarMonth(
                   date,
                   settings.homeCalendarLayout,

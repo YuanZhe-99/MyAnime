@@ -15,6 +15,8 @@ enum _StatsView { summary, ranking }
 
 enum _TimeScope { quarter, year, all }
 
+enum _TrendGranularity { quarter, year }
+
 enum _RankingTimeFilter { all, quarter, year, custom }
 
 enum _AnimeStatus { watching, completed, dropped, notStarted }
@@ -40,6 +42,7 @@ class _StatisticsPageState extends State<StatisticsPage> {
   List<Anime> _allAnime = [];
   _StatsView _view = _StatsView.summary;
   _TimeScope _scope = _TimeScope.quarter;
+  _TrendGranularity _allTrendGranularity = _TrendGranularity.quarter;
   _RankingTimeFilter _rankingTimeFilter = _RankingTimeFilter.all;
   AnimeType? _rankingTypeFilter;
   AnimeRatingField _rankingSortField = AnimeRatingField.overall;
@@ -112,10 +115,10 @@ class _StatisticsPageState extends State<StatisticsPage> {
     }
   }
 
-  /// Purpose: Provide the internal scroll trend to end helper for this file.
+  /// Purpose: Scroll the trend chart to its final entry after layout completes.
   /// Inputs: None.
   /// Returns: None.
-  /// Side effects: None.
+  /// Side effects: Moves the trend chart scroll controller when attached.
   /// Notes: Internal helper used within this file only.
   void _scrollTrendToEnd() {
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -124,6 +127,38 @@ class _StatisticsPageState extends State<StatisticsPage> {
           _trendScrollController.position.maxScrollExtent,
         );
       }
+    });
+  }
+
+  /// Purpose: Scroll the trend chart to the currently selected summary period.
+  /// Inputs: `fallbackToEnd`.
+  /// Returns: None.
+  /// Side effects: Moves the trend chart scroll controller when attached.
+  /// Notes: Falls back to the chart end when no focus entry is available and requested.
+  void _scrollTrendToFocused({bool fallbackToEnd = false}) {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!_trendScrollController.hasClients) return;
+
+      final position = _trendScrollController.position;
+      final data = _trendData;
+      final focusedIndex = _focusedTrendIndex(data);
+      final double target;
+      if (focusedIndex == null) {
+        if (!fallbackToEnd) return;
+        target = position.maxScrollExtent;
+      } else {
+        const entryWidth = 50.0;
+        target =
+            focusedIndex * entryWidth +
+            entryWidth / 2 -
+            position.viewportDimension / 2;
+      }
+
+      _trendScrollController.jumpTo(
+        target
+            .clamp(position.minScrollExtent, position.maxScrollExtent)
+            .toDouble(),
+      );
     });
   }
 
@@ -312,6 +347,7 @@ class _StatisticsPageState extends State<StatisticsPage> {
   /// Side effects: None.
   /// Notes: Internal helper used within this file only.
   void _prevPeriod() {
+    var shouldScrollSummaryTrend = false;
     setState(() {
       if (_view == _StatsView.ranking &&
           _rankingTimeFilter == _RankingTimeFilter.quarter) {
@@ -329,10 +365,13 @@ class _StatisticsPageState extends State<StatisticsPage> {
           _selectedQuarter = 4;
           _selectedYear--;
         }
+        shouldScrollSummaryTrend = true;
       } else if (_scope == _TimeScope.year) {
         _selectedYearOnly--;
+        shouldScrollSummaryTrend = true;
       }
     });
+    if (shouldScrollSummaryTrend) _scrollTrendToFocused();
   }
 
   /// Purpose: Provide the internal next period helper for this file.
@@ -341,6 +380,7 @@ class _StatisticsPageState extends State<StatisticsPage> {
   /// Side effects: None.
   /// Notes: Internal helper used within this file only.
   void _nextPeriod() {
+    var shouldScrollSummaryTrend = false;
     setState(() {
       if (_view == _StatsView.ranking &&
           _rankingTimeFilter == _RankingTimeFilter.quarter) {
@@ -358,10 +398,13 @@ class _StatisticsPageState extends State<StatisticsPage> {
           _selectedQuarter = 1;
           _selectedYear++;
         }
+        shouldScrollSummaryTrend = true;
       } else if (_scope == _TimeScope.year) {
         _selectedYearOnly++;
+        shouldScrollSummaryTrend = true;
       }
     });
+    if (shouldScrollSummaryTrend) _scrollTrendToFocused();
   }
 
   /// Purpose: Build the selectable year range for summary and ranking pickers.
@@ -412,7 +455,7 @@ class _StatisticsPageState extends State<StatisticsPage> {
       _selectedYear = selected.year;
       _selectedQuarter = selected.quarter;
     });
-    _scrollTrendToEnd();
+    _scrollTrendToFocused();
   }
 
   /// Purpose: Let the user directly choose the summary year.
@@ -431,7 +474,7 @@ class _StatisticsPageState extends State<StatisticsPage> {
     );
     if (selected == null || !mounted) return;
     setState(() => _selectedYearOnly = selected);
-    _scrollTrendToEnd();
+    _scrollTrendToFocused();
   }
 
   /// Purpose: Provide the internal pick ranking quarter helper for this file.
@@ -663,6 +706,11 @@ class _StatisticsPageState extends State<StatisticsPage> {
   /// Notes: Internal helper used within this file only.
   static int _quarterIndex(int year, int quarter) => year * 4 + quarter;
 
+  /// Purpose: Convert a compact quarter index back into year and quarter values.
+  /// Inputs: `index`.
+  /// Returns: `(int, int)`.
+  /// Side effects: None.
+  /// Notes: Quarter indexes use the same year * 4 + quarter convention as `_quarterIndex`.
   static (int, int) _quarterFromIndex(int index) {
     final year = (index - 1) ~/ 4;
     final quarter = ((index - 1) % 4) + 1;
@@ -671,115 +719,154 @@ class _StatisticsPageState extends State<StatisticsPage> {
 
   // --- Trend data ---
 
-  /// Purpose: Provide the internal trend data helper for this file.
+  /// Purpose: Build the trend chart data for the active summary scope.
   /// Inputs: None.
   /// Returns: `List<_TrendEntry>`.
   /// Side effects: None.
-  /// Notes: Internal helper used within this file only.
+  /// Notes: Quarter/year scopes keep full timelines; All can switch quarter/year granularity.
   List<_TrendEntry> get _trendData {
-    // Collect quarters that have data
-    final quarterSet = <(int, int)>{};
-    for (final anime in _allAnime) {
-      final sq = anime.startQuarter;
-      if (sq != null) {
-        final q = _monthToQuarter(sq.$2);
-        quarterSet.add((sq.$1, q));
-      }
-    }
-
-    // Also add current context quarters
-    final now = DateTime.now();
-    final currentYear = now.year;
-    final currentQ = ((now.month - 1) ~/ 3) + 1;
-
-    List<(int, int)> quarters;
     switch (_scope) {
       case _TimeScope.quarter:
-        // Show recent 8 quarters ending at selected
-        quarters = [];
-        int y = _selectedYear, q = _selectedQuarter;
-        for (int i = 0; i < 8; i++) {
-          quarters.insert(0, (y, q));
-          q--;
-          if (q < 1) {
-            q = 4;
-            y--;
-          }
-        }
+        return _quarterTrendData(includeFocused: true);
       case _TimeScope.year:
-        // Show recent 5 years ending at selected year (per-year aggregation)
-        return List.generate(5, (i) => _selectedYearOnly - 4 + i).map((y) {
-          final animeInYear = _allAnime.where((a) {
-            for (int q = 1; q <= 4; q++) {
-              if (a.airsInQuarter(y, q)) return true;
-            }
-            return false;
-          }).toList();
-          return _TrendEntry(
-            year: y,
-            quarter: 0,
-            tracked: animeInYear.length,
-            completed: animeInYear
-                .where((a) => _deriveStatus(a) == _AnimeStatus.completed)
-                .length,
-            dropped: animeInYear
-                .where((a) => _deriveStatus(a) == _AnimeStatus.dropped)
-                .length,
-          );
-        }).toList();
+        return _yearTrendData(includeFocused: true);
       case _TimeScope.all:
-        // All quarters from earliest to latest data
-        if (quarterSet.isEmpty) return [];
-        final sorted = quarterSet.toList()
-          ..sort((a, b) {
-            if (a.$1 != b.$1) return a.$1.compareTo(b.$1);
-            return a.$2.compareTo(b.$2);
-          });
-        final first = sorted.first;
-        final last = (currentYear, currentQ);
-        quarters = [];
-        int y = first.$1, q = first.$2;
-        while (y < last.$1 || (y == last.$1 && q <= last.$2)) {
-          quarters.add((y, q));
-          q++;
-          if (q > 4) {
-            q = 1;
-            y++;
-          }
-        }
+        return switch (_allTrendGranularity) {
+          _TrendGranularity.quarter => _quarterTrendData(includeFocused: false),
+          _TrendGranularity.year => _yearTrendData(includeFocused: false),
+        };
     }
-
-    return quarters.map((yq) {
-      final animeInQ = _allAnime
-          .where((a) => a.airsInQuarter(yq.$1, yq.$2))
-          .toList();
-      int tracked = animeInQ.length;
-      int completed = animeInQ
-          .where((a) => _deriveStatus(a) == _AnimeStatus.completed)
-          .length;
-      int dropped = animeInQ
-          .where((a) => _deriveStatus(a) == _AnimeStatus.dropped)
-          .length;
-      return _TrendEntry(
-        year: yq.$1,
-        quarter: yq.$2,
-        tracked: tracked,
-        completed: completed,
-        dropped: dropped,
-      );
-    }).toList();
   }
 
-  /// Purpose: Provide the internal month to quarter helper for this file.
-  /// Inputs: `month`.
-  /// Returns: `int`.
+  /// Purpose: Build quarter-level trend entries across the full known timeline.
+  /// Inputs: `includeFocused`.
+  /// Returns: `List<_TrendEntry>`.
   /// Side effects: None.
-  /// Notes: Internal helper used within this file only.
-  static int _monthToQuarter(int month) {
-    if (month <= 3) return 1;
-    if (month <= 6) return 2;
-    if (month <= 9) return 3;
-    return 4;
+  /// Notes: Includes the selected quarter when a quarter scope needs focus.
+  List<_TrendEntry> _quarterTrendData({required bool includeFocused}) {
+    final now = DateTime.now();
+    final currentQuarter = ((now.month - 1) ~/ 3) + 1;
+    var startIndex = _quarterIndex(now.year, currentQuarter);
+    var endIndex = startIndex;
+    var hasData = false;
+
+    for (final anime in _allAnime) {
+      final startQuarter = anime.startQuarter;
+      if (startQuarter == null) continue;
+      final index = _quarterIndex(startQuarter.$1, startQuarter.$2);
+      startIndex = index < startIndex ? index : startIndex;
+      endIndex = index > endIndex ? index : endIndex;
+      hasData = true;
+    }
+
+    if (includeFocused) {
+      final focusedIndex = _quarterIndex(_selectedYear, _selectedQuarter);
+      startIndex = focusedIndex < startIndex ? focusedIndex : startIndex;
+      endIndex = focusedIndex > endIndex ? focusedIndex : endIndex;
+    } else if (!hasData) {
+      return [];
+    }
+
+    return [
+      for (var index = startIndex; index <= endIndex; index++)
+        _quarterTrendEntry(_quarterFromIndex(index)),
+    ];
+  }
+
+  /// Purpose: Build year-level trend entries across the full known timeline.
+  /// Inputs: `includeFocused`.
+  /// Returns: `List<_TrendEntry>`.
+  /// Side effects: None.
+  /// Notes: Includes the selected year when a year scope needs focus.
+  List<_TrendEntry> _yearTrendData({required bool includeFocused}) {
+    final now = DateTime.now();
+    var startYear = now.year;
+    var endYear = now.year;
+    var hasData = false;
+
+    for (final anime in _allAnime) {
+      final startQuarter = anime.startQuarter;
+      if (startQuarter == null) continue;
+      startYear = startQuarter.$1 < startYear ? startQuarter.$1 : startYear;
+      endYear = startQuarter.$1 > endYear ? startQuarter.$1 : endYear;
+      hasData = true;
+    }
+
+    if (includeFocused) {
+      startYear = _selectedYearOnly < startYear ? _selectedYearOnly : startYear;
+      endYear = _selectedYearOnly > endYear ? _selectedYearOnly : endYear;
+    } else if (!hasData) {
+      return [];
+    }
+
+    return [
+      for (var year = startYear; year <= endYear; year++) _yearTrendEntry(year),
+    ];
+  }
+
+  /// Purpose: Build one quarter-level trend entry.
+  /// Inputs: `yearQuarter`.
+  /// Returns: `_TrendEntry`.
+  /// Side effects: None.
+  /// Notes: Counts anime that air in the quarter, including multi-cour spans.
+  _TrendEntry _quarterTrendEntry((int, int) yearQuarter) {
+    final animeInQuarter = _allAnime
+        .where((a) => a.airsInQuarter(yearQuarter.$1, yearQuarter.$2))
+        .toList();
+    return _TrendEntry(
+      year: yearQuarter.$1,
+      quarter: yearQuarter.$2,
+      tracked: animeInQuarter.length,
+      completed: animeInQuarter
+          .where((a) => _deriveStatus(a) == _AnimeStatus.completed)
+          .length,
+      dropped: animeInQuarter
+          .where((a) => _deriveStatus(a) == _AnimeStatus.dropped)
+          .length,
+    );
+  }
+
+  /// Purpose: Build one year-level trend entry.
+  /// Inputs: `year`.
+  /// Returns: `_TrendEntry`.
+  /// Side effects: None.
+  /// Notes: Counts anime once when they air in any quarter of the year.
+  _TrendEntry _yearTrendEntry(int year) {
+    final animeInYear = _allAnime.where((a) {
+      for (var quarter = 1; quarter <= 4; quarter++) {
+        if (a.airsInQuarter(year, quarter)) return true;
+      }
+      return false;
+    }).toList();
+    return _TrendEntry(
+      year: year,
+      quarter: 0,
+      tracked: animeInYear.length,
+      completed: animeInYear
+          .where((a) => _deriveStatus(a) == _AnimeStatus.completed)
+          .length,
+      dropped: animeInYear
+          .where((a) => _deriveStatus(a) == _AnimeStatus.dropped)
+          .length,
+    );
+  }
+
+  /// Purpose: Locate the trend entry matching the currently selected summary period.
+  /// Inputs: `data`.
+  /// Returns: `int?`.
+  /// Side effects: None.
+  /// Notes: All scope has no focused period and returns null.
+  int? _focusedTrendIndex(List<_TrendEntry> data) {
+    final index = switch (_scope) {
+      _TimeScope.quarter => data.indexWhere(
+        (e) => e.year == _selectedYear && e.quarter == _selectedQuarter,
+      ),
+      _TimeScope.year => data.indexWhere(
+        (e) => e.year == _selectedYearOnly && e.quarter == 0,
+      ),
+      _TimeScope.all => -1,
+    };
+    return index < 0 ? null : index;
   }
 
   // --- Build ---
@@ -842,7 +929,11 @@ class _StatisticsPageState extends State<StatisticsPage> {
                           _scope = s.first;
                           _view = _StatsView.summary;
                         });
-                        _scrollTrendToEnd();
+                        if (_scope == _TimeScope.all) {
+                          _scrollTrendToEnd();
+                        } else {
+                          _scrollTrendToFocused(fallbackToEnd: true);
+                        }
                       },
                     ),
                   ),
@@ -1392,13 +1483,39 @@ class _StatisticsPageState extends State<StatisticsPage> {
 
     final maxY = data.fold<int>(0, (m, e) => e.tracked > m ? e.tracked : m) + 1;
     final needsScroll = data.length > 8;
+    final focusedIndex = _focusedTrendIndex(data);
 
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(l10n.statsTrend, style: theme.textTheme.titleSmall),
+          Row(
+            children: [
+              Text(l10n.statsTrend, style: theme.textTheme.titleSmall),
+              if (_scope == _TimeScope.all) ...[
+                const Spacer(),
+                SegmentedButton<_TrendGranularity>(
+                  showSelectedIcon: false,
+                  segments: [
+                    ButtonSegment(
+                      value: _TrendGranularity.quarter,
+                      label: Text(l10n.statsQuarter),
+                    ),
+                    ButtonSegment(
+                      value: _TrendGranularity.year,
+                      label: Text(l10n.statsYear),
+                    ),
+                  ],
+                  selected: {_allTrendGranularity},
+                  onSelectionChanged: (selection) {
+                    setState(() => _allTrendGranularity = selection.first);
+                    _scrollTrendToEnd();
+                  },
+                ),
+              ],
+            ],
+          ),
           const SizedBox(height: 8),
           // Legend
           Row(
@@ -1430,6 +1547,7 @@ class _StatisticsPageState extends State<StatisticsPage> {
                               maxY,
                               theme,
                               l10n,
+                              focusedIndex: focusedIndex,
                               showLeftTitles: false,
                             ),
                           ),
@@ -1437,7 +1555,13 @@ class _StatisticsPageState extends State<StatisticsPage> {
                       ),
                     ],
                   )
-                : _buildBarChart(data, maxY, theme, l10n),
+                : _buildBarChart(
+                    data,
+                    maxY,
+                    theme,
+                    l10n,
+                    focusedIndex: focusedIndex,
+                  ),
           ),
         ],
       ),
@@ -1500,6 +1624,7 @@ class _StatisticsPageState extends State<StatisticsPage> {
     int maxY,
     ThemeData theme,
     AppLocalizations l10n, {
+    int? focusedIndex,
     bool showLeftTitles = true,
   }) {
     return BarChart(
@@ -1540,9 +1665,17 @@ class _StatisticsPageState extends State<StatisticsPage> {
                 final label = e.quarter == 0
                     ? '${e.year}'
                     : "'${e.year % 100}Q${e.quarter}";
+                final isFocused = index == focusedIndex;
                 return SideTitleWidget(
                   meta: meta,
-                  child: Text(label, style: const TextStyle(fontSize: 10)),
+                  child: Text(
+                    label,
+                    style: TextStyle(
+                      color: isFocused ? theme.colorScheme.primary : null,
+                      fontSize: 10,
+                      fontWeight: isFocused ? FontWeight.bold : null,
+                    ),
+                  ),
                 );
               },
               reservedSize: 28,
@@ -1577,13 +1710,15 @@ class _StatisticsPageState extends State<StatisticsPage> {
         ),
         barGroups: List.generate(data.length, (i) {
           final e = data[i];
+          final isFocused = i == focusedIndex;
+          final barWidth = isFocused ? 10.0 : 8.0;
           return BarChartGroupData(
             x: i,
             barRods: [
               BarChartRodData(
                 toY: e.tracked.toDouble(),
                 color: theme.colorScheme.primary,
-                width: 8,
+                width: barWidth,
                 borderRadius: const BorderRadius.vertical(
                   top: Radius.circular(2),
                 ),
@@ -1591,7 +1726,7 @@ class _StatisticsPageState extends State<StatisticsPage> {
               BarChartRodData(
                 toY: e.completed.toDouble(),
                 color: Colors.green,
-                width: 8,
+                width: barWidth,
                 borderRadius: const BorderRadius.vertical(
                   top: Radius.circular(2),
                 ),
@@ -1599,7 +1734,7 @@ class _StatisticsPageState extends State<StatisticsPage> {
               BarChartRodData(
                 toY: e.dropped.toDouble(),
                 color: Colors.red,
-                width: 8,
+                width: barWidth,
                 borderRadius: const BorderRadius.vertical(
                   top: Radius.circular(2),
                 ),
@@ -1645,8 +1780,8 @@ class _StatisticsPageState extends State<StatisticsPage> {
     AppLocalizations l10n,
   ) {
     final order = [
-      (_AnimeStatus.completed, l10n.statsCompleted, true),
-      (_AnimeStatus.watching, l10n.statsWatching, true),
+      (_AnimeStatus.completed, l10n.statsCompleted, _scope != _TimeScope.all),
+      (_AnimeStatus.watching, l10n.statsWatching, _scope != _TimeScope.all),
       (_AnimeStatus.dropped, l10n.statsDropped, false),
       (_AnimeStatus.notStarted, l10n.statsNotStarted, false),
     ];
