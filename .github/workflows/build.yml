@@ -9,7 +9,7 @@ permissions:
   contents: write
 
 env:
-  FLUTTER_VERSION: '3.41.6'
+  FLUTTER_VERSION: '3.44.2'
 
 jobs:
   # ── Android APK (full) + AAB (store) ──
@@ -91,10 +91,10 @@ jobs:
           name: windows-installer-x64-full
           path: build/installer/*.exe
 
-  # ── Windows ARM64 installer (full, Flutter master — stable ARM64 engine in master since flutter/flutter#176385,
-  #    merged March 2026; will land in a future stable release. Until then, use cached master weekly
-  #    so the same flutter_windows_arm64.dll hash is reused across builds, allowing Defender cloud
-  #    reputation to accumulate. Without caching, every build produces a fresh unknown hash → false positive.) ──
+  # ── Windows ARM64 installer (full, Flutter master — stable ARM64 engine not yet available,
+  #    use cached master weekly so the same flutter_windows_arm64.dll hash is reused across
+  #    builds, allowing Defender cloud reputation to accumulate. Without caching, every build
+  #    produces a fresh unknown hash → false positive.) ──
   windows-arm64:
     runs-on: windows-11-arm
     env:

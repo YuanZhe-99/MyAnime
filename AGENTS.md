@@ -28,8 +28,8 @@ Maintenance rules:
 - **Description:** A privacy-first anime tracking app with a JST-aware calendar, seasonal quarter management, statistics, multi-source anime search, watch-progress tracking, daily reminders, share/export flows, WebDAV sync, local backup, a desktop local API server, tray behavior, launch-at-startup, and a kana quick-reference module.
 - **Author / package id:** `yuanzhe`, `com.yuanzhe.my_anime`.
 - **License:** GPL-3.0.
-- **Current version:** `1.0.0+37` in `pubspec.yaml`, `1.0.0.0` for MSIX, and `1.0.0` in `installer.iss`.
-- **Framework:** Flutter with Dart SDK `^3.11.3`; CI uses Flutter `3.41.6`.
+- **Current version:** `1.0.1+38` in `pubspec.yaml`, `1.0.1.0` for MSIX, and `1.0.1` in `installer.iss`.
+- **Framework:** Flutter with Dart SDK `^3.11.3`; CI uses Flutter `3.44.2`.
 - **Platforms:** Windows, Android, iOS, macOS. Linux project files exist and desktop services include Linux branches, but Linux is not a primary release target. Web is not targeted.
 - **Repository:** Use the system-provided workspace or working-directory environment to determine the repository path at runtime; do not hardcode a machine-specific absolute path here.
 - **Remotes:**
@@ -127,6 +127,7 @@ lib/
     services/
       auto_sync_service.dart
       backup_service.dart
+      duplicate_service.dart
       file_open_service.dart
       image_service.dart
       import_export_service.dart
@@ -141,6 +142,8 @@ lib/
       jst_time.dart
     views/webdav_config_page.dart
     widgets/
+      duplicate_check_page.dart
+      import_bundle_dialog.dart
   l10n/
 ```
 
@@ -148,6 +151,8 @@ Primary tests currently include:
 
 - `test/anime_json_test.dart`: unknown JSON preservation and auto-resolved sync merge behavior.
 - `test/audit_fixes_test.dart`: identical-content conflict suppression and forward-snapped episode air dates.
+- `test/duplicate_service_test.dart`: duplicate detection (same-id, same-url, same-title-season), transitive grouping, and merge semantics.
+- `test/bundle_import_test.dart`: `.myanimeitem` v1 backward compatibility, v2 multi-anime bundle format, and export personal-data stripping.
 - `test/widget_test.dart`: basic widget smoke coverage.
 
 The `tool/` directory contains ad hoc scripts such as icon generation and search-source validation. `tool/generate_ios_icons.dart` derives padded iOS default, dark, and tinted icon sources from `assets/icon/app_icon.png` and writes preview PNGs under `/tmp`; after changing iOS icon sources, regenerate `ios/Runner/Assets.xcassets/AppIcon.appiconset/` with `flutter_launcher_icons`. Prefer focused tests for production behavior and keep tool scripts out of release-critical paths unless the user asks for them.
@@ -219,20 +224,32 @@ Features include result deduplication, Simplified/Traditional Chinese variants f
 
 ### Share and File Import
 
-`share_service.dart` supports sharing an anime as an image card and exporting/sharing the current statistics ranking as an image.
+`share_service.dart` supports sharing an anime as an image card, exporting/sharing the current statistics ranking as an image, and exporting/sharing the current statistics summary view as an image or data file.
 
 - The share flow first asks whether to share as an image or as a data file.
 - Image cards include cover art, titles, season/type/schedule, broadcast progress, notes, selected info/watch URLs as QR codes, the app logo, and the MyAnime!!!!! watermark.
 - Ranking image exports include the current ranking filters, sort/order, ranked anime rows with cover thumbnails and scores, the app logo, and the MyAnime!!!!! watermark. Ranking export is image-only and does not create `.myanimeitem` data files.
+- Statistics summary image exports include a horizontal bar chart at the top showing tracked, completed, and dropped counts, followed by anime rows grouped by derived status (completed, watching, dropped, not-started) with cover thumbnails, status labels, progress, and optional scores.
+- Statistics data file exports create a `.myanimeitem` multi-anime bundle containing the visible anime list, with personal viewing data stripped.
 - Android uses a custom `MethodChannel` named `com.yuanzhe.my_anime/share` and `FLAG_ACTIVITY_NEW_TASK` so share targets open outside the MyAnime task stack.
 - iOS uses the system share sheet.
 - Desktop shows a preview dialog and can copy or save the generated image.
 
-`file_open_service.dart` supports `.myanimeitem` export/import.
+`file_open_service.dart` supports `.myanimeitem` export/import for both single-anime (v1) and multi-anime bundle (v2) formats.
 
-`.myanimeitem` files are JSON with version, anime metadata, optional base64 cover image, and cover extension. Export strips personal viewing data such as `episodeStatuses` and `episodeWeekOffsets`. Import always creates a new UUID and never overwrites an existing anime.
+`.myanimeitem` files are JSON. Version 1 contains `anime` metadata, optional base64 `coverImage`, and `coverImageExt`. Version 2 contains an `items` array, each with `anime`, optional `coverImage`, and `coverImageExt`. Export strips personal viewing data such as `episodeStatuses` and `episodeWeekOffsets`. Import always creates a new UUID and never overwrites an existing anime. Multi-anime bundle imports detect conflicts with existing local records and show a per-conflict dialog offering keep-local, use-imported, or merge.
 
 Platform file association is configured on Android, iOS, macOS, and Windows. Windows registration lives in `installer.iss`.
+
+### Duplicate Detection and Merge
+
+`duplicate_service.dart` provides duplicate detection and merge logic for anime records.
+
+- Duplicate detection groups records by same ID, same non-empty info/watch URL, or same normalized title + season + first air date.
+- Groups are formed transitively (union-find); each anime appears in at most one group.
+- The settings page has a "Check Duplicates" entry that opens a dedicated page listing all duplicate groups with keep/merge/delete options.
+- Merge logic preserves the primary record's ID and lets primary fields win conflicts. Missing fields are filled from fallbacks. Episode statuses merge with watched > skipped > unwatched. Rating sub-scores fill from fallbacks. Notes are concatenated (non-duplicate). Unknown JSON fields are preserved.
+- Import conflict resolution reuses the same duplicate detection to decide whether an incoming `.myanimeitem` record conflicts with an existing local record, showing a per-conflict dialog with keep-local, use-imported, or merge options.
 
 ### Backup, Export, Import, and Images
 
@@ -381,8 +398,8 @@ Important workflow caveats:
 - Keep workflow Flutter version aligned with the Dart SDK constraint.
 - GitHub `secrets` cannot be used directly in step `if` expressions; route through job-level `env`.
 - Windows ARM64 output is controlled by `iscc /DARM64 installer.iss`.
-- Windows CI jobs define `CL=/D_SILENCE_EXPERIMENTAL_COROUTINE_DEPRECATION_WARNINGS` because newer MSVC toolchains promote deprecated `<experimental/coroutine>` usage, reached through current Windows plugin dependencies, to a build-stopping assertion. Remove this compatibility macro once the dependency chain no longer includes that header.
 - The ARM64 Flutter master cache is weekly so Windows Defender reputation can accumulate for reused DLL hashes. Once stable Flutter ships suitable ARM64 support, switch this job back to a stable-channel setup.
+- Remove the `CL=/D_SILENCE_EXPERIMENTAL_COROUTINE_DEPRECATION_WARNINGS` compatibility macro once the dependency chain no longer includes `<experimental/coroutine>`.
 
 ## Useful Commands
 
@@ -442,3 +459,4 @@ Version highlights:
 - `v0.7.5`: Full-range statistics trend scrolling with focused quarter/year selection, all-scope quarter/year trend granularity, collapsed all-scope status lists, current-format home calendar button text, and release version metadata updates.
 - `v0.8.0`: Local API status/rating/progress field refresh, `/anime/ranking` endpoint, shared viewing-status derivation, and release version metadata updates.
 - `v1.0.0`: Pre-release audit hardening — WebDAV downloads distinguish 404 from errors so transient failures can never overwrite the remote or cascade into cross-device deletions, ETag `If-Match`/`If-None-Match` preconditions on data uploads with visible 412 errors, fresh local re-read before writing merged data, identical-content concurrent edits no longer raise conflicts, conflict-resolution upload failures are reported, content-aware per-day mobile reminder scheduling (empty days skipped, no duplicate in-app notification), IANA timezone resolution via `flutter_timezone`, Basic Auth enforced on loopback when API credentials are configured, allowlist-based ZIP import, removed unused `SCHEDULE_EXACT_ALARM` permission, forward-snapped episode air dates, and versions unified to `1.0.0+37` / MSIX `1.0.0.0` / installer `1.0.0`.
+- `v1.0.1`: Statistics page share button (image or data file), summary image with horizontal bar chart (tracked/completed/dropped), multi-anime `.myanimeitem` bundle export/import (v2 format), import conflict resolution with keep-local/use-imported/merge options, settings duplicate check page with transitive grouping and merge, CI Flutter updated to `3.44.2`, and versions unified to `1.0.1+38` / MSIX `1.0.1.0` / installer `1.0.1`.

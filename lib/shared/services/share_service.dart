@@ -1239,4 +1239,496 @@ class ShareService {
       ]);
     }
   }
+
+  // ── Statistics share ──
+
+  /// Purpose: Share the current statistics view as an image or data file.
+  /// Inputs: `context`, `entries`, `title`, `subtitle`, `summary`, `l10n`.
+  /// Returns: None.
+  /// Side effects: Shows dialogs, generates images, shares files.
+  /// Notes: When `summary` is non-null the image includes a horizontal bar
+  /// chart at the top with tracked/completed/dropped counts. When `summary`
+  /// is null the entries are rendered as a ranking list with scores.
+  static Future<void> shareStatisticsImage(
+    BuildContext context, {
+    required List<StatisticsShareEntry> entries,
+    required String title,
+    required String subtitle,
+    required AppLocalizations l10n,
+    StatisticsShareSummary? summary,
+  }) async {
+    if (entries.isEmpty) return;
+
+    try {
+      final imageBytes = await _generateStatisticsShareImage(
+        entries: entries,
+        title: title,
+        subtitle: subtitle,
+        l10n: l10n,
+        summary: summary,
+      );
+      if (!context.mounted) return;
+      await _shareImageBytes(
+        context,
+        imageBytes,
+        l10n,
+        fileName: summary != null
+            ? 'myanime_stats.png'
+            : 'myanime_ranking.png',
+      );
+    } catch (_) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(l10n.shareFailed)));
+      }
+    }
+  }
+
+  /// Purpose: Share the current statistics view as a .myanimeitem data file.
+  /// Inputs: `context`, `animes`, `displayName`, `l10n`.
+  /// Returns: None.
+  /// Side effects: Writes a temporary .myanimeitem bundle and shares it.
+  /// Notes: Exports the visible anime list as a multi-anime bundle.
+  static Future<void> shareStatisticsData(
+    BuildContext context, {
+    required List<Anime> animes,
+    required String displayName,
+    required AppLocalizations l10n,
+  }) async {
+    if (animes.isEmpty) return;
+
+    try {
+      final filePath = await FileOpenService.exportAnimeBundle(
+        animes,
+        displayName: displayName,
+      );
+      if (filePath == null) throw Exception('Export failed');
+      if (!context.mounted) return;
+
+      if (Platform.isAndroid) {
+        const channel = MethodChannel('com.yuanzhe.my_anime/share');
+        await channel.invokeMethod('shareFile', {
+          'path': filePath,
+          'mimeType': 'application/json',
+        });
+      } else if (Platform.isIOS) {
+        await Share.shareXFiles([XFile(filePath)]);
+      } else {
+        await _showDesktopPreview(
+          context,
+          await File(filePath).readAsBytes(),
+          filePath,
+          l10n,
+          fileName: '$displayName.myanimeitem',
+        );
+      }
+    } catch (_) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(l10n.shareFailed)));
+      }
+    }
+  }
+
+  /// Purpose: Provide the internal generate statistics share image helper for this file.
+  /// Inputs: `entries`, `title`, `subtitle`, `l10n`, `summary`.
+  /// Returns: `Future<Uint8List>`.
+  /// Side effects: Reads cover images from storage.
+  /// Notes: Internal helper used within this file only. When `summary` is
+  /// provided, draws a horizontal bar chart at the top showing tracked,
+  /// completed, and dropped counts, followed by anime rows grouped by status.
+  /// When `summary` is null, draws a ranking list with scores (reuses the
+  /// ranking row layout).
+  static Future<Uint8List> _generateStatisticsShareImage({
+    required List<StatisticsShareEntry> entries,
+    required String title,
+    required String subtitle,
+    required AppLocalizations l10n,
+    StatisticsShareSummary? summary,
+  }) async {
+    ui.Image? logoImage;
+    try {
+      final logoData = await rootBundle.load('assets/icon/app_icon.png');
+      final logoCodec = await ui.instantiateImageCodec(
+        logoData.buffer.asUint8List(),
+      );
+      final logoFrame = await logoCodec.getNextFrame();
+      logoImage = logoFrame.image;
+    } catch (_) {
+      // Proceed without logo.
+    }
+
+    final coverImages = <String, ui.Image>{};
+    for (final entry in entries) {
+      final cover = entry.anime.coverImage;
+      if (cover == null || coverImages.containsKey(cover)) continue;
+      try {
+        final file = await ImageService.resolve(cover);
+        if (!file.existsSync()) continue;
+        final bytes = await file.readAsBytes();
+        final codec = await ui.instantiateImageCodec(bytes);
+        final frame = await codec.getNextFrame();
+        coverImages[cover] = frame.image;
+      } catch (_) {
+        // Keep exporting even if one cover is missing or invalid.
+      }
+    }
+
+    final contentWidth = _rankingCardWidth - _padding * 2;
+    double y = _padding + _headerHeight + _gap;
+
+    final titlePainter = _layoutText(
+      title,
+      const TextStyle(
+        color: _textColor,
+        fontSize: 24,
+        fontWeight: FontWeight.bold,
+      ),
+      contentWidth,
+    );
+    final titleY = y;
+    y += titlePainter.height + 6;
+
+    final subtitlePainter = _layoutText(
+      subtitle,
+      const TextStyle(color: _subtitleColor, fontSize: 14),
+      contentWidth,
+      maxLines: 2,
+    );
+    final subtitleY = y;
+    y += subtitlePainter.height + _gap;
+
+    // Optional summary bar chart section.
+    double? chartY;
+    double? chartHeight;
+    const barLabelH = 14.0;
+    const barH = 22.0;
+    const barGap = 8.0;
+    if (summary != null) {
+      chartY = y;
+      final barCount = 3; // tracked, completed, dropped
+      chartHeight = barCount * (barH + barGap) + barLabelH * barCount;
+      y += chartHeight + _gap;
+    }
+
+    // Anime rows.
+    final rowYs = <double>[];
+    for (final _ in entries) {
+      rowYs.add(y);
+      y += _rankingRowHeight;
+    }
+
+    final watermarkPainter = _layoutText(
+      'MyAnime!!!!!',
+      const TextStyle(
+        color: _accentColor,
+        fontSize: 13,
+        fontWeight: FontWeight.bold,
+      ),
+      contentWidth,
+    );
+    final watermarkY = y + _gap;
+    final watermarkRowHeight = logoImage != null
+        ? max<double>(_logoSize, watermarkPainter.height)
+        : watermarkPainter.height;
+    y = watermarkY + watermarkRowHeight + _padding;
+
+    final cardHeight = y;
+    final recorder = ui.PictureRecorder();
+    final canvas = Canvas(recorder);
+    canvas.scale(_pixelRatio, _pixelRatio);
+
+    canvas.drawRect(
+      Rect.fromLTWH(0, 0, _rankingCardWidth, cardHeight),
+      Paint()..color = _bgColor,
+    );
+    canvas.drawRect(
+      Rect.fromLTWH(0, 0, _rankingCardWidth, cardHeight),
+      Paint()
+        ..color = _borderColor
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 1,
+    );
+    canvas.drawRect(
+      Rect.fromLTWH(0, 0, _rankingCardWidth, _headerHeight),
+      Paint()..color = _accentColor,
+    );
+
+    titlePainter.paint(canvas, Offset(_padding, titleY));
+    subtitlePainter.paint(canvas, Offset(_padding, subtitleY));
+
+    // Draw summary bar chart.
+    if (summary != null && chartY != null && chartHeight != null) {
+      _drawSummaryBars(
+        canvas,
+        chartY,
+        contentWidth,
+        summary,
+        l10n,
+        barH: barH,
+        barGap: barGap,
+        labelH: barLabelH,
+      );
+    }
+
+    // Draw anime rows.
+    for (var i = 0; i < entries.length; i++) {
+      final entry = entries[i];
+      final rowY = rowYs[i];
+      _drawStatisticsRow(canvas, entry, rowY, coverImages, l10n);
+    }
+
+    _drawWatermark(
+      canvas,
+      logoImage,
+      watermarkPainter,
+      watermarkY,
+      watermarkRowHeight,
+      _rankingCardWidth,
+    );
+
+    final picture = recorder.endRecording();
+    final image = await picture.toImage(
+      (_rankingCardWidth * _pixelRatio).toInt(),
+      (cardHeight * _pixelRatio).toInt(),
+    );
+    final byteData = await image.toByteData(format: ui.ImageByteFormat.png);
+    return byteData!.buffer.asUint8List();
+  }
+
+  /// Purpose: Provide the internal draw summary bars helper for this file.
+  /// Inputs: `canvas`, `y`, `contentWidth`, `summary`, `l10n`, `barH`, `barGap`, `labelH`.
+  /// Returns: None.
+  /// Side effects: None.
+  /// Notes: Internal helper used within this file only. Draws three horizontal
+  /// bars for tracked, completed, and dropped counts.
+  static void _drawSummaryBars(
+    Canvas canvas,
+    double y,
+    double contentWidth,
+    StatisticsShareSummary summary,
+    AppLocalizations l10n, {
+    required double barH,
+    required double barGap,
+    required double labelH,
+  }) {
+    final bars = [
+      (l10n.statsTracked, summary.tracked.toDouble(), _accentColor),
+      (l10n.statsCompleted, summary.completed.toDouble(), Colors.green),
+      (l10n.statsDropped, summary.dropped.toDouble(), Colors.red),
+    ];
+    final maxVal = bars.map((b) => b.$2).fold<double>(0, max);
+    double cy = y;
+    for (final (label, value, color) in bars) {
+      final labelPainter = _layoutText(
+        '$label: ${value.toInt()}',
+        const TextStyle(color: _textColor, fontSize: 13),
+        contentWidth,
+      );
+      labelPainter.paint(canvas, Offset(_padding, cy));
+      cy += labelH;
+
+      // Track
+      canvas.drawRRect(
+        RRect.fromRectAndRadius(
+          Rect.fromLTWH(_padding, cy, contentWidth, barH),
+          const Radius.circular(4),
+        ),
+        Paint()..color = _trackColor,
+      );
+      // Fill
+      final fillW = maxVal > 0 ? contentWidth * value / maxVal : 0.0;
+      if (fillW > 0) {
+        canvas.drawRRect(
+          RRect.fromRectAndRadius(
+            Rect.fromLTWH(_padding, cy, fillW, barH),
+            const Radius.circular(4),
+          ),
+          Paint()..color = color,
+        );
+      }
+      cy += barH + barGap;
+    }
+  }
+
+  /// Purpose: Provide the internal draw statistics row helper for this file.
+  /// Inputs: `canvas`, `entry`, `rowY`, `coverImages`, `l10n`.
+  /// Returns: None.
+  /// Side effects: None.
+  /// Notes: Internal helper used within this file only. Draws one anime row
+  /// with rank circle, cover thumbnail, title, status/progress detail, and
+  /// optional score.
+  static void _drawStatisticsRow(
+    Canvas canvas,
+    StatisticsShareEntry entry,
+    double rowY,
+    Map<String, ui.Image> coverImages,
+    AppLocalizations l10n,
+  ) {
+    final contentWidth = _rankingCardWidth - _padding * 2;
+    final rowRect = Rect.fromLTWH(
+      _padding,
+      rowY,
+      contentWidth,
+      _rankingRowHeight - 8,
+    );
+    canvas.drawRRect(
+      RRect.fromRectAndRadius(rowRect, const Radius.circular(12)),
+      Paint()..color = const Color(0xFFF7F4FF),
+    );
+    canvas.drawRRect(
+      RRect.fromRectAndRadius(rowRect, const Radius.circular(12)),
+      Paint()
+        ..color = _borderColor
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 1,
+    );
+
+    final rankX = _padding + 12;
+    final rankY = rowY + (rowRect.height - _rankingRankSize) / 2;
+    canvas.drawCircle(
+      Offset(rankX + _rankingRankSize / 2, rankY + _rankingRankSize / 2),
+      _rankingRankSize / 2,
+      Paint()..color = _accentColor,
+    );
+    final rankPainter = _layoutText(
+      '${entry.rank}',
+      const TextStyle(
+        color: Colors.white,
+        fontSize: 16,
+        fontWeight: FontWeight.bold,
+      ),
+      _rankingRankSize,
+    );
+    rankPainter.paint(
+      canvas,
+      Offset(
+        rankX + (_rankingRankSize - rankPainter.width) / 2,
+        rankY + (_rankingRankSize - rankPainter.height) / 2,
+      ),
+    );
+
+    final coverX = rankX + _rankingRankSize + 12;
+    final coverY = rowY + (rowRect.height - _rankingCoverHeight) / 2;
+    final coverRect = Rect.fromLTWH(
+      coverX,
+      coverY,
+      _rankingCoverWidth,
+      _rankingCoverHeight,
+    );
+    final cover = entry.anime.coverImage == null
+        ? null
+        : coverImages[entry.anime.coverImage!];
+    if (cover != null) {
+      _drawCoverImage(canvas, cover, coverRect, radius: 6);
+    } else {
+      canvas.drawRRect(
+        RRect.fromRectAndRadius(coverRect, const Radius.circular(6)),
+        Paint()..color = const Color(0xFFEDE7F6),
+      );
+      final placeholder = _layoutText(
+        '#',
+        const TextStyle(
+          color: _accentColor,
+          fontSize: 20,
+          fontWeight: FontWeight.bold,
+        ),
+        _rankingCoverWidth,
+      );
+      placeholder.paint(
+        canvas,
+        Offset(
+          coverX + (_rankingCoverWidth - placeholder.width) / 2,
+          coverY + (_rankingCoverHeight - placeholder.height) / 2,
+        ),
+      );
+    }
+
+    // Score (right side) — show when available.
+    final scoreX = _rankingCardWidth - _padding - 12 - _rankingScoreWidth;
+    if (entry.score != null) {
+      final scorePainter = _layoutText(
+        _formatScore(entry.score!),
+        const TextStyle(
+          color: _accentColor,
+          fontSize: 22,
+          fontWeight: FontWeight.bold,
+        ),
+        _rankingScoreWidth,
+      );
+      scorePainter.paint(
+        canvas,
+        Offset(scoreX + _rankingScoreWidth - scorePainter.width, rowY + 18),
+      );
+    }
+
+    final textX = coverX + _rankingCoverWidth + 12;
+    final textWidth = scoreX - textX - 12;
+    final titlePainter = _layoutText(
+      entry.anime.displayTitle,
+      const TextStyle(
+        color: _textColor,
+        fontSize: 16,
+        fontWeight: FontWeight.bold,
+      ),
+      textWidth,
+      maxLines: 1,
+    );
+    titlePainter.paint(canvas, Offset(textX, rowY + 14));
+
+    final detail = [
+      _typeLabel(entry.anime.effectiveType, l10n),
+      if (entry.statusLabel != null) entry.statusLabel!,
+      if (entry.progressLabel != null) entry.progressLabel!,
+    ].join(' · ');
+    final detailPainter = _layoutText(
+      detail,
+      const TextStyle(color: _subtitleColor, fontSize: 12),
+      textWidth,
+      maxLines: 1,
+    );
+    detailPainter.paint(canvas, Offset(textX, rowY + 40));
+  }
+}
+
+/// One anime entry in a statistics share image.
+class StatisticsShareEntry {
+  final Anime anime;
+  final int rank;
+  final double? score;
+  final String? statusLabel;
+  final String? progressLabel;
+
+  /// Purpose: Create a statistics share entry instance.
+  /// Inputs: `anime`, `rank`, `score`, `statusLabel`, `progressLabel`.
+  /// Returns: A new `StatisticsShareEntry` instance.
+  /// Side effects: None.
+  /// Notes: None.
+  const StatisticsShareEntry({
+    required this.anime,
+    required this.rank,
+    this.score,
+    this.statusLabel,
+    this.progressLabel,
+  });
+}
+
+/// Summary counts for a statistics share image bar chart.
+class StatisticsShareSummary {
+  final int tracked;
+  final int completed;
+  final int dropped;
+
+  /// Purpose: Create a statistics share summary instance.
+  /// Inputs: `tracked`, `completed`, `dropped`.
+  /// Returns: A new `StatisticsShareSummary` instance.
+  /// Side effects: None.
+  /// Notes: None.
+  const StatisticsShareSummary({
+    required this.tracked,
+    required this.completed,
+    required this.dropped,
+  });
 }

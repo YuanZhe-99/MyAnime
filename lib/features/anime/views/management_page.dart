@@ -4,7 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../l10n/app_localizations.dart';
-import '../../../shared/services/file_open_service.dart';
+import '../../../shared/widgets/import_bundle_dialog.dart';
 import '../../../shared/services/image_service.dart';
 import '../../../shared/widgets/delete_confirm.dart';
 import '../models/anime.dart';
@@ -217,12 +217,14 @@ class _ManagementPageState extends State<ManagementPage> {
         _jumpToAnimeQuarter(newId);
       }
     } else {
-      final importedId = await FileOpenService.importFromPicker();
+      final result = await showImportBundleFlow(context);
       await _load();
-      if (importedId != null && mounted) {
-        await context.push('/anime/detail/$importedId');
+      if (result != null &&
+          result.importedIds.isNotEmpty &&
+          mounted) {
+        await context.push('/anime/detail/${result.importedIds.first}');
         await _load();
-        _jumpToAnimeQuarter(importedId);
+        _jumpToAnimeQuarter(result.importedIds.first);
       }
     }
   }

@@ -738,6 +738,101 @@ class AppLocalizationsEn extends AppLocalizations {
   String get importAnimeFailed => 'Failed to import anime';
 
   @override
+  String get statsShare => 'Share Statistics';
+
+  @override
+  String statsShareSummary(String scope, int count) {
+    return '$scope · $count anime';
+  }
+
+  @override
+  String get importBundleTitle => 'Import Anime';
+
+  @override
+  String importBundleCount(int count) {
+    return '$count anime found in file';
+  }
+
+  @override
+  String importBundleConflictTitle(String name) {
+    return 'Import Conflict: $name';
+  }
+
+  @override
+  String get importBundleConflictDesc =>
+      'This anime already exists in your library.';
+
+  @override
+  String get importBundleLocalVersion => 'Local version:';
+
+  @override
+  String get importBundleImportedVersion => 'Imported version:';
+
+  @override
+  String get importBundleKeepLocal => 'Keep Local';
+
+  @override
+  String get importBundleKeepImport => 'Use Imported';
+
+  @override
+  String get importBundleMerge => 'Merge';
+
+  @override
+  String importBundleSuccess(int count) {
+    return '$count anime imported successfully';
+  }
+
+  @override
+  String get importBundleNoConflicts => 'No conflicts found, importing all...';
+
+  @override
+  String get settingsDuplicateCheck => 'Check Duplicates';
+
+  @override
+  String get settingsDuplicateCheckDesc =>
+      'Find and merge duplicate anime records';
+
+  @override
+  String get duplicateCheckTitle => 'Duplicate Check';
+
+  @override
+  String get duplicateCheckEmpty => 'No duplicates found';
+
+  @override
+  String duplicateCheckFound(int count) {
+    return 'Found $count duplicate group(s)';
+  }
+
+  @override
+  String get duplicateReasonSameId => 'Same ID';
+
+  @override
+  String get duplicateReasonSameUrl => 'Same URL';
+
+  @override
+  String get duplicateReasonSameTitleSeason => 'Same title/season';
+
+  @override
+  String duplicateGroupLabel(int index, int total, String reason) {
+    return 'Group $index/$total: $reason';
+  }
+
+  @override
+  String get duplicateKeepFirst => 'Keep This';
+
+  @override
+  String get duplicateMergeAll => 'Merge All Into This';
+
+  @override
+  String get duplicateDeleteOthers => 'Delete Others';
+
+  @override
+  String get duplicateResolved => 'Duplicates resolved successfully';
+
+  @override
+  String get duplicateResolveConfirm => 'Resolve this duplicate group?';
+
+  @override
   String get addAnimeCreate => 'Create New';
 
   @override

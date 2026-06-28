@@ -18,6 +18,7 @@ import '../../../shared/services/reminder_service.dart';
 import '../../../shared/services/tray_service.dart';
 import '../../../shared/utils/calendar_preferences.dart';
 import '../../../shared/views/webdav_config_page.dart';
+import '../../../shared/widgets/duplicate_check_page.dart';
 import '../../anime/services/anime_storage.dart';
 import 'backup_page.dart';
 import 'license_page.dart' as app_license;
@@ -732,6 +733,17 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
               leading: const Icon(Icons.file_download_outlined),
               title: Text(l10n.importData),
               onTap: _importData,
+            ),
+            const Divider(height: 1, indent: 16, endIndent: 16),
+            ListTile(
+              leading: const Icon(Icons.content_copy),
+              title: Text(l10n.settingsDuplicateCheck),
+              subtitle: Text(l10n.settingsDuplicateCheckDesc),
+              trailing: const Icon(Icons.chevron_right),
+              onTap: () => Navigator.of(
+                context,
+                rootNavigator: true,
+              ).push(MaterialPageRoute(builder: (_) => const DuplicateCheckPage())),
             ),
             if (_isDesktop)
               ListTile(

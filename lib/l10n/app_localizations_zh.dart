@@ -728,6 +728,99 @@ class AppLocalizationsZh extends AppLocalizations {
   String get importAnimeFailed => '导入失败';
 
   @override
+  String get statsShare => '分享统计';
+
+  @override
+  String statsShareSummary(String scope, int count) {
+    return '$scope · $count 部番剧';
+  }
+
+  @override
+  String get importBundleTitle => '导入番剧';
+
+  @override
+  String importBundleCount(int count) {
+    return '文件中找到 $count 部番剧';
+  }
+
+  @override
+  String importBundleConflictTitle(String name) {
+    return '导入冲突: $name';
+  }
+
+  @override
+  String get importBundleConflictDesc => '这部番剧已存在于你的资料库中。';
+
+  @override
+  String get importBundleLocalVersion => '本地版本:';
+
+  @override
+  String get importBundleImportedVersion => '导入版本:';
+
+  @override
+  String get importBundleKeepLocal => '保留本地';
+
+  @override
+  String get importBundleKeepImport => '使用导入';
+
+  @override
+  String get importBundleMerge => '合并';
+
+  @override
+  String importBundleSuccess(int count) {
+    return '成功导入 $count 部番剧';
+  }
+
+  @override
+  String get importBundleNoConflicts => '未发现冲突，正在导入全部...';
+
+  @override
+  String get settingsDuplicateCheck => '检查重复';
+
+  @override
+  String get settingsDuplicateCheckDesc => '查找并合并重复的番剧记录';
+
+  @override
+  String get duplicateCheckTitle => '重复检查';
+
+  @override
+  String get duplicateCheckEmpty => '未发现重复';
+
+  @override
+  String duplicateCheckFound(int count) {
+    return '发现 $count 组重复';
+  }
+
+  @override
+  String get duplicateReasonSameId => '相同 ID';
+
+  @override
+  String get duplicateReasonSameUrl => '相同链接';
+
+  @override
+  String get duplicateReasonSameTitleSeason => '相同标题/季度';
+
+  @override
+  String duplicateGroupLabel(int index, int total, String reason) {
+    return '第 $index/$total 组: $reason';
+  }
+
+  @override
+  String get duplicateKeepFirst => '保留此项';
+
+  @override
+  String get duplicateMergeAll => '全部合并到此';
+
+  @override
+  String get duplicateDeleteOthers => '删除其他项';
+
+  @override
+  String get duplicateResolved => '重复已成功解决';
+
+  @override
+  String get duplicateResolveConfirm => '解决此重复组？';
+
+  @override
   String get addAnimeCreate => '新建番剧';
 
   @override
@@ -1597,6 +1690,99 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
 
   @override
   String get importAnimeFailed => '匯入失敗';
+
+  @override
+  String get statsShare => '分享統計';
+
+  @override
+  String statsShareSummary(String scope, int count) {
+    return '$scope · $count 部番劇';
+  }
+
+  @override
+  String get importBundleTitle => '匯入番劇';
+
+  @override
+  String importBundleCount(int count) {
+    return '檔案中找到 $count 部番劇';
+  }
+
+  @override
+  String importBundleConflictTitle(String name) {
+    return '匯入衝突: $name';
+  }
+
+  @override
+  String get importBundleConflictDesc => '這部番劇已存在於你的資料庫中。';
+
+  @override
+  String get importBundleLocalVersion => '本地版本:';
+
+  @override
+  String get importBundleImportedVersion => '匯入版本:';
+
+  @override
+  String get importBundleKeepLocal => '保留本地';
+
+  @override
+  String get importBundleKeepImport => '使用匯入';
+
+  @override
+  String get importBundleMerge => '合併';
+
+  @override
+  String importBundleSuccess(int count) {
+    return '成功匯入 $count 部番劇';
+  }
+
+  @override
+  String get importBundleNoConflicts => '未發現衝突，正在匯入全部...';
+
+  @override
+  String get settingsDuplicateCheck => '檢查重複';
+
+  @override
+  String get settingsDuplicateCheckDesc => '尋找並合併重複的番劇記錄';
+
+  @override
+  String get duplicateCheckTitle => '重複檢查';
+
+  @override
+  String get duplicateCheckEmpty => '未發現重複';
+
+  @override
+  String duplicateCheckFound(int count) {
+    return '發現 $count 組重複';
+  }
+
+  @override
+  String get duplicateReasonSameId => '相同 ID';
+
+  @override
+  String get duplicateReasonSameUrl => '相同連結';
+
+  @override
+  String get duplicateReasonSameTitleSeason => '相同標題/季度';
+
+  @override
+  String duplicateGroupLabel(int index, int total, String reason) {
+    return '第 $index/$total 組: $reason';
+  }
+
+  @override
+  String get duplicateKeepFirst => '保留此項';
+
+  @override
+  String get duplicateMergeAll => '全部合併到此';
+
+  @override
+  String get duplicateDeleteOthers => '刪除其他項';
+
+  @override
+  String get duplicateResolved => '重複已成功解決';
+
+  @override
+  String get duplicateResolveConfirm => '解決此重複組？';
 
   @override
   String get addAnimeCreate => '新建番劇';

@@ -730,6 +730,99 @@ class AppLocalizationsJa extends AppLocalizations {
   String get importAnimeFailed => 'インポートに失敗しました';
 
   @override
+  String get statsShare => '統計を共有';
+
+  @override
+  String statsShareSummary(String scope, int count) {
+    return '$scope · $count 件';
+  }
+
+  @override
+  String get importBundleTitle => 'アニメをインポート';
+
+  @override
+  String importBundleCount(int count) {
+    return 'ファイル内に $count 件のアニメが見つかりました';
+  }
+
+  @override
+  String importBundleConflictTitle(String name) {
+    return 'インポートの競合: $name';
+  }
+
+  @override
+  String get importBundleConflictDesc => 'このアニメは既にライブラリに存在します。';
+
+  @override
+  String get importBundleLocalVersion => 'ローカル版:';
+
+  @override
+  String get importBundleImportedVersion => 'インポート版:';
+
+  @override
+  String get importBundleKeepLocal => 'ローカルを保持';
+
+  @override
+  String get importBundleKeepImport => 'インポート版を使用';
+
+  @override
+  String get importBundleMerge => '統合';
+
+  @override
+  String importBundleSuccess(int count) {
+    return '$count 件のアニメをインポートしました';
+  }
+
+  @override
+  String get importBundleNoConflicts => '競合なし、すべてインポート中...';
+
+  @override
+  String get settingsDuplicateCheck => '重複チェック';
+
+  @override
+  String get settingsDuplicateCheckDesc => '重複するアニメ記録を検索して統合';
+
+  @override
+  String get duplicateCheckTitle => '重複チェック';
+
+  @override
+  String get duplicateCheckEmpty => '重複は見つかりませんでした';
+
+  @override
+  String duplicateCheckFound(int count) {
+    return '$count グループの重複が見つかりました';
+  }
+
+  @override
+  String get duplicateReasonSameId => '同じ ID';
+
+  @override
+  String get duplicateReasonSameUrl => '同じ URL';
+
+  @override
+  String get duplicateReasonSameTitleSeason => '同じタイトル/クール';
+
+  @override
+  String duplicateGroupLabel(int index, int total, String reason) {
+    return 'グループ $index/$total: $reason';
+  }
+
+  @override
+  String get duplicateKeepFirst => 'これを保持';
+
+  @override
+  String get duplicateMergeAll => 'すべてこれに統合';
+
+  @override
+  String get duplicateDeleteOthers => '他を削除';
+
+  @override
+  String get duplicateResolved => '重複を解決しました';
+
+  @override
+  String get duplicateResolveConfirm => 'この重複グループを解決しますか？';
+
+  @override
   String get addAnimeCreate => '新規作成';
 
   @override

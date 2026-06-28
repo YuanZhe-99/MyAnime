@@ -9,7 +9,7 @@ import 'package:url_launcher/url_launcher.dart';
 
 import '../../../l10n/app_localizations.dart';
 import '../../../shared/providers/app_settings.dart';
-import '../../../shared/services/file_open_service.dart';
+import '../../../shared/widgets/import_bundle_dialog.dart';
 import '../../../shared/services/image_service.dart';
 import '../../../shared/utils/calendar_preferences.dart';
 import '../../../shared/utils/jst_time.dart';
@@ -253,10 +253,12 @@ class _HomePageState extends ConsumerState<HomePage> {
         await _load();
       }
     } else {
-      final importedId = await FileOpenService.importFromPicker();
+      final result = await showImportBundleFlow(context);
       await _load();
-      if (importedId != null && mounted) {
-        await context.push('/anime/detail/$importedId');
+      if (result != null &&
+          result.importedIds.isNotEmpty &&
+          mounted) {
+        await context.push('/anime/detail/${result.importedIds.first}');
         await _load();
       }
     }

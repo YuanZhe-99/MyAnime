@@ -1475,6 +1475,168 @@ abstract class AppLocalizations {
   /// **'Failed to import anime'**
   String get importAnimeFailed;
 
+  /// No description provided for @statsShare.
+  ///
+  /// In en, this message translates to:
+  /// **'Share Statistics'**
+  String get statsShare;
+
+  /// No description provided for @statsShareSummary.
+  ///
+  /// In en, this message translates to:
+  /// **'{scope} · {count} anime'**
+  String statsShareSummary(String scope, int count);
+
+  /// No description provided for @importBundleTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Import Anime'**
+  String get importBundleTitle;
+
+  /// No description provided for @importBundleCount.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} anime found in file'**
+  String importBundleCount(int count);
+
+  /// No description provided for @importBundleConflictTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Import Conflict: {name}'**
+  String importBundleConflictTitle(String name);
+
+  /// No description provided for @importBundleConflictDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'This anime already exists in your library.'**
+  String get importBundleConflictDesc;
+
+  /// No description provided for @importBundleLocalVersion.
+  ///
+  /// In en, this message translates to:
+  /// **'Local version:'**
+  String get importBundleLocalVersion;
+
+  /// No description provided for @importBundleImportedVersion.
+  ///
+  /// In en, this message translates to:
+  /// **'Imported version:'**
+  String get importBundleImportedVersion;
+
+  /// No description provided for @importBundleKeepLocal.
+  ///
+  /// In en, this message translates to:
+  /// **'Keep Local'**
+  String get importBundleKeepLocal;
+
+  /// No description provided for @importBundleKeepImport.
+  ///
+  /// In en, this message translates to:
+  /// **'Use Imported'**
+  String get importBundleKeepImport;
+
+  /// No description provided for @importBundleMerge.
+  ///
+  /// In en, this message translates to:
+  /// **'Merge'**
+  String get importBundleMerge;
+
+  /// No description provided for @importBundleSuccess.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} anime imported successfully'**
+  String importBundleSuccess(int count);
+
+  /// No description provided for @importBundleNoConflicts.
+  ///
+  /// In en, this message translates to:
+  /// **'No conflicts found, importing all...'**
+  String get importBundleNoConflicts;
+
+  /// No description provided for @settingsDuplicateCheck.
+  ///
+  /// In en, this message translates to:
+  /// **'Check Duplicates'**
+  String get settingsDuplicateCheck;
+
+  /// No description provided for @settingsDuplicateCheckDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'Find and merge duplicate anime records'**
+  String get settingsDuplicateCheckDesc;
+
+  /// No description provided for @duplicateCheckTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Duplicate Check'**
+  String get duplicateCheckTitle;
+
+  /// No description provided for @duplicateCheckEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'No duplicates found'**
+  String get duplicateCheckEmpty;
+
+  /// No description provided for @duplicateCheckFound.
+  ///
+  /// In en, this message translates to:
+  /// **'Found {count} duplicate group(s)'**
+  String duplicateCheckFound(int count);
+
+  /// No description provided for @duplicateReasonSameId.
+  ///
+  /// In en, this message translates to:
+  /// **'Same ID'**
+  String get duplicateReasonSameId;
+
+  /// No description provided for @duplicateReasonSameUrl.
+  ///
+  /// In en, this message translates to:
+  /// **'Same URL'**
+  String get duplicateReasonSameUrl;
+
+  /// No description provided for @duplicateReasonSameTitleSeason.
+  ///
+  /// In en, this message translates to:
+  /// **'Same title/season'**
+  String get duplicateReasonSameTitleSeason;
+
+  /// No description provided for @duplicateGroupLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Group {index}/{total}: {reason}'**
+  String duplicateGroupLabel(int index, int total, String reason);
+
+  /// No description provided for @duplicateKeepFirst.
+  ///
+  /// In en, this message translates to:
+  /// **'Keep This'**
+  String get duplicateKeepFirst;
+
+  /// No description provided for @duplicateMergeAll.
+  ///
+  /// In en, this message translates to:
+  /// **'Merge All Into This'**
+  String get duplicateMergeAll;
+
+  /// No description provided for @duplicateDeleteOthers.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete Others'**
+  String get duplicateDeleteOthers;
+
+  /// No description provided for @duplicateResolved.
+  ///
+  /// In en, this message translates to:
+  /// **'Duplicates resolved successfully'**
+  String get duplicateResolved;
+
+  /// No description provided for @duplicateResolveConfirm.
+  ///
+  /// In en, this message translates to:
+  /// **'Resolve this duplicate group?'**
+  String get duplicateResolveConfirm;
+
   /// No description provided for @addAnimeCreate.
   ///
   /// In en, this message translates to:

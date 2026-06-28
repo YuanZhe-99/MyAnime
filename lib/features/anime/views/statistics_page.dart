@@ -251,6 +251,137 @@ class _StatisticsPageState extends State<StatisticsPage> {
     );
   }
 
+  /// Purpose: Provide the internal summary share subtitle helper for this file.
+  /// Inputs: `l10n`.
+  /// Returns: `String`.
+  /// Side effects: None.
+  /// Notes: Internal helper used within this file only.
+  String _summaryShareSubtitle(AppLocalizations l10n) {
+    final scope = switch (_scope) {
+      _TimeScope.quarter => _quarterLabel(_selectedYear, _selectedQuarter),
+      _TimeScope.year => '$_selectedYearOnly',
+      _TimeScope.all => l10n.statsAll,
+    };
+    return l10n.statsShareSummary(scope, _filteredAnime.length);
+  }
+
+  /// Purpose: Provide the internal summary share entries helper for this file.
+  /// Inputs: `grouped`, `l10n`.
+  /// Returns: `List<StatisticsShareEntry>`.
+  /// Side effects: None.
+  /// Notes: Internal helper used within this file only. Builds entries in the
+  /// same display order as the UI grouped lists: completed, watching, dropped,
+  /// not-started.
+  List<StatisticsShareEntry> _summaryShareEntries(
+    Map<AnimeViewingStatus, List<Anime>> grouped,
+    AppLocalizations l10n,
+  ) {
+    final order = [
+      (AnimeViewingStatus.completed, l10n.statsCompleted),
+      (AnimeViewingStatus.watching, l10n.statsWatching),
+      (AnimeViewingStatus.dropped, l10n.statsDropped),
+      (AnimeViewingStatus.notStarted, l10n.statsNotStarted),
+    ];
+    final entries = <StatisticsShareEntry>[];
+    var rank = 1;
+    for (final (status, label) in order) {
+      for (final anime in grouped[status]!) {
+        final watchedCount = anime.episodeStatuses.values
+            .where((s) => s == EpisodeStatus.watched)
+            .length;
+        final totalEps = (anime.endEpisode ?? anime.startEpisode) -
+            anime.startEpisode +
+            1;
+        entries.add(StatisticsShareEntry(
+          anime: anime,
+          rank: rank++,
+          statusLabel: label,
+          progressLabel: '$watchedCount/$totalEps',
+          score: anime.rating?.effectiveOverall,
+        ));
+      }
+    }
+    return entries;
+  }
+
+  /// Purpose: Provide the internal share statistics helper for this file.
+  /// Inputs: None.
+  /// Returns: None.
+  /// Side effects: Shows dialogs, generates images, shares files.
+  /// Notes: Internal helper used within this file only. Asks the user whether
+  /// to share as an image or a data file, then generates the appropriate
+  /// output for the current statistics view (summary or ranking).
+  Future<void> _shareStatistics() async {
+    final l10n = AppLocalizations.of(context)!;
+    final isRanking = _view == _StatsView.ranking;
+
+    final shareType = await showDialog<String>(
+      context: context,
+      builder: (ctx) => SimpleDialog(
+        title: Text(l10n.shareTypeTitle),
+        children: [
+          SimpleDialogOption(
+            onPressed: () => Navigator.pop(ctx, 'image'),
+            child: ListTile(
+              leading: const Icon(Icons.image),
+              title: Text(l10n.shareAsImage),
+            ),
+          ),
+          SimpleDialogOption(
+            onPressed: () => Navigator.pop(ctx, 'data'),
+            child: ListTile(
+              leading: const Icon(Icons.file_present),
+              title: Text(l10n.shareAsData),
+            ),
+          ),
+        ],
+      ),
+    );
+    if (shareType == null || !mounted) return;
+
+    if (shareType == 'data') {
+      final animes = isRanking ? _rankingAnime : _filteredAnime;
+      if (animes.isEmpty) return;
+      final displayName = isRanking
+          ? 'myanime_ranking'
+          : switch (_scope) {
+              _TimeScope.quarter =>
+                'myanime_${_selectedYear}_Q$_selectedQuarter',
+              _TimeScope.year => 'myanime_$_selectedYearOnly',
+              _TimeScope.all => 'myanime_all',
+            };
+      await ShareService.shareStatisticsData(
+        context,
+        animes: animes,
+        displayName: displayName,
+        l10n: l10n,
+      );
+      return;
+    }
+
+    // Image share.
+    if (isRanking) {
+      await _shareRanking();
+    } else {
+      final grouped = _groupedAnime;
+      final entries = _summaryShareEntries(grouped, l10n);
+      if (entries.isEmpty) return;
+      final summary = StatisticsShareSummary(
+        tracked: _filteredAnime.length,
+        completed: grouped[AnimeViewingStatus.completed]!.length,
+        dropped: grouped[AnimeViewingStatus.dropped]!.length,
+      );
+      await ShareService.shareStatisticsImage(
+        context,
+        entries: entries,
+        title: l10n.statsTitle,
+        subtitle: _summaryShareSubtitle(l10n),
+        l10n: l10n,
+        summary: summary,
+      );
+    }
+  }
+
   /// Purpose: Provide the internal matches ranking time filter helper for this file.
   /// Inputs: `anime`.
   /// Returns: `bool`.
@@ -853,12 +984,15 @@ class _StatisticsPageState extends State<StatisticsPage> {
       appBar: AppBar(
         title: Text(l10n.statsTitle),
         actions: [
-          if (isRanking)
-            IconButton(
-              icon: const Icon(Icons.ios_share),
-              tooltip: l10n.animeShare,
-              onPressed: rankedAnime.isEmpty ? null : _shareRanking,
-            ),
+          IconButton(
+            icon: const Icon(Icons.ios_share),
+            tooltip: l10n.statsShare,
+            onPressed: (isRanking
+                    ? rankedAnime.isNotEmpty
+                    : _filteredAnime.isNotEmpty)
+                ? _shareStatistics
+                : null,
+          ),
         ],
       ),
       body: RefreshIndicator(

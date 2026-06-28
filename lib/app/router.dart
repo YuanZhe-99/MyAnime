@@ -7,6 +7,7 @@ import '../features/anime/views/management_page.dart';
 import '../features/anime/views/statistics_page.dart';
 import '../features/kana/views/kana_page.dart';
 import '../features/settings/views/settings_page.dart';
+import '../shared/widgets/duplicate_check_page.dart';
 import '../shared/widgets/shell_scaffold.dart';
 
 final appRouter = GoRouter(
@@ -44,6 +45,10 @@ final appRouter = GoRouter(
       path: '/anime/edit/:id',
       builder: (context, state) =>
           AnimeEditPage(animeId: state.pathParameters['id']),
+    ),
+    GoRoute(
+      path: '/duplicate-check',
+      builder: (context, state) => const DuplicateCheckPage(),
     ),
   ],
 );
