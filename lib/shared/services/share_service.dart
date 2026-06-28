@@ -1403,7 +1403,7 @@ class ShareService {
     // Optional summary bar chart section.
     double? chartY;
     double? chartHeight;
-    const barLabelH = 14.0;
+    const barLabelH = 20.0;
     const barH = 22.0;
     const barGap = 8.0;
     if (summary != null) {
@@ -1469,7 +1469,6 @@ class ShareService {
         l10n,
         barH: barH,
         barGap: barGap,
-        labelH: barLabelH,
       );
     }
 
@@ -1499,7 +1498,7 @@ class ShareService {
   }
 
   /// Purpose: Provide the internal draw summary bars helper for this file.
-  /// Inputs: `canvas`, `y`, `contentWidth`, `summary`, `l10n`, `barH`, `barGap`, `labelH`.
+  /// Inputs: `canvas`, `y`, `contentWidth`, `summary`, `l10n`, `barH`, `barGap`.
   /// Returns: None.
   /// Side effects: None.
   /// Notes: Internal helper used within this file only. Draws three horizontal
@@ -1512,7 +1511,6 @@ class ShareService {
     AppLocalizations l10n, {
     required double barH,
     required double barGap,
-    required double labelH,
   }) {
     final bars = [
       (l10n.statsTracked, summary.tracked.toDouble(), _accentColor),
@@ -1528,7 +1526,7 @@ class ShareService {
         contentWidth,
       );
       labelPainter.paint(canvas, Offset(_padding, cy));
-      cy += labelH;
+      cy += labelPainter.height + 2;
 
       // Track
       canvas.drawRRect(
