@@ -28,7 +28,7 @@ Maintenance rules:
 - **Description:** A privacy-first anime tracking app with a JST-aware calendar, seasonal quarter management, statistics, multi-source anime search, watch-progress tracking, daily reminders, share/export flows, WebDAV sync, local backup, a desktop local API server, tray behavior, launch-at-startup, and a kana quick-reference module.
 - **Author / package id:** `yuanzhe`, `com.yuanzhe.my_anime`.
 - **License:** GPL-3.0.
-- **Current version:** `1.1.2+42` in `pubspec.yaml`, `1.1.2.0` for MSIX, and `1.1.2` in `installer.iss`.
+- **Current version:** `1.1.3+43` in `pubspec.yaml`, `1.1.3.0` for MSIX, and `1.1.3` in `installer.iss`.
 - **Framework:** Flutter with Dart SDK `^3.11.3`; CI uses Flutter `3.44.2`.
 - **Platforms:** Windows, Android, iOS, macOS. Linux project files exist and desktop services include Linux branches, but Linux is not a primary release target. Web is not targeted.
 - **Repository:** Use the system-provided workspace or working-directory environment to determine the repository path at runtime; do not hardcode a machine-specific absolute path here.
@@ -299,17 +299,18 @@ WebDAV sync is per-record three-way merge, not whole-file replacement.
 
 Flow:
 
-1. Download remote `anime_data.json` with a discriminated result: only HTTP 404 counts as "missing on remote"; any other failure (auth/server/network) aborts the sync with a visible error so local data is never uploaded over an unreadable remote file.
-2. Load local `anime_data.json` and `.sync_base/anime_data.json`.
-3. Merge per anime using `modifiedAt`. Records whose serialized content is identical on both sides merge without a conflict.
-4. Auto-resolve when only one side changed.
-5. Detect conflict when the same anime changed on both sides after the last sync.
-6. Re-read the local file to detect concurrent saves made during network I/O and re-merge if it changed.
-7. Before any upload, acquire remote `.lock` with the local client id, upload token, UTC timestamp, and 150-second TTL. Active locks from another client block uploads; expired locks are treated as failed uploads and may be replaced. Local `.sync_base/upload_lock.json` lets the next launch detect interrupted uploads and re-download/re-merge before uploading again.
-8. Upload merged data. Uploads send `If-Match` with the strong ETag captured at download (first uploads send `If-None-Match: *`); HTTP 412 triggers a fresh remote download and another per-record merge, and only unresolvable record conflicts are shown to the user.
-9. Save the new base snapshot only after upload succeeds, then clear the matching remote/local upload lock.
+1. Acquire remote `.lock` before data downloads with the stable local client id, one upload token, UTC timestamp, and 60-second TTL. Active locks from another client block uploads; expired locks are treated as failed uploads and may be replaced. Local `.sync_base/upload_lock.json` lets the next launch detect interrupted uploads and re-download/re-merge before uploading again.
+2. Download remote `anime_data.json` with a discriminated result: only HTTP 404 counts as "missing on remote"; any other failure (auth/server/network) aborts the sync with a visible error so local data is never uploaded over an unreadable remote file.
+3. Load local `anime_data.json` and `.sync_base/anime_data.json`.
+4. Merge per anime using `modifiedAt`. Records whose serialized content is identical on both sides merge without a conflict.
+5. Auto-resolve when only one side changed.
+6. Detect conflict when the same anime changed on both sides after the last sync.
+7. Re-read the local file to detect concurrent saves made during network I/O and re-merge if it changed.
+8. If there are no record conflicts, force-upload the complete merged JSON while the `.lock` is valid. Data JSON PUTs do not use data-file `If-Match` or `If-None-Match`; `.lock` is the concurrency guard.
+9. If there are record conflicts, return them to the user. After the user resolves them, `finalizePendingSync` reacquires `.lock` and force-uploads the complete resolved JSON.
+10. Save the new base snapshot only after upload succeeds, then clear the matching remote/local upload lock.
 
-Manual sync uses `autoResolve: false` and shows conflict dialogs. Auto-sync also leaves `autoResolve` disabled: it records failures and true two-sided conflicts as visible status in Settings/WebDAV instead of silently applying last-writer-wins. Users must open the WebDAV page and resolve conflicts manually. `finalizePendingSync` returns false when applying or uploading the resolution fails (including If-Match 412) so the UI reports the failure; the base snapshot stays untouched and the next sync re-merges.
+Manual sync uses `autoResolve: false` and shows conflict dialogs. Auto-sync also leaves `autoResolve` disabled: it records failures and true two-sided conflicts as visible status in Settings/WebDAV instead of silently applying last-writer-wins. Users must open the WebDAV page and resolve conflicts manually. `finalizePendingSync` returns false when applying or force-uploading the resolution under `.lock` fails so the UI reports the failure; the base snapshot stays untouched and the next sync re-merges.
 
 Important sync constraints:
 
@@ -318,7 +319,7 @@ Important sync constraints:
 - `_syncing` prevents concurrent syncs.
 - `_atomicWrite()` uses tmp-then-rename to avoid corrupting local files.
 - Local files are re-read after network I/O to detect concurrent user edits during sync.
-- Servers without ETags fall back to unconditional PUTs (previous behavior); weak ETags are never used in `If-Match`.
+- Data JSON uploads are complete-file force PUTs under `.lock`; only `.lock` writes/deletes use ETag preconditions, and weak ETags are never used for those lock preconditions.
 - Images sync additively and only for cover images referenced by local or remote anime records.
 - The referenced image set is the union of `coverImage` basenames from local and remote anime data.
 - Orphaned images are not uploaded or downloaded, but they are also not automatically deleted.
@@ -467,3 +468,4 @@ Version highlights:
 - `v1.1.0`: WebDAV auto-sync failures and true sync conflicts are surfaced in Settings/WebDAV, background sync no longer silently resolves conflicts with LWW, manual conflict resolution clears the visible status on success, and versions are unified to `1.1.0+40` / MSIX `1.1.0.0` / installer `1.1.0`.
 - `v1.1.1`: Statistics share now supports a TXT export of anime display names sorted in dictionary order, statistics/ranking image exports are split across multiple PNG pages when the single-page pixel height would exceed the platform texture cap (`_maxImageDimension = 16000`) so tall lists are no longer cut off, multi-page sharing uses Android `ACTION_SEND_MULTIPLE` plus a desktop multi-page preview with save-all, and versions are unified to `1.1.1+41` / MSIX `1.1.1.0` / installer `1.1.1`.
 - `v1.1.2`: WebDAV uploads now use a remote `.lock` with a stable local client id and 150-second TTL, interrupted local uploads are detected on the next sync, and HTTP 412 upload races re-download remote data and re-run per-record merge before surfacing only true record conflicts; versions are unified to `1.1.2+42` / MSIX `1.1.2.0` / installer `1.1.2`.
+- `v1.1.3`: WebDAV now acquires `.lock` before downloading and merging remote data, lowers the lock TTL to 60 seconds, and force-uploads complete merged/resolved JSON under the valid lock without data-file `If-Match`/`If-None-Match` retry loops; versions are unified to `1.1.3+43` / MSIX `1.1.3.0` / installer `1.1.3`.
