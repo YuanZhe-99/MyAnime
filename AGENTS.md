@@ -28,7 +28,7 @@ Maintenance rules:
 - **Description:** A privacy-first anime tracking app with a JST-aware calendar, seasonal quarter management, statistics, multi-source anime search, watch-progress tracking, daily reminders, share/export flows, WebDAV sync, local backup, a desktop local API server, tray behavior, launch-at-startup, and a kana quick-reference module.
 - **Author / package id:** `yuanzhe`, `com.yuanzhe.my_anime`.
 - **License:** GPL-3.0.
-- **Current version:** `1.1.0+40` in `pubspec.yaml`, `1.1.0.0` for MSIX, and `1.1.0` in `installer.iss`.
+- **Current version:** `1.1.1+41` in `pubspec.yaml`, `1.1.1.0` for MSIX, and `1.1.1` in `installer.iss`.
 - **Framework:** Flutter with Dart SDK `^3.11.3`; CI uses Flutter `3.44.2`.
 - **Platforms:** Windows, Android, iOS, macOS. Linux project files exist and desktop services include Linux branches, but Linux is not a primary release target. Web is not targeted.
 - **Repository:** Use the system-provided workspace or working-directory environment to determine the repository path at runtime; do not hardcode a machine-specific absolute path here.
@@ -226,11 +226,13 @@ Features include result deduplication, Simplified/Traditional Chinese variants f
 
 `share_service.dart` supports sharing an anime as an image card, exporting/sharing the current statistics ranking as an image, and exporting/sharing the current statistics summary view as an image or data file.
 
-- The share flow first asks whether to share as an image or as a data file.
+- The share flow first asks whether to share as an image, a data file, or a TXT name list.
 - Image cards include cover art, titles, season/type/schedule, broadcast progress, notes, selected info/watch URLs as QR codes, the app logo, and the MyAnime!!!!! watermark.
 - Ranking image exports include the current ranking filters, sort/order, ranked anime rows with cover thumbnails and scores, the app logo, and the MyAnime!!!!! watermark. Ranking export is image-only and does not create `.myanimeitem` data files. When more than 50 ranking rows would be rendered, the user is warned that generation may take time and may set a row limit; limited ranking exports keep the current ranking order and take the first N rows.
 - Statistics summary image exports include a horizontal bar chart at the top showing tracked, completed, and dropped counts, followed by anime rows with cover thumbnails, status labels, progress, and optional scores. Before summary image generation, the user can choose which derived statuses to include (completed, watching, dropped, not-started; all selected by default), and the bar chart reflects the final rendered rows. When more than 50 summary rows would be rendered, the user is warned that generation may take time and may set a row limit with first-air-date recent/oldest priority; image generation shows a progress dialog while covers are loaded.
+- Statistics and ranking image exports are split across multiple PNG pages when the single-page pixel height would exceed the platform texture dimension cap (`_maxImageDimension = 16000` in `share_service.dart`), so tall lists (e.g. 200+ anime) are no longer cut off at the right/bottom edges. Each page repeats the header (and the summary bar chart appears on page 1 only); the watermark appears on the final page. Multi-page sharing uses Android `ACTION_SEND_MULTIPLE` via the `shareFiles` MethodChannel, iOS multi-file `Share.shareXFiles`, and a desktop scrollable multi-page preview with a save-all action.
 - Statistics data file exports create a `.myanimeitem` multi-anime bundle containing the visible anime list, with personal viewing data stripped.
+- Statistics TXT exports write one anime display name per line, sorted in dictionary order, with no personal viewing data. The TXT option is available from the same statistics share dialog as image and data-file exports.
 - Android uses a custom `MethodChannel` named `com.yuanzhe.my_anime/share` and `FLAG_ACTIVITY_NEW_TASK` so share targets open outside the MyAnime task stack.
 - iOS uses the system share sheet.
 - Desktop shows a preview dialog and can copy or save the generated image.
@@ -462,3 +464,4 @@ Version highlights:
 - `v1.0.1`: Statistics page share button (image or data file), summary image with horizontal bar chart (tracked/completed/dropped), multi-anime `.myanimeitem` bundle export/import (v2 format), import conflict resolution with keep-local/use-imported/merge options, settings duplicate check page with transitive grouping and merge, CI Flutter updated to `3.44.2`, and versions unified to `1.0.1+38` / MSIX `1.0.1.0` / installer `1.0.1`.
 - `v1.0.2`: Statistics image sharing now supports summary status selection with filtered bar-chart counts, large-image warnings, optional row limits, summary first-air-date priority, ranking first-N limiting in current rank order, generation progress dialogs while cover images load, and versions unified to `1.0.2+39` / MSIX `1.0.2.0` / installer `1.0.2`.
 - `v1.1.0`: WebDAV auto-sync failures and true sync conflicts are surfaced in Settings/WebDAV, background sync no longer silently resolves conflicts with LWW, manual conflict resolution clears the visible status on success, and versions are unified to `1.1.0+40` / MSIX `1.1.0.0` / installer `1.1.0`.
+- `v1.1.1`: Statistics share now supports a TXT export of anime display names sorted in dictionary order, statistics/ranking image exports are split across multiple PNG pages when the single-page pixel height would exceed the platform texture cap (`_maxImageDimension = 16000`) so tall lists are no longer cut off, multi-page sharing uses Android `ACTION_SEND_MULTIPLE` plus a desktop multi-page preview with save-all, and versions are unified to `1.1.1+41` / MSIX `1.1.1.0` / installer `1.1.1`.

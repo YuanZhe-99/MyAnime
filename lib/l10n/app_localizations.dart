@@ -1127,6 +1127,18 @@ abstract class AppLocalizations {
   /// **'Save As'**
   String get shareSaveAs;
 
+  /// No description provided for @shareSaveAll.
+  ///
+  /// In en, this message translates to:
+  /// **'Save All'**
+  String get shareSaveAll;
+
+  /// No description provided for @sharePagesLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} page(s)'**
+  String sharePagesLabel(int count);
+
   /// No description provided for @shareSaved.
   ///
   /// In en, this message translates to:
@@ -1480,6 +1492,18 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Share as Data File'**
   String get shareAsData;
+
+  /// No description provided for @shareAsTxt.
+  ///
+  /// In en, this message translates to:
+  /// **'Share as TXT (names only)'**
+  String get shareAsTxt;
+
+  /// No description provided for @statsShareTxtEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'No anime to export'**
+  String get statsShareTxtEmpty;
 
   /// No description provided for @importAnimeSuccess.
   ///

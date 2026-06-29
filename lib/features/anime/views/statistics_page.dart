@@ -260,7 +260,7 @@ class _StatisticsPageState extends State<StatisticsPage> {
       totalCount,
       l10n,
     );
-    final imageBytes = await _generateImageWithProgress(
+    final pages = await _generateImageWithProgress(
       l10n: l10n,
       coverCount: _shareCoverCount(entries.map((e) => e.anime)),
       generate: (progress) => ShareService.generateRankingShareBytes(
@@ -275,12 +275,12 @@ class _StatisticsPageState extends State<StatisticsPage> {
         progress: progress,
       ),
     );
-    if (imageBytes == null || !mounted) return;
-    await ShareService.shareImageBytes(
+    if (pages == null || !mounted) return;
+    await ShareService.shareImageBytesMulti(
       context,
-      imageBytes,
+      pages,
       l10n,
-      fileName: 'myanime_ranking.png',
+      fileNameBase: 'myanime_ranking',
     );
   }
 
@@ -453,16 +453,16 @@ class _StatisticsPageState extends State<StatisticsPage> {
     );
   }
 
-  /// Purpose: Generate image bytes while showing a blocking progress dialog.
+  /// Purpose: Generate image pages while showing a blocking progress dialog.
   /// Inputs: `l10n`, `coverCount`, `generate`.
-  /// Returns: PNG bytes, or null when generation fails.
+  /// Returns: A list of PNG page byte lists, or null when generation fails.
   /// Side effects: Shows/dismisses a dialog and may show a failure snackbar.
   /// Notes: Internal helper used within this file only. The platform share UI is
   /// shown after this dialog closes, so desktop preview is not covered.
-  Future<Uint8List?> _generateImageWithProgress({
+  Future<List<Uint8List>?> _generateImageWithProgress({
     required AppLocalizations l10n,
     required int coverCount,
-    required Future<Uint8List> Function(ValueNotifier<double> progress)
+    required Future<List<Uint8List>> Function(ValueNotifier<double> progress)
     generate,
   }) async {
     final progress = ValueNotifier<double>(0);
@@ -505,10 +505,10 @@ class _StatisticsPageState extends State<StatisticsPage> {
     );
     await Future<void>.delayed(Duration.zero);
 
-    Uint8List? imageBytes;
+    List<Uint8List>? pages;
     Object? error;
     try {
-      imageBytes = await generate(progress);
+      pages = await generate(progress);
     } catch (e) {
       error = e;
     } finally {
@@ -524,7 +524,7 @@ class _StatisticsPageState extends State<StatisticsPage> {
         context,
       ).showSnackBar(SnackBar(content: Text(l10n.shareFailed)));
     }
-    return imageBytes;
+    return pages;
   }
 
   /// Purpose: Ask which viewing statuses to include in the summary image.
@@ -781,22 +781,40 @@ class _StatisticsPageState extends State<StatisticsPage> {
               title: Text(l10n.shareAsData),
             ),
           ),
+          SimpleDialogOption(
+            onPressed: () => Navigator.pop(ctx, 'txt'),
+            child: ListTile(
+              leading: const Icon(Icons.text_snippet),
+              title: Text(l10n.shareAsTxt),
+            ),
+          ),
         ],
       ),
     );
     if (shareType == null || !mounted) return;
 
+    final animes = isRanking ? _rankingAnime : _filteredAnime;
+    final displayName = isRanking
+        ? 'myanime_ranking'
+        : switch (_scope) {
+            _TimeScope.quarter =>
+              'myanime_${_selectedYear}_Q$_selectedQuarter',
+            _TimeScope.year => 'myanime_$_selectedYearOnly',
+            _TimeScope.all => 'myanime_all',
+          };
+
+    if (shareType == 'txt') {
+      await ShareService.shareStatisticsTxt(
+        context,
+        animes: animes,
+        displayName: displayName,
+        l10n: l10n,
+      );
+      return;
+    }
+
     if (shareType == 'data') {
-      final animes = isRanking ? _rankingAnime : _filteredAnime;
       if (animes.isEmpty) return;
-      final displayName = isRanking
-          ? 'myanime_ranking'
-          : switch (_scope) {
-              _TimeScope.quarter =>
-                'myanime_${_selectedYear}_Q$_selectedQuarter',
-              _TimeScope.year => 'myanime_$_selectedYearOnly',
-              _TimeScope.all => 'myanime_all',
-            };
       await ShareService.shareStatisticsData(
         context,
         animes: animes,
@@ -850,7 +868,7 @@ class _StatisticsPageState extends State<StatisticsPage> {
         entries.length,
         totalCount: totalCount,
       );
-      final imageBytes = await _generateImageWithProgress(
+      final pages = await _generateImageWithProgress(
         l10n: l10n,
         coverCount: _shareCoverCount(entries.map((e) => e.anime)),
         generate: (progress) => ShareService.generateStatisticsShareBytes(
@@ -862,12 +880,12 @@ class _StatisticsPageState extends State<StatisticsPage> {
           progress: progress,
         ),
       );
-      if (imageBytes == null || !mounted) return;
-      await ShareService.shareImageBytes(
+      if (pages == null || !mounted) return;
+      await ShareService.shareImageBytesMulti(
         context,
-        imageBytes,
+        pages,
         l10n,
-        fileName: 'myanime_stats.png',
+        fileNameBase: 'myanime_stats',
       );
     }
   }

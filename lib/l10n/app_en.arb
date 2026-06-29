@@ -190,6 +190,9 @@
   "shareCopied": "Image copied to clipboard",
   "shareCopy": "Copy",
   "shareSaveAs": "Save As",
+  "shareSaveAll": "Save All",
+  "sharePagesLabel": "{count} page(s)",
+  "@sharePagesLabel": { "placeholders": { "count": { "type": "int" } } },
   "shareSaved": "Image saved",
   "shareFailed": "Share failed",
   "shareUrlOptions": "Include URLs",
@@ -266,6 +269,8 @@
   "shareTypeTitle": "Share Type",
   "shareAsImage": "Share as Image",
   "shareAsData": "Share as Data File",
+  "shareAsTxt": "Share as TXT (names only)",
+  "statsShareTxtEmpty": "No anime to export",
   "importAnimeSuccess": "Anime imported successfully",
   "importAnimeFailed": "Failed to import anime",
 

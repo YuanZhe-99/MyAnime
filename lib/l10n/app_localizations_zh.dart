@@ -538,6 +538,14 @@ class AppLocalizationsZh extends AppLocalizations {
   String get shareSaveAs => '另存为';
 
   @override
+  String get shareSaveAll => '全部保存';
+
+  @override
+  String sharePagesLabel(int count) {
+    return '$count 页';
+  }
+
+  @override
   String get shareSaved => '图片已保存';
 
   @override
@@ -729,6 +737,12 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get shareAsData => '分享为数据文件';
+
+  @override
+  String get shareAsTxt => '导出为 TXT（仅名称）';
+
+  @override
+  String get statsShareTxtEmpty => '没有可导出的番剧';
 
   @override
   String get importAnimeSuccess => '番剧导入成功';
@@ -1553,6 +1567,14 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
   String get shareSaveAs => '另存為';
 
   @override
+  String get shareSaveAll => '全部儲存';
+
+  @override
+  String sharePagesLabel(int count) {
+    return '$count 頁';
+  }
+
+  @override
   String get shareSaved => '圖片已儲存';
 
   @override
@@ -1744,6 +1766,12 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
 
   @override
   String get shareAsData => '分享為資料檔案';
+
+  @override
+  String get shareAsTxt => '匯出為 TXT（僅名稱）';
+
+  @override
+  String get statsShareTxtEmpty => '沒有可匯出的番劇';
 
   @override
   String get importAnimeSuccess => '番劇匯入成功';

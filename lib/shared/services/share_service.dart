@@ -49,6 +49,7 @@ class ShareService {
   static const double _headerHeight = 6;
   static const double _pixelRatio = 3.0;
   static const double _logoSize = 18.0;
+  static const double _maxImageDimension = 16000;
 
   static const _accentColor = Color(0xFF673AB7);
   static const _bgColor = Color(0xFFFFFFFF);
@@ -101,9 +102,10 @@ class ShareService {
   /// Inputs: `context`, `entries`, `title`, `subtitle`, `sortLabel`,
   /// `orderLabel`, `l10n`, `progress`.
   /// Returns: None.
-  /// Side effects: Reads cover images, writes a temp PNG, invokes share/preview
+  /// Side effects: Reads cover images, writes temp PNG(s), invokes share/preview
   /// UI, and reports progress when provided.
-  /// Notes: None.
+  /// Notes: Tall exports are split across multiple PNG pages and shared via
+  /// [shareImageBytesMulti].
   static Future<void> shareRankingImage(
     BuildContext context, {
     required List<RankingShareEntry> entries,
@@ -117,7 +119,7 @@ class ShareService {
     if (entries.isEmpty) return;
 
     try {
-      final imageBytes = await _generateRankingShareImage(
+      final pages = await _generateRankingShareImage(
         entries: entries,
         title: title,
         subtitle: subtitle,
@@ -127,11 +129,11 @@ class ShareService {
         progress: progress,
       );
       if (!context.mounted) return;
-      await _shareImageBytes(
+      await shareImageBytesMulti(
         context,
-        imageBytes,
+        pages,
         l10n,
-        fileName: 'myanime_ranking.png',
+        fileNameBase: 'myanime_ranking',
       );
     } catch (_) {
       if (context.mounted) {
@@ -256,14 +258,43 @@ class ShareService {
     await _shareImageBytes(context, imageBytes, l10n, fileName: fileName);
   }
 
+  /// Purpose: Share one or more generated image pages via the platform flow.
+  /// Inputs: `context`, `pages`, `l10n`, `fileNameBase`.
+  /// Returns: None.
+  /// Side effects: Writes a temp PNG per page and invokes platform share /
+  /// desktop preview. Multi-page shares use platform multi-file sharing.
+  /// Notes: Public entrypoint for callers that generate a list of image pages
+  /// (e.g. split tall statistics/ranking exports). When `pages` has one entry
+  /// the single-file share flow is reused.
+  static Future<void> shareImageBytesMulti(
+    BuildContext context,
+    List<Uint8List> pages,
+    AppLocalizations l10n, {
+    required String fileNameBase,
+  }) async {
+    if (pages.isEmpty) return;
+    if (pages.length == 1) {
+      await _shareImageBytes(
+        context,
+        pages.first,
+        l10n,
+        fileName: '$fileNameBase.png',
+      );
+      return;
+    }
+    await _shareImageBytesMulti(context, pages, l10n, fileNameBase: fileNameBase);
+  }
+
   /// Purpose: Generate the statistics share image bytes (no share UI).
   /// Inputs: `entries`, `title`, `subtitle`, `l10n`, `summary`, `progress`.
-  /// Returns: `Future<Uint8List>` PNG bytes of the generated statistics card.
+  /// Returns: `Future<List<Uint8List>>` of one or more PNG pages. A single page
+  /// is returned when the image fits within the platform dimension cap; otherwise
+  /// the anime rows are split across multiple pages.
   /// Side effects: Reads cover images from storage; reports progress via
   /// `progress` (0..1) when provided.
   /// Notes: Public entrypoint so callers can wrap generation in a progress
-  /// dialog and then share the bytes via [shareImageBytes].
-  static Future<Uint8List> generateStatisticsShareBytes({
+  /// dialog and then share the pages via [shareImageBytesMulti].
+  static Future<List<Uint8List>> generateStatisticsShareBytes({
     required List<StatisticsShareEntry> entries,
     required String title,
     required String subtitle,
@@ -285,12 +316,14 @@ class ShareService {
   /// Purpose: Generate the ranking share image bytes (no share UI).
   /// Inputs: `entries`, `title`, `subtitle`, `sortLabel`, `orderLabel`, `l10n`,
   /// `progress`.
-  /// Returns: `Future<Uint8List>` PNG bytes of the generated ranking card.
+  /// Returns: `Future<List<Uint8List>>` of one or more PNG pages. A single page
+  /// is returned when the image fits within the platform dimension cap; otherwise
+  /// the ranked rows are split across multiple pages.
   /// Side effects: Reads cover images from storage; reports progress via
   /// `progress` (0..1) when provided.
   /// Notes: Public entrypoint so callers can wrap generation in a progress
-  /// dialog and then share the bytes via [shareImageBytes].
-  static Future<Uint8List> generateRankingShareBytes({
+  /// dialog and then share the pages via [shareImageBytesMulti].
+  static Future<List<Uint8List>> generateRankingShareBytes({
     required List<RankingShareEntry> entries,
     required String title,
     required String subtitle,
@@ -344,6 +377,51 @@ class ShareService {
         file.path,
         l10n,
         fileName: fileName,
+      );
+    }
+  }
+
+  /// Purpose: Share multiple image pages through the relevant platform flow.
+  /// Inputs: `context`, `pages`, `l10n`, `fileNameBase`.
+  /// Returns: None.
+  /// Side effects: Writes a temp PNG per page and invokes platform multi-file
+  /// share / desktop multi-page preview.
+  /// Notes: Internal helper used within this file only. Android uses the
+  /// `shareFiles` (plural) MethodChannel; iOS uses `Share.shareXFiles` with a
+  /// list; desktop shows a scrollable multi-page preview with a save-all action.
+  static Future<void> _shareImageBytesMulti(
+    BuildContext context,
+    List<Uint8List> pages,
+    AppLocalizations l10n, {
+    required String fileNameBase,
+  }) async {
+    final tempDir = await getTemporaryDirectory();
+    final files = <File>[];
+    for (var i = 0; i < pages.length; i++) {
+      final name =
+          '$fileNameBase${pages.length > 1 ? '_${i + 1}' : ''}.png';
+      final file = File(p.join(tempDir.path, name));
+      await file.writeAsBytes(pages[i]);
+      files.add(file);
+    }
+
+    if (!context.mounted) return;
+
+    if (Platform.isAndroid) {
+      const channel = MethodChannel('com.yuanzhe.my_anime/share');
+      await channel.invokeMethod('shareFiles', {
+        'paths': files.map((f) => f.path).toList(),
+        'mimeType': 'image/png',
+      });
+    } else if (Platform.isIOS) {
+      await Share.shareXFiles(files.map((f) => XFile(f.path)).toList());
+    } else {
+      await _showDesktopPreviewMulti(
+        context,
+        pages,
+        files.map((f) => f.path).toList(),
+        l10n,
+        fileNameBase: fileNameBase,
       );
     }
   }
@@ -783,10 +861,14 @@ class ShareService {
   /// Purpose: Provide the internal generate ranking share image helper for this file.
   /// Inputs: `entries`, `title`, `subtitle`, `sortLabel`, `orderLabel`, `l10n`,
   /// `progress`.
-  /// Returns: `Future<Uint8List>`.
+  /// Returns: `Future<List<Uint8List>>` of one or more PNG pages.
   /// Side effects: Reads cover images from storage and reports progress when provided.
-  /// Notes: Internal helper used within this file only.
-  static Future<Uint8List> _generateRankingShareImage({
+  /// Notes: Internal helper used within this file only. When the single-page
+  /// pixel height exceeds [_maxImageDimension], the ranked rows are split across
+  /// multiple pages so each page stays within the platform texture limit. The
+  /// header (title/subtitle/meta) repeats on every page; the watermark appears
+  /// only on the final page.
+  static Future<List<Uint8List>> _generateRankingShareImage({
     required List<RankingShareEntry> entries,
     required String title,
     required String subtitle,
@@ -845,11 +927,7 @@ class ShareService {
     final metaY = y;
     y += metaPainter.height + _gap;
 
-    final rowYs = <double>[];
-    for (final _ in entries) {
-      rowYs.add(y);
-      y += _rankingRowHeight;
-    }
+    final preRowsY = y;
 
     final watermarkPainter = _layoutText(
       'MyAnime!!!!!',
@@ -860,59 +938,88 @@ class ShareService {
       ),
       contentWidth,
     );
-    final watermarkY = y + _gap;
     final watermarkRowHeight = logoImage != null
         ? max<double>(_logoSize, watermarkPainter.height)
         : watermarkPainter.height;
-    y = watermarkY + watermarkRowHeight + _padding;
+    final watermarkBlockHeight = _gap + watermarkRowHeight + _padding;
 
-    final cardHeight = y;
-    final recorder = ui.PictureRecorder();
-    final canvas = Canvas(recorder);
-    canvas.scale(_pixelRatio, _pixelRatio);
+    final totalCardHeight =
+        preRowsY + entries.length * _rankingRowHeight + watermarkBlockHeight;
 
-    canvas.drawRect(
-      Rect.fromLTWH(0, 0, _rankingCardWidth, cardHeight),
-      Paint()..color = _bgColor,
-    );
-    canvas.drawRect(
-      Rect.fromLTWH(0, 0, _rankingCardWidth, cardHeight),
-      Paint()
-        ..color = _borderColor
-        ..style = PaintingStyle.stroke
-        ..strokeWidth = 1,
-    );
-    canvas.drawRect(
-      Rect.fromLTWH(0, 0, _rankingCardWidth, _headerHeight),
-      Paint()..color = _accentColor,
-    );
+    Future<Uint8List> renderPage(int start, int end, bool isLast) async {
+      final rowsOnPage = end - start;
+      final pageHeight = preRowsY +
+          rowsOnPage * _rankingRowHeight +
+          (isLast ? watermarkBlockHeight : _padding);
+      final recorder = ui.PictureRecorder();
+      final canvas = Canvas(recorder);
+      canvas.scale(_pixelRatio, _pixelRatio);
 
-    titlePainter.paint(canvas, Offset(_padding, titleY));
-    subtitlePainter.paint(canvas, Offset(_padding, subtitleY));
-    metaPainter.paint(canvas, Offset(_padding, metaY));
+      canvas.drawRect(
+        Rect.fromLTWH(0, 0, _rankingCardWidth, pageHeight),
+        Paint()..color = _bgColor,
+      );
+      canvas.drawRect(
+        Rect.fromLTWH(0, 0, _rankingCardWidth, pageHeight),
+        Paint()
+          ..color = _borderColor
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = 1,
+      );
+      canvas.drawRect(
+        Rect.fromLTWH(0, 0, _rankingCardWidth, _headerHeight),
+        Paint()..color = _accentColor,
+      );
 
-    for (var i = 0; i < entries.length; i++) {
-      final entry = entries[i];
-      final rowY = rowYs[i];
-      _drawRankingRow(canvas, entry, rowY, coverImages, l10n);
+      titlePainter.paint(canvas, Offset(_padding, titleY));
+      subtitlePainter.paint(canvas, Offset(_padding, subtitleY));
+      metaPainter.paint(canvas, Offset(_padding, metaY));
+
+      for (var i = start; i < end; i++) {
+        final rowY = preRowsY + (i - start) * _rankingRowHeight;
+        _drawRankingRow(canvas, entries[i], rowY, coverImages, l10n);
+      }
+
+      if (isLast) {
+        final watermarkY = preRowsY + rowsOnPage * _rankingRowHeight + _gap;
+        _drawWatermark(
+          canvas,
+          logoImage,
+          watermarkPainter,
+          watermarkY,
+          watermarkRowHeight,
+          _rankingCardWidth,
+        );
+      }
+
+      final picture = recorder.endRecording();
+      final image = await picture.toImage(
+        (_rankingCardWidth * _pixelRatio).toInt(),
+        (pageHeight * _pixelRatio).toInt(),
+      );
+      final byteData = await image.toByteData(format: ui.ImageByteFormat.png);
+      return byteData!.buffer.asUint8List();
     }
 
-    _drawWatermark(
-      canvas,
-      logoImage,
-      watermarkPainter,
-      watermarkY,
-      watermarkRowHeight,
-      _rankingCardWidth,
+    final totalPixelHeight = totalCardHeight * _pixelRatio;
+    if (totalPixelHeight <= _maxImageDimension) {
+      return [await renderPage(0, entries.length, true)];
+    }
+
+    final maxCardHeight = _maxImageDimension / _pixelRatio;
+    final availableForRows =
+        maxCardHeight - preRowsY - watermarkBlockHeight;
+    final rowsPerPage = max(
+      1,
+      (availableForRows / _rankingRowHeight).floor(),
     );
 
-    final picture = recorder.endRecording();
-    final image = await picture.toImage(
-      (_rankingCardWidth * _pixelRatio).toInt(),
-      (cardHeight * _pixelRatio).toInt(),
-    );
-    final byteData = await image.toByteData(format: ui.ImageByteFormat.png);
-    return byteData!.buffer.asUint8List();
+    final pages = <Uint8List>[];
+    for (int start = 0; start < entries.length; start += rowsPerPage) {
+      final end = min(start + rowsPerPage, entries.length);
+      pages.add(await renderPage(start, end, end == entries.length));
+    }
+    return pages;
   }
 
   /// Purpose: Provide the internal draw ranking row helper for this file.
@@ -1274,6 +1381,99 @@ class ShareService {
     );
   }
 
+  /// Purpose: Show a desktop preview dialog for multiple image pages with save-all.
+  /// Inputs: `context`, `pages`, `tempPaths`, `l10n`, `fileNameBase`.
+  /// Returns: None.
+  /// Side effects: Shows a scrollable preview of all pages; on save-all prompts
+  /// for a directory and writes one PNG per page as `name_1.png`, `name_2.png`, ...
+  /// Notes: Internal helper used within this file only. The first page can be
+  /// copied to the clipboard; save-all writes every page into the chosen folder.
+  static Future<void> _showDesktopPreviewMulti(
+    BuildContext context,
+    List<Uint8List> pages,
+    List<String> tempPaths,
+    AppLocalizations l10n, {
+    required String fileNameBase,
+  }) async {
+    await showDialog<void>(
+      context: context,
+      builder: (ctx) => Dialog(
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 560, maxHeight: 760),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Padding(
+                padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
+                child: Row(
+                  children: [
+                    Text(
+                      l10n.sharePagesLabel(pages.length),
+                      style: Theme.of(ctx).textTheme.titleSmall,
+                    ),
+                  ],
+                ),
+              ),
+              Flexible(
+                child: ListView.builder(
+                  shrinkWrap: true,
+                  padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+                  itemCount: pages.length,
+                  itemBuilder: (c, i) => Padding(
+                    padding: const EdgeInsets.only(bottom: 8),
+                    child: Image.memory(pages[i], fit: BoxFit.contain),
+                  ),
+                ),
+              ),
+              Padding(
+                padding: const EdgeInsets.all(12),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.end,
+                  children: [
+                    TextButton.icon(
+                      icon: const Icon(Icons.copy),
+                      label: Text(l10n.shareCopy),
+                      onPressed: () async {
+                        await _copyImageToClipboard(tempPaths.first);
+                        if (ctx.mounted) {
+                          ScaffoldMessenger.of(ctx).showSnackBar(
+                            SnackBar(content: Text(l10n.shareCopied)),
+                          );
+                        }
+                      },
+                    ),
+                    const SizedBox(width: 8),
+                    FilledButton.icon(
+                      icon: const Icon(Icons.save_alt),
+                      label: Text(l10n.shareSaveAll),
+                      onPressed: () async {
+                        final dir = await FilePicker.platform.getDirectoryPath(
+                          dialogTitle: l10n.shareSaveAll,
+                        );
+                        if (dir == null) return;
+                        for (var i = 0; i < pages.length; i++) {
+                          final name =
+                              '$fileNameBase${pages.length > 1 ? '_${i + 1}' : ''}.png';
+                          await File(p.join(dir, name)).writeAsBytes(pages[i]);
+                        }
+                        if (ctx.mounted) {
+                          Navigator.of(ctx).pop();
+                          ScaffoldMessenger.of(ctx).showSnackBar(
+                            SnackBar(content: Text(l10n.shareSaved)),
+                          );
+                        }
+                      },
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
   /// Purpose: Provide the internal copy image to clipboard helper for this file.
   /// Inputs: `imagePath`.
   /// Returns: None.
@@ -1328,7 +1528,7 @@ class ShareService {
     if (entries.isEmpty) return;
 
     try {
-      final imageBytes = await _generateStatisticsShareImage(
+      final pages = await _generateStatisticsShareImage(
         entries: entries,
         title: title,
         subtitle: subtitle,
@@ -1337,11 +1537,11 @@ class ShareService {
         progress: progress,
       );
       if (!context.mounted) return;
-      await _shareImageBytes(
+      await shareImageBytesMulti(
         context,
-        imageBytes,
+        pages,
         l10n,
-        fileName: summary != null ? 'myanime_stats.png' : 'myanime_ranking.png',
+        fileNameBase: summary != null ? 'myanime_stats' : 'myanime_ranking',
       );
     } catch (_) {
       if (context.mounted) {
@@ -1401,17 +1601,88 @@ class ShareService {
     }
   }
 
+  /// Purpose: Share the current statistics view as a TXT file of anime names only.
+  /// Inputs: `context`, `animes`, `displayName`, `l10n`.
+  /// Returns: None.
+  /// Side effects: Writes a temporary `.txt` file and shares it via the platform
+  /// share flow; shows a snackbar on failure or when the list is empty.
+  /// Notes: Names are sorted in dictionary order by `displayTitle`. Each name
+  /// occupies one line. No personal viewing data is included.
+  static Future<void> shareStatisticsTxt(
+    BuildContext context, {
+    required List<Anime> animes,
+    required String displayName,
+    required AppLocalizations l10n,
+  }) async {
+    if (animes.isEmpty) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(l10n.statsShareTxtEmpty)));
+      }
+      return;
+    }
+
+    final sorted = [...animes]
+      ..sort((a, b) => a.displayTitle.compareTo(b.displayTitle));
+    final buf = StringBuffer();
+    for (final anime in sorted) {
+      buf.writeln(anime.displayTitle);
+    }
+
+    try {
+      final tempDir = await getTemporaryDirectory();
+      final file = File(p.join(tempDir.path, '$displayName.txt'));
+      await file.writeAsString(buf.toString());
+      if (!context.mounted) return;
+
+      if (Platform.isAndroid) {
+        const channel = MethodChannel('com.yuanzhe.my_anime/share');
+        await channel.invokeMethod('shareFile', {
+          'path': file.path,
+          'mimeType': 'text/plain',
+        });
+      } else if (Platform.isIOS) {
+        await Share.shareXFiles([XFile(file.path)]);
+      } else {
+        final result = await FilePicker.platform.saveFile(
+          dialogTitle: l10n.shareSaveAs,
+          fileName: '$displayName.txt',
+          type: FileType.any,
+        );
+        if (result != null) {
+          await file.copy(result);
+          if (context.mounted) {
+            ScaffoldMessenger.of(
+              context,
+            ).showSnackBar(SnackBar(content: Text(l10n.shareSaved)));
+          }
+        }
+      }
+    } catch (_) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(l10n.shareFailed)));
+      }
+    }
+  }
+
   /// Purpose: Provide the internal generate statistics share image helper for this file.
   /// Inputs: `entries`, `title`, `subtitle`, `l10n`, `summary`, `progress`.
-  /// Returns: `Future<Uint8List>`.
+  /// Returns: `Future<List<Uint8List>>` of one or more PNG pages.
   /// Side effects: Reads cover images from storage; reports progress to
   /// `progress` (0..1) when provided.
   /// Notes: Internal helper used within this file only. When `summary` is
   /// provided, draws a horizontal bar chart at the top showing tracked,
   /// completed, and dropped counts, followed by anime rows grouped by status.
   /// When `summary` is null, draws a ranking list with scores (reuses the
-  /// ranking row layout).
-  static Future<Uint8List> _generateStatisticsShareImage({
+  /// ranking row layout). When the single-page pixel height exceeds
+  /// [_maxImageDimension], the anime rows are split across multiple pages. The
+  /// summary bar chart only appears on the first page; the header
+  /// (title/subtitle) repeats on every page; the watermark appears only on the
+  /// final page.
+  static Future<List<Uint8List>> _generateStatisticsShareImage({
     required List<StatisticsShareEntry> entries,
     required String title,
     required String subtitle,
@@ -1460,7 +1731,8 @@ class ShareService {
     final subtitleY = y;
     y += subtitlePainter.height + _gap;
 
-    // Optional summary bar chart section.
+    // Optional summary bar chart section (first page only).
+    final headerBottomY = y;
     double? chartY;
     double? chartHeight;
     const barLabelH = 20.0;
@@ -1473,12 +1745,8 @@ class ShareService {
       y += chartHeight + _gap;
     }
 
-    // Anime rows.
-    final rowYs = <double>[];
-    for (final _ in entries) {
-      rowYs.add(y);
-      y += _rankingRowHeight;
-    }
+    final firstPagePreRowsY = y;
+    final subsequentPreRowsY = headerBottomY;
 
     final watermarkPainter = _layoutText(
       'MyAnime!!!!!',
@@ -1489,72 +1757,123 @@ class ShareService {
       ),
       contentWidth,
     );
-    final watermarkY = y + _gap;
     final watermarkRowHeight = logoImage != null
         ? max<double>(_logoSize, watermarkPainter.height)
         : watermarkPainter.height;
-    y = watermarkY + watermarkRowHeight + _padding;
+    final watermarkBlockHeight = _gap + watermarkRowHeight + _padding;
 
-    final cardHeight = y;
-    final recorder = ui.PictureRecorder();
-    final canvas = Canvas(recorder);
-    canvas.scale(_pixelRatio, _pixelRatio);
+    final totalCardHeight = firstPagePreRowsY +
+        entries.length * _rankingRowHeight +
+        watermarkBlockHeight;
 
-    canvas.drawRect(
-      Rect.fromLTWH(0, 0, _rankingCardWidth, cardHeight),
-      Paint()..color = _bgColor,
-    );
-    canvas.drawRect(
-      Rect.fromLTWH(0, 0, _rankingCardWidth, cardHeight),
-      Paint()
-        ..color = _borderColor
-        ..style = PaintingStyle.stroke
-        ..strokeWidth = 1,
-    );
-    canvas.drawRect(
-      Rect.fromLTWH(0, 0, _rankingCardWidth, _headerHeight),
-      Paint()..color = _accentColor,
-    );
+    Future<Uint8List> renderPage(
+      int start,
+      int end,
+      bool isFirst,
+      bool isLast,
+    ) async {
+      final preRowsY = isFirst ? firstPagePreRowsY : subsequentPreRowsY;
+      final rowsOnPage = end - start;
+      final pageHeight = preRowsY +
+          rowsOnPage * _rankingRowHeight +
+          (isLast ? watermarkBlockHeight : _padding);
+      final recorder = ui.PictureRecorder();
+      final canvas = Canvas(recorder);
+      canvas.scale(_pixelRatio, _pixelRatio);
 
-    titlePainter.paint(canvas, Offset(_padding, titleY));
-    subtitlePainter.paint(canvas, Offset(_padding, subtitleY));
-
-    // Draw summary bar chart.
-    if (summary != null && chartY != null && chartHeight != null) {
-      _drawSummaryBars(
-        canvas,
-        chartY,
-        contentWidth,
-        summary,
-        l10n,
-        barH: barH,
-        barGap: barGap,
+      canvas.drawRect(
+        Rect.fromLTWH(0, 0, _rankingCardWidth, pageHeight),
+        Paint()..color = _bgColor,
       );
+      canvas.drawRect(
+        Rect.fromLTWH(0, 0, _rankingCardWidth, pageHeight),
+        Paint()
+          ..color = _borderColor
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = 1,
+      );
+      canvas.drawRect(
+        Rect.fromLTWH(0, 0, _rankingCardWidth, _headerHeight),
+        Paint()..color = _accentColor,
+      );
+
+      titlePainter.paint(canvas, Offset(_padding, titleY));
+      subtitlePainter.paint(canvas, Offset(_padding, subtitleY));
+
+      // Draw summary bar chart on the first page only.
+      if (isFirst && summary != null && chartY != null && chartHeight != null) {
+        _drawSummaryBars(
+          canvas,
+          chartY,
+          contentWidth,
+          summary,
+          l10n,
+          barH: barH,
+          barGap: barGap,
+        );
+      }
+
+      // Draw anime rows for this page.
+      for (var i = start; i < end; i++) {
+        final rowY = preRowsY + (i - start) * _rankingRowHeight;
+        _drawStatisticsRow(canvas, entries[i], rowY, coverImages, l10n);
+      }
+
+      if (isLast) {
+        final watermarkY = preRowsY + rowsOnPage * _rankingRowHeight + _gap;
+        _drawWatermark(
+          canvas,
+          logoImage,
+          watermarkPainter,
+          watermarkY,
+          watermarkRowHeight,
+          _rankingCardWidth,
+        );
+      }
+
+      final picture = recorder.endRecording();
+      final image = await picture.toImage(
+        (_rankingCardWidth * _pixelRatio).toInt(),
+        (pageHeight * _pixelRatio).toInt(),
+      );
+      final byteData = await image.toByteData(format: ui.ImageByteFormat.png);
+      return byteData!.buffer.asUint8List();
     }
 
-    // Draw anime rows.
-    for (var i = 0; i < entries.length; i++) {
-      final entry = entries[i];
-      final rowY = rowYs[i];
-      _drawStatisticsRow(canvas, entry, rowY, coverImages, l10n);
+    final totalPixelHeight = totalCardHeight * _pixelRatio;
+    if (totalPixelHeight <= _maxImageDimension) {
+      return [await renderPage(0, entries.length, true, true)];
     }
 
-    _drawWatermark(
-      canvas,
-      logoImage,
-      watermarkPainter,
-      watermarkY,
-      watermarkRowHeight,
-      _rankingCardWidth,
+    // Split: page 1 uses the chart-inclusive preRowsY; later pages use the
+    // header-only preRowsY which is smaller and fits more rows.
+    final maxCardHeight = _maxImageDimension / _pixelRatio;
+    final firstPageRows = max(
+      1,
+      ((maxCardHeight - firstPagePreRowsY - watermarkBlockHeight) /
+              _rankingRowHeight)
+          .floor(),
+    );
+    final laterRows = max(
+      1,
+      ((maxCardHeight - subsequentPreRowsY - watermarkBlockHeight) /
+              _rankingRowHeight)
+          .floor(),
     );
 
-    final picture = recorder.endRecording();
-    final image = await picture.toImage(
-      (_rankingCardWidth * _pixelRatio).toInt(),
-      (cardHeight * _pixelRatio).toInt(),
-    );
-    final byteData = await image.toByteData(format: ui.ImageByteFormat.png);
-    return byteData!.buffer.asUint8List();
+    final pages = <Uint8List>[];
+    int start = 0;
+    int pageIdx = 0;
+    while (start < entries.length) {
+      final isFirst = pageIdx == 0;
+      final capacity = isFirst ? firstPageRows : laterRows;
+      final end = min(start + capacity, entries.length);
+      final isLast = end == entries.length;
+      pages.add(await renderPage(start, end, isFirst, isLast));
+      start = end;
+      pageIdx++;
+    }
+    return pages;
   }
 
   /// Purpose: Provide the internal draw summary bars helper for this file.

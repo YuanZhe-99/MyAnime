@@ -43,6 +43,29 @@ class MainActivity : FlutterActivity() {
                     }
                     startActivity(chooser)
                     result.success(null)
+                } else if (call.method == "shareFiles") {
+                    val paths = call.argument<List<String>>("paths") ?: emptyList()
+                    val mimeType = call.argument<String>("mimeType") ?: "image/png"
+                    val uris = ArrayList<Uri>()
+                    for (path in paths) {
+                        uris.add(
+                            FileProvider.getUriForFile(
+                                this,
+                                "${applicationContext.packageName}.fileprovider",
+                                File(path)
+                            )
+                        )
+                    }
+                    val shareIntent = Intent(Intent.ACTION_SEND_MULTIPLE).apply {
+                        type = mimeType
+                        putParcelableArrayListExtra(Intent.EXTRA_STREAM, uris)
+                        addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                    }
+                    val chooser = Intent.createChooser(shareIntent, null).apply {
+                        addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                    }
+                    startActivity(chooser)
+                    result.success(null)
                 } else {
                     result.notImplemented()
                 }

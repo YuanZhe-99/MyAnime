@@ -540,6 +540,14 @@ class AppLocalizationsJa extends AppLocalizations {
   String get shareSaveAs => '名前を付けて保存';
 
   @override
+  String get shareSaveAll => 'すべて保存';
+
+  @override
+  String sharePagesLabel(int count) {
+    return '$count ページ';
+  }
+
+  @override
   String get shareSaved => '画像を保存しました';
 
   @override
@@ -731,6 +739,12 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get shareAsData => 'データファイルで共有';
+
+  @override
+  String get shareAsTxt => 'TXTで共有（名前のみ）';
+
+  @override
+  String get statsShareTxtEmpty => '書き出すアニメがありません';
 
   @override
   String get importAnimeSuccess => 'アニメをインポートしました';

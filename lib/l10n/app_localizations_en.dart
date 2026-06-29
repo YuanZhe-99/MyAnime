@@ -547,6 +547,14 @@ class AppLocalizationsEn extends AppLocalizations {
   String get shareSaveAs => 'Save As';
 
   @override
+  String get shareSaveAll => 'Save All';
+
+  @override
+  String sharePagesLabel(int count) {
+    return '$count page(s)';
+  }
+
+  @override
   String get shareSaved => 'Image saved';
 
   @override
@@ -739,6 +747,12 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get shareAsData => 'Share as Data File';
+
+  @override
+  String get shareAsTxt => 'Share as TXT (names only)';
+
+  @override
+  String get statsShareTxtEmpty => 'No anime to export';
 
   @override
   String get importAnimeSuccess => 'Anime imported successfully';

@@ -183,6 +183,8 @@
   "shareCopied": "圖片已複製到剪貼簿",
   "shareCopy": "複製",
   "shareSaveAs": "另存為",
+  "shareSaveAll": "全部儲存",
+  "sharePagesLabel": "{count} 頁",
   "shareSaved": "圖片已儲存",
   "shareFailed": "分享失敗",
   "shareUrlOptions": "包含連結",
@@ -259,6 +261,8 @@
   "shareTypeTitle": "分享方式",
   "shareAsImage": "分享為圖片",
   "shareAsData": "分享為資料檔案",
+  "shareAsTxt": "匯出為 TXT（僅名稱）",
+  "statsShareTxtEmpty": "沒有可匯出的番劇",
   "importAnimeSuccess": "番劇匯入成功",
   "importAnimeFailed": "匯入失敗",
 

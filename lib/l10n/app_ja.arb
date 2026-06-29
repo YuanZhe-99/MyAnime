@@ -183,6 +183,8 @@
   "shareCopied": "画像をクリップボードにコピーしました",
   "shareCopy": "コピー",
   "shareSaveAs": "名前を付けて保存",
+  "shareSaveAll": "すべて保存",
+  "sharePagesLabel": "{count} ページ",
   "shareSaved": "画像を保存しました",
   "shareFailed": "共有に失敗しました",
   "shareUrlOptions": "URLを含める",
@@ -259,6 +261,8 @@
   "shareTypeTitle": "共有方法",
   "shareAsImage": "画像で共有",
   "shareAsData": "データファイルで共有",
+  "shareAsTxt": "TXTで共有（名前のみ）",
+  "statsShareTxtEmpty": "書き出すアニメがありません",
   "importAnimeSuccess": "アニメをインポートしました",
   "importAnimeFailed": "インポートに失敗しました",
 
