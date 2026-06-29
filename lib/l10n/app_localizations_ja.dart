@@ -970,5 +970,47 @@ class AppLocalizationsJa extends AppLocalizations {
   String get kanaRuleNBody => '基本は n。m, b, p の前では m に近く、k, g の前では柔らかい鼻音になります。';
 
   @override
+  String get statsShareStatusTitle => '含める視聴ステータス';
+
+  @override
+  String get statsShareStatusHint => '含める視聴ステータスを選択してください';
+
+  @override
+  String get statsShareLimitTitle => '大量画像シェア';
+
+  @override
+  String statsShareLimitWarning(int count) {
+    return '$count 件あります。生成に時間がかかる場合があります。';
+  }
+
+  @override
+  String get statsShareLimitEnable => '件数上限を設定';
+
+  @override
+  String get statsShareLimitCount => '上限';
+
+  @override
+  String get statsShareLimitPriority => '優先順位';
+
+  @override
+  String get statsSharePriorityRecent => '新しい順（初放送日）';
+
+  @override
+  String get statsSharePriorityOldest => '古い順（初放送日）';
+
+  @override
+  String get statsShareGenerating => '画像を生成中です。時間がかかる場合があります...';
+
+  @override
+  String statsShareGeneratingProgress(int done, int total) {
+    return 'カバー読み込み: $done/$total';
+  }
+
+  @override
+  String statsShareTruncated(int shown, int total) {
+    return '$shown/$total 件（切り詰め）';
+  }
+
+  @override
   String get settingsDesktop => 'デスクトップ';
 }

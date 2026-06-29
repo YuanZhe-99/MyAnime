@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'dart:typed_data';
 
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
@@ -18,6 +19,8 @@ enum _TimeScope { quarter, year, all }
 enum _TrendGranularity { quarter, year }
 
 enum _RankingTimeFilter { all, quarter, year, custom }
+
+enum _SummarySharePriority { recent, oldest }
 
 class StatisticsPage extends StatefulWidget {
   /// Purpose: Create a statistics page instance.
@@ -231,38 +234,78 @@ class _StatisticsPageState extends State<StatisticsPage> {
   /// Purpose: Provide the internal share ranking helper for this file.
   /// Inputs: None.
   /// Returns: None.
-  /// Side effects: May read or mutate application state, storage, or service resources.
-  /// Notes: Internal helper used within this file only.
+  /// Side effects: Shows optional limit/progress dialogs, generates an image,
+  /// and invokes the platform share flow.
+  /// Notes: Internal helper used within this file only. Keeps the current
+  /// ranking sort/filter order; if limited, shares the first N rows.
   Future<void> _shareRanking() async {
     final l10n = AppLocalizations.of(context)!;
     final rankedAnime = _rankingAnime;
     if (rankedAnime.isEmpty) return;
 
-    await ShareService.shareRankingImage(
-      context,
-      entries: _rankingShareEntries(rankedAnime),
-      title: l10n.statsRanking,
-      subtitle: _rankingShareSubtitle(l10n),
-      sortLabel: _ratingFieldLabel(_rankingSortField, l10n),
-      orderLabel: _rankingDescending
-          ? l10n.statsRankingDescending
-          : l10n.statsRankingAscending,
+    var entries = _rankingShareEntries(rankedAnime);
+    final totalCount = entries.length;
+    if (entries.length > 50) {
+      final limit = await _showRankingShareLimitDialog(l10n, entries.length);
+      if (limit == null || !mounted) return;
+      if (limit.limitEnabled) {
+        final limitCount = limit.limit.clamp(1, entries.length).toInt();
+        entries = entries.take(limitCount).toList();
+      }
+    }
+
+    final subtitle = _shareSubtitleWithTruncation(
+      _rankingShareSubtitle(l10n),
+      entries.length,
+      totalCount,
+      l10n,
+    );
+    final imageBytes = await _generateImageWithProgress(
       l10n: l10n,
+      coverCount: _shareCoverCount(entries.map((e) => e.anime)),
+      generate: (progress) => ShareService.generateRankingShareBytes(
+        entries: entries,
+        title: l10n.statsRanking,
+        subtitle: subtitle,
+        sortLabel: _ratingFieldLabel(_rankingSortField, l10n),
+        orderLabel: _rankingDescending
+            ? l10n.statsRankingDescending
+            : l10n.statsRankingAscending,
+        l10n: l10n,
+        progress: progress,
+      ),
+    );
+    if (imageBytes == null || !mounted) return;
+    await ShareService.shareImageBytes(
+      context,
+      imageBytes,
+      l10n,
+      fileName: 'myanime_ranking.png',
     );
   }
 
   /// Purpose: Provide the internal summary share subtitle helper for this file.
-  /// Inputs: `l10n`.
+  /// Inputs: `l10n`, `count`, `totalCount`.
   /// Returns: `String`.
   /// Side effects: None.
-  /// Notes: Internal helper used within this file only.
-  String _summaryShareSubtitle(AppLocalizations l10n) {
+  /// Notes: Internal helper used within this file only. Appends a truncation
+  /// note when the rendered count is smaller than the source count.
+  String _summaryShareSubtitle(
+    AppLocalizations l10n,
+    int count, {
+    int? totalCount,
+  }) {
     final scope = switch (_scope) {
       _TimeScope.quarter => _quarterLabel(_selectedYear, _selectedQuarter),
       _TimeScope.year => '$_selectedYearOnly',
       _TimeScope.all => l10n.statsAll,
     };
-    return l10n.statsShareSummary(scope, _filteredAnime.length);
+    return _shareSubtitleWithTruncation(
+      l10n.statsShareSummary(scope, count),
+      count,
+      totalCount ?? count,
+      l10n,
+    );
   }
 
   /// Purpose: Provide the internal summary share entries helper for this file.
@@ -289,19 +332,423 @@ class _StatisticsPageState extends State<StatisticsPage> {
         final watchedCount = anime.episodeStatuses.values
             .where((s) => s == EpisodeStatus.watched)
             .length;
-        final totalEps = (anime.endEpisode ?? anime.startEpisode) -
-            anime.startEpisode +
-            1;
-        entries.add(StatisticsShareEntry(
-          anime: anime,
-          rank: rank++,
-          statusLabel: label,
-          progressLabel: '$watchedCount/$totalEps',
-          score: anime.rating?.effectiveOverall,
-        ));
+        final totalEps =
+            (anime.endEpisode ?? anime.startEpisode) - anime.startEpisode + 1;
+        entries.add(
+          StatisticsShareEntry(
+            anime: anime,
+            rank: rank++,
+            statusLabel: label,
+            progressLabel: '$watchedCount/$totalEps',
+            score: anime.rating?.effectiveOverall,
+          ),
+        );
       }
     }
     return entries;
+  }
+
+  /// Purpose: Append a truncation label to an image subtitle when needed.
+  /// Inputs: `base`, `shown`, `total`, `l10n`.
+  /// Returns: `String`.
+  /// Side effects: None.
+  /// Notes: Internal helper used within this file only.
+  String _shareSubtitleWithTruncation(
+    String base,
+    int shown,
+    int total,
+    AppLocalizations l10n,
+  ) {
+    if (shown >= total) return base;
+    return '$base · ${l10n.statsShareTruncated(shown, total)}';
+  }
+
+  /// Purpose: Count unique cover images that may be loaded for a share image.
+  /// Inputs: `animes`.
+  /// Returns: Unique non-empty cover image count.
+  /// Side effects: None.
+  /// Notes: Internal helper used within this file only.
+  int _shareCoverCount(Iterable<Anime> animes) {
+    final covers = <String>{};
+    for (final anime in animes) {
+      final cover = anime.coverImage;
+      if (cover != null && cover.isNotEmpty) covers.add(cover);
+    }
+    return covers.length;
+  }
+
+  /// Purpose: Reassign 1-based ranks after sorting or limiting share entries.
+  /// Inputs: `entries`.
+  /// Returns: New `StatisticsShareEntry` list with sequential ranks.
+  /// Side effects: None.
+  /// Notes: Internal helper used within this file only.
+  List<StatisticsShareEntry> _renumberStatisticsEntries(
+    List<StatisticsShareEntry> entries,
+  ) {
+    return List.generate(entries.length, (index) {
+      final entry = entries[index];
+      return StatisticsShareEntry(
+        anime: entry.anime,
+        rank: index + 1,
+        statusLabel: entry.statusLabel,
+        progressLabel: entry.progressLabel,
+        score: entry.score,
+      );
+    });
+  }
+
+  /// Purpose: Sort summary share entries by first air date for limit priority.
+  /// Inputs: `entries`, `priority`.
+  /// Returns: Sorted `StatisticsShareEntry` list.
+  /// Side effects: None.
+  /// Notes: Internal helper used within this file only. Entries without
+  /// `firstAirDate` always sort last.
+  List<StatisticsShareEntry> _sortSummaryShareEntries(
+    List<StatisticsShareEntry> entries,
+    _SummarySharePriority priority,
+  ) {
+    final sorted = [...entries];
+    sorted.sort((a, b) {
+      final aDate = a.anime.firstAirDate;
+      final bDate = b.anime.firstAirDate;
+      if (aDate == null && bDate == null) {
+        return a.anime.displayTitle.compareTo(b.anime.displayTitle);
+      }
+      if (aDate == null) return 1;
+      if (bDate == null) return -1;
+      final compare = aDate.compareTo(bDate);
+      if (compare != 0) {
+        return priority == _SummarySharePriority.recent ? -compare : compare;
+      }
+      return a.anime.displayTitle.compareTo(b.anime.displayTitle);
+    });
+    return sorted;
+  }
+
+  /// Purpose: Build a summary count from the entries that will be rendered.
+  /// Inputs: `entries`.
+  /// Returns: `StatisticsShareSummary` reflecting the final image rows.
+  /// Side effects: None.
+  /// Notes: Internal helper used within this file only.
+  StatisticsShareSummary _summaryFromEntries(
+    List<StatisticsShareEntry> entries,
+  ) {
+    var completed = 0;
+    var dropped = 0;
+    for (final entry in entries) {
+      switch (entry.anime.viewingStatus) {
+        case AnimeViewingStatus.completed:
+          completed++;
+        case AnimeViewingStatus.dropped:
+          dropped++;
+        case AnimeViewingStatus.watching:
+        case AnimeViewingStatus.notStarted:
+          break;
+      }
+    }
+    return StatisticsShareSummary(
+      tracked: entries.length,
+      completed: completed,
+      dropped: dropped,
+    );
+  }
+
+  /// Purpose: Generate image bytes while showing a blocking progress dialog.
+  /// Inputs: `l10n`, `coverCount`, `generate`.
+  /// Returns: PNG bytes, or null when generation fails.
+  /// Side effects: Shows/dismisses a dialog and may show a failure snackbar.
+  /// Notes: Internal helper used within this file only. The platform share UI is
+  /// shown after this dialog closes, so desktop preview is not covered.
+  Future<Uint8List?> _generateImageWithProgress({
+    required AppLocalizations l10n,
+    required int coverCount,
+    required Future<Uint8List> Function(ValueNotifier<double> progress)
+    generate,
+  }) async {
+    final progress = ValueNotifier<double>(0);
+    final dialogFuture = showDialog<void>(
+      context: context,
+      barrierDismissible: false,
+      builder: (ctx) => PopScope(
+        canPop: false,
+        child: AlertDialog(
+          title: Text(l10n.statsShareLimitTitle),
+          content: ValueListenableBuilder<double>(
+            valueListenable: progress,
+            builder: (ctx, value, child) {
+              final normalized = value.clamp(0.0, 1.0).toDouble();
+              final done = coverCount == 0
+                  ? 0
+                  : (normalized * coverCount)
+                        .ceil()
+                        .clamp(0, coverCount)
+                        .toInt();
+              return Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(l10n.statsShareGenerating),
+                  const SizedBox(height: 16),
+                  LinearProgressIndicator(
+                    value: coverCount == 0 ? null : normalized,
+                  ),
+                  if (coverCount > 0) ...[
+                    const SizedBox(height: 8),
+                    Text(l10n.statsShareGeneratingProgress(done, coverCount)),
+                  ],
+                ],
+              );
+            },
+          ),
+        ),
+      ),
+    );
+    await Future<void>.delayed(Duration.zero);
+
+    Uint8List? imageBytes;
+    Object? error;
+    try {
+      imageBytes = await generate(progress);
+    } catch (e) {
+      error = e;
+    } finally {
+      if (mounted) {
+        Navigator.of(context, rootNavigator: true).pop();
+        await dialogFuture;
+      }
+      progress.dispose();
+    }
+
+    if (error != null && mounted) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(l10n.shareFailed)));
+    }
+    return imageBytes;
+  }
+
+  /// Purpose: Ask which viewing statuses to include in the summary image.
+  /// Inputs: `l10n`.
+  /// Returns: Selected status set, or null when canceled.
+  /// Side effects: Shows a dialog.
+  /// Notes: Internal helper used within this file only. Defaults to all statuses.
+  Future<Set<AnimeViewingStatus>?> _showSummaryStatusSelectionDialog(
+    AppLocalizations l10n,
+  ) async {
+    final selected = <AnimeViewingStatus>{
+      AnimeViewingStatus.completed,
+      AnimeViewingStatus.watching,
+      AnimeViewingStatus.dropped,
+      AnimeViewingStatus.notStarted,
+    };
+    final options = [
+      (AnimeViewingStatus.completed, l10n.statsCompleted),
+      (AnimeViewingStatus.watching, l10n.statsWatching),
+      (AnimeViewingStatus.dropped, l10n.statsDropped),
+      (AnimeViewingStatus.notStarted, l10n.statsNotStarted),
+    ];
+    return showDialog<Set<AnimeViewingStatus>>(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setDialogState) => AlertDialog(
+          title: Text(l10n.statsShareStatusTitle),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(l10n.statsShareStatusHint),
+              const SizedBox(height: 8),
+              for (final (status, label) in options)
+                CheckboxListTile(
+                  contentPadding: EdgeInsets.zero,
+                  title: Text(label),
+                  value: selected.contains(status),
+                  onChanged: (value) {
+                    setDialogState(() {
+                      if (value ?? false) {
+                        selected.add(status);
+                      } else {
+                        selected.remove(status);
+                      }
+                    });
+                  },
+                ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx),
+              child: Text(l10n.cancel),
+            ),
+            FilledButton(
+              onPressed: selected.isEmpty
+                  ? null
+                  : () => Navigator.pop(ctx, Set.of(selected)),
+              child: Text(l10n.save),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  /// Purpose: Ask for summary-image limit and first-air-date priority.
+  /// Inputs: `l10n`, `totalCount`.
+  /// Returns: Limit settings, or null when canceled.
+  /// Side effects: Shows a dialog.
+  /// Notes: Internal helper used within this file only. Default is no limit and
+  /// recent-first priority.
+  Future<({bool limitEnabled, int limit, _SummarySharePriority priority})?>
+  _showSummaryShareLimitDialog(AppLocalizations l10n, int totalCount) async {
+    var limitEnabled = false;
+    var priority = _SummarySharePriority.recent;
+    final controller = TextEditingController(text: '50');
+    try {
+      return await showDialog<
+        ({bool limitEnabled, int limit, _SummarySharePriority priority})
+      >(
+        context: context,
+        builder: (ctx) => StatefulBuilder(
+          builder: (ctx, setDialogState) => AlertDialog(
+            title: Text(l10n.statsShareLimitTitle),
+            content: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(l10n.statsShareLimitWarning(totalCount)),
+                  const SizedBox(height: 12),
+                  SwitchListTile(
+                    contentPadding: EdgeInsets.zero,
+                    title: Text(l10n.statsShareLimitEnable),
+                    value: limitEnabled,
+                    onChanged: (value) =>
+                        setDialogState(() => limitEnabled = value),
+                  ),
+                  TextField(
+                    controller: controller,
+                    enabled: limitEnabled,
+                    keyboardType: TextInputType.number,
+                    decoration: InputDecoration(
+                      labelText: l10n.statsShareLimitCount,
+                      helperText: '1-$totalCount',
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  DropdownButtonFormField<_SummarySharePriority>(
+                    initialValue: priority,
+                    decoration: InputDecoration(
+                      labelText: l10n.statsShareLimitPriority,
+                    ),
+                    items: [
+                      DropdownMenuItem(
+                        value: _SummarySharePriority.recent,
+                        child: Text(l10n.statsSharePriorityRecent),
+                      ),
+                      DropdownMenuItem(
+                        value: _SummarySharePriority.oldest,
+                        child: Text(l10n.statsSharePriorityOldest),
+                      ),
+                    ],
+                    onChanged: (value) {
+                      if (value == null) return;
+                      setDialogState(() => priority = value);
+                    },
+                  ),
+                ],
+              ),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(ctx),
+                child: Text(l10n.cancel),
+              ),
+              FilledButton(
+                onPressed: () {
+                  final limit = int.tryParse(controller.text.trim()) ?? 50;
+                  Navigator.pop(ctx, (
+                    limitEnabled: limitEnabled,
+                    limit: limit.clamp(1, totalCount).toInt(),
+                    priority: priority,
+                  ));
+                },
+                child: Text(l10n.save),
+              ),
+            ],
+          ),
+        ),
+      );
+    } finally {
+      controller.dispose();
+    }
+  }
+
+  /// Purpose: Ask for ranking-image limit without changing ranking order.
+  /// Inputs: `l10n`, `totalCount`.
+  /// Returns: Limit settings, or null when canceled.
+  /// Side effects: Shows a dialog.
+  /// Notes: Internal helper used within this file only. Default is no limit;
+  /// when enabled, the current first N ranked rows are shared.
+  Future<({bool limitEnabled, int limit})?> _showRankingShareLimitDialog(
+    AppLocalizations l10n,
+    int totalCount,
+  ) async {
+    var limitEnabled = false;
+    final controller = TextEditingController(text: '50');
+    try {
+      return await showDialog<({bool limitEnabled, int limit})>(
+        context: context,
+        builder: (ctx) => StatefulBuilder(
+          builder: (ctx, setDialogState) => AlertDialog(
+            title: Text(l10n.statsShareLimitTitle),
+            content: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(l10n.statsShareLimitWarning(totalCount)),
+                  const SizedBox(height: 12),
+                  SwitchListTile(
+                    contentPadding: EdgeInsets.zero,
+                    title: Text(l10n.statsShareLimitEnable),
+                    value: limitEnabled,
+                    onChanged: (value) =>
+                        setDialogState(() => limitEnabled = value),
+                  ),
+                  TextField(
+                    controller: controller,
+                    enabled: limitEnabled,
+                    keyboardType: TextInputType.number,
+                    decoration: InputDecoration(
+                      labelText: l10n.statsShareLimitCount,
+                      helperText: '1-$totalCount',
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(ctx),
+                child: Text(l10n.cancel),
+              ),
+              FilledButton(
+                onPressed: () {
+                  final limit = int.tryParse(controller.text.trim()) ?? 50;
+                  Navigator.pop(ctx, (
+                    limitEnabled: limitEnabled,
+                    limit: limit.clamp(1, totalCount).toInt(),
+                  ));
+                },
+                child: Text(l10n.save),
+              ),
+            ],
+          ),
+        ),
+      );
+    } finally {
+      controller.dispose();
+    }
   }
 
   /// Purpose: Provide the internal share statistics helper for this file.
@@ -363,21 +810,64 @@ class _StatisticsPageState extends State<StatisticsPage> {
     if (isRanking) {
       await _shareRanking();
     } else {
+      final selectedStatuses = await _showSummaryStatusSelectionDialog(l10n);
+      if (selectedStatuses == null || !mounted) return;
       final grouped = _groupedAnime;
-      final entries = _summaryShareEntries(grouped, l10n);
+      final selectedGrouped = <AnimeViewingStatus, List<Anime>>{
+        AnimeViewingStatus.completed:
+            selectedStatuses.contains(AnimeViewingStatus.completed)
+            ? grouped[AnimeViewingStatus.completed]!
+            : <Anime>[],
+        AnimeViewingStatus.watching:
+            selectedStatuses.contains(AnimeViewingStatus.watching)
+            ? grouped[AnimeViewingStatus.watching]!
+            : <Anime>[],
+        AnimeViewingStatus.dropped:
+            selectedStatuses.contains(AnimeViewingStatus.dropped)
+            ? grouped[AnimeViewingStatus.dropped]!
+            : <Anime>[],
+        AnimeViewingStatus.notStarted:
+            selectedStatuses.contains(AnimeViewingStatus.notStarted)
+            ? grouped[AnimeViewingStatus.notStarted]!
+            : <Anime>[],
+      };
+      var entries = _summaryShareEntries(selectedGrouped, l10n);
       if (entries.isEmpty) return;
-      final summary = StatisticsShareSummary(
-        tracked: _filteredAnime.length,
-        completed: grouped[AnimeViewingStatus.completed]!.length,
-        dropped: grouped[AnimeViewingStatus.dropped]!.length,
+      final totalCount = entries.length;
+      if (entries.length > 50) {
+        final limit = await _showSummaryShareLimitDialog(l10n, entries.length);
+        if (limit == null || !mounted) return;
+        entries = _sortSummaryShareEntries(entries, limit.priority);
+        if (limit.limitEnabled) {
+          final limitCount = limit.limit.clamp(1, entries.length).toInt();
+          entries = entries.take(limitCount).toList();
+        }
+        entries = _renumberStatisticsEntries(entries);
+      }
+      final summary = _summaryFromEntries(entries);
+      final subtitle = _summaryShareSubtitle(
+        l10n,
+        entries.length,
+        totalCount: totalCount,
       );
-      await ShareService.shareStatisticsImage(
-        context,
-        entries: entries,
-        title: l10n.statsTitle,
-        subtitle: _summaryShareSubtitle(l10n),
+      final imageBytes = await _generateImageWithProgress(
         l10n: l10n,
-        summary: summary,
+        coverCount: _shareCoverCount(entries.map((e) => e.anime)),
+        generate: (progress) => ShareService.generateStatisticsShareBytes(
+          entries: entries,
+          title: l10n.statsTitle,
+          subtitle: subtitle,
+          l10n: l10n,
+          summary: summary,
+          progress: progress,
+        ),
+      );
+      if (imageBytes == null || !mounted) return;
+      await ShareService.shareImageBytes(
+        context,
+        imageBytes,
+        l10n,
+        fileName: 'myanime_stats.png',
       );
     }
   }
@@ -987,9 +1477,8 @@ class _StatisticsPageState extends State<StatisticsPage> {
           IconButton(
             icon: const Icon(Icons.ios_share),
             tooltip: l10n.statsShare,
-            onPressed: (isRanking
-                    ? rankedAnime.isNotEmpty
-                    : _filteredAnime.isNotEmpty)
+            onPressed:
+                (isRanking ? rankedAnime.isNotEmpty : _filteredAnime.isNotEmpty)
                 ? _shareStatistics
                 : null,
           ),

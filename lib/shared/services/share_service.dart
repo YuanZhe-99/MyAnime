@@ -98,9 +98,11 @@ class ShareService {
   }
 
   /// Purpose: Share ranking image through the relevant platform flow.
-  /// Inputs: `context`, `entries`, `title`, `subtitle`, `sortLabel`, `orderLabel`, `l10n`.
+  /// Inputs: `context`, `entries`, `title`, `subtitle`, `sortLabel`,
+  /// `orderLabel`, `l10n`, `progress`.
   /// Returns: None.
-  /// Side effects: May read or mutate application state, storage, or service resources.
+  /// Side effects: Reads cover images, writes a temp PNG, invokes share/preview
+  /// UI, and reports progress when provided.
   /// Notes: None.
   static Future<void> shareRankingImage(
     BuildContext context, {
@@ -110,6 +112,7 @@ class ShareService {
     required String sortLabel,
     required String orderLabel,
     required AppLocalizations l10n,
+    ValueNotifier<double>? progress,
   }) async {
     if (entries.isEmpty) return;
 
@@ -121,6 +124,7 @@ class ShareService {
         sortLabel: sortLabel,
         orderLabel: orderLabel,
         l10n: l10n,
+        progress: progress,
       );
       if (!context.mounted) return;
       await _shareImageBytes(
@@ -237,11 +241,82 @@ class ShareService {
     }
   }
 
-  /// Purpose: Provide the internal share image bytes helper for this file.
+  /// Purpose: Share already-generated image bytes via the platform share flow.
   /// Inputs: `context`, `imageBytes`, `l10n`, `fileName`.
   /// Returns: None.
-  /// Side effects: May read or mutate application state, storage, or service resources.
-  /// Notes: Internal helper used within this file only.
+  /// Side effects: Writes a temp file and invokes platform share / desktop preview.
+  /// Notes: Public entrypoint for callers that generate image bytes separately
+  /// (e.g. with a progress dialog between generation and sharing).
+  static Future<void> shareImageBytes(
+    BuildContext context,
+    Uint8List imageBytes,
+    AppLocalizations l10n, {
+    required String fileName,
+  }) async {
+    await _shareImageBytes(context, imageBytes, l10n, fileName: fileName);
+  }
+
+  /// Purpose: Generate the statistics share image bytes (no share UI).
+  /// Inputs: `entries`, `title`, `subtitle`, `l10n`, `summary`, `progress`.
+  /// Returns: `Future<Uint8List>` PNG bytes of the generated statistics card.
+  /// Side effects: Reads cover images from storage; reports progress via
+  /// `progress` (0..1) when provided.
+  /// Notes: Public entrypoint so callers can wrap generation in a progress
+  /// dialog and then share the bytes via [shareImageBytes].
+  static Future<Uint8List> generateStatisticsShareBytes({
+    required List<StatisticsShareEntry> entries,
+    required String title,
+    required String subtitle,
+    required AppLocalizations l10n,
+    StatisticsShareSummary? summary,
+    ValueNotifier<double>? progress,
+  }) async {
+    if (entries.isEmpty) throw StateError('No entries to render');
+    return _generateStatisticsShareImage(
+      entries: entries,
+      title: title,
+      subtitle: subtitle,
+      l10n: l10n,
+      summary: summary,
+      progress: progress,
+    );
+  }
+
+  /// Purpose: Generate the ranking share image bytes (no share UI).
+  /// Inputs: `entries`, `title`, `subtitle`, `sortLabel`, `orderLabel`, `l10n`,
+  /// `progress`.
+  /// Returns: `Future<Uint8List>` PNG bytes of the generated ranking card.
+  /// Side effects: Reads cover images from storage; reports progress via
+  /// `progress` (0..1) when provided.
+  /// Notes: Public entrypoint so callers can wrap generation in a progress
+  /// dialog and then share the bytes via [shareImageBytes].
+  static Future<Uint8List> generateRankingShareBytes({
+    required List<RankingShareEntry> entries,
+    required String title,
+    required String subtitle,
+    required String sortLabel,
+    required String orderLabel,
+    required AppLocalizations l10n,
+    ValueNotifier<double>? progress,
+  }) async {
+    if (entries.isEmpty) throw StateError('No entries to render');
+    return _generateRankingShareImage(
+      entries: entries,
+      title: title,
+      subtitle: subtitle,
+      sortLabel: sortLabel,
+      orderLabel: orderLabel,
+      l10n: l10n,
+      progress: progress,
+    );
+  }
+
+  /// Purpose: Share image bytes through the relevant platform flow.
+  /// Inputs: `context`, `imageBytes`, `l10n`, `fileName`.
+  /// Returns: None.
+  /// Side effects: Writes a temp file and invokes platform share / desktop preview.
+  /// Notes: Internal helper used within this file only; public callers should
+  /// use [shareImageBytes].
   static Future<void> _shareImageBytes(
     BuildContext context,
     Uint8List imageBytes,
@@ -706,9 +781,10 @@ class ShareService {
   }
 
   /// Purpose: Provide the internal generate ranking share image helper for this file.
-  /// Inputs: `entries`, `title`, `subtitle`, `sortLabel`, `orderLabel`, `l10n`.
+  /// Inputs: `entries`, `title`, `subtitle`, `sortLabel`, `orderLabel`, `l10n`,
+  /// `progress`.
   /// Returns: `Future<Uint8List>`.
-  /// Side effects: May read or mutate application state, storage, or service resources.
+  /// Side effects: Reads cover images from storage and reports progress when provided.
   /// Notes: Internal helper used within this file only.
   static Future<Uint8List> _generateRankingShareImage({
     required List<RankingShareEntry> entries,
@@ -717,6 +793,7 @@ class ShareService {
     required String sortLabel,
     required String orderLabel,
     required AppLocalizations l10n,
+    ValueNotifier<double>? progress,
   }) async {
     ui.Image? logoImage;
     try {
@@ -730,21 +807,10 @@ class ShareService {
       // Proceed without logo.
     }
 
-    final coverImages = <String, ui.Image>{};
-    for (final entry in entries) {
-      final cover = entry.anime.coverImage;
-      if (cover == null || coverImages.containsKey(cover)) continue;
-      try {
-        final file = await ImageService.resolve(cover);
-        if (!file.existsSync()) continue;
-        final bytes = await file.readAsBytes();
-        final codec = await ui.instantiateImageCodec(bytes);
-        final frame = await codec.getNextFrame();
-        coverImages[cover] = frame.image;
-      } catch (_) {
-        // Keep exporting even if one cover is missing or invalid.
-      }
-    }
+    final coverImages = await _loadShareCoverImages(
+      entries.map((e) => e.anime).toList(),
+      progress,
+    );
 
     final contentWidth = _rankingCardWidth - _padding * 2;
     double y = _padding + _headerHeight + _gap;
@@ -1243,7 +1309,8 @@ class ShareService {
   // ── Statistics share ──
 
   /// Purpose: Share the current statistics view as an image or data file.
-  /// Inputs: `context`, `entries`, `title`, `subtitle`, `summary`, `l10n`.
+  /// Inputs: `context`, `entries`, `title`, `subtitle`, `summary`, `l10n`,
+  /// `progress`.
   /// Returns: None.
   /// Side effects: Shows dialogs, generates images, shares files.
   /// Notes: When `summary` is non-null the image includes a horizontal bar
@@ -1256,6 +1323,7 @@ class ShareService {
     required String subtitle,
     required AppLocalizations l10n,
     StatisticsShareSummary? summary,
+    ValueNotifier<double>? progress,
   }) async {
     if (entries.isEmpty) return;
 
@@ -1266,15 +1334,14 @@ class ShareService {
         subtitle: subtitle,
         l10n: l10n,
         summary: summary,
+        progress: progress,
       );
       if (!context.mounted) return;
       await _shareImageBytes(
         context,
         imageBytes,
         l10n,
-        fileName: summary != null
-            ? 'myanime_stats.png'
-            : 'myanime_ranking.png',
+        fileName: summary != null ? 'myanime_stats.png' : 'myanime_ranking.png',
       );
     } catch (_) {
       if (context.mounted) {
@@ -1315,9 +1382,11 @@ class ShareService {
       } else if (Platform.isIOS) {
         await Share.shareXFiles([XFile(filePath)]);
       } else {
+        final fileBytes = await File(filePath).readAsBytes();
+        if (!context.mounted) return;
         await _showDesktopPreview(
           context,
-          await File(filePath).readAsBytes(),
+          fileBytes,
           filePath,
           l10n,
           fileName: '$displayName.myanimeitem',
@@ -1333,9 +1402,10 @@ class ShareService {
   }
 
   /// Purpose: Provide the internal generate statistics share image helper for this file.
-  /// Inputs: `entries`, `title`, `subtitle`, `l10n`, `summary`.
+  /// Inputs: `entries`, `title`, `subtitle`, `l10n`, `summary`, `progress`.
   /// Returns: `Future<Uint8List>`.
-  /// Side effects: Reads cover images from storage.
+  /// Side effects: Reads cover images from storage; reports progress to
+  /// `progress` (0..1) when provided.
   /// Notes: Internal helper used within this file only. When `summary` is
   /// provided, draws a horizontal bar chart at the top showing tracked,
   /// completed, and dropped counts, followed by anime rows grouped by status.
@@ -1347,6 +1417,7 @@ class ShareService {
     required String subtitle,
     required AppLocalizations l10n,
     StatisticsShareSummary? summary,
+    ValueNotifier<double>? progress,
   }) async {
     ui.Image? logoImage;
     try {
@@ -1360,21 +1431,10 @@ class ShareService {
       // Proceed without logo.
     }
 
-    final coverImages = <String, ui.Image>{};
-    for (final entry in entries) {
-      final cover = entry.anime.coverImage;
-      if (cover == null || coverImages.containsKey(cover)) continue;
-      try {
-        final file = await ImageService.resolve(cover);
-        if (!file.existsSync()) continue;
-        final bytes = await file.readAsBytes();
-        final codec = await ui.instantiateImageCodec(bytes);
-        final frame = await codec.getNextFrame();
-        coverImages[cover] = frame.image;
-      } catch (_) {
-        // Keep exporting even if one cover is missing or invalid.
-      }
-    }
+    final coverImages = await _loadShareCoverImages(
+      entries.map((e) => e.anime).toList(),
+      progress,
+    );
 
     final contentWidth = _rankingCardWidth - _padding * 2;
     double y = _padding + _headerHeight + _gap;
@@ -1549,6 +1609,50 @@ class ShareService {
       }
       cy += barH + barGap;
     }
+  }
+
+  /// Purpose: Load cover images for a list of anime into a map keyed by cover key.
+  /// Inputs: `animes` (sources of `coverImage` filenames), `progress` (optional,
+  /// reports 0..1 as covers are loaded; set to 1 when done).
+  /// Returns: `Map<String, ui.Image>` of decoded cover images.
+  /// Side effects: Reads files from storage; mutates `progress` if provided.
+  /// Notes: Internal helper used within this file only. Deduplicates by cover key
+  /// and skips missing/invalid covers silently.
+  static Future<Map<String, ui.Image>> _loadShareCoverImages(
+    List<Anime> animes,
+    ValueNotifier<double>? progress,
+  ) async {
+    final coverImages = <String, ui.Image>{};
+    final coversToLoad = <String>[];
+    for (final anime in animes) {
+      final cover = anime.coverImage;
+      if (cover == null ||
+          coverImages.containsKey(cover) ||
+          coversToLoad.contains(cover)) {
+        continue;
+      }
+      coversToLoad.add(cover);
+    }
+    if (coversToLoad.isEmpty) {
+      progress?.value = 1;
+      return coverImages;
+    }
+    for (var i = 0; i < coversToLoad.length; i++) {
+      final cover = coversToLoad[i];
+      try {
+        final file = await ImageService.resolve(cover);
+        if (!file.existsSync()) continue;
+        final bytes = await file.readAsBytes();
+        final codec = await ui.instantiateImageCodec(bytes);
+        final frame = await codec.getNextFrame();
+        coverImages[cover] = frame.image;
+      } catch (_) {
+        // Keep exporting even if one cover is missing or invalid.
+      }
+      progress?.value = (i + 1) / coversToLoad.length;
+    }
+    progress?.value = 1;
+    return coverImages;
   }
 
   /// Purpose: Provide the internal draw statistics row helper for this file.

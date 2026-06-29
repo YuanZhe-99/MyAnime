@@ -1913,6 +1913,78 @@ abstract class AppLocalizations {
   /// **'Usually n, but it becomes m before m, b, or p, and a soft nasal before k or g.'**
   String get kanaRuleNBody;
 
+  /// No description provided for @statsShareStatusTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Included Statuses'**
+  String get statsShareStatusTitle;
+
+  /// No description provided for @statsShareStatusHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Select which viewing statuses to include'**
+  String get statsShareStatusHint;
+
+  /// No description provided for @statsShareLimitTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Large Image Share'**
+  String get statsShareLimitTitle;
+
+  /// No description provided for @statsShareLimitWarning.
+  ///
+  /// In en, this message translates to:
+  /// **'You have {count} anime. Generating may take a while.'**
+  String statsShareLimitWarning(int count);
+
+  /// No description provided for @statsShareLimitEnable.
+  ///
+  /// In en, this message translates to:
+  /// **'Set entry limit'**
+  String get statsShareLimitEnable;
+
+  /// No description provided for @statsShareLimitCount.
+  ///
+  /// In en, this message translates to:
+  /// **'Limit'**
+  String get statsShareLimitCount;
+
+  /// No description provided for @statsShareLimitPriority.
+  ///
+  /// In en, this message translates to:
+  /// **'Priority order'**
+  String get statsShareLimitPriority;
+
+  /// No description provided for @statsSharePriorityRecent.
+  ///
+  /// In en, this message translates to:
+  /// **'Recent (first air date)'**
+  String get statsSharePriorityRecent;
+
+  /// No description provided for @statsSharePriorityOldest.
+  ///
+  /// In en, this message translates to:
+  /// **'Oldest (first air date)'**
+  String get statsSharePriorityOldest;
+
+  /// No description provided for @statsShareGenerating.
+  ///
+  /// In en, this message translates to:
+  /// **'Generating image, this may take a while...'**
+  String get statsShareGenerating;
+
+  /// No description provided for @statsShareGeneratingProgress.
+  ///
+  /// In en, this message translates to:
+  /// **'Loading covers: {done}/{total}'**
+  String statsShareGeneratingProgress(int done, int total);
+
+  /// No description provided for @statsShareTruncated.
+  ///
+  /// In en, this message translates to:
+  /// **'{shown} of {total} anime'**
+  String statsShareTruncated(int shown, int total);
+
   /// No description provided for @settingsDesktop.
   ///
   /// In en, this message translates to:

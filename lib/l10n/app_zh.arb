@@ -343,5 +343,17 @@
   "kanaRuleLongVowelsBody": "ー 延长片假名音。平假名里 おう 常读长 o，えい 常读长 e。",
   "kanaRuleNTitle": "ん / ン",
   "kanaRuleNBody": "通常读 n；在 m, b, p 前接近 m，在 k, g 前会变成较轻的鼻音。",
+  "statsShareStatusTitle": "包含的状态",
+  "statsShareStatusHint": "选择要包含的观看状态",
+  "statsShareLimitTitle": "大量图片分享",
+  "statsShareLimitWarning": "共 {count} 部，生成可能耗时较长。",
+  "statsShareLimitEnable": "设置条目上限",
+  "statsShareLimitCount": "上限",
+  "statsShareLimitPriority": "优先顺序",
+  "statsSharePriorityRecent": "时间近（首播日）",
+  "statsSharePriorityOldest": "时间远（首播日）",
+  "statsShareGenerating": "正在生成图片，可能耗时较长...",
+  "statsShareGeneratingProgress": "加载封面: {done}/{total}",
+  "statsShareTruncated": "{shown}/{total} 部（已截断）",
   "settingsDesktop": "桌面"
 }

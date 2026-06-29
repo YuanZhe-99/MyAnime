@@ -987,5 +987,48 @@ class AppLocalizationsEn extends AppLocalizations {
       'Usually n, but it becomes m before m, b, or p, and a soft nasal before k or g.';
 
   @override
+  String get statsShareStatusTitle => 'Included Statuses';
+
+  @override
+  String get statsShareStatusHint => 'Select which viewing statuses to include';
+
+  @override
+  String get statsShareLimitTitle => 'Large Image Share';
+
+  @override
+  String statsShareLimitWarning(int count) {
+    return 'You have $count anime. Generating may take a while.';
+  }
+
+  @override
+  String get statsShareLimitEnable => 'Set entry limit';
+
+  @override
+  String get statsShareLimitCount => 'Limit';
+
+  @override
+  String get statsShareLimitPriority => 'Priority order';
+
+  @override
+  String get statsSharePriorityRecent => 'Recent (first air date)';
+
+  @override
+  String get statsSharePriorityOldest => 'Oldest (first air date)';
+
+  @override
+  String get statsShareGenerating =>
+      'Generating image, this may take a while...';
+
+  @override
+  String statsShareGeneratingProgress(int done, int total) {
+    return 'Loading covers: $done/$total';
+  }
+
+  @override
+  String statsShareTruncated(int shown, int total) {
+    return '$shown of $total anime';
+  }
+
+  @override
   String get settingsDesktop => 'Desktop';
 }

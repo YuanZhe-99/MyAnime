@@ -965,6 +965,48 @@ class AppLocalizationsZh extends AppLocalizations {
   String get kanaRuleNBody => '通常读 n；在 m, b, p 前接近 m，在 k, g 前会变成较轻的鼻音。';
 
   @override
+  String get statsShareStatusTitle => '包含的状态';
+
+  @override
+  String get statsShareStatusHint => '选择要包含的观看状态';
+
+  @override
+  String get statsShareLimitTitle => '大量图片分享';
+
+  @override
+  String statsShareLimitWarning(int count) {
+    return '共 $count 部，生成可能耗时较长。';
+  }
+
+  @override
+  String get statsShareLimitEnable => '设置条目上限';
+
+  @override
+  String get statsShareLimitCount => '上限';
+
+  @override
+  String get statsShareLimitPriority => '优先顺序';
+
+  @override
+  String get statsSharePriorityRecent => '时间近（首播日）';
+
+  @override
+  String get statsSharePriorityOldest => '时间远（首播日）';
+
+  @override
+  String get statsShareGenerating => '正在生成图片，可能耗时较长...';
+
+  @override
+  String statsShareGeneratingProgress(int done, int total) {
+    return '加载封面: $done/$total';
+  }
+
+  @override
+  String statsShareTruncated(int shown, int total) {
+    return '$shown/$total 部（已截断）';
+  }
+
+  @override
   String get settingsDesktop => '桌面';
 }
 
@@ -1927,6 +1969,48 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
 
   @override
   String get kanaRuleNBody => '通常讀 n；在 m, b, p 前接近 m，在 k, g 前會變成較輕的鼻音。';
+
+  @override
+  String get statsShareStatusTitle => '包含的狀態';
+
+  @override
+  String get statsShareStatusHint => '選擇要包含的觀看狀態';
+
+  @override
+  String get statsShareLimitTitle => '大量圖片分享';
+
+  @override
+  String statsShareLimitWarning(int count) {
+    return '共 $count 部，產生可能耗時較長。';
+  }
+
+  @override
+  String get statsShareLimitEnable => '設定條目上限';
+
+  @override
+  String get statsShareLimitCount => '上限';
+
+  @override
+  String get statsShareLimitPriority => '優先順序';
+
+  @override
+  String get statsSharePriorityRecent => '時間近（首播日）';
+
+  @override
+  String get statsSharePriorityOldest => '時間遠（首播日）';
+
+  @override
+  String get statsShareGenerating => '正在產生圖片，可能耗時較長...';
+
+  @override
+  String statsShareGeneratingProgress(int done, int total) {
+    return '載入封面: $done/$total';
+  }
+
+  @override
+  String statsShareTruncated(int shown, int total) {
+    return '$shown/$total 部（已截斷）';
+  }
 
   @override
   String get settingsDesktop => '桌面';

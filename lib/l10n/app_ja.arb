@@ -345,5 +345,17 @@
   "kanaRuleLongVowelsBody": "ー はカタカナの音を伸ばします。ひらがなでは おう が長い o、えい が長い e になることが多いです。",
   "kanaRuleNTitle": "ん / ン",
   "kanaRuleNBody": "基本は n。m, b, p の前では m に近く、k, g の前では柔らかい鼻音になります。",
+  "statsShareStatusTitle": "含める視聴ステータス",
+  "statsShareStatusHint": "含める視聴ステータスを選択してください",
+  "statsShareLimitTitle": "大量画像シェア",
+  "statsShareLimitWarning": "{count} 件あります。生成に時間がかかる場合があります。",
+  "statsShareLimitEnable": "件数上限を設定",
+  "statsShareLimitCount": "上限",
+  "statsShareLimitPriority": "優先順位",
+  "statsSharePriorityRecent": "新しい順（初放送日）",
+  "statsSharePriorityOldest": "古い順（初放送日）",
+  "statsShareGenerating": "画像を生成中です。時間がかかる場合があります...",
+  "statsShareGeneratingProgress": "カバー読み込み: {done}/{total}",
+  "statsShareTruncated": "{shown}/{total} 件（切り詰め）",
   "settingsDesktop": "デスクトップ"
 }
