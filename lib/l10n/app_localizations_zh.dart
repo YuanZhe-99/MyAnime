@@ -412,6 +412,15 @@ class AppLocalizationsZh extends AppLocalizations {
   String get settingsWebDAVSyncFailed => '同步失败';
 
   @override
+  String get settingsWebDAVAutoSyncFailed => '自动同步失败';
+
+  @override
+  String get settingsWebDAVAutoSyncConflict => '自动同步发现冲突';
+
+  @override
+  String get settingsWebDAVLastSuccess => '上次成功同步';
+
+  @override
   String settingsWebDAVSyncImageWarnings(int count) {
     return '同步完成，但$count张封面传输失败';
   }
@@ -1416,6 +1425,15 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
 
   @override
   String get settingsWebDAVSyncFailed => '同步失敗';
+
+  @override
+  String get settingsWebDAVAutoSyncFailed => '自動同步失敗';
+
+  @override
+  String get settingsWebDAVAutoSyncConflict => '自動同步發現衝突';
+
+  @override
+  String get settingsWebDAVLastSuccess => '上次成功同步';
 
   @override
   String settingsWebDAVSyncImageWarnings(int count) {

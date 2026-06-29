@@ -28,7 +28,7 @@ Maintenance rules:
 - **Description:** A privacy-first anime tracking app with a JST-aware calendar, seasonal quarter management, statistics, multi-source anime search, watch-progress tracking, daily reminders, share/export flows, WebDAV sync, local backup, a desktop local API server, tray behavior, launch-at-startup, and a kana quick-reference module.
 - **Author / package id:** `yuanzhe`, `com.yuanzhe.my_anime`.
 - **License:** GPL-3.0.
-- **Current version:** `1.0.2+39` in `pubspec.yaml`, `1.0.2.0` for MSIX, and `1.0.2` in `installer.iss`.
+- **Current version:** `1.1.0+40` in `pubspec.yaml`, `1.1.0.0` for MSIX, and `1.1.0` in `installer.iss`.
 - **Framework:** Flutter with Dart SDK `^3.11.3`; CI uses Flutter `3.44.2`.
 - **Platforms:** Windows, Android, iOS, macOS. Linux project files exist and desktop services include Linux branches, but Linux is not a primary release target. Web is not targeted.
 - **Repository:** Use the system-provided workspace or working-directory environment to determine the repository path at runtime; do not hardcode a machine-specific absolute path here.
@@ -306,7 +306,7 @@ Flow:
 7. Upload merged data. Uploads send `If-Match` with the strong ETag captured at download (first uploads send `If-None-Match: *`); HTTP 412 means another device wrote concurrently and surfaces as a sync error — run sync again.
 8. Save the new base snapshot only after upload succeeds.
 
-Manual sync uses `autoResolve: false` and shows conflict dialogs. Auto-sync uses `autoResolve: true` and last-writer-wins per record without blocking the UI. `finalizePendingSync` returns false when applying or uploading the resolution fails (including If-Match 412) so the UI reports the failure; the base snapshot stays untouched and the next sync re-merges.
+Manual sync uses `autoResolve: false` and shows conflict dialogs. Auto-sync also leaves `autoResolve` disabled: it records failures and true two-sided conflicts as visible status in Settings/WebDAV instead of silently applying last-writer-wins. Users must open the WebDAV page and resolve conflicts manually. `finalizePendingSync` returns false when applying or uploading the resolution fails (including If-Match 412) so the UI reports the failure; the base snapshot stays untouched and the next sync re-merges.
 
 Important sync constraints:
 
@@ -321,7 +321,7 @@ Important sync constraints:
 - Orphaned images are not uploaded or downloaded, but they are also not automatically deleted.
 - Sync errors and image transfer warnings should be visible in dialogs, not only snackbars.
 
-Auto-sync triggers include app launch, app resume, a 30-second debounce after storage saves, immediate sync after enabling/saving auto-sync config, and a 15-minute timer while the app process is alive. Mobile OS suspension may delay timers until resume. Storage-layer `save()` methods should notify auto-sync so non-UI writes are covered.
+Auto-sync triggers include app launch, app resume, a 30-second debounce after storage saves, immediate sync after enabling/saving auto-sync config, and a 15-minute timer while the app process is alive. Mobile OS suspension may delay timers until resume. Storage-layer `save()` methods should notify auto-sync so non-UI writes are covered. Auto-sync records latest success, failure, and pending-conflict state in memory so Settings and the WebDAV page can surface sync health.
 
 ## Persisted Data Inventory
 
@@ -461,3 +461,4 @@ Version highlights:
 - `v1.0.0`: Pre-release audit hardening — WebDAV downloads distinguish 404 from errors so transient failures can never overwrite the remote or cascade into cross-device deletions, ETag `If-Match`/`If-None-Match` preconditions on data uploads with visible 412 errors, fresh local re-read before writing merged data, identical-content concurrent edits no longer raise conflicts, conflict-resolution upload failures are reported, content-aware per-day mobile reminder scheduling (empty days skipped, no duplicate in-app notification), IANA timezone resolution via `flutter_timezone`, Basic Auth enforced on loopback when API credentials are configured, allowlist-based ZIP import, removed unused `SCHEDULE_EXACT_ALARM` permission, forward-snapped episode air dates, and versions unified to `1.0.0+37` / MSIX `1.0.0.0` / installer `1.0.0`.
 - `v1.0.1`: Statistics page share button (image or data file), summary image with horizontal bar chart (tracked/completed/dropped), multi-anime `.myanimeitem` bundle export/import (v2 format), import conflict resolution with keep-local/use-imported/merge options, settings duplicate check page with transitive grouping and merge, CI Flutter updated to `3.44.2`, and versions unified to `1.0.1+38` / MSIX `1.0.1.0` / installer `1.0.1`.
 - `v1.0.2`: Statistics image sharing now supports summary status selection with filtered bar-chart counts, large-image warnings, optional row limits, summary first-air-date priority, ranking first-N limiting in current rank order, generation progress dialogs while cover images load, and versions unified to `1.0.2+39` / MSIX `1.0.2.0` / installer `1.0.2`.
+- `v1.1.0`: WebDAV auto-sync failures and true sync conflicts are surfaced in Settings/WebDAV, background sync no longer silently resolves conflicts with LWW, manual conflict resolution clears the visible status on success, and versions are unified to `1.1.0+40` / MSIX `1.1.0.0` / installer `1.1.0`.

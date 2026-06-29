@@ -42,7 +42,17 @@ class _WebDAVConfigPageState extends State<WebDAVConfigPage> {
   @override
   void initState() {
     super.initState();
+    AutoSyncService.instance.addOnStatusChanged(_refreshSyncStatus);
     _loadConfig();
+  }
+
+  /// Purpose: Refresh this page when background sync status changes.
+  /// Inputs: None.
+  /// Returns: None.
+  /// Side effects: Triggers a rebuild.
+  /// Notes: Internal helper used within this file only.
+  void _refreshSyncStatus() {
+    if (mounted) setState(() {});
   }
 
   /// Purpose: Provide the internal load config helper for this file.
@@ -70,6 +80,7 @@ class _WebDAVConfigPageState extends State<WebDAVConfigPage> {
   /// Notes: Flutter lifecycle override.
   @override
   void dispose() {
+    AutoSyncService.instance.removeOnStatusChanged(_refreshSyncStatus);
     _urlController.dispose();
     _userController.dispose();
     _passController.dispose();
@@ -144,6 +155,7 @@ class _WebDAVConfigPageState extends State<WebDAVConfigPage> {
     setState(() => _syncing = true);
     final result = await WebDAVService.sync(_currentConfig);
     if (!mounted) return;
+    AutoSyncService.instance.recordSyncResult(result);
     setState(() => _syncing = false);
 
     if (result.hasConflicts) {
@@ -237,6 +249,7 @@ class _WebDAVConfigPageState extends State<WebDAVConfigPage> {
       pending,
       resolutions,
     );
+    AutoSyncService.instance.recordFinalizeResult(ok);
 
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -289,6 +302,24 @@ class _WebDAVConfigPageState extends State<WebDAVConfigPage> {
     setState(() {});
   }
 
+  /// Purpose: Build a short sync health summary for display.
+  /// Inputs: None.
+  /// Returns: `String?`.
+  /// Side effects: None.
+  /// Notes: Internal helper used within this file only.
+  String? _syncStatusText(AppLocalizations l10n) {
+    final service = AutoSyncService.instance;
+    if (service.lastError != null) {
+      return service.hasPendingConflicts
+          ? '${l10n.settingsWebDAVAutoSyncConflict}: ${service.lastError}'
+          : '${l10n.settingsWebDAVAutoSyncFailed}: ${service.lastError}';
+    }
+    if (service.lastSuccessAt != null) {
+      return '${l10n.settingsWebDAVLastSuccess}: ${service.lastSuccessAt!.toLocal()}';
+    }
+    return null;
+  }
+
   /// Purpose: Build the current widget subtree for the active UI state.
   /// Inputs: `context`.
   /// Returns: The widget tree for the current state.
@@ -297,6 +328,8 @@ class _WebDAVConfigPageState extends State<WebDAVConfigPage> {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
+    final theme = Theme.of(context);
+    final syncStatus = _syncStatusText(l10n);
 
     return Scaffold(
       appBar: AppBar(title: Text(l10n.settingsWebDAVSync), centerTitle: true),
@@ -383,6 +416,25 @@ class _WebDAVConfigPageState extends State<WebDAVConfigPage> {
                 ),
                 const SizedBox(height: 16),
                 if (_isConfigured) ...[
+                  if (syncStatus != null) ...[
+                    Card(
+                      color: AutoSyncService.instance.lastError == null
+                          ? theme.colorScheme.surfaceContainerHighest
+                          : theme.colorScheme.errorContainer,
+                      child: Padding(
+                        padding: const EdgeInsets.all(12),
+                        child: Text(
+                          syncStatus,
+                          style: TextStyle(
+                            color: AutoSyncService.instance.lastError == null
+                                ? theme.colorScheme.onSurfaceVariant
+                                : theme.colorScheme.onErrorContainer,
+                          ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                  ],
                   FilledButton.icon(
                     onPressed: _syncing ? null : () => _syncNow(),
                     icon: _syncing
@@ -400,7 +452,7 @@ class _WebDAVConfigPageState extends State<WebDAVConfigPage> {
                     icon: const Icon(Icons.link_off),
                     label: Text(l10n.settingsWebDAVDisconnect),
                     style: OutlinedButton.styleFrom(
-                      foregroundColor: Theme.of(context).colorScheme.error,
+                      foregroundColor: theme.colorScheme.error,
                     ),
                   ),
                 ],

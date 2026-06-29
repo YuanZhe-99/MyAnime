@@ -139,6 +139,9 @@
   "settingsWebDAVConnectionFailed": "接続失敗",
   "settingsWebDAVSyncSuccess": "同期完了",
   "settingsWebDAVSyncFailed": "同期失敗",
+  "settingsWebDAVAutoSyncFailed": "自動同期失敗",
+  "settingsWebDAVAutoSyncConflict": "自動同期で競合を検出",
+  "settingsWebDAVLastSuccess": "前回の同期成功",
   "settingsWebDAVSyncImageWarnings": "同期完了（画像{count}件の転送に失敗）",
   "@settingsWebDAVSyncImageWarnings": { "placeholders": { "count": { "type": "int" } } },
 

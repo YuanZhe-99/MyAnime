@@ -417,6 +417,15 @@ class AppLocalizationsEn extends AppLocalizations {
   String get settingsWebDAVSyncFailed => 'Sync failed';
 
   @override
+  String get settingsWebDAVAutoSyncFailed => 'Auto-sync failed';
+
+  @override
+  String get settingsWebDAVAutoSyncConflict => 'Auto-sync found conflicts';
+
+  @override
+  String get settingsWebDAVLastSuccess => 'Last successful sync';
+
+  @override
   String settingsWebDAVSyncImageWarnings(int count) {
     return 'Sync completed, but $count image(s) failed to transfer';
   }

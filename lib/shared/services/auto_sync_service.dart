@@ -20,12 +20,45 @@ class AutoSyncService with WidgetsBindingObserver {
   Timer? _periodicSync;
   bool _syncing = false;
   bool _started = false;
+  DateTime? _lastSuccessAt;
+  DateTime? _lastFailureAt;
+  String? _lastError;
+  bool _hasPendingConflicts = false;
 
   static const _debounceDuration = Duration(seconds: 30);
   static const _periodicSyncInterval = Duration(minutes: 15);
 
   // Callbacks for UI reload after sync writes local files.
   final List<void Function()> _onLocalDataChanged = [];
+  final List<VoidCallback> _onStatusChanged = [];
+
+  /// Purpose: Return the last successful sync time recorded by this service.
+  /// Inputs: None.
+  /// Returns: `DateTime?`.
+  /// Side effects: None.
+  /// Notes: Used by settings UI to surface sync health.
+  DateTime? get lastSuccessAt => _lastSuccessAt;
+
+  /// Purpose: Return the last failed sync time recorded by this service.
+  /// Inputs: None.
+  /// Returns: `DateTime?`.
+  /// Side effects: None.
+  /// Notes: Used by settings UI to surface sync health.
+  DateTime? get lastFailureAt => _lastFailureAt;
+
+  /// Purpose: Return the most recent sync failure message.
+  /// Inputs: None.
+  /// Returns: `String?`.
+  /// Side effects: None.
+  /// Notes: Null after a successful sync.
+  String? get lastError => _lastError;
+
+  /// Purpose: Return whether auto-sync found conflicts needing manual resolution.
+  /// Inputs: None.
+  /// Returns: `bool`.
+  /// Side effects: None.
+  /// Notes: Conflicts are not auto-resolved during background sync.
+  bool get hasPendingConflicts => _hasPendingConflicts;
 
   /// Purpose: Register a callback invoked when auto-sync updates local data.
   /// Inputs: `cb`.
@@ -41,6 +74,51 @@ class AutoSyncService with WidgetsBindingObserver {
   /// Notes: Remove a previously registered callback.
   void removeOnLocalDataChanged(void Function() cb) =>
       _onLocalDataChanged.remove(cb);
+
+  /// Purpose: Register a callback invoked when sync status changes.
+  /// Inputs: `cb`.
+  /// Returns: None.
+  /// Side effects: None.
+  /// Notes: UI pages use this to refresh visible sync warnings.
+  void addOnStatusChanged(VoidCallback cb) => _onStatusChanged.add(cb);
+
+  /// Purpose: Remove a previously registered sync-status callback.
+  /// Inputs: `cb`.
+  /// Returns: None.
+  /// Side effects: None.
+  /// Notes: Must be paired with `addOnStatusChanged` in widget dispose.
+  void removeOnStatusChanged(VoidCallback cb) => _onStatusChanged.remove(cb);
+
+  /// Purpose: Record a sync result triggered outside the auto-sync loop.
+  /// Inputs: `result`.
+  /// Returns: None.
+  /// Side effects: Updates sync status and notifies listeners.
+  /// Notes: Manual sync pages call this so status banners clear after success.
+  void recordSyncResult(SyncResult result) {
+    if (result.hasConflicts) {
+      _recordFailure(
+        'Sync conflicts require manual resolution${result.error != null ? ': ${result.error}' : ''}',
+        conflicts: true,
+      );
+    } else if (!result.success) {
+      _recordFailure(result.error ?? 'Unknown sync failure');
+    } else {
+      _recordSuccess();
+    }
+  }
+
+  /// Purpose: Record a conflict-finalization result.
+  /// Inputs: `ok`.
+  /// Returns: None.
+  /// Side effects: Updates sync status and notifies listeners.
+  /// Notes: Used after users resolve conflicts manually.
+  void recordFinalizeResult(bool ok) {
+    if (ok) {
+      _recordSuccess();
+    } else {
+      _recordFailure('Failed to upload resolved sync conflicts');
+    }
+  }
 
   /// Purpose: Implement the start behavior for this file.
   /// Inputs: None.
@@ -119,16 +197,61 @@ class AutoSyncService with WidgetsBindingObserver {
     if (config == null || !config.isConfigured || !config.autoSync) return;
     _syncing = true;
     try {
-      await WebDAVService.sync(config, autoResolve: true);
+      final result = await WebDAVService.sync(config);
+      if (result.hasConflicts) {
+        _recordFailure(
+          'Sync conflicts require manual resolution${result.error != null ? ': ${result.error}' : ''}',
+          conflicts: true,
+        );
+      } else if (!result.success) {
+        _recordFailure(result.error ?? 'Unknown sync failure');
+      } else {
+        _recordSuccess();
+      }
       if (WebDAVService.consumeLocalDataChanged()) {
         for (final cb in List.of(_onLocalDataChanged)) {
           cb();
         }
       }
-    } catch (_) {
-      // Auto-sync failures are silent.
+    } catch (e) {
+      _recordFailure(e.toString());
     } finally {
       _syncing = false;
+    }
+  }
+
+  /// Purpose: Record a successful sync.
+  /// Inputs: None.
+  /// Returns: None.
+  /// Side effects: Clears failure state and notifies status listeners.
+  /// Notes: Internal helper used within this file only.
+  void _recordSuccess() {
+    _lastSuccessAt = DateTime.now();
+    _lastError = null;
+    _hasPendingConflicts = false;
+    _notifyStatusChanged();
+  }
+
+  /// Purpose: Record a failed sync.
+  /// Inputs: `error`, optional `conflicts`.
+  /// Returns: None.
+  /// Side effects: Updates failure state and notifies status listeners.
+  /// Notes: Internal helper used within this file only.
+  void _recordFailure(String error, {bool conflicts = false}) {
+    _lastFailureAt = DateTime.now();
+    _lastError = error;
+    _hasPendingConflicts = conflicts;
+    _notifyStatusChanged();
+  }
+
+  /// Purpose: Notify all registered sync status listeners.
+  /// Inputs: None.
+  /// Returns: None.
+  /// Side effects: Invokes UI callbacks.
+  /// Notes: Internal helper used within this file only.
+  void _notifyStatusChanged() {
+    for (final cb in List.of(_onStatusChanged)) {
+      cb();
     }
   }
 }

@@ -139,6 +139,9 @@
   "settingsWebDAVConnectionFailed": "連線失敗",
   "settingsWebDAVSyncSuccess": "同步完成",
   "settingsWebDAVSyncFailed": "同步失敗",
+  "settingsWebDAVAutoSyncFailed": "自動同步失敗",
+  "settingsWebDAVAutoSyncConflict": "自動同步發現衝突",
+  "settingsWebDAVLastSuccess": "上次成功同步",
   "settingsWebDAVSyncImageWarnings": "同步完成，但{count}張封面傳輸失敗",
   "@settingsWebDAVSyncImageWarnings": { "placeholders": { "count": { "type": "int" } } },
 

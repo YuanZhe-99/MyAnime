@@ -413,6 +413,15 @@ class AppLocalizationsJa extends AppLocalizations {
   String get settingsWebDAVSyncFailed => '同期失敗';
 
   @override
+  String get settingsWebDAVAutoSyncFailed => '自動同期失敗';
+
+  @override
+  String get settingsWebDAVAutoSyncConflict => '自動同期で競合を検出';
+
+  @override
+  String get settingsWebDAVLastSuccess => '前回の同期成功';
+
+  @override
   String settingsWebDAVSyncImageWarnings(int count) {
     return '同期完了（画像$count件の転送に失敗）';
   }

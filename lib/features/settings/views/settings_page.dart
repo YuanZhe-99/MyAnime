@@ -12,6 +12,7 @@ import 'package:intl/intl.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../../shared/utils/jst_time.dart';
 import '../../../shared/providers/app_settings.dart';
+import '../../../shared/services/auto_sync_service.dart';
 import '../../../shared/services/import_export_service.dart';
 import '../../../shared/services/local_api_server.dart';
 import '../../../shared/services/reminder_service.dart';
@@ -68,11 +69,32 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
     _loadVersion();
     _loadStoragePath();
     _loadReminder();
+    AutoSyncService.instance.addOnStatusChanged(_refreshSyncStatus);
     if (_isDesktop) {
       _loadTraySettings();
       _loadAutoStartStatus();
       _loadApiSettings();
     }
+  }
+
+  /// Purpose: Release listeners owned by this state object.
+  /// Inputs: None.
+  /// Returns: None.
+  /// Side effects: Removes the sync-status listener.
+  /// Notes: Flutter lifecycle override.
+  @override
+  void dispose() {
+    AutoSyncService.instance.removeOnStatusChanged(_refreshSyncStatus);
+    super.dispose();
+  }
+
+  /// Purpose: Refresh settings when sync status changes.
+  /// Inputs: None.
+  /// Returns: None.
+  /// Side effects: Triggers a rebuild.
+  /// Notes: Internal helper used within this file only.
+  void _refreshSyncStatus() {
+    if (mounted) setState(() {});
   }
 
   /// Purpose: Provide the internal load version helper for this file.
@@ -708,6 +730,13 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
             ListTile(
               leading: const Icon(Icons.sync_outlined),
               title: Text(l10n.settingsWebDAVSync),
+              subtitle: AutoSyncService.instance.lastError == null
+                  ? null
+                  : Text(
+                      AutoSyncService.instance.hasPendingConflicts
+                          ? '${l10n.settingsWebDAVAutoSyncConflict}: ${AutoSyncService.instance.lastError}'
+                          : '${l10n.settingsWebDAVAutoSyncFailed}: ${AutoSyncService.instance.lastError}',
+                    ),
               trailing: const Icon(Icons.chevron_right),
               onTap: () => Navigator.of(context, rootNavigator: true).push(
                 MaterialPageRoute(builder: (_) => const WebDAVConfigPage()),
@@ -740,10 +769,9 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
               title: Text(l10n.settingsDuplicateCheck),
               subtitle: Text(l10n.settingsDuplicateCheckDesc),
               trailing: const Icon(Icons.chevron_right),
-              onTap: () => Navigator.of(
-                context,
-                rootNavigator: true,
-              ).push(MaterialPageRoute(builder: (_) => const DuplicateCheckPage())),
+              onTap: () => Navigator.of(context, rootNavigator: true).push(
+                MaterialPageRoute(builder: (_) => const DuplicateCheckPage()),
+              ),
             ),
             if (_isDesktop)
               ListTile(

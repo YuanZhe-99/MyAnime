@@ -887,6 +887,24 @@ abstract class AppLocalizations {
   /// **'Sync failed'**
   String get settingsWebDAVSyncFailed;
 
+  /// No description provided for @settingsWebDAVAutoSyncFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Auto-sync failed'**
+  String get settingsWebDAVAutoSyncFailed;
+
+  /// No description provided for @settingsWebDAVAutoSyncConflict.
+  ///
+  /// In en, this message translates to:
+  /// **'Auto-sync found conflicts'**
+  String get settingsWebDAVAutoSyncConflict;
+
+  /// No description provided for @settingsWebDAVLastSuccess.
+  ///
+  /// In en, this message translates to:
+  /// **'Last successful sync'**
+  String get settingsWebDAVLastSuccess;
+
   /// No description provided for @settingsWebDAVSyncImageWarnings.
   ///
   /// In en, this message translates to:
