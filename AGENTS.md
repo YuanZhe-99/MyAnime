@@ -28,7 +28,7 @@ Maintenance rules:
 - **Description:** A privacy-first anime tracking app with a JST-aware calendar, seasonal quarter management, statistics, multi-source anime search, watch-progress tracking, daily reminders, share/export flows, WebDAV sync, local backup, a desktop local API server, tray behavior, launch-at-startup, and a kana quick-reference module.
 - **Author / package id:** `yuanzhe`, `com.yuanzhe.my_anime`.
 - **License:** GPL-3.0.
-- **Current version:** `1.1.1+41` in `pubspec.yaml`, `1.1.1.0` for MSIX, and `1.1.1` in `installer.iss`.
+- **Current version:** `1.1.2+42` in `pubspec.yaml`, `1.1.2.0` for MSIX, and `1.1.2` in `installer.iss`.
 - **Framework:** Flutter with Dart SDK `^3.11.3`; CI uses Flutter `3.44.2`.
 - **Platforms:** Windows, Android, iOS, macOS. Linux project files exist and desktop services include Linux branches, but Linux is not a primary release target. Web is not targeted.
 - **Repository:** Use the system-provided workspace or working-directory environment to determine the repository path at runtime; do not hardcode a machine-specific absolute path here.
@@ -305,8 +305,9 @@ Flow:
 4. Auto-resolve when only one side changed.
 5. Detect conflict when the same anime changed on both sides after the last sync.
 6. Re-read the local file to detect concurrent saves made during network I/O and re-merge if it changed.
-7. Upload merged data. Uploads send `If-Match` with the strong ETag captured at download (first uploads send `If-None-Match: *`); HTTP 412 means another device wrote concurrently and surfaces as a sync error — run sync again.
-8. Save the new base snapshot only after upload succeeds.
+7. Before any upload, acquire remote `.lock` with the local client id, upload token, UTC timestamp, and 150-second TTL. Active locks from another client block uploads; expired locks are treated as failed uploads and may be replaced. Local `.sync_base/upload_lock.json` lets the next launch detect interrupted uploads and re-download/re-merge before uploading again.
+8. Upload merged data. Uploads send `If-Match` with the strong ETag captured at download (first uploads send `If-None-Match: *`); HTTP 412 triggers a fresh remote download and another per-record merge, and only unresolvable record conflicts are shown to the user.
+9. Save the new base snapshot only after upload succeeds, then clear the matching remote/local upload lock.
 
 Manual sync uses `autoResolve: false` and shows conflict dialogs. Auto-sync also leaves `autoResolve` disabled: it records failures and true two-sided conflicts as visible status in Settings/WebDAV instead of silently applying last-writer-wins. Users must open the WebDAV page and resolve conflicts manually. `finalizePendingSync` returns false when applying or uploading the resolution fails (including If-Match 412) so the UI reports the failure; the base snapshot stays untouched and the next sync re-merges.
 
@@ -465,3 +466,4 @@ Version highlights:
 - `v1.0.2`: Statistics image sharing now supports summary status selection with filtered bar-chart counts, large-image warnings, optional row limits, summary first-air-date priority, ranking first-N limiting in current rank order, generation progress dialogs while cover images load, and versions unified to `1.0.2+39` / MSIX `1.0.2.0` / installer `1.0.2`.
 - `v1.1.0`: WebDAV auto-sync failures and true sync conflicts are surfaced in Settings/WebDAV, background sync no longer silently resolves conflicts with LWW, manual conflict resolution clears the visible status on success, and versions are unified to `1.1.0+40` / MSIX `1.1.0.0` / installer `1.1.0`.
 - `v1.1.1`: Statistics share now supports a TXT export of anime display names sorted in dictionary order, statistics/ranking image exports are split across multiple PNG pages when the single-page pixel height would exceed the platform texture cap (`_maxImageDimension = 16000`) so tall lists are no longer cut off, multi-page sharing uses Android `ACTION_SEND_MULTIPLE` plus a desktop multi-page preview with save-all, and versions are unified to `1.1.1+41` / MSIX `1.1.1.0` / installer `1.1.1`.
+- `v1.1.2`: WebDAV uploads now use a remote `.lock` with a stable local client id and 150-second TTL, interrupted local uploads are detected on the next sync, and HTTP 412 upload races re-download remote data and re-run per-record merge before surfacing only true record conflicts; versions are unified to `1.1.2+42` / MSIX `1.1.2.0` / installer `1.1.2`.
