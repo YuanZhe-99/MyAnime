@@ -160,16 +160,29 @@ class AnimeStorage {
     return AnimeData.fromJson(json);
   }
 
+  /// Purpose: Write a file atomically through a temporary file and rename step.
+  /// Inputs: `file`, `content`.
+  /// Returns: None.
+  /// Side effects: Writes a temp file and renames it over the target path.
+  /// Notes: Internal helper used within this file only; protects the data
+  /// file against corruption when the app is killed mid-write.
+  static Future<void> _atomicWrite(File file, String content) async {
+    final tmp = File('${file.path}.tmp');
+    await tmp.writeAsString(content, flush: true);
+    await tmp.rename(file.path);
+  }
+
   /// Purpose: Implement the save behavior for this file.
   /// Inputs: `data`.
   /// Returns: None.
   /// Side effects: May read or mutate application state, storage, or service resources.
-  /// Notes: Notifies auto-sync and refreshes mobile reminder schedules so
-  /// scheduled notification bodies track the latest data.
+  /// Notes: Writes atomically (tmp-then-rename), then notifies auto-sync and
+  /// refreshes mobile reminder schedules so scheduled notification bodies
+  /// track the latest data.
   static Future<void> save(AnimeData data) async {
     final file = await _getFile(_dataFileName);
     final jsonStr = const JsonEncoder.withIndent('  ').convert(data.toJson());
-    await file.writeAsString(jsonStr);
+    await _atomicWrite(file, jsonStr);
     AutoSyncService.instance.notifySaved();
     ReminderService.notifyDataChanged();
   }
@@ -222,11 +235,12 @@ class AnimeStorage {
   /// Purpose: Implement the write config behavior for this file.
   /// Inputs: `config`.
   /// Returns: None.
-  /// Side effects: None.
+  /// Side effects: Writes the config file atomically (tmp-then-rename).
   /// Notes: None.
   static Future<void> writeConfig(Map<String, dynamic> config) async {
     final file = await _getConfigFile();
-    await file.writeAsString(
+    await _atomicWrite(
+      file,
       const JsonEncoder.withIndent('  ').convert(config),
     );
   }

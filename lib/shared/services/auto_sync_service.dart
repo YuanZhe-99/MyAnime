@@ -107,6 +107,22 @@ class AutoSyncService with WidgetsBindingObserver {
     }
   }
 
+  /// Purpose: Notify UI reload listeners after a manual sync or force
+  /// operation wrote local data files.
+  /// Inputs: None.
+  /// Returns: None.
+  /// Side effects: Consumes the WebDAV local-data-changed flag and invokes
+  /// registered reload callbacks.
+  /// Notes: Manual sync pages call this so open pages reload without waiting
+  /// for the next background sync.
+  void notifyLocalDataChangedIfNeeded() {
+    if (WebDAVService.consumeLocalDataChanged()) {
+      for (final cb in List.of(_onLocalDataChanged)) {
+        cb();
+      }
+    }
+  }
+
   /// Purpose: Record a conflict-finalization result.
   /// Inputs: `ok`.
   /// Returns: None.
@@ -154,8 +170,10 @@ class AutoSyncService with WidgetsBindingObserver {
   /// Inputs: None.
   /// Returns: None.
   /// Side effects: May read or mutate application state, storage, or service resources.
-  /// Notes: Called by storage save methods to schedule a debounced sync.
+  /// Notes: Ignored before `start()` so early storage writes cannot schedule
+  /// a sync while the service is not yet observing the app lifecycle.
   void notifySaved() {
+    if (!_started) return;
     _debounce?.cancel();
     _debounce = Timer(_debounceDuration, _trySync);
   }

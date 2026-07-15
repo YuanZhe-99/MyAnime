@@ -168,6 +168,11 @@ class AppLocalizationsEn extends AppLocalizations {
   String get searchNoResults => 'No results found';
 
   @override
+  String searchCoverFetchFailed(String error) {
+    return 'Failed to fetch cover: $error';
+  }
+
+  @override
   String get searchCoverImage => 'Cover Image';
 
   @override
@@ -384,16 +389,23 @@ class AppLocalizationsEn extends AppLocalizations {
   String get settingsWebDAVRemotePath => 'Remote Path';
 
   @override
-  String get settingsWebDAVNextcloud => 'Nextcloud';
+  String get settingsWebDAVNextcloud => 'Nextcloud Preset';
 
   @override
-  String get settingsWebDAVTest => 'Test';
+  String get settingsWebDAVTestConnection => 'Test Connection';
 
   @override
-  String get settingsWebDAVAutoSync => 'Auto Sync';
+  String get settingsWebDAVAutoSync => 'Auto-sync';
+
+  @override
+  String get settingsWebDAVAutoSyncDesc =>
+      'Automatically sync after editing and when the app resumes';
 
   @override
   String get settingsWebDAVSyncNow => 'Sync Now';
+
+  @override
+  String get settingsWebDAVSyncing => 'Syncing…';
 
   @override
   String get settingsWebDAVDisconnect => 'Disconnect';
@@ -429,6 +441,57 @@ class AppLocalizationsEn extends AppLocalizations {
   String settingsWebDAVSyncImageWarnings(int count) {
     return 'Sync completed, but $count image(s) failed to transfer';
   }
+
+  @override
+  String get settingsWebDAVForceUpload => 'Force Upload';
+
+  @override
+  String get settingsWebDAVForceDownload => 'Force Download';
+
+  @override
+  String get settingsWebDAVForceUploadConfirmTitle => 'Force upload?';
+
+  @override
+  String get settingsWebDAVForceUploadConfirmBody =>
+      'This will overwrite all remote data and images with your local copies. Remote changes since the last sync will be lost.';
+
+  @override
+  String get settingsWebDAVForceDownloadConfirmTitle => 'Force download?';
+
+  @override
+  String get settingsWebDAVForceDownloadConfirmBody =>
+      'This will replace all local data and images with the remote copies. Local changes since the last sync will be lost.';
+
+  @override
+  String get syncPhaseConnecting => 'Connecting…';
+
+  @override
+  String syncPhaseDownloadingData(String file, int current, int total) {
+    return 'Downloading $file ($current/$total)';
+  }
+
+  @override
+  String syncPhaseMerging(String file) {
+    return 'Merging $file…';
+  }
+
+  @override
+  String syncPhaseUploadingData(String file) {
+    return 'Uploading $file…';
+  }
+
+  @override
+  String syncPhaseUploadingImages(int current, int total) {
+    return 'Uploading images ($current/$total)';
+  }
+
+  @override
+  String syncPhaseDownloadingImages(int current, int total) {
+    return 'Downloading images ($current/$total)';
+  }
+
+  @override
+  String get commonOk => 'OK';
 
   @override
   String get backupTitle => 'Backup';

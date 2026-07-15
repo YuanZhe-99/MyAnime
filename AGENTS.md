@@ -28,7 +28,7 @@ Maintenance rules:
 - **Description:** A privacy-first anime tracking app with a JST-aware calendar, seasonal quarter management, statistics, multi-source anime search, watch-progress tracking, daily reminders, share/export flows, WebDAV sync, local backup, a desktop local API server, tray behavior, launch-at-startup, and a kana quick-reference module.
 - **Author / package id:** `yuanzhe`, `com.yuanzhe.my_anime`.
 - **License:** GPL-3.0.
-- **Current version:** `1.1.3+43` in `pubspec.yaml`, `1.1.3.0` for MSIX, and `1.1.3` in `installer.iss`.
+- **Current version:** `1.2.0+44` in `pubspec.yaml`, `1.2.0.0` for MSIX, and `1.2.0` in `installer.iss`.
 - **Framework:** Flutter with Dart SDK `^3.11.3`; CI uses Flutter `3.44.2`.
 - **Platforms:** Windows, Android, iOS, macOS. Linux project files exist and desktop services include Linux branches, but Linux is not a primary release target. Web is not targeted.
 - **Repository:** Use the system-provided workspace or working-directory environment to determine the repository path at runtime; do not hardcode a machine-specific absolute path here.
@@ -65,8 +65,7 @@ When the user confirms the version and wants to push:
    - `pubspec.yaml`: `version: X.Y.Z+N`, where `N` is the Flutter build number and increments for releases.
    - `pubspec.yaml`: `msix_config.msix_version: X.Y.Z.0`.
    - `installer.iss`: `AppVersion=X.Y.Z`.
-   - `installer.iss`: `OutputBaseFilename=MyAnime_X.Y.Z_Setup`.
-   - `installer.iss`: `OutputBaseFilename=MyAnime_X.Y.Z_arm64_Setup`.
+   - `installer.iss`: output filenames use `{#SetupSetting("AppVersion")}` for both x64 and ARM64; keep them derived from `AppVersion`.
    - `installer.iss`: `VersionInfoVersion=X.Y.Z.0`.
    - `installer.iss`: `VersionInfoProductVersion=X.Y.Z`.
    - Do not manually edit the settings page version display; `settings_page.dart` reads `PackageInfo.fromPlatform()`.
@@ -135,6 +134,7 @@ lib/
       reminder_service.dart
       share_service.dart
       sync_merge.dart
+      sync_progress.dart
       tray_service.dart
       webdav_service.dart
     utils/
@@ -324,6 +324,13 @@ Important sync constraints:
 - The referenced image set is the union of `coverImage` basenames from local and remote anime data.
 - Orphaned images are not uploaded or downloaded, but they are also not automatically deleted.
 - Sync errors and image transfer warnings should be visible in dialogs, not only snackbars.
+- Remote image directory listings return null on any failure; `_syncImages` then skips the image phase with a visible warning instead of treating the unknown remote state as empty, which previously re-uploaded every referenced image after a transient PROPFIND failure.
+- Downloaded images set the local-data-changed flag so UI pages reload even when the data JSON itself did not change.
+- Transient network failures (socket/timeout/client errors and HTTP 5xx) are retried up to 2 extra times with 1s/2s backoff on data GET/PUT, byte GET/PUT, and PROPFIND listings. `.lock` writes are never retried so a retried create-only PUT cannot misreport lock contention; 4xx responses are never retried.
+- Sync writes merged JSON pretty-printed (`JsonEncoder.withIndent('  ')`) to match `AnimeStorage` local saves, so an unchanged file hits the raw-equality fast path on the next sync.
+- `WebDAVService.progress` is a `ValueNotifier<SyncProgress>` (see `sync_progress.dart`) publishing connecting/downloading/merging/uploading phases with per-file and per-image counts. The service emits raw phases and file names only; the WebDAV page maps phases to localized text and renders a `LinearProgressIndicator`.
+- `WebDAVService.forceUpload()` overwrites remote data files and uploads referenced images without any merge or conflict check, under the remote `.lock`, then saves base snapshots. `WebDAVService.forceDownload()` replaces local data files (JSON-validated first, atomic writes) and downloads referenced images without merging, saves base snapshots, and sets the local-data-changed flag; it is download-only and takes no remote lock. Both share the `_syncing` guard and require a destructive-action confirmation dialog in the WebDAV page.
+- After manual sync or force operations the WebDAV page calls `AutoSyncService.notifyLocalDataChangedIfNeeded()` so open pages reload without waiting for the next background sync.
 
 Auto-sync triggers include app launch, app resume, a 30-second debounce after storage saves, immediate sync after enabling/saving auto-sync config, and a 15-minute timer while the app process is alive. Mobile OS suspension may delay timers until resume. Storage-layer `save()` methods should notify auto-sync so non-UI writes are covered. Auto-sync records latest success, failure, and pending-conflict state in memory so Settings and the WebDAV page can surface sync health.
 
@@ -469,3 +476,4 @@ Version highlights:
 - `v1.1.1`: Statistics share now supports a TXT export of anime display names sorted in dictionary order, statistics/ranking image exports are split across multiple PNG pages when the single-page pixel height would exceed the platform texture cap (`_maxImageDimension = 16000`) so tall lists are no longer cut off, multi-page sharing uses Android `ACTION_SEND_MULTIPLE` plus a desktop multi-page preview with save-all, and versions are unified to `1.1.1+41` / MSIX `1.1.1.0` / installer `1.1.1`.
 - `v1.1.2`: WebDAV uploads now use a remote `.lock` with a stable local client id and 150-second TTL, interrupted local uploads are detected on the next sync, and HTTP 412 upload races re-download remote data and re-run per-record merge before surfacing only true record conflicts; versions are unified to `1.1.2+42` / MSIX `1.1.2.0` / installer `1.1.2`.
 - `v1.1.3`: WebDAV now acquires `.lock` before downloading and merging remote data, lowers the lock TTL to 60 seconds, and force-uploads complete merged/resolved JSON under the valid lock without data-file `If-Match`/`If-None-Match` retry loops; versions are unified to `1.1.3+43` / MSIX `1.1.3.0` / installer `1.1.3`.
+- `v1.2.0`: WebDAV sync hardening and force transfers — remote image listing failures no longer masquerade as an empty directory (fixing repeated re-uploads of already-uploaded images), transient network errors and HTTP 5xx are retried with backoff, sync progress is published through `WebDAVService.progress` and shown as a progress bar with localized phase text, Force Upload / Force Download actions with confirmation dialogs were added to the WebDAV page, sync-written JSON is pretty-printed to match local saves, `AnimeStorage` data/config writes and sync base/lock writes are atomic, `notifySaved` is ignored before auto-sync starts, downloaded images trigger UI reloads, manual sync notifies reload listeners, WebDAV terminology was standardized across MyAnime/MyDay/MyDevice (`settingsWebDAVTest` renamed to `settingsWebDAVTestConnection`), the search cover-fetch error is localized, installer filenames derive from `AppVersion`, and versions are unified to `1.2.0+44` / MSIX `1.2.0.0` / installer `1.2.0`.

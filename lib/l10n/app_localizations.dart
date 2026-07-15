@@ -407,6 +407,12 @@ abstract class AppLocalizations {
   /// **'No results found'**
   String get searchNoResults;
 
+  /// No description provided for @searchCoverFetchFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Failed to fetch cover: {error}'**
+  String searchCoverFetchFailed(String error);
+
   /// No description provided for @searchCoverImage.
   ///
   /// In en, this message translates to:
@@ -824,26 +830,38 @@ abstract class AppLocalizations {
   /// No description provided for @settingsWebDAVNextcloud.
   ///
   /// In en, this message translates to:
-  /// **'Nextcloud'**
+  /// **'Nextcloud Preset'**
   String get settingsWebDAVNextcloud;
 
-  /// No description provided for @settingsWebDAVTest.
+  /// No description provided for @settingsWebDAVTestConnection.
   ///
   /// In en, this message translates to:
-  /// **'Test'**
-  String get settingsWebDAVTest;
+  /// **'Test Connection'**
+  String get settingsWebDAVTestConnection;
 
   /// No description provided for @settingsWebDAVAutoSync.
   ///
   /// In en, this message translates to:
-  /// **'Auto Sync'**
+  /// **'Auto-sync'**
   String get settingsWebDAVAutoSync;
+
+  /// No description provided for @settingsWebDAVAutoSyncDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'Automatically sync after editing and when the app resumes'**
+  String get settingsWebDAVAutoSyncDesc;
 
   /// No description provided for @settingsWebDAVSyncNow.
   ///
   /// In en, this message translates to:
   /// **'Sync Now'**
   String get settingsWebDAVSyncNow;
+
+  /// No description provided for @settingsWebDAVSyncing.
+  ///
+  /// In en, this message translates to:
+  /// **'Syncing…'**
+  String get settingsWebDAVSyncing;
 
   /// No description provided for @settingsWebDAVDisconnect.
   ///
@@ -910,6 +928,84 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Sync completed, but {count} image(s) failed to transfer'**
   String settingsWebDAVSyncImageWarnings(int count);
+
+  /// No description provided for @settingsWebDAVForceUpload.
+  ///
+  /// In en, this message translates to:
+  /// **'Force Upload'**
+  String get settingsWebDAVForceUpload;
+
+  /// No description provided for @settingsWebDAVForceDownload.
+  ///
+  /// In en, this message translates to:
+  /// **'Force Download'**
+  String get settingsWebDAVForceDownload;
+
+  /// No description provided for @settingsWebDAVForceUploadConfirmTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Force upload?'**
+  String get settingsWebDAVForceUploadConfirmTitle;
+
+  /// No description provided for @settingsWebDAVForceUploadConfirmBody.
+  ///
+  /// In en, this message translates to:
+  /// **'This will overwrite all remote data and images with your local copies. Remote changes since the last sync will be lost.'**
+  String get settingsWebDAVForceUploadConfirmBody;
+
+  /// No description provided for @settingsWebDAVForceDownloadConfirmTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Force download?'**
+  String get settingsWebDAVForceDownloadConfirmTitle;
+
+  /// No description provided for @settingsWebDAVForceDownloadConfirmBody.
+  ///
+  /// In en, this message translates to:
+  /// **'This will replace all local data and images with the remote copies. Local changes since the last sync will be lost.'**
+  String get settingsWebDAVForceDownloadConfirmBody;
+
+  /// No description provided for @syncPhaseConnecting.
+  ///
+  /// In en, this message translates to:
+  /// **'Connecting…'**
+  String get syncPhaseConnecting;
+
+  /// No description provided for @syncPhaseDownloadingData.
+  ///
+  /// In en, this message translates to:
+  /// **'Downloading {file} ({current}/{total})'**
+  String syncPhaseDownloadingData(String file, int current, int total);
+
+  /// No description provided for @syncPhaseMerging.
+  ///
+  /// In en, this message translates to:
+  /// **'Merging {file}…'**
+  String syncPhaseMerging(String file);
+
+  /// No description provided for @syncPhaseUploadingData.
+  ///
+  /// In en, this message translates to:
+  /// **'Uploading {file}…'**
+  String syncPhaseUploadingData(String file);
+
+  /// No description provided for @syncPhaseUploadingImages.
+  ///
+  /// In en, this message translates to:
+  /// **'Uploading images ({current}/{total})'**
+  String syncPhaseUploadingImages(int current, int total);
+
+  /// No description provided for @syncPhaseDownloadingImages.
+  ///
+  /// In en, this message translates to:
+  /// **'Downloading images ({current}/{total})'**
+  String syncPhaseDownloadingImages(int current, int total);
+
+  /// No description provided for @commonOk.
+  ///
+  /// In en, this message translates to:
+  /// **'OK'**
+  String get commonOk;
 
   /// No description provided for @backupTitle.
   ///
