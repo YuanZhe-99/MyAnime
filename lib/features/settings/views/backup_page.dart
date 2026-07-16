@@ -2,7 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
 import '../../../l10n/app_localizations.dart';
+import '../../../shared/services/auto_sync_service.dart';
 import '../../../shared/services/backup_service.dart';
+import '../../../shared/services/reminder_service.dart';
+import '../../../shared/services/sync_wake_lock.dart';
+import '../../../shared/services/webdav_service.dart';
 
 class BackupPage extends StatefulWidget {
   /// Purpose: Create a backup page instance.
@@ -62,7 +66,8 @@ class _BackupPageState extends State<BackupPage> {
   /// Inputs: None.
   /// Returns: None.
   /// Side effects: None.
-  /// Notes: Internal helper used within this file only.
+  /// Notes: Internal helper used within this file only. Shows a failure
+  /// snackbar when the backup could not be created.
   Future<void> _createBackup() async {
     final l10n = AppLocalizations.of(context)!;
     final file = await BackupService.createBackup();
@@ -72,6 +77,10 @@ class _BackupPageState extends State<BackupPage> {
         context,
       ).showSnackBar(SnackBar(content: Text(l10n.backupCreated)));
       await _load();
+    } else {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(l10n.backupFailed)));
     }
   }
 
@@ -124,9 +133,84 @@ class _BackupPageState extends State<BackupPage> {
       moduleKeys: selected,
     );
     if (!mounted) return;
+    if (!ok) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(l10n.backupRestoreFailed)));
+      return;
+    }
+
+    // Reload open pages and reminder schedules with the restored data.
+    AutoSyncService.instance.notifyLocalDataChangedNow();
+    ReminderService.notifyDataChanged();
+
+    await _handlePostRestoreSync();
+  }
+
+  /// Purpose: Disable auto-sync after a restore and offer a force upload.
+  /// Inputs: None.
+  /// Returns: None.
+  /// Side effects: May rewrite `webdav_config.json` with auto-sync disabled,
+  /// force-upload local data to the WebDAV remote under a wake lock, and
+  /// show dialogs/snackbars.
+  /// Notes: Internal helper used within this file only. Does nothing beyond
+  /// a success snackbar when WebDAV sync is not configured: restoring an
+  /// older backup and letting auto-sync merge it would otherwise propagate
+  /// stale records and deletions to the remote and other devices.
+  Future<void> _handlePostRestoreSync() async {
+    final l10n = AppLocalizations.of(context)!;
+
+    final config = await WebDAVService.loadConfig();
+    if (config == null || !config.isConfigured) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(l10n.backupRestored)));
+      return;
+    }
+
+    await WebDAVService.saveConfig(config.copyWith(autoSync: false));
+    if (!mounted) return;
+
+    final forceUpload = await showDialog<bool>(
+      context: context,
+      barrierDismissible: false,
+      builder: (ctx) => AlertDialog(
+        title: Text(l10n.backupRestored),
+        content: Text(
+          '${l10n.backupRestoredSyncDisabled}\n\n'
+          '${l10n.backupForceUploadPrompt}',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: Text(l10n.backupForceUploadSkip),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            child: Text(l10n.settingsWebDAVForceUpload),
+          ),
+        ],
+      ),
+    );
+    if (forceUpload != true || !mounted) return;
+
+    await SyncWakeLock.acquire();
+    SyncResult result;
+    try {
+      result = await WebDAVService.forceUpload(config);
+    } finally {
+      await SyncWakeLock.release();
+    }
+    if (!mounted) return;
+    AutoSyncService.instance.recordSyncResult(result);
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text(ok ? l10n.backupRestored : l10n.backupRestoreFailed),
+        content: Text(
+          result.success
+              ? l10n.backupForceUploadDone
+              : l10n.backupForceUploadFailed,
+        ),
       ),
     );
   }
@@ -227,10 +311,35 @@ class _BackupPageState extends State<BackupPage> {
           ? const Center(child: CircularProgressIndicator())
           : ListView(
               children: [
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
+                  child: Card(
+                    child: Padding(
+                      padding: const EdgeInsets.all(12),
+                      child: Row(
+                        children: [
+                          Icon(
+                            Icons.info_outline,
+                            color: theme.colorScheme.primary,
+                            size: 20,
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Text(
+                              l10n.backupLocalOnlyNote,
+                              style: theme.textTheme.bodySmall,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
                 _buildSection(context, l10n.settingsGeneral, [
                   SwitchListTile(
                     secondary: const Icon(Icons.schedule_outlined),
                     title: Text(l10n.backupAutoBackup),
+                    subtitle: Text(l10n.backupAutoBackupDesc),
                     value: _autoBackup,
                     onChanged: _toggleAutoBackup,
                   ),
@@ -278,16 +387,29 @@ class _BackupPageState extends State<BackupPage> {
                       : _backups.map((b) {
                           final dateStr = dateFormat.format(b.date);
                           return ListTile(
-                            leading: const Icon(Icons.inventory_2_outlined),
+                            leading: Icon(
+                              b.corrupt
+                                  ? Icons.error_outline
+                                  : Icons.inventory_2_outlined,
+                              color: b.corrupt
+                                  ? theme.colorScheme.error
+                                  : null,
+                            ),
                             title: Text(dateStr),
-                            subtitle: Text(b.displaySize),
+                            subtitle: Text(
+                              b.corrupt
+                                  ? '${b.displaySize} · ${l10n.backupCorrupt}'
+                                  : b.displaySize,
+                            ),
                             trailing: Row(
                               mainAxisSize: MainAxisSize.min,
                               children: [
                                 IconButton(
                                   icon: const Icon(Icons.restore),
                                   tooltip: l10n.backupRestore,
-                                  onPressed: () => _restoreBackup(b),
+                                  onPressed: b.corrupt
+                                      ? null
+                                      : () => _restoreBackup(b),
                                 ),
                                 IconButton(
                                   icon: const Icon(Icons.delete_outline),
@@ -328,8 +450,6 @@ class _RestoreModuleDialogState extends State<_RestoreModuleDialog> {
   late final Set<String> _selected;
   bool _selectAll = true;
 
-  static const _moduleLabels = {'anime': ('Anime Data', Icons.video_library)};
-
   /// Purpose: Initialize listeners, controllers, and first-load work for this state object.
   /// Inputs: None.
   /// Returns: None.
@@ -349,6 +469,9 @@ class _RestoreModuleDialogState extends State<_RestoreModuleDialog> {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
+    final moduleLabels = {
+      'anime': (l10n.backupModuleAnime, Icons.video_library),
+    };
     return AlertDialog(
       title: Text(l10n.backupRestoreModules),
       content: Column(
@@ -370,7 +493,7 @@ class _RestoreModuleDialogState extends State<_RestoreModuleDialog> {
           ),
           const Divider(),
           ...widget.availableModules.map((m) {
-            final label = _moduleLabels[m];
+            final label = moduleLabels[m];
             return CheckboxListTile(
               secondary: Icon(label?.$2 ?? Icons.data_object),
               title: Text(label?.$1 ?? m),

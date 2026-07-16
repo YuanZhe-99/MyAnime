@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../l10n/app_localizations.dart';
+import '../../../shared/services/auto_sync_service.dart';
 import '../../../shared/widgets/import_bundle_dialog.dart';
 import '../../../shared/services/image_service.dart';
 import '../../../shared/widgets/delete_confirm.dart';
@@ -56,6 +57,7 @@ class _ManagementPageState extends State<ManagementPage> {
   @override
   void initState() {
     super.initState();
+    AutoSyncService.instance.addOnLocalDataChanged(_load);
     _load();
     final now = DateTime.now();
     final currentQ = _Quarter(now.year, ((now.month - 1) ~/ 3) + 1);
@@ -70,9 +72,10 @@ class _ManagementPageState extends State<ManagementPage> {
   /// Inputs: None.
   /// Returns: None.
   /// Side effects: Disposes controllers, listeners, and other owned resources.
-  /// Notes: Flutter lifecycle override.
+  /// Notes: Flutter lifecycle override. Unregisters the sync reload callback.
   @override
   void dispose() {
+    AutoSyncService.instance.removeOnLocalDataChanged(_load);
     _pageController.dispose();
     super.dispose();
   }

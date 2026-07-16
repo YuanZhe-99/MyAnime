@@ -1076,7 +1076,7 @@ abstract class AppLocalizations {
   /// No description provided for @backupRestoreConfirm.
   ///
   /// In en, this message translates to:
-  /// **'This will overwrite your current data. Continue?'**
+  /// **'This will overwrite the selected data with the backup. Continue?'**
   String get backupRestoreConfirm;
 
   /// No description provided for @backupRestored.
@@ -1094,7 +1094,7 @@ abstract class AppLocalizations {
   /// No description provided for @backupDeleteConfirm.
   ///
   /// In en, this message translates to:
-  /// **'Delete this backup?'**
+  /// **'Delete this backup? This cannot be undone.'**
   String get backupDeleteConfirm;
 
   /// No description provided for @backupRestoreModules.
@@ -1108,6 +1108,66 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Select All'**
   String get backupSelectAll;
+
+  /// No description provided for @backupFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Backup failed'**
+  String get backupFailed;
+
+  /// No description provided for @backupAutoBackupDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'Automatically creates one backup per day'**
+  String get backupAutoBackupDesc;
+
+  /// No description provided for @backupLocalOnlyNote.
+  ///
+  /// In en, this message translates to:
+  /// **'Backups are stored locally on this device only. Use WebDAV Sync for cloud backup.'**
+  String get backupLocalOnlyNote;
+
+  /// No description provided for @backupModuleAnime.
+  ///
+  /// In en, this message translates to:
+  /// **'Anime Data'**
+  String get backupModuleAnime;
+
+  /// No description provided for @backupCorrupt.
+  ///
+  /// In en, this message translates to:
+  /// **'Corrupted'**
+  String get backupCorrupt;
+
+  /// No description provided for @backupRestoredSyncDisabled.
+  ///
+  /// In en, this message translates to:
+  /// **'Backup restored. Auto-sync has been disabled to protect the restored data.'**
+  String get backupRestoredSyncDisabled;
+
+  /// No description provided for @backupForceUploadPrompt.
+  ///
+  /// In en, this message translates to:
+  /// **'Upload the restored data to WebDAV now? The remote data will be overwritten with the restored local data.'**
+  String get backupForceUploadPrompt;
+
+  /// No description provided for @backupForceUploadSkip.
+  ///
+  /// In en, this message translates to:
+  /// **'Not now'**
+  String get backupForceUploadSkip;
+
+  /// No description provided for @backupForceUploadDone.
+  ///
+  /// In en, this message translates to:
+  /// **'Force upload completed'**
+  String get backupForceUploadDone;
+
+  /// No description provided for @backupForceUploadFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Force upload failed'**
+  String get backupForceUploadFailed;
 
   /// No description provided for @exportData.
   ///

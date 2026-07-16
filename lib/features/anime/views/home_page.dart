@@ -9,6 +9,7 @@ import 'package:url_launcher/url_launcher.dart';
 
 import '../../../l10n/app_localizations.dart';
 import '../../../shared/providers/app_settings.dart';
+import '../../../shared/services/auto_sync_service.dart';
 import '../../../shared/widgets/import_bundle_dialog.dart';
 import '../../../shared/services/image_service.dart';
 import '../../../shared/utils/calendar_preferences.dart';
@@ -43,11 +44,25 @@ class _HomePageState extends ConsumerState<HomePage> {
   /// Inputs: None.
   /// Returns: None.
   /// Side effects: Initializes owned state, listeners, or async work.
-  /// Notes: Flutter lifecycle override.
+  /// Notes: Flutter lifecycle override. Registers a reload callback so the
+  /// calendar refreshes after background sync or backup restore replaces
+  /// local data.
   @override
   void initState() {
     super.initState();
+    AutoSyncService.instance.addOnLocalDataChanged(_load);
     _load();
+  }
+
+  /// Purpose: Release listeners owned by this state object.
+  /// Inputs: None.
+  /// Returns: None.
+  /// Side effects: Unregisters the sync reload callback.
+  /// Notes: Flutter lifecycle override.
+  @override
+  void dispose() {
+    AutoSyncService.instance.removeOnLocalDataChanged(_load);
+    super.dispose();
   }
 
   /// Purpose: Provide the internal load helper for this file.

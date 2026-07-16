@@ -123,6 +123,19 @@ class AutoSyncService with WidgetsBindingObserver {
     }
   }
 
+  /// Purpose: Notify UI reload listeners unconditionally after local data
+  /// files were replaced outside of sync (backup restore, ZIP import).
+  /// Inputs: None.
+  /// Returns: None.
+  /// Side effects: Invokes registered reload callbacks.
+  /// Notes: Unlike [notifyLocalDataChangedIfNeeded] this does not depend on
+  /// the WebDAV local-data-changed flag.
+  void notifyLocalDataChangedNow() {
+    for (final cb in List.of(_onLocalDataChanged)) {
+      cb();
+    }
+  }
+
   /// Purpose: Record a conflict-finalization result.
   /// Inputs: `ok`.
   /// Returns: None.
@@ -140,16 +153,18 @@ class AutoSyncService with WidgetsBindingObserver {
   /// Inputs: None.
   /// Returns: None.
   /// Side effects: May read or mutate application state, storage, or service resources.
-  /// Notes: None.
+  /// Notes: The periodic timer also runs the daily auto-backup check so a
+  /// desktop instance left running across midnight still creates its daily
+  /// backup without a launch or resume event.
   void start() {
     if (_started) return;
     _started = true;
     WidgetsBinding.instance.addObserver(this);
     requestSyncNow();
-    _periodicSync = Timer.periodic(
-      _periodicSyncInterval,
-      (_) => requestSyncNow(),
-    );
+    _periodicSync = Timer.periodic(_periodicSyncInterval, (_) {
+      requestSyncNow();
+      BackupService.runAutoBackupIfNeeded();
+    });
   }
 
   /// Purpose: Implement the stop behavior for this file.

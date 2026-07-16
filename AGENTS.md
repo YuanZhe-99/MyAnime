@@ -28,7 +28,7 @@ Maintenance rules:
 - **Description:** A privacy-first anime tracking app with a JST-aware calendar, seasonal quarter management, statistics, multi-source anime search, watch-progress tracking, daily reminders, share/export flows, WebDAV sync, local backup, a desktop local API server, tray behavior, launch-at-startup, and a kana quick-reference module.
 - **Author / package id:** `yuanzhe`, `com.yuanzhe.my_anime`.
 - **License:** GPL-3.0.
-- **Current version:** `1.2.1+45` in `pubspec.yaml`, `1.2.1.0` for MSIX, and `1.2.1` in `installer.iss`.
+- **Current version:** `1.2.2+46` in `pubspec.yaml`, `1.2.2.0` for MSIX, and `1.2.2` in `installer.iss`.
 - **Framework:** Flutter with Dart SDK `^3.11.3`; CI uses Flutter `3.44.2`.
 - **Platforms:** Windows, Android, iOS, macOS. Linux project files exist and desktop services include Linux branches, but Linux is not a primary release target. Web is not targeted.
 - **Repository:** Use the system-provided workspace or working-directory environment to determine the repository path at runtime; do not hardcode a machine-specific absolute path here.
@@ -79,6 +79,10 @@ When the user confirms the version and wants to push:
 GitHub Actions release builds are triggered by tag pushes to `github`. Tags must be pushed explicitly, either with `git push <remote> <tag>` or an intentional `--tags`.
 
 For documentation-only maintenance that the user explicitly says does not require a release, commit and push the documentation change to the requested remotes without changing versions or creating a tag.
+
+## Agent Co-Author Attribution
+
+An Agent that made a real, material contribution to a commit may add its own accurate `Co-authored-by:` trailer. Attribution is per commit: do not add an Agent merely because it reviewed, observed, or continued work produced by another Agent, and never copy a trailer automatically from an earlier commit. When multiple Agents materially contributed, include one accurate trailer for each. Use the Agent's actual documented identity; never invent a provider, model, name, or email. Approved examples are `Co-authored-by: Codex <noreply@openai.com>` and, for Claude Code, `Co-Authored-By: Claude Sonnet 5 <noreply@anthropic.com>` with the model name replaced by the actual Claude model that performed the work (for example Claude Opus 4.6 or Claude Fable 5). For OpenCode or another Agent, use its verified documented identity; if none is verified, omit the AI trailer unless the repository owner explicitly approves one.
 
 ## Build Flavors
 
@@ -151,6 +155,7 @@ lib/
 Primary tests currently include:
 
 - `test/anime_json_test.dart`: unknown JSON preservation and auto-resolved sync merge behavior.
+- `test/backup_service_test.dart`: backup format v2 blob dedup, reference-counted blob GC, legacy inline-image restore, image-name sanitization, restore validation, corrupt-bundle detection.
 - `test/audit_fixes_test.dart`: identical-content conflict suppression and forward-snapped episode air dates.
 - `test/duplicate_service_test.dart`: duplicate detection (same-id, same-url, same-title-season), transitive grouping, and merge semantics.
 - `test/bundle_import_test.dart`: `.myanimeitem` v1 backward compatibility, v2 multi-anime bundle format, and export personal-data stripping.
@@ -257,6 +262,10 @@ Platform file association is configured on Android, iOS, macOS, and Windows. Win
 ### Backup, Export, Import, and Images
 
 - `backup_service.dart`: local auto-backup once per day, manual backups, retention, and selective restore.
+- Backup format v2: each `backups/backup_*.json` bundle stores data-module JSON strings plus an `_imageRefs` map pointing at content-addressed image blobs in `backups/blobs/<sha256><ext>`. Identical images are stored once and shared by every backup; a blob is physically deleted only when no remaining backup references it (GC runs after create/delete/retention, aborts if any remaining bundle is unparseable, and never deletes blobs younger than a 10-minute grace window). Legacy v1 bundles with inline base64 `_images` remain restorable.
+- Bundle writes are atomic (tmp-then-rename). Corrupt (unparseable) bundles are flagged in the backup history with restore disabled and do not count as "already backed up today", so an interrupted auto-backup is retried. `runAutoBackupIfNeeded()` is re-entrancy guarded; auto-backup triggers are app launch, app resume, and the auto-sync 15-minute periodic timer (covers desktop instances running across midnight).
+- Restore validates module JSON via `AnimeData.fromJson` before writing anything, writes atomically, and sanitizes image names (flat `images/<name>` only; traversal/absolute paths rejected).
+- After a successful restore the backup page reloads open pages (`AutoSyncService.notifyLocalDataChangedNow()`), refreshes reminders, and — only when WebDAV sync is configured — automatically disables auto-sync in `webdav_config.json` and asks whether to force-upload the restored data (wake lock held, result recorded in sync status). Without this, the next sync would treat restored-old data as local edits/deletions and propagate them to the remote and other devices.
 - `import_export_service.dart`: ZIP export/import and Markdown export.
 - ZIP export includes `anime_data.json` and `images/`.
 - ZIP import must keep path traversal protection: only allowlisted entries (`anime_data.json` and flat files under `images/`) are extracted and the resolved output path must stay inside the app dir, so a crafted ZIP cannot overwrite configuration such as `webdav_config.json`.
@@ -335,7 +344,7 @@ Important sync constraints:
 - `WebDAVService.forceUpload()` overwrites remote data files and uploads referenced images without any merge or conflict check, under the remote `.lock`, then saves base snapshots. `WebDAVService.forceDownload()` replaces local data files (JSON-validated first, atomic writes) and downloads referenced images without merging, saves base snapshots, and sets the local-data-changed flag; it is download-only and takes no remote lock. Both share the `_syncing` guard and require a destructive-action confirmation dialog in the WebDAV page.
 - After manual sync or force operations the WebDAV page calls `AutoSyncService.notifyLocalDataChangedIfNeeded()` so open pages reload without waiting for the next background sync.
 
-Auto-sync triggers include app launch, app resume, a 30-second debounce after storage saves, immediate sync after enabling/saving auto-sync config, and a 15-minute timer while the app process is alive. Mobile OS suspension may delay timers until resume. Storage-layer `save()` methods should notify auto-sync so non-UI writes are covered. Auto-sync records latest success, failure, and pending-conflict state in memory so Settings and the WebDAV page can surface sync health.
+Auto-sync triggers include app launch, app resume, a 30-second debounce after storage saves, immediate sync after enabling/saving auto-sync config, and a 15-minute timer while the app process is alive (the same timer also runs the daily auto-backup check). Home, Manage, and Stats pages register `AutoSyncService.addOnLocalDataChanged` reload callbacks in `initState`/`dispose`, so background sync merges, downloaded images, and backup restores refresh open pages without renavigation. Mobile OS suspension may delay timers until resume. Storage-layer `save()` methods should notify auto-sync so non-UI writes are covered. Auto-sync records latest success, failure, and pending-conflict state in memory so Settings and the WebDAV page can surface sync health.
 
 ## Persisted Data Inventory
 
@@ -358,7 +367,8 @@ Default app data directory is `Documents/MyAnime` on desktop or the platform app
 | Tray and launch-at-startup preferences | `storage_config.json` | No | Local desktop config |
 | WebDAV configuration | `webdav_config.json` | No | Local secret/config only |
 | Sync base snapshot | `.sync_base/anime_data.json` | No | Local merge tracking |
-| Local backups | `backups/backup_*.json` | No | Local recovery |
+| Local backups | `backups/backup_*.json` | No | Local recovery; v2 bundles reference deduplicated image blobs |
+| Backup image blobs | `backups/blobs/` | No | Content-addressed (`sha256`), shared across backups, reference-counted GC |
 
 ## Platform Caveats
 
@@ -481,3 +491,4 @@ Version highlights:
 - `v1.1.3`: WebDAV now acquires `.lock` before downloading and merging remote data, lowers the lock TTL to 60 seconds, and force-uploads complete merged/resolved JSON under the valid lock without data-file `If-Match`/`If-None-Match` retry loops; versions are unified to `1.1.3+43` / MSIX `1.1.3.0` / installer `1.1.3`.
 - `v1.2.0`: WebDAV sync hardening and force transfers — remote image listing failures no longer masquerade as an empty directory (fixing repeated re-uploads of already-uploaded images), transient network errors and HTTP 5xx are retried with backoff, sync progress is published through `WebDAVService.progress` and shown as a progress bar with localized phase text, Force Upload / Force Download actions with confirmation dialogs were added to the WebDAV page, sync-written JSON is pretty-printed to match local saves, `AnimeStorage` data/config writes and sync base/lock writes are atomic, `notifySaved` is ignored before auto-sync starts, downloaded images trigger UI reloads, manual sync notifies reload listeners, WebDAV terminology was standardized across MyAnime/MyDay/MyDevice (`settingsWebDAVTest` renamed to `settingsWebDAVTestConnection`), the search cover-fetch error is localized, installer filenames derive from `AppVersion`, and versions are unified to `1.2.0+44` / MSIX `1.2.0.0` / installer `1.2.0`.
 - `v1.2.1`: Foreground sync operations (manual sync, conflict finalize, force upload/download) hold a screen wake lock via the new `sync_wake_lock.dart` and `wakelock_plus`, released in `finally` on completion/failure/cancel/exception; dismissing a sync conflict dialog now aborts the resolution instead of silently uploading keep-local; backup retention gains a 3-day option; Japanese `statsTracked`/`statsWatching` values were un-swapped; backup/restore terminology was standardized across MyAnime/MyDay/MyDevice (`backupRestoreModules` says "Modules", ja `backupCreate` unified); remaining ASCII `...` in localization strings was converted to `…`; and versions are unified to `1.2.1+45` / MSIX `1.2.1.0` / installer `1.2.1`.
+- `v1.2.2`: Backup overhaul — backup format v2 stores images once in a content-addressed `backups/blobs/` store shared by all backups with reference-counted GC (a blob is deleted only when no remaining backup references it; legacy inline-image bundles stay restorable), bundle writes are atomic and corrupt bundles are flagged in the history (restore disabled) without suppressing the daily auto-backup retry, restoring a backup now reloads open pages and reminders, disables WebDAV auto-sync when sync is configured and offers an explicit force upload of the restored data (preventing restored-old data from propagating deletions to other devices), restore validates module JSON and sanitizes image names before writing, Home/Manage/Stats pages register sync reload callbacks (fixing the documented-but-unwired UI reload after background sync), auto-backup also runs from the 15-minute periodic timer with a re-entrancy guard, backup failures show a snackbar, the restore module label is localized, backup UI text/CJK terminology was standardized across MyAnime/MyDay/MyDevice (zh uses 还原), unused test imports were removed, and versions are unified to `1.2.2+46` / MSIX `1.2.2.0` / installer `1.2.2`.

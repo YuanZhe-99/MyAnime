@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../l10n/app_localizations.dart';
+import '../../../shared/services/auto_sync_service.dart';
 import '../../../shared/services/image_service.dart';
 import '../../../shared/services/share_service.dart';
 import '../models/anime.dart';
@@ -89,6 +90,7 @@ class _StatisticsPageState extends State<StatisticsPage> {
     _rankingStartQuarter = ((now.month - 1) ~/ 3) + 1;
     _rankingEndYear = now.year;
     _rankingEndQuarter = ((now.month - 1) ~/ 3) + 1;
+    AutoSyncService.instance.addOnLocalDataChanged(_load);
     _load();
   }
 
@@ -96,9 +98,10 @@ class _StatisticsPageState extends State<StatisticsPage> {
   /// Inputs: None.
   /// Returns: None.
   /// Side effects: Disposes controllers, listeners, and other owned resources.
-  /// Notes: Flutter lifecycle override.
+  /// Notes: Flutter lifecycle override. Unregisters the sync reload callback.
   @override
   void dispose() {
+    AutoSyncService.instance.removeOnLocalDataChanged(_load);
     _trendScrollController.dispose();
     super.dispose();
   }
