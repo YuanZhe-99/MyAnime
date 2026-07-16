@@ -217,7 +217,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get animeEdit => 'Edit Anime';
 
   @override
-  String get animeSearchHint => 'Search anime...';
+  String get animeSearchHint => 'Search anime…';
 
   @override
   String get animeNoResults => 'No anime in this season';
@@ -544,7 +544,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get backupDeleteConfirm => 'Delete this backup?';
 
   @override
-  String get backupRestoreModules => 'Select Data to Restore';
+  String get backupRestoreModules => 'Select Modules to Restore';
 
   @override
   String get backupSelectAll => 'Select All';
@@ -869,7 +869,7 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String get importBundleNoConflicts => 'No conflicts found, importing all...';
+  String get importBundleNoConflicts => 'No conflicts found, importing all…';
 
   @override
   String get settingsDuplicateCheck => 'Check Duplicates';
@@ -1001,7 +1001,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get kanaScriptKatakana => 'Katakana';
 
   @override
-  String get kanaSearchHint => 'Search kana or romaji...';
+  String get kanaSearchHint => 'Search kana or romaji…';
 
   @override
   String kanaSearchResults(int count) {
@@ -1102,8 +1102,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get statsSharePriorityOldest => 'Oldest (first air date)';
 
   @override
-  String get statsShareGenerating =>
-      'Generating image, this may take a while...';
+  String get statsShareGenerating => 'Generating image, this may take a while…';
 
   @override
   String statsShareGeneratingProgress(int done, int total) {

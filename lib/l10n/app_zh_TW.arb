@@ -176,7 +176,7 @@
   "backupRestored": "備份已還原",
   "backupRestoreFailed": "還原失敗",
   "backupDeleteConfirm": "刪除此備份？",
-  "backupRestoreModules": "選擇要還原的資料",
+  "backupRestoreModules": "選擇要還原的模組",
   "backupSelectAll": "全選",
 
   "exportData": "匯出資料",
@@ -299,7 +299,7 @@
   "importBundleMerge": "合併",
   "importBundleSuccess": "成功匯入 {count} 部番劇",
   "@importBundleSuccess": { "placeholders": { "count": { "type": "int" } } },
-  "importBundleNoConflicts": "未發現衝突，正在匯入全部...",
+  "importBundleNoConflicts": "未發現衝突，正在匯入全部…",
 
   "settingsDuplicateCheck": "檢查重複",
   "settingsDuplicateCheckDesc": "尋找並合併重複的番劇記錄",
@@ -343,7 +343,7 @@
   "kanaTitle": "五十音速查",
   "kanaScriptHiragana": "平假名",
   "kanaScriptKatakana": "片假名",
-  "kanaSearchHint": "搜尋假名或羅馬音...",
+  "kanaSearchHint": "搜尋假名或羅馬音…",
   "kanaSearchResults": "符合 ({count})",
   "kanaNoMatches": "沒有符合的假名",
   "kanaBasicSection": "清音五十音",
@@ -373,7 +373,7 @@
   "statsShareLimitPriority": "優先順序",
   "statsSharePriorityRecent": "時間近（首播日）",
   "statsSharePriorityOldest": "時間遠（首播日）",
-  "statsShareGenerating": "正在產生圖片，可能耗時較長...",
+  "statsShareGenerating": "正在產生圖片，可能耗時較長…",
   "statsShareGeneratingProgress": "載入封面: {done}/{total}",
   "statsShareTruncated": "{shown}/{total} 部（已截斷）",
   "settingsDesktop": "桌面"

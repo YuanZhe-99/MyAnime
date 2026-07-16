@@ -28,7 +28,7 @@ Maintenance rules:
 - **Description:** A privacy-first anime tracking app with a JST-aware calendar, seasonal quarter management, statistics, multi-source anime search, watch-progress tracking, daily reminders, share/export flows, WebDAV sync, local backup, a desktop local API server, tray behavior, launch-at-startup, and a kana quick-reference module.
 - **Author / package id:** `yuanzhe`, `com.yuanzhe.my_anime`.
 - **License:** GPL-3.0.
-- **Current version:** `1.2.0+44` in `pubspec.yaml`, `1.2.0.0` for MSIX, and `1.2.0` in `installer.iss`.
+- **Current version:** `1.2.1+45` in `pubspec.yaml`, `1.2.1.0` for MSIX, and `1.2.1` in `installer.iss`.
 - **Framework:** Flutter with Dart SDK `^3.11.3`; CI uses Flutter `3.44.2`.
 - **Platforms:** Windows, Android, iOS, macOS. Linux project files exist and desktop services include Linux branches, but Linux is not a primary release target. Web is not targeted.
 - **Repository:** Use the system-provided workspace or working-directory environment to determine the repository path at runtime; do not hardcode a machine-specific absolute path here.
@@ -135,6 +135,7 @@ lib/
       share_service.dart
       sync_merge.dart
       sync_progress.dart
+      sync_wake_lock.dart
       tray_service.dart
       webdav_service.dart
     utils/
@@ -310,7 +311,9 @@ Flow:
 9. If there are record conflicts, return them to the user. After the user resolves them, `finalizePendingSync` reacquires `.lock` and force-uploads the complete resolved JSON.
 10. Save the new base snapshot only after upload succeeds, then clear the matching remote/local upload lock.
 
-Manual sync uses `autoResolve: false` and shows conflict dialogs. Auto-sync also leaves `autoResolve` disabled: it records failures and true two-sided conflicts as visible status in Settings/WebDAV instead of silently applying last-writer-wins. Users must open the WebDAV page and resolve conflicts manually. `finalizePendingSync` returns false when applying or force-uploading the resolution under `.lock` fails so the UI reports the failure; the base snapshot stays untouched and the next sync re-merges.
+Manual sync uses `autoResolve: false` and shows conflict dialogs. Auto-sync also leaves `autoResolve` disabled: it records failures and true two-sided conflicts as visible status in Settings/WebDAV instead of silently applying last-writer-wins. Users must open the WebDAV page and resolve conflicts manually. Dismissing any conflict dialog (system back) aborts the whole resolution: nothing is uploaded, the conflict stays pending in the visible sync status, and no record is silently resolved to the local version. `finalizePendingSync` returns false when applying or force-uploading the resolution under `.lock` fails so the UI reports the failure; the base snapshot stays untouched and the next sync re-merges.
+
+Foreground sync operations on the WebDAV page (manual sync, conflict finalize upload, force upload, force download) hold a screen wake lock through `shared/services/sync_wake_lock.dart` (`wakelock_plus`). The lock is reference-counted, only enabled if no other feature already holds one, acquired only after force-action confirmation, released in `finally` on completion/failure/cancel/exception, and never used by background auto-sync.
 
 Important sync constraints:
 
@@ -477,3 +480,4 @@ Version highlights:
 - `v1.1.2`: WebDAV uploads now use a remote `.lock` with a stable local client id and 150-second TTL, interrupted local uploads are detected on the next sync, and HTTP 412 upload races re-download remote data and re-run per-record merge before surfacing only true record conflicts; versions are unified to `1.1.2+42` / MSIX `1.1.2.0` / installer `1.1.2`.
 - `v1.1.3`: WebDAV now acquires `.lock` before downloading and merging remote data, lowers the lock TTL to 60 seconds, and force-uploads complete merged/resolved JSON under the valid lock without data-file `If-Match`/`If-None-Match` retry loops; versions are unified to `1.1.3+43` / MSIX `1.1.3.0` / installer `1.1.3`.
 - `v1.2.0`: WebDAV sync hardening and force transfers — remote image listing failures no longer masquerade as an empty directory (fixing repeated re-uploads of already-uploaded images), transient network errors and HTTP 5xx are retried with backoff, sync progress is published through `WebDAVService.progress` and shown as a progress bar with localized phase text, Force Upload / Force Download actions with confirmation dialogs were added to the WebDAV page, sync-written JSON is pretty-printed to match local saves, `AnimeStorage` data/config writes and sync base/lock writes are atomic, `notifySaved` is ignored before auto-sync starts, downloaded images trigger UI reloads, manual sync notifies reload listeners, WebDAV terminology was standardized across MyAnime/MyDay/MyDevice (`settingsWebDAVTest` renamed to `settingsWebDAVTestConnection`), the search cover-fetch error is localized, installer filenames derive from `AppVersion`, and versions are unified to `1.2.0+44` / MSIX `1.2.0.0` / installer `1.2.0`.
+- `v1.2.1`: Foreground sync operations (manual sync, conflict finalize, force upload/download) hold a screen wake lock via the new `sync_wake_lock.dart` and `wakelock_plus`, released in `finally` on completion/failure/cancel/exception; dismissing a sync conflict dialog now aborts the resolution instead of silently uploading keep-local; backup retention gains a 3-day option; Japanese `statsTracked`/`statsWatching` values were un-swapped; backup/restore terminology was standardized across MyAnime/MyDay/MyDevice (`backupRestoreModules` says "Modules", ja `backupCreate` unified); remaining ASCII `...` in localization strings was converted to `…`; and versions are unified to `1.2.1+45` / MSIX `1.2.1.0` / installer `1.2.1`.

@@ -27,7 +27,7 @@ class _BackupPageState extends State<BackupPage> {
   bool _autoBackup = false;
   int _retentionDays = 0;
 
-  static const _retentionOptions = [0, 7, 14, 30, 60, 90];
+  static const _retentionOptions = [0, 3, 7, 14, 30, 60, 90];
 
   /// Purpose: Initialize listeners, controllers, and first-load work for this state object.
   /// Inputs: None.

@@ -537,7 +537,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get backupDeleteConfirm => '删除此备份？';
 
   @override
-  String get backupRestoreModules => '选择要恢复的数据';
+  String get backupRestoreModules => '选择要恢复的模块';
 
   @override
   String get backupSelectAll => '全选';
@@ -857,7 +857,7 @@ class AppLocalizationsZh extends AppLocalizations {
   }
 
   @override
-  String get importBundleNoConflicts => '未发现冲突，正在导入全部...';
+  String get importBundleNoConflicts => '未发现冲突，正在导入全部…';
 
   @override
   String get settingsDuplicateCheck => '检查重复';
@@ -985,7 +985,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get kanaScriptKatakana => '片假名';
 
   @override
-  String get kanaSearchHint => '搜索假名或罗马音...';
+  String get kanaSearchHint => '搜索假名或罗马音…';
 
   @override
   String kanaSearchResults(int count) {
@@ -1079,7 +1079,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get statsSharePriorityOldest => '时间远（首播日）';
 
   @override
-  String get statsShareGenerating => '正在生成图片，可能耗时较长...';
+  String get statsShareGenerating => '正在生成图片，可能耗时较长…';
 
   @override
   String statsShareGeneratingProgress(int done, int total) {
@@ -1628,7 +1628,7 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
   String get backupDeleteConfirm => '刪除此備份？';
 
   @override
-  String get backupRestoreModules => '選擇要還原的資料';
+  String get backupRestoreModules => '選擇要還原的模組';
 
   @override
   String get backupSelectAll => '全選';
@@ -1948,7 +1948,7 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
   }
 
   @override
-  String get importBundleNoConflicts => '未發現衝突，正在匯入全部...';
+  String get importBundleNoConflicts => '未發現衝突，正在匯入全部…';
 
   @override
   String get settingsDuplicateCheck => '檢查重複';
@@ -2076,7 +2076,7 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
   String get kanaScriptKatakana => '片假名';
 
   @override
-  String get kanaSearchHint => '搜尋假名或羅馬音...';
+  String get kanaSearchHint => '搜尋假名或羅馬音…';
 
   @override
   String kanaSearchResults(int count) {
@@ -2170,7 +2170,7 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
   String get statsSharePriorityOldest => '時間遠（首播日）';
 
   @override
-  String get statsShareGenerating => '正在產生圖片，可能耗時較長...';
+  String get statsShareGenerating => '正在產生圖片，可能耗時較長…';
 
   @override
   String statsShareGeneratingProgress(int done, int total) {

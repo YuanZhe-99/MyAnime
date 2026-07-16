@@ -1,7 +1,7 @@
 [Setup]
 AppId={{C3D4E5F6-A7B8-9012-CDEF-123456789ABC}
 AppName=MyAnime!!!!!
-AppVersion=1.2.0
+AppVersion=1.2.1
 AppPublisher=yuanzhe
 AppPublisherURL=https://github.com/yuanzhe
 DefaultDirName={autopf}\MyAnime!!!!!
@@ -13,11 +13,11 @@ OutputBaseFilename=MyAnime_{#SetupSetting("AppVersion")}_arm64_Setup
 #else
 OutputBaseFilename=MyAnime_{#SetupSetting("AppVersion")}_Setup
 #endif
-VersionInfoVersion=1.2.0.0
+VersionInfoVersion=1.2.1.0
 VersionInfoCompany=yuanzhe
 VersionInfoDescription=MyAnime!!!!! Installer
 VersionInfoProductName=MyAnime!!!!!
-VersionInfoProductVersion=1.2.0
+VersionInfoProductVersion=1.2.1
 Compression=lzma2
 SolidCompression=yes
 #ifdef ARM64

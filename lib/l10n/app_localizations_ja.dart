@@ -495,7 +495,7 @@ class AppLocalizationsJa extends AppLocalizations {
   String get backupSubtitle => '完全ローカルバックアップ（データ＋画像）';
 
   @override
-  String get backupCreate => 'バックアップ作成';
+  String get backupCreate => 'バックアップを作成';
 
   @override
   String get backupCreated => 'バックアップを作成しました';
@@ -538,7 +538,7 @@ class AppLocalizationsJa extends AppLocalizations {
   String get backupDeleteConfirm => 'このバックアップを削除しますか？';
 
   @override
-  String get backupRestoreModules => '復元するデータを選択';
+  String get backupRestoreModules => '復元するモジュールを選択';
 
   @override
   String get backupSelectAll => 'すべて選択';
@@ -631,7 +631,7 @@ class AppLocalizationsJa extends AppLocalizations {
   String get statsAll => 'すべて';
 
   @override
-  String get statsTracked => '視聴中';
+  String get statsTracked => '追跡中';
 
   @override
   String get statsCompleted => '完了';
@@ -640,7 +640,7 @@ class AppLocalizationsJa extends AppLocalizations {
   String get statsDropped => '中止';
 
   @override
-  String get statsWatching => '追跡中';
+  String get statsWatching => '視聴中';
 
   @override
   String get statsNotStarted => '未開始';
@@ -859,7 +859,7 @@ class AppLocalizationsJa extends AppLocalizations {
   }
 
   @override
-  String get importBundleNoConflicts => '競合なし、すべてインポート中...';
+  String get importBundleNoConflicts => '競合なし、すべてインポート中…';
 
   @override
   String get settingsDuplicateCheck => '重複チェック';
@@ -987,7 +987,7 @@ class AppLocalizationsJa extends AppLocalizations {
   String get kanaScriptKatakana => 'カタカナ';
 
   @override
-  String get kanaSearchHint => 'かな・ローマ字を検索...';
+  String get kanaSearchHint => 'かな・ローマ字を検索…';
 
   @override
   String kanaSearchResults(int count) {
@@ -1084,7 +1084,7 @@ class AppLocalizationsJa extends AppLocalizations {
   String get statsSharePriorityOldest => '古い順（初放送日）';
 
   @override
-  String get statsShareGenerating => '画像を生成中です。時間がかかる場合があります...';
+  String get statsShareGenerating => '画像を生成中です。時間がかかる場合があります…';
 
   @override
   String statsShareGeneratingProgress(int done, int total) {

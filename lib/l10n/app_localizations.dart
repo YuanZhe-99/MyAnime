@@ -500,7 +500,7 @@ abstract class AppLocalizations {
   /// No description provided for @animeSearchHint.
   ///
   /// In en, this message translates to:
-  /// **'Search anime...'**
+  /// **'Search anime…'**
   String get animeSearchHint;
 
   /// No description provided for @animeNoResults.
@@ -1100,7 +1100,7 @@ abstract class AppLocalizations {
   /// No description provided for @backupRestoreModules.
   ///
   /// In en, this message translates to:
-  /// **'Select Data to Restore'**
+  /// **'Select Modules to Restore'**
   String get backupRestoreModules;
 
   /// No description provided for @backupSelectAll.
@@ -1688,7 +1688,7 @@ abstract class AppLocalizations {
   /// No description provided for @importBundleNoConflicts.
   ///
   /// In en, this message translates to:
-  /// **'No conflicts found, importing all...'**
+  /// **'No conflicts found, importing all…'**
   String get importBundleNoConflicts;
 
   /// No description provided for @settingsDuplicateCheck.
@@ -1928,7 +1928,7 @@ abstract class AppLocalizations {
   /// No description provided for @kanaSearchHint.
   ///
   /// In en, this message translates to:
-  /// **'Search kana or romaji...'**
+  /// **'Search kana or romaji…'**
   String get kanaSearchHint;
 
   /// No description provided for @kanaSearchResults.
@@ -2108,7 +2108,7 @@ abstract class AppLocalizations {
   /// No description provided for @statsShareGenerating.
   ///
   /// In en, this message translates to:
-  /// **'Generating image, this may take a while...'**
+  /// **'Generating image, this may take a while…'**
   String get statsShareGenerating;
 
   /// No description provided for @statsShareGeneratingProgress.
