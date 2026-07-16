@@ -188,6 +188,8 @@
   "backupRestoreConfirm": "This will overwrite the selected data with the backup. Continue?",
   "backupRestored": "Backup restored",
   "backupRestoreFailed": "Restore failed",
+  "backupRestoreMissingImages": "Restored, but {count} image(s) were missing from the backup image store",
+  "@backupRestoreMissingImages": { "placeholders": { "count": { "type": "int" } } },
   "backupDeleteConfirm": "Delete this backup? This cannot be undone.",
   "backupRestoreModules": "Select Modules to Restore",
   "backupSelectAll": "Select All",

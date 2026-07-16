@@ -175,6 +175,8 @@
   "backupRestoreConfirm": "這將使用備份覆蓋所選資料，是否繼續？",
   "backupRestored": "備份已還原",
   "backupRestoreFailed": "還原失敗",
+  "backupRestoreMissingImages": "已還原，但備份圖片儲存中缺少 {count} 張圖片",
+  "@backupRestoreMissingImages": { "placeholders": { "count": { "type": "int" } } },
   "backupDeleteConfirm": "刪除此備份？此操作無法復原。",
   "backupRestoreModules": "選擇要還原的模組",
   "backupSelectAll": "全選",

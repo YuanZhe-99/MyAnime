@@ -534,6 +534,11 @@ class AppLocalizationsZh extends AppLocalizations {
   String get backupRestoreFailed => '还原失败';
 
   @override
+  String backupRestoreMissingImages(int count) {
+    return '已还原，但备份图片存储中缺少 $count 张图片';
+  }
+
+  @override
   String get backupDeleteConfirm => '删除此备份？此操作无法撤销。';
 
   @override
@@ -1654,6 +1659,11 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
 
   @override
   String get backupRestoreFailed => '還原失敗';
+
+  @override
+  String backupRestoreMissingImages(int count) {
+    return '已還原，但備份圖片儲存中缺少 $count 張圖片';
+  }
 
   @override
   String get backupDeleteConfirm => '刪除此備份？此操作無法復原。';

@@ -87,8 +87,14 @@ class _BackupPageState extends State<BackupPage> {
   /// Purpose: Provide the internal restore backup helper for this file.
   /// Inputs: `backup`.
   /// Returns: None.
-  /// Side effects: None.
-  /// Notes: Internal helper used within this file only.
+  /// Side effects: May disable WebDAV auto-sync, overwrite local data files,
+  /// and show dialogs/snackbars.
+  /// Notes: Internal helper used within this file only. When WebDAV auto-sync
+  /// is enabled it is disabled *before* any file is written and without a
+  /// `mounted` gate, so a crash or page disposal mid-restore can never leave
+  /// restored-old data with auto-sync still on (which would propagate stale
+  /// records and deletions to the remote and other devices). Auto-sync is
+  /// re-enabled only when the restore failed before writing anything.
   Future<void> _restoreBackup(BackupInfo backup) async {
     final l10n = AppLocalizations.of(context)!;
 
@@ -128,12 +134,27 @@ class _BackupPageState extends State<BackupPage> {
     );
     if (confirmed != true) return;
 
-    final ok = await BackupService.restoreBackup(
+    // Disable auto-sync before the first write, not after the restore:
+    // otherwise a crash or page disposal mid-restore would leave restored-old
+    // data behind with auto-sync still enabled.
+    final config = await WebDAVService.loadConfig();
+    final webDavConfigured = config != null && config.isConfigured;
+    final hadAutoSync = webDavConfigured && config.autoSync;
+    if (hadAutoSync) {
+      await WebDAVService.saveConfig(config.copyWith(autoSync: false));
+    }
+
+    final result = await BackupService.restoreBackup(
       backup.file,
       moduleKeys: selected,
     );
-    if (!mounted) return;
-    if (!ok) {
+    if (!result.ok) {
+      // Local data is untouched only when nothing was written; only then is
+      // it safe to turn auto-sync back on.
+      if (hadAutoSync && !result.wroteAnything) {
+        await WebDAVService.saveConfig(config.copyWith(autoSync: true));
+      }
+      if (!mounted) return;
       ScaffoldMessenger.of(
         context,
       ).showSnackBar(SnackBar(content: Text(l10n.backupRestoreFailed)));
@@ -144,33 +165,41 @@ class _BackupPageState extends State<BackupPage> {
     AutoSyncService.instance.notifyLocalDataChangedNow();
     ReminderService.notifyDataChanged();
 
-    await _handlePostRestoreSync();
+    if (result.missingImages > 0 && mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            l10n.backupRestoreMissingImages(result.missingImages),
+          ),
+        ),
+      );
+    }
+
+    if (!mounted) return;
+    await _handlePostRestoreSync(webDavConfigured ? config : null);
   }
 
-  /// Purpose: Disable auto-sync after a restore and offer a force upload.
-  /// Inputs: None.
+  /// Purpose: Offer a force upload after a restore with WebDAV configured.
+  /// Inputs: `config` — the WebDAV config loaded before the restore, or null
+  /// when WebDAV sync is not configured.
   /// Returns: None.
-  /// Side effects: May rewrite `webdav_config.json` with auto-sync disabled,
-  /// force-upload local data to the WebDAV remote under a wake lock, and
-  /// show dialogs/snackbars.
-  /// Notes: Internal helper used within this file only. Does nothing beyond
-  /// a success snackbar when WebDAV sync is not configured: restoring an
-  /// older backup and letting auto-sync merge it would otherwise propagate
-  /// stale records and deletions to the remote and other devices.
-  Future<void> _handlePostRestoreSync() async {
+  /// Side effects: May force-upload local data to the WebDAV remote under a
+  /// wake lock and show dialogs/snackbars.
+  /// Notes: Internal helper used within this file only. Auto-sync was already
+  /// disabled by [_restoreBackup] before any file was written; this helper
+  /// only handles the user-facing follow-up. Does nothing beyond a success
+  /// snackbar when WebDAV sync is not configured: restoring an older backup
+  /// and letting auto-sync merge it would otherwise propagate stale records
+  /// and deletions to the remote and other devices.
+  Future<void> _handlePostRestoreSync(WebDAVConfig? config) async {
     final l10n = AppLocalizations.of(context)!;
 
-    final config = await WebDAVService.loadConfig();
-    if (config == null || !config.isConfigured) {
-      if (!mounted) return;
+    if (config == null) {
       ScaffoldMessenger.of(
         context,
       ).showSnackBar(SnackBar(content: Text(l10n.backupRestored)));
       return;
     }
-
-    await WebDAVService.saveConfig(config.copyWith(autoSync: false));
-    if (!mounted) return;
 
     final forceUpload = await showDialog<bool>(
       context: context,

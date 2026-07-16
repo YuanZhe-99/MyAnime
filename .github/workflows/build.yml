@@ -18,9 +18,9 @@ jobs:
     env:
       HAS_KEYSTORE: ${{ secrets.KEYSTORE_BASE64 != '' }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
-      - uses: actions/setup-java@v4
+      - uses: actions/setup-java@v5
         with:
           distribution: temurin
           java-version: '17'
@@ -50,12 +50,12 @@ jobs:
       - name: Build AAB (store)
         run: flutter build appbundle --release --dart-define=FLAVOR=store
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: android-apk-full
           path: build/app/outputs/flutter-apk/app-release.apk
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: android-aab-store
           path: build/app/outputs/bundle/release/app-release.aab
@@ -68,7 +68,7 @@ jobs:
       # flutter_local_notifications_windows still reaches that header through winrt.
       CL: /D_SILENCE_EXPERIMENTAL_COROUTINE_DEPRECATION_WARNINGS
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - uses: subosito/flutter-action@v2
         with:
@@ -86,7 +86,7 @@ jobs:
       - name: Build installer (x64)
         run: iscc installer.iss
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: windows-installer-x64-full
           path: build/installer/*.exe
@@ -102,7 +102,7 @@ jobs:
       # that include deprecated <experimental/coroutine> on newer MSVC toolchains.
       CL: /D_SILENCE_EXPERIMENTAL_COROUTINE_DEPRECATION_WARNINGS
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       # Pin Flutter master to a weekly window so the same DLL hashes are produced on every
       # build within the week → identical hashes accumulate Defender cloud reputation.
@@ -114,7 +114,7 @@ jobs:
         run: echo "week=$(Get-Date -UFormat '%G-W%V')" >> $env:GITHUB_OUTPUT
 
       - name: Cache Flutter master (weekly)
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         with:
           path: ${{ runner.tool_cache }}\flutter-master
           key: flutter-master-arm64-${{ steps.cache-key.outputs.week }}
@@ -144,7 +144,7 @@ jobs:
       - name: Build installer (ARM64)
         run: iscc /DARM64 installer.iss
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: windows-installer-arm64-full
           path: build/installer/*.exe
@@ -153,7 +153,7 @@ jobs:
   ios:
     runs-on: macos-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - uses: subosito/flutter-action@v2
         with:
@@ -171,7 +171,7 @@ jobs:
           cp -r build/ios/iphoneos/Runner.app build/ios/ipa/Payload/
           cd build/ios/ipa && zip -r MyAnime_sideload.ipa Payload
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: ios-ipa-full-sideload
           path: build/ios/ipa/MyAnime_sideload.ipa
@@ -180,7 +180,7 @@ jobs:
   macos:
     runs-on: macos-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - uses: subosito/flutter-action@v2
         with:
@@ -210,7 +210,7 @@ jobs:
             "build/macos/MyAnime.dmg" \
             "$APP_PATH" || true
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: macos-dmg-full
           path: build/macos/MyAnime.dmg
@@ -221,7 +221,7 @@ jobs:
     needs: [android, windows-x64, windows-arm64, ios, macos]
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v8
         with:
           path: artifacts
 
@@ -230,7 +230,7 @@ jobs:
           mkdir -p release
           find artifacts -type f \( -name "*.apk" -o -name "*.aab" -o -name "*.exe" -o -name "*.ipa" -o -name "*.dmg" \) -exec cp {} release/ \;
 
-      - uses: softprops/action-gh-release@v2
+      - uses: softprops/action-gh-release@v3
         with:
           files: release/*
           generate_release_notes: true

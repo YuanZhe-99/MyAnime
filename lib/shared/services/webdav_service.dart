@@ -293,6 +293,11 @@ class WebDAVService {
   static const _localLockFileName = 'upload_lock.json';
   static const _lockTtlSeconds = 60;
 
+  /// Interval for re-writing the remote `.lock` while a slow PUT is in
+  /// flight; must stay well below [_lockTtlSeconds] so the lock can never
+  /// expire mid-transfer on a slow connection.
+  static const _lockHeartbeatInterval = Duration(seconds: 20);
+
   /// Global lock to prevent concurrent syncs.
   static bool _syncing = false;
 
@@ -918,12 +923,48 @@ class WebDAVService {
     return null;
   }
 
+  /// Purpose: Run a transfer while heartbeat-refreshing the held upload lock.
+  /// Inputs: `config`, `session`, `operation` — the in-flight transfer.
+  /// Returns: The operation's result.
+  /// Side effects: Periodically re-writes the remote and local lock files
+  /// until the operation completes.
+  /// Notes: Internal helper used within this file only. Without a heartbeat,
+  /// a single PUT slower than [_lockTtlSeconds] would let another client
+  /// treat the lock as expired and upload concurrently, which can silently
+  /// revert that client's changes on its next merge. Heartbeat failures are
+  /// swallowed: they must never abort a transfer that is already in flight.
+  static Future<T> _withLockHeartbeat<T>(
+    WebDAVConfig config,
+    _UploadSession session,
+    Future<T> Function() operation,
+  ) async {
+    var refreshing = false;
+    final timer = Timer.periodic(_lockHeartbeatInterval, (_) async {
+      if (refreshing) return;
+      refreshing = true;
+      try {
+        await _refreshUploadLock(config, session);
+      } catch (_) {
+        // Best-effort: the pre-PUT refresh already validated ownership.
+      } finally {
+        refreshing = false;
+      }
+    });
+    try {
+      return await operation();
+    } finally {
+      timer.cancel();
+    }
+  }
+
   /// Purpose: Force-upload content after refreshing the held upload lock.
   /// Inputs: `config`, `fileName`, `content`, `session`.
   /// Returns: Upload result.
   /// Side effects: Performs network I/O.
   /// Notes: Data JSON writes are protected by `.lock`, so they intentionally do
-  /// not send data-file `If-Match`/`If-None-Match` preconditions.
+  /// not send data-file `If-Match`/`If-None-Match` preconditions. The lock is
+  /// heartbeat-refreshed while the PUT is in flight so a slow transfer cannot
+  /// outlive the lock TTL.
   static Future<({bool is412, String? error})> _uploadWithSession(
     WebDAVConfig config,
     String fileName,
@@ -932,7 +973,11 @@ class WebDAVService {
   ) async {
     final lockError = await _refreshUploadLock(config, session);
     if (lockError != null) return (is412: false, error: lockError);
-    return _upload(config, fileName, content);
+    return _withLockHeartbeat(
+      config,
+      session,
+      () => _upload(config, fileName, content),
+    );
   }
 
   /// Purpose: Upload bytes after refreshing the held upload lock.
@@ -940,6 +985,8 @@ class WebDAVService {
   /// Returns: `Future<bool>`.
   /// Side effects: Performs network I/O.
   /// Notes: Used for referenced image uploads under the same remote lock.
+  /// The lock is heartbeat-refreshed while the PUT is in flight so a slow
+  /// image transfer cannot outlive the lock TTL.
   static Future<bool> _uploadBytesWithSession(
     WebDAVConfig config,
     String fileName,
@@ -948,7 +995,11 @@ class WebDAVService {
   ) async {
     final lockError = await _refreshUploadLock(config, session);
     if (lockError != null) throw Exception(lockError);
-    return _uploadBytes(config, fileName, bytes);
+    return _withLockHeartbeat(
+      config,
+      session,
+      () => _uploadBytes(config, fileName, bytes),
+    );
   }
 
   /// Purpose: Release the held WebDAV upload lock.

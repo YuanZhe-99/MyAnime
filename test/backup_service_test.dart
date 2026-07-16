@@ -139,8 +139,10 @@ void main() {
       await File(p.join(tempDir.path, 'images', 'cover1.jpg')).delete();
       await writeData('{"animes": [{"id": "x"}]}');
 
-      final ok = await BackupService.restoreBackup(b1!);
-      expect(ok, isTrue);
+      final result = await BackupService.restoreBackup(b1!);
+      expect(result.ok, isTrue);
+      expect(result.wroteAnything, isTrue);
+      expect(result.missingImages, 0);
       expect(
         await File(p.join(tempDir.path, 'images', 'cover1.jpg')).readAsBytes(),
         [1, 2, 3, 4],
@@ -148,6 +150,28 @@ void main() {
       expect(
         await File(p.join(tempDir.path, 'anime_data.json')).readAsString(),
         '{"animes": []}',
+      );
+    });
+
+    test('restore reports missing blobs instead of dropping them silently',
+        () async {
+      await writeData('{"animes": []}');
+      await writeImage('cover1.jpg', [1, 2, 3, 4]);
+      final b1 = await BackupService.createBackup();
+
+      // Simulate an incomplete blob store, e.g. a bundle copied to another
+      // machine without backups/blobs/.
+      for (final blob in await listBlobs()) {
+        await blob.delete();
+      }
+      await File(p.join(tempDir.path, 'images', 'cover1.jpg')).delete();
+
+      final result = await BackupService.restoreBackup(b1!);
+      expect(result.ok, isTrue);
+      expect(result.missingImages, 1);
+      expect(
+        await File(p.join(tempDir.path, 'images', 'cover1.jpg')).exists(),
+        isFalse,
       );
     });
   });
@@ -170,8 +194,8 @@ void main() {
       );
       await file.writeAsString(jsonEncode(legacy));
 
-      final ok = await BackupService.restoreBackup(file);
-      expect(ok, isTrue);
+      final result = await BackupService.restoreBackup(file);
+      expect(result.ok, isTrue);
       expect(
         await File(p.join(tempDir.path, 'images', 'legacy.png')).exists(),
         isTrue,
@@ -193,8 +217,9 @@ void main() {
         jsonEncode({'anime_data.json': 'not valid json'}),
       );
 
-      final ok = await BackupService.restoreBackup(file);
-      expect(ok, isFalse);
+      final result = await BackupService.restoreBackup(file);
+      expect(result.ok, isFalse);
+      expect(result.wroteAnything, isFalse);
       expect(
         await File(p.join(tempDir.path, 'anime_data.json')).readAsString(),
         '{"animes": []}',

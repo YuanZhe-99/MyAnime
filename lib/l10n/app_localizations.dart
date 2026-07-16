@@ -1091,6 +1091,12 @@ abstract class AppLocalizations {
   /// **'Restore failed'**
   String get backupRestoreFailed;
 
+  /// No description provided for @backupRestoreMissingImages.
+  ///
+  /// In en, this message translates to:
+  /// **'Restored, but {count} image(s) were missing from the backup image store'**
+  String backupRestoreMissingImages(int count);
+
   /// No description provided for @backupDeleteConfirm.
   ///
   /// In en, this message translates to:

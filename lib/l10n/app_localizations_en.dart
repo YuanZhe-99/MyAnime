@@ -541,6 +541,11 @@ class AppLocalizationsEn extends AppLocalizations {
   String get backupRestoreFailed => 'Restore failed';
 
   @override
+  String backupRestoreMissingImages(int count) {
+    return 'Restored, but $count image(s) were missing from the backup image store';
+  }
+
+  @override
   String get backupDeleteConfirm =>
       'Delete this backup? This cannot be undone.';
 

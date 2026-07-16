@@ -175,6 +175,8 @@
   "backupRestoreConfirm": "这将使用备份覆盖所选数据，是否继续？",
   "backupRestored": "备份已还原",
   "backupRestoreFailed": "还原失败",
+  "backupRestoreMissingImages": "已还原，但备份图片存储中缺少 {count} 张图片",
+  "@backupRestoreMissingImages": { "placeholders": { "count": { "type": "int" } } },
   "backupDeleteConfirm": "删除此备份？此操作无法撤销。",
   "backupRestoreModules": "选择要还原的模块",
   "backupSelectAll": "全选",

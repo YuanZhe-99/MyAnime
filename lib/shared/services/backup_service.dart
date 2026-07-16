@@ -360,15 +360,20 @@ class BackupService {
 
   /// Purpose: Restore from a backup file, optionally only specific modules.
   /// Inputs: `file`, `moduleKeys`.
-  /// Returns: `Future<bool>`.
+  /// Returns: `Future<RestoreResult>` describing success, whether any file
+  /// was written, and how many v2 image references had no blob on disk.
   /// Side effects: Overwrites app data files atomically and restores image
   /// files from blob references (v2) or inline base64 (legacy v1).
   /// Notes: Every selected module payload is validated against the model
-  /// parser before anything is written; image names are sanitized.
-  static Future<bool> restoreBackup(
+  /// parser before anything is written; image names are sanitized. A failure
+  /// with `wroteAnything == false` means local data is untouched; callers
+  /// use that to decide whether re-enabling auto-sync is safe.
+  static Future<RestoreResult> restoreBackup(
     File file, {
     Set<String>? moduleKeys,
   }) async {
+    var wrote = false;
+    var missingImages = 0;
     try {
       final raw = await file.readAsString();
 
@@ -392,6 +397,7 @@ class BackupService {
           File(p.join(appDir.path, entry.key)),
           entry.value,
         );
+        wrote = true;
       }
 
       // Restore images: v2 blob references first, then legacy inline base64.
@@ -403,11 +409,17 @@ class BackupService {
           final blobName = e.value;
           if (relPath == null || blobName is! String) continue;
           final blobFile = File(p.join(blobDir.path, p.basename(blobName)));
-          if (!await blobFile.exists()) continue;
+          if (!await blobFile.exists()) {
+            // Blob store incomplete (e.g. bundle copied without blobs);
+            // count it so the UI can warn instead of silently dropping.
+            missingImages += 1;
+            continue;
+          }
           await _atomicWriteBytes(
             File(p.join(appDir.path, relPath)),
             await blobFile.readAsBytes(),
           );
+          wrote = true;
         }
       } else if (bundle.containsKey('_images')) {
         final imagesMap = bundle['_images'] as Map<String, dynamic>;
@@ -418,12 +430,21 @@ class BackupService {
             File(p.join(appDir.path, relPath)),
             base64Decode(e.value as String),
           );
+          wrote = true;
         }
       }
 
-      return true;
+      return RestoreResult(
+        ok: true,
+        wroteAnything: wrote,
+        missingImages: missingImages,
+      );
     } catch (_) {
-      return false;
+      return RestoreResult(
+        ok: false,
+        wroteAnything: wrote,
+        missingImages: missingImages,
+      );
     }
   }
 
@@ -507,6 +528,25 @@ class BackupService {
       }
     } catch (_) {}
   }
+}
+
+class RestoreResult {
+  final bool ok;
+  final bool wroteAnything;
+  final int missingImages;
+
+  /// Purpose: Create a restore result instance.
+  /// Inputs: `ok`, `wroteAnything`, `missingImages`.
+  /// Returns: A new `RestoreResult` instance.
+  /// Side effects: None.
+  /// Notes: `wroteAnything` is false only when the restore failed before
+  /// writing any data or image file, so local data is guaranteed untouched.
+  /// `missingImages` counts v2 image references whose blob was absent.
+  const RestoreResult({
+    required this.ok,
+    required this.wroteAnything,
+    this.missingImages = 0,
+  });
 }
 
 class BackupInfo {

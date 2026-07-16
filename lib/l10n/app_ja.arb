@@ -175,6 +175,8 @@
   "backupRestoreConfirm": "選択したデータがバックアップで上書きされます。続行しますか？",
   "backupRestored": "バックアップを復元しました",
   "backupRestoreFailed": "復元に失敗しました",
+  "backupRestoreMissingImages": "復元しましたが、バックアップ画像ストアに{count}件の画像が見つかりませんでした",
+  "@backupRestoreMissingImages": { "placeholders": { "count": { "type": "int" } } },
   "backupDeleteConfirm": "このバックアップを削除しますか？この操作は取り消せません。",
   "backupRestoreModules": "復元するモジュールを選択",
   "backupSelectAll": "すべて選択",
