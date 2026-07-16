@@ -337,7 +337,7 @@
   "settingsApiPassword": "密碼",
   "settingsApiRunning": "運行中，連接埠 {port}",
   "settingsApiStopped": "已停止",
-  "settingsApiNeedCredentials": "在非本機監聽前請先設定使用者名稱和密碼",
+  "settingsApiNeedCredentials": "監聽非 localhost 時需設定使用者名稱和密碼",
   "settingsApiRestart": "重啟伺服器",
   "settingsApiRestarted": "API 伺服器已在連接埠 {port} 重啟",
   "kanaTitle": "五十音速查",

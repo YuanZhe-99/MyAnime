@@ -967,7 +967,8 @@ class AppLocalizationsJa extends AppLocalizations {
   String get settingsApiStopped => '停止中';
 
   @override
-  String get settingsApiNeedCredentials => '非ローカルで公開する前にユーザー名とパスワードを設定してください';
+  String get settingsApiNeedCredentials =>
+      'localhost以外でリッスンする場合、ユーザー名とパスワードを設定してください';
 
   @override
   String get settingsApiRestart => 'サーバー再起動';

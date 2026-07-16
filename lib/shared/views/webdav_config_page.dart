@@ -154,8 +154,9 @@ class _WebDAVConfigPageState extends State<WebDAVConfigPage> {
   /// Side effects: May read or mutate application state, storage, or service
   /// resources. Holds the sync wake lock while the sync request runs.
   /// Notes: Internal helper used within this file only. Notifies UI reload
-  /// listeners when the sync wrote local data files. The wake lock is
-  /// released in `finally` so failures and exceptions cannot leak it.
+  /// listeners when the sync wrote local data files. The wake lock and the
+  /// `_syncing` busy flag are both reset in `finally` so failures and
+  /// exceptions cannot leak them.
   Future<void> _syncNow() async {
     setState(() => _syncing = true);
     await SyncWakeLock.acquire();
@@ -164,11 +165,11 @@ class _WebDAVConfigPageState extends State<WebDAVConfigPage> {
       result = await WebDAVService.sync(_currentConfig);
     } finally {
       await SyncWakeLock.release();
+      if (mounted) setState(() => _syncing = false);
     }
     if (!mounted) return;
     AutoSyncService.instance.recordSyncResult(result);
     AutoSyncService.instance.notifyLocalDataChangedIfNeeded();
-    setState(() => _syncing = false);
 
     if (result.hasConflicts) {
       await _resolveConflicts(result);
@@ -251,7 +252,8 @@ class _WebDAVConfigPageState extends State<WebDAVConfigPage> {
   /// Side effects: Overwrites remote data after user confirmation. Holds the
   /// sync wake lock while the upload runs.
   /// Notes: Internal helper used within this file only. The wake lock is
-  /// acquired only after the user confirms and released in `finally`.
+  /// acquired only after the user confirms; it and the `_syncing` busy flag
+  /// are both reset in `finally`.
   Future<void> _forceUpload() async {
     final l10n = AppLocalizations.of(context)!;
     final confirmed = await _confirmForceAction(
@@ -267,11 +269,11 @@ class _WebDAVConfigPageState extends State<WebDAVConfigPage> {
       result = await WebDAVService.forceUpload(_currentConfig);
     } finally {
       await SyncWakeLock.release();
+      if (mounted) setState(() => _syncing = false);
     }
     if (!mounted) return;
     AutoSyncService.instance.recordSyncResult(result);
     AutoSyncService.instance.notifyLocalDataChangedIfNeeded();
-    setState(() => _syncing = false);
     await _showSyncResult(result);
   }
 
@@ -281,7 +283,8 @@ class _WebDAVConfigPageState extends State<WebDAVConfigPage> {
   /// Side effects: Overwrites local data after user confirmation. Holds the
   /// sync wake lock while the download runs.
   /// Notes: Internal helper used within this file only. The wake lock is
-  /// acquired only after the user confirms and released in `finally`.
+  /// acquired only after the user confirms; it and the `_syncing` busy flag
+  /// are both reset in `finally`.
   Future<void> _forceDownload() async {
     final l10n = AppLocalizations.of(context)!;
     final confirmed = await _confirmForceAction(
@@ -297,11 +300,11 @@ class _WebDAVConfigPageState extends State<WebDAVConfigPage> {
       result = await WebDAVService.forceDownload(_currentConfig);
     } finally {
       await SyncWakeLock.release();
+      if (mounted) setState(() => _syncing = false);
     }
     if (!mounted) return;
     AutoSyncService.instance.recordSyncResult(result);
     AutoSyncService.instance.notifyLocalDataChangedIfNeeded();
-    setState(() => _syncing = false);
     await _showSyncResult(result);
   }
 

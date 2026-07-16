@@ -341,7 +341,7 @@
   "settingsApiPassword": "パスワード",
   "settingsApiRunning": "ポート{port}で稼働中",
   "settingsApiStopped": "停止中",
-  "settingsApiNeedCredentials": "非ローカルで公開する前にユーザー名とパスワードを設定してください",
+  "settingsApiNeedCredentials": "localhost以外でリッスンする場合、ユーザー名とパスワードを設定してください",
   "settingsApiRestart": "サーバー再起動",
   "settingsApiRestarted": "APIサーバーをポート{port}で再起動しました",
   "kanaTitle": "かな早見表",

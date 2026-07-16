@@ -339,7 +339,7 @@
   "settingsApiPassword": "密码",
   "settingsApiRunning": "运行中，端口 {port}",
   "settingsApiStopped": "已停止",
-  "settingsApiNeedCredentials": "在非本地监听前请先设置用户名和密码",
+  "settingsApiNeedCredentials": "监听非 localhost 时需设置用户名和密码",
   "settingsApiRestart": "重启服务器",
   "settingsApiRestarted": "API 服务器已在端口 {port} 重启",
   "kanaTitle": "五十音速查",
