@@ -22,6 +22,26 @@ Maintenance rules:
 - Keep tracked generated localization files aligned with this explanation layer when they are intentionally updated in the same change.
 - Use these explanations as the first-pass orientation layer, but still verify important behavior in the implementation before making changes.
 
+## Documentation Maintenance
+
+`doc/en-us/` holds comprehensive project documentation: architecture, data formats, sync/backup
+algorithms, feature docs, and a complete function index under `doc/en-us/functions/` (one page per
+source file, mirroring the `lib/` tree, listing every declaration and giving full Purpose/Inputs/
+Returns/Side effects/Algorithm/Usage/Notes detail for models, services, utils, and other
+non-trivial logic). `doc/en-us/translation-guide.md` is the English-to-Chinese glossary and style
+guide for the planned `doc/zh-cn/` tree, kept byte-identical across this repo and its siblings
+(MyDay, MyDevice, MyApps-DATA).
+
+Any change that adds, removes, or changes the behavior/signature of a function, data format, sync
+rule, or feature must update the corresponding page(s) under `doc/en-us/` in the same commit: the
+per-file page under `doc/en-us/functions/` and its area `INDEX.md` row, plus any affected concept
+doc (`architecture.md`, `data-formats.md`, `sync.md`, `backup-restore.md`, `features/*.md`,
+`algorithms/*.md`). Once `doc/zh-cn/` exists, it must mirror `doc/en-us/` exactly (same files, same
+heading structure, same tables, same examples) and gets updated in the same commit too, translated
+per `translation-guide.md`; new terminology goes into the glossary in all four sibling repos, not
+just this one. Never write the real Gitea host in documentation — always `<local_gitea_address>`.
+Documentation-only commits do not bump versions or create tags.
+
 ## Project Snapshot
 
 - **Name:** MyAnime!!!!!, with five exclamation marks in user-facing app names, installer metadata, macOS bundle names, iOS display names, and window titles.
