@@ -1,133 +1,21 @@
 import 'dart:convert';
 
+import 'package:myapps_data/myapps_data.dart';
+
 import '../../features/anime/models/anime.dart';
 
 // ─── Generic record merge ───────────────────────────────────────────
-
-/// A single record-level conflict: same ID, both sides changed since base.
-class RecordConflict<T> {
-  final String id;
-  final T localRecord;
-  final T remoteRecord;
-  final String displayName;
-
-  /// Purpose: Create a record conflict instance.
-  /// Inputs: `id`, `localRecord`, `remoteRecord`, `displayName`.
-  /// Returns: A new `RecordConflict` instance.
-  /// Side effects: None.
-  /// Notes: None.
-  const RecordConflict({
-    required this.id,
-    required this.localRecord,
-    required this.remoteRecord,
-    required this.displayName,
-  });
-}
-
-/// Result of merging a list of records.
-class RecordMergeResult<T> {
-  final List<T> merged;
-  final List<RecordConflict<T>> conflicts;
-
-  const RecordMergeResult({required this.merged, this.conflicts = const []});
-}
-
-/// Purpose: Merge record lists by ID using the last synced base snapshot.
-/// Inputs: `local`, `remote`, `base`, `getId`, `getModifiedAt`, `getDisplayName`, `autoResolve`, optional `serialize`.
-/// Returns: `RecordMergeResult<T>`.
-/// Side effects: None.
-/// Notes: Uses the base snapshot to distinguish pure edits, deletions, and true conflicts.
-/// When `serialize` is provided, records whose serialized content is identical are
-/// merged without raising a conflict even if both sides bumped `modifiedAt` (e.g.
-/// after a stale base caused by an earlier failed upload).
-RecordMergeResult<T> mergeRecords<T>({
-  required List<T> local,
-  required List<T> remote,
-  required List<T>? base,
-  required String Function(T) getId,
-  required DateTime Function(T) getModifiedAt,
-  required String Function(T) getDisplayName,
-  bool autoResolve = false,
-  String Function(T)? serialize,
-}) {
-  final localMap = {for (final r in local) getId(r): r};
-  final remoteMap = {for (final r in remote) getId(r): r};
-  final baseMap = base != null
-      ? {for (final r in base) getId(r): r}
-      : <String, T>{};
-
-  final allIds = {...localMap.keys, ...remoteMap.keys, ...baseMap.keys};
-  final merged = <T>[];
-  final conflicts = <RecordConflict<T>>[];
-
-  for (final id in allIds) {
-    final l = localMap[id];
-    final r = remoteMap[id];
-    final b = baseMap[id];
-
-    if (l != null && r != null) {
-      // Both sides have the record
-      if (b != null) {
-        // Three-way: check who changed from base
-        final localChanged = getModifiedAt(l).isAfter(getModifiedAt(b));
-        final remoteChanged = getModifiedAt(r).isAfter(getModifiedAt(b));
-
-        if (localChanged && remoteChanged) {
-          if (serialize != null && serialize(l) == serialize(r)) {
-            // Identical content on both sides is not a real conflict.
-            merged.add(l);
-          } else if (autoResolve) {
-            // LWW per record: pick the one with newer modifiedAt
-            merged.add(getModifiedAt(l).isAfter(getModifiedAt(r)) ? l : r);
-          } else {
-            conflicts.add(
-              RecordConflict(
-                id: id,
-                localRecord: l,
-                remoteRecord: r,
-                displayName: getDisplayName(l),
-              ),
-            );
-          }
-        } else if (localChanged) {
-          merged.add(l);
-        } else if (remoteChanged) {
-          merged.add(r);
-        } else {
-          merged.add(l); // neither changed, use local
-        }
-      } else {
-        // No base — first sync or both added same ID
-        merged.add(getModifiedAt(l).isAfter(getModifiedAt(r)) ? l : r);
-      }
-    } else if (l != null && r == null) {
-      if (b != null) {
-        // Was in base, missing from remote → deleted remotely
-        final localChanged = getModifiedAt(l).isAfter(getModifiedAt(b));
-        if (localChanged) {
-          merged.add(l); // Modified locally after remote deleted → keep
-        }
-        // else: not modified locally, remote deleted → exclude
-      } else {
-        merged.add(l); // New locally → include
-      }
-    } else if (l == null && r != null) {
-      if (b != null) {
-        // Was in base, missing from local → deleted locally
-        final remoteChanged = getModifiedAt(r).isAfter(getModifiedAt(b));
-        if (remoteChanged) {
-          merged.add(r); // Modified remotely after local deleted → keep
-        }
-        // else: not modified remotely, local deleted → exclude
-      } else {
-        merged.add(r); // New remotely → include
-      }
-    }
-    // else: both null, was in base → deleted both sides → exclude
-  }
-
-  return RecordMergeResult(merged: merged, conflicts: conflicts);
-}
+//
+// `mergeRecords<T>`, `RecordConflict<T>`, and `RecordMergeResult<T>` used to be
+// defined here, byte-identically to MyDay's copy. They now live in the shared
+// package and are re-exported so every existing import of this file — call
+// sites, conflict dialogs, and tests — keeps compiling unchanged (I7).
+//
+// The package signature is MyDevice's superset: it adds one optional
+// `mergeUnknownFields` callback. MyAnime does not pass it (unknown-field
+// preservation is baked into the models), so behavior here is identical.
+export 'package:myapps_data/myapps_data.dart'
+    show RecordConflict, RecordMergeResult, mergeRecords;
 
 // ─── Anime-specific merge ───────────────────────────────────────────
 

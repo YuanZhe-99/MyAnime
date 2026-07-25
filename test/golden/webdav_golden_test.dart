@@ -6,7 +6,9 @@
 // task P0.2: post-extraction (Phase 3), the new shared engine must reproduce
 // these identical sequences (invariants I1-I3). Re-run / re-record with:
 //   flutter test test/golden/webdav_golden_test.dart            (verify)
-//   flutter test --dart-define=GOLDEN_RECORD=1 test/golden/webdav_golden_test.dart  (record)
+//   flutter test --dart-define=GOLDEN_RECORD=true test/golden/webdav_golden_test.dart  (record)
+// (must be literally `true` — bool.fromEnvironment treats `1` as false, so the
+// run silently stays in verify mode.)
 import 'dart:convert';
 import 'dart:io';
 
