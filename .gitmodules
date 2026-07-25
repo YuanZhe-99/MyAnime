@@ -1,0 +1,3 @@
+[submodule "packages/myapps_data"]
+	path = packages/myapps_data
+	url = ../MyApps-DATA.git

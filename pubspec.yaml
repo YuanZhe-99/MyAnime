@@ -13,6 +13,12 @@ dependencies:
   flutter_localizations:
     sdk: flutter
 
+  # Shared WebDAV sync & data-management engines, embedded as a git submodule.
+  # The submodule commit is the lockfile — pub does not lock path deps.
+  # After a fresh clone: git submodule update --init
+  myapps_data:
+    path: packages/myapps_data
+
   # State management
   flutter_riverpod: ^1.0.4
 

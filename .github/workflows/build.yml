@@ -19,6 +19,11 @@ jobs:
       HAS_KEYSTORE: ${{ secrets.KEYSTORE_BASE64 != '' }}
     steps:
       - uses: actions/checkout@v7
+        with:
+          # myapps_data is a path dependency living in a submodule; without it
+          # `flutter pub get` fails. The relative URL resolves to the public
+          # GitHub copy here, so the default GITHUB_TOKEN suffices.
+          submodules: recursive
 
       - uses: actions/setup-java@v5
         with:
@@ -69,6 +74,11 @@ jobs:
       CL: /D_SILENCE_EXPERIMENTAL_COROUTINE_DEPRECATION_WARNINGS
     steps:
       - uses: actions/checkout@v7
+        with:
+          # myapps_data is a path dependency living in a submodule; without it
+          # `flutter pub get` fails. The relative URL resolves to the public
+          # GitHub copy here, so the default GITHUB_TOKEN suffices.
+          submodules: recursive
 
       - uses: subosito/flutter-action@v2
         with:
@@ -103,6 +113,11 @@ jobs:
       CL: /D_SILENCE_EXPERIMENTAL_COROUTINE_DEPRECATION_WARNINGS
     steps:
       - uses: actions/checkout@v7
+        with:
+          # myapps_data is a path dependency living in a submodule; without it
+          # `flutter pub get` fails. The relative URL resolves to the public
+          # GitHub copy here, so the default GITHUB_TOKEN suffices.
+          submodules: recursive
 
       # Pin Flutter master to a weekly window so the same DLL hashes are produced on every
       # build within the week → identical hashes accumulate Defender cloud reputation.
@@ -154,6 +169,11 @@ jobs:
     runs-on: macos-latest
     steps:
       - uses: actions/checkout@v7
+        with:
+          # myapps_data is a path dependency living in a submodule; without it
+          # `flutter pub get` fails. The relative URL resolves to the public
+          # GitHub copy here, so the default GITHUB_TOKEN suffices.
+          submodules: recursive
 
       - uses: subosito/flutter-action@v2
         with:
@@ -181,6 +201,11 @@ jobs:
     runs-on: macos-latest
     steps:
       - uses: actions/checkout@v7
+        with:
+          # myapps_data is a path dependency living in a submodule; without it
+          # `flutter pub get` fails. The relative URL resolves to the public
+          # GitHub copy here, so the default GITHUB_TOKEN suffices.
+          submodules: recursive
 
       - uses: subosito/flutter-action@v2
         with:
