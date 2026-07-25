@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:myapps_data/myapps_data.dart';
 import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
 
@@ -13,8 +14,6 @@ class AnimeStorage {
   static const _dataFileName = 'anime_data.json';
   static const _configFileName = 'storage_config.json';
 
-  /// Data file names managed by the app (for storage migration).
-  static const _dataFileNames = [_dataFileName];
 
   /// Custom storage directory path override.
   static String? _customPath;
@@ -108,11 +107,23 @@ class AnimeStorage {
     return appDir.path;
   }
 
-  /// Purpose: Update the custom storage directory and migrate managed files when needed.
-  /// Inputs: `newPath`.
-  /// Returns: `Future<bool>`.
-  /// Side effects: May read or mutate application state, storage, or service resources.
-  /// Notes: Passing `null` resets to the default location; existing destination data wins over migrated files.
+  /// Purpose: Update the custom storage directory and migrate the app's data to it.
+  /// Inputs: `newPath`; pass `null` to reset to the default location.
+  /// Returns: `Future<bool>` — false only when the path could not be recorded.
+  /// Side effects: Rewrites `storage_config.json` and moves the old storage
+  /// folder's contents to the new location.
+  /// Notes: Migrates **everything** in the folder — data files, `images/`,
+  /// `.sync_base/`, `backups/` (blobs included), and `webdav_config.json` — not
+  /// an enumerated list, so a data file added later moves automatically.
+  /// `storage_config.json` deliberately stays put: it lives in the platform
+  /// default directory and holds the custom path itself.
+  ///
+  /// Leaving `.sync_base/` behind used to be the dangerous case: without a base
+  /// snapshot the next sync treats records other devices deleted as new local
+  /// records and re-uploads them, silently resurrecting deletions everywhere.
+  ///
+  /// Existing destination files win and their source copies are left in place,
+  /// so nothing is discarded on a guess about which copy is newer.
   static Future<bool> setStoragePath(String? newPath) async {
     try {
       final oldDir = await getAppDir();
@@ -129,15 +140,10 @@ class AnimeStorage {
       final newDir = await getAppDir();
       if (oldDir.path == newDir.path) return true;
 
-      for (final name in _dataFileNames) {
-        final oldFile = File(p.join(oldDir.path, name));
-        final newFile = File(p.join(newDir.path, name));
-        if (await newFile.exists()) continue;
-        if (await oldFile.exists()) {
-          await oldFile.copy(newFile.path);
-          await oldFile.delete();
-        }
-      }
+      // Per-entry failures are reported rather than thrown; the path change
+      // itself has already been persisted, so the move is best-effort and any
+      // unmoved file remains readable at the old location.
+      await migrateStorageContents(from: oldDir, to: newDir);
       return true;
     } catch (_) {
       return false;
