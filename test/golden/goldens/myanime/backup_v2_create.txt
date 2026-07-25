@@ -1,0 +1,6 @@
+backupFormat: 2
+topLevelKeys: _backupFormat,_imageRefs,anime_data.json
+hasImageRefs: true
+imageRefKeys: [images/cover1.jpg]
+dataIsString: true
+blobs: <sha256>.jpg

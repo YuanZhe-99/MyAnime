@@ -1,0 +1,4 @@
+# Golden transcripts are compared byte-for-byte by test/golden/request_recorder.dart,
+# and the recorder always writes '\n'. Without this, a checkout on a machine with
+# core.autocrlf=true rewrites them to CRLF and every fixture fails.
+test/golden/goldens/**/*.txt text eol=lf

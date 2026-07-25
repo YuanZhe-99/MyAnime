@@ -1,0 +1,73 @@
+=== [0] MKCOL /dav/files/u/MyAnime/ -> 201
+  authorization: <basic-auth>
+=== [1] GET /dav/files/u/MyAnime/.lock -> 404
+  authorization: <basic-auth>
+=== [2] PUT /dav/files/u/MyAnime/.lock -> 201
+  authorization: <basic-auth>
+  content-type: application/octet-stream
+  if-none-match: *
+  body:
+    {
+      "clientId": "<uuid>",
+      "token": "<uuid>",
+      "startedAt": "<timestamp>",
+      "updatedAt": "<timestamp>",
+      "ttlSeconds": 60
+    }
+=== [3] GET /dav/files/u/MyAnime/anime_data.json -> 200
+  authorization: <basic-auth>
+=== [4] GET /dav/files/u/MyAnime/.lock -> 200
+  authorization: <basic-auth>
+=== [5] DELETE /dav/files/u/MyAnime/.lock -> 204
+  authorization: <basic-auth>
+  if-match: "<etag>"
+=== [6] GET /dav/files/u/MyAnime/.lock -> 404
+  authorization: <basic-auth>
+=== [7] PUT /dav/files/u/MyAnime/.lock -> 201
+  authorization: <basic-auth>
+  content-type: application/octet-stream
+  if-none-match: *
+  body:
+    {
+      "clientId": "<uuid>",
+      "token": "<uuid>",
+      "startedAt": "<timestamp>",
+      "updatedAt": "<timestamp>",
+      "ttlSeconds": 60
+    }
+=== [8] GET /dav/files/u/MyAnime/.lock -> 200
+  authorization: <basic-auth>
+=== [9] PUT /dav/files/u/MyAnime/.lock -> 204
+  authorization: <basic-auth>
+  content-type: application/octet-stream
+  if-match: "<etag>"
+  body:
+    {
+      "clientId": "<uuid>",
+      "token": "<uuid>",
+      "startedAt": "<timestamp>",
+      "updatedAt": "<timestamp>",
+      "ttlSeconds": 60
+    }
+=== [10] PUT /dav/files/u/MyAnime/anime_data.json -> 204
+  authorization: <basic-auth>
+  content-type: application/octet-stream
+  body:
+    {
+      "animes": [
+        {
+          "id": "a1",
+          "title": "Frieren Remote",
+          "season": "Season 1",
+          "startEpisode": 1,
+          "episodeStatuses": {},
+          "createdAt": "<timestamp>",
+          "modifiedAt": "<timestamp>"
+        }
+      ]
+    }
+=== [11] GET /dav/files/u/MyAnime/.lock -> 200
+  authorization: <basic-auth>
+=== [12] DELETE /dav/files/u/MyAnime/.lock -> 204
+  authorization: <basic-auth>
+  if-match: "<etag>"

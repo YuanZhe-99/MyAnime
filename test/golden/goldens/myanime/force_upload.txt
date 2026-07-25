@@ -1,0 +1,49 @@
+=== [0] MKCOL /dav/files/u/MyAnime/ -> 201
+  authorization: <basic-auth>
+=== [1] GET /dav/files/u/MyAnime/.lock -> 404
+  authorization: <basic-auth>
+=== [2] PUT /dav/files/u/MyAnime/.lock -> 201
+  authorization: <basic-auth>
+  content-type: application/octet-stream
+  if-none-match: *
+  body:
+    {
+      "clientId": "<uuid>",
+      "token": "<uuid>",
+      "startedAt": "<timestamp>",
+      "updatedAt": "<timestamp>",
+      "ttlSeconds": 60
+    }
+=== [3] GET /dav/files/u/MyAnime/.lock -> 200
+  authorization: <basic-auth>
+=== [4] PUT /dav/files/u/MyAnime/.lock -> 204
+  authorization: <basic-auth>
+  content-type: application/octet-stream
+  if-match: "<etag>"
+  body:
+    {
+      "clientId": "<uuid>",
+      "token": "<uuid>",
+      "startedAt": "<timestamp>",
+      "updatedAt": "<timestamp>",
+      "ttlSeconds": 60
+    }
+=== [5] PUT /dav/files/u/MyAnime/anime_data.json -> 204
+  authorization: <basic-auth>
+  content-type: application/octet-stream
+  body:
+    {
+      "animes": [
+        {
+          "id": "a1",
+          "title": "Frieren",
+          "createdAt": "<timestamp>",
+          "modifiedAt": "<timestamp>"
+        }
+      ]
+    }
+=== [6] GET /dav/files/u/MyAnime/.lock -> 200
+  authorization: <basic-auth>
+=== [7] DELETE /dav/files/u/MyAnime/.lock -> 204
+  authorization: <basic-auth>
+  if-match: "<etag>"

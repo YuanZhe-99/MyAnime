@@ -1,0 +1,2 @@
+=== [0] GET /dav/files/u/MyAnime/anime_data.json -> 200
+  authorization: <basic-auth>

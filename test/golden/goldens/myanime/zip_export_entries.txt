@@ -1,0 +1,3 @@
+anime_data.json
+images/cover1.jpg
+archiveName: myanime_export_<stamp>.zip

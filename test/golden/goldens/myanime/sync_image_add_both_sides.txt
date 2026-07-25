@@ -1,0 +1,84 @@
+=== [0] MKCOL /dav/files/u/MyAnime/ -> 201
+  authorization: <basic-auth>
+=== [1] GET /dav/files/u/MyAnime/.lock -> 404
+  authorization: <basic-auth>
+=== [2] PUT /dav/files/u/MyAnime/.lock -> 201
+  authorization: <basic-auth>
+  content-type: application/octet-stream
+  if-none-match: *
+  body:
+    {
+      "clientId": "<uuid>",
+      "token": "<uuid>",
+      "startedAt": "<timestamp>",
+      "updatedAt": "<timestamp>",
+      "ttlSeconds": 60
+    }
+=== [3] GET /dav/files/u/MyAnime/anime_data.json -> 200
+  authorization: <basic-auth>
+=== [4] GET /dav/files/u/MyAnime/.lock -> 200
+  authorization: <basic-auth>
+=== [5] PUT /dav/files/u/MyAnime/.lock -> 204
+  authorization: <basic-auth>
+  content-type: application/octet-stream
+  if-match: "<etag>"
+  body:
+    {
+      "clientId": "<uuid>",
+      "token": "<uuid>",
+      "startedAt": "<timestamp>",
+      "updatedAt": "<timestamp>",
+      "ttlSeconds": 60
+    }
+=== [6] PUT /dav/files/u/MyAnime/anime_data.json -> 204
+  authorization: <basic-auth>
+  content-type: application/octet-stream
+  body:
+    {
+      "animes": [
+        {
+          "id": "a1",
+          "title": "Frieren",
+          "season": "Season 1",
+          "startEpisode": 1,
+          "episodeStatuses": {},
+          "coverImage": "cover_local.jpg",
+          "createdAt": "<timestamp>",
+          "modifiedAt": "<timestamp>"
+        }
+      ]
+    }
+=== [7] MKCOL /dav/files/u/MyAnime/images/ -> 201
+  authorization: <basic-auth>
+=== [8] PROPFIND /dav/files/u/MyAnime/images/ -> 207
+  authorization: <basic-auth>
+  content-type: application/xml; charset=utf-8
+  depth: 1
+  body:
+    <?xml version="1.0"?><d:propfind xmlns:d="DAV:"><d:prop><d:resourcetype/></d:prop></d:propfind>
+=== [9] GET /dav/files/u/MyAnime/.lock -> 200
+  authorization: <basic-auth>
+=== [10] PUT /dav/files/u/MyAnime/.lock -> 204
+  authorization: <basic-auth>
+  content-type: application/octet-stream
+  if-match: "<etag>"
+  body:
+    {
+      "clientId": "<uuid>",
+      "token": "<uuid>",
+      "startedAt": "<timestamp>",
+      "updatedAt": "<timestamp>",
+      "ttlSeconds": 60
+    }
+=== [11] PUT /dav/files/u/MyAnime/images/cover_local.jpg -> 201
+  authorization: <basic-auth>
+  content-type: application/octet-stream
+  body:
+    
+=== [12] GET /dav/files/u/MyAnime/images/cover_remote.jpg -> 200
+  authorization: <basic-auth>
+=== [13] GET /dav/files/u/MyAnime/.lock -> 200
+  authorization: <basic-auth>
+=== [14] DELETE /dav/files/u/MyAnime/.lock -> 204
+  authorization: <basic-auth>
+  if-match: "<etag>"
