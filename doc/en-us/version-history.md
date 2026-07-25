@@ -1,0 +1,60 @@
+# Version history
+
+Release-by-release summary of MyAnime!!!!!. Useful for understanding *why* a behavior exists before
+changing it — several entries record deliberate safety fixes that look like quirks otherwise.
+
+## Repository caveat
+
+The latest release tag before the documentation guide was added was `v0.6.7`, with `origin/master`
+and `github/master` aligned there. Early history has one wrinkle: two root commits share the same
+content after an early `git commit --amend`, and tag `v0.1.0` points to the later root. **Avoid
+`git commit --amend` on root commits.**
+
+## Releases
+
+- `v0.1.0`: Initial anime tracker.
+- `v0.1.1`: Store/full flavors, daily reminders, JST calendar note, macOS support, CI/CD, platform naming and icons.
+- `v0.1.2`: Per-record three-way WebDAV merge, conflict resolution UI, sync base tracking.
+- `v0.1.3`: UTC `modifiedAt` fixes and schedule validation fixes.
+- `v0.2.0`: Share anime as image card with cover, info, QR code, and watermark.
+- `v0.2.1`: Share card broadcast-progress improvements and app logo.
+- `v0.2.2`: Higher-resolution share card, truncation indicator, add-anime validation, desktop preview dialog.
+- `v0.3.0`: AniList source, `infoUrl`, share URL options.
+- `v0.3.1`: Android share target opens in its own task.
+- `v0.4.0`: Statistics page, management global search, quarter jump picker.
+- `v0.4.1`: Navigate to detail after creation and return to the anime quarter.
+- `v0.4.2`: Redesigned quarter picker and scrollable statistics trend chart.
+- `v0.4.3`: Year-by-quarter grid picker, wider quarter range, sticky Y-axis, default scroll to latest stats.
+- `v0.4.4`: Quarter jump fix, optional `firstAirDate`, Japanese title fallback, Other page.
+- `v0.5.0`: Comprehensive i18n cleanup for day names, season names, notifications, sync conflicts, and search labels.
+- `v0.5.1`: Share as `.myanimeitem` data file and file-open support on all platforms.
+- `v0.5.2`: Import `.myanimeitem` from add menus, strip personal viewing data from export, better filenames, manual type override fix, installer metadata.
+- `v0.5.3`: `airsInQuarter()` respects `manualType` and episode week offsets.
+- `v0.5.4`: Markdown export option for LLM personalization.
+- `v0.6.0`: Local HTTP API server, system tray service, desktop settings UI.
+- `v0.6.1`: API server enable/disable toggle and configurable listen address.
+- `v0.6.2`: Launch at startup, corrected unwatched endpoint, season filters for list/history.
+- `v0.6.3`: API `nextEpisodeAirDate` and improved abandoned/not-yet-aired classification.
+- `v0.6.4`: API list/history return `total`, `counts`, and `data`; abandoned classification fix.
+- `v0.6.5`: Referenced-only image sync and detailed sync error/warning reporting.
+- `v0.6.6`: Periodic auto-sync and forward-compatible JSON field preservation.
+- `v0.6.7`: Kana quick reference module, l10n updates, remotes synchronized to both `origin` and `github`.
+- `v0.7.0`: Optional anime rating system and statistics ranking view with rating filters and sorting.
+- `v0.7.1`: Ranking filter UX improvements with reusable quarter/year pickers, quarter-range custom filters, corrected top selection state, and cover thumbnails.
+- `v0.7.2`: Ranking button selected-state contrast, ranking image export/share, and release version metadata updates.
+- `v0.7.3`: Statistics quick quarter/year pickers, quieter skipped-only calendar markers, richer unwatched episode counts, and reminder wording/count updates.
+- `v0.7.4`: Configurable home calendar localization, week start, Japanese calendar layout, JST/local date-grid mode, and release version metadata updates.
+- `v0.7.5`: Full-range statistics trend scrolling with focused quarter/year selection, all-scope quarter/year trend granularity, collapsed all-scope status lists, current-format home calendar button text, and release version metadata updates.
+- `v0.8.0`: Local API status/rating/progress field refresh, `/anime/ranking` endpoint, shared viewing-status derivation, and release version metadata updates.
+- `v1.0.0`: Pre-release audit hardening — WebDAV downloads distinguish 404 from errors so transient failures can never overwrite the remote or cascade into cross-device deletions, ETag `If-Match`/`If-None-Match` preconditions on data uploads with visible 412 errors, fresh local re-read before writing merged data, identical-content concurrent edits no longer raise conflicts, conflict-resolution upload failures are reported, content-aware per-day mobile reminder scheduling (empty days skipped, no duplicate in-app notification), IANA timezone resolution via `flutter_timezone`, Basic Auth enforced on loopback when API credentials are configured, allowlist-based ZIP import, removed unused `SCHEDULE_EXACT_ALARM` permission, forward-snapped episode air dates, and versions unified to `1.0.0+37` / MSIX `1.0.0.0` / installer `1.0.0`.
+- `v1.0.1`: Statistics page share button (image or data file), summary image with horizontal bar chart (tracked/completed/dropped), multi-anime `.myanimeitem` bundle export/import (v2 format), import conflict resolution with keep-local/use-imported/merge options, settings duplicate check page with transitive grouping and merge, CI Flutter updated to `3.44.2`, and versions unified to `1.0.1+38` / MSIX `1.0.1.0` / installer `1.0.1`.
+- `v1.0.2`: Statistics image sharing now supports summary status selection with filtered bar-chart counts, large-image warnings, optional row limits, summary first-air-date priority, ranking first-N limiting in current rank order, generation progress dialogs while cover images load, and versions unified to `1.0.2+39` / MSIX `1.0.2.0` / installer `1.0.2`.
+- `v1.1.0`: WebDAV auto-sync failures and true sync conflicts are surfaced in Settings/WebDAV, background sync no longer silently resolves conflicts with LWW, manual conflict resolution clears the visible status on success, and versions are unified to `1.1.0+40` / MSIX `1.1.0.0` / installer `1.1.0`.
+- `v1.1.1`: Statistics share now supports a TXT export of anime display names sorted in dictionary order, statistics/ranking image exports are split across multiple PNG pages when the single-page pixel height would exceed the platform texture cap (`_maxImageDimension = 16000`) so tall lists are no longer cut off, multi-page sharing uses Android `ACTION_SEND_MULTIPLE` plus a desktop multi-page preview with save-all, and versions are unified to `1.1.1+41` / MSIX `1.1.1.0` / installer `1.1.1`.
+- `v1.1.2`: WebDAV uploads now use a remote `.lock` with a stable local client id and 150-second TTL, interrupted local uploads are detected on the next sync, and HTTP 412 upload races re-download remote data and re-run per-record merge before surfacing only true record conflicts; versions are unified to `1.1.2+42` / MSIX `1.1.2.0` / installer `1.1.2`.
+- `v1.1.3`: WebDAV now acquires `.lock` before downloading and merging remote data, lowers the lock TTL to 60 seconds, and force-uploads complete merged/resolved JSON under the valid lock without data-file `If-Match`/`If-None-Match` retry loops; versions are unified to `1.1.3+43` / MSIX `1.1.3.0` / installer `1.1.3`.
+- `v1.2.0`: WebDAV sync hardening and force transfers — remote image listing failures no longer masquerade as an empty directory (fixing repeated re-uploads of already-uploaded images), transient network errors and HTTP 5xx are retried with backoff, sync progress is published through `WebDAVService.progress` and shown as a progress bar with localized phase text, Force Upload / Force Download actions with confirmation dialogs were added to the WebDAV page, sync-written JSON is pretty-printed to match local saves, `AnimeStorage` data/config writes and sync base/lock writes are atomic, `notifySaved` is ignored before auto-sync starts, downloaded images trigger UI reloads, manual sync notifies reload listeners, WebDAV terminology was standardized across MyAnime/MyDay/MyDevice (`settingsWebDAVTest` renamed to `settingsWebDAVTestConnection`), the search cover-fetch error is localized, installer filenames derive from `AppVersion`, and versions are unified to `1.2.0+44` / MSIX `1.2.0.0` / installer `1.2.0`.
+- `v1.2.1`: Foreground sync operations (manual sync, conflict finalize, force upload/download) hold a screen wake lock via `sync_wake_lock.dart` and `wakelock_plus`, released in `finally` on completion/failure/cancel/exception; dismissing a sync conflict dialog now aborts the resolution instead of silently uploading keep-local; backup retention gains a 3-day option; Japanese `statsTracked`/`statsWatching` values were un-swapped; backup/restore terminology was standardized across MyAnime/MyDay/MyDevice (`backupRestoreModules` says "Modules", ja `backupCreate` unified); remaining ASCII `...` in localization strings was converted to `…`; and versions are unified to `1.2.1+45` / MSIX `1.2.1.0` / installer `1.2.1`.
+- `v1.2.2`: Backup overhaul — backup format v2 stores images once in a content-addressed `backups/blobs/` store shared by all backups with reference-counted GC (a blob is deleted only when no remaining backup references it; legacy inline-image bundles stay restorable), bundle writes are atomic and corrupt bundles are flagged in the history (restore disabled) without suppressing the daily auto-backup retry, restoring a backup now reloads open pages and reminders, disables WebDAV auto-sync when sync is configured and offers an explicit force upload of the restored data (preventing restored-old data from propagating deletions to other devices), restore validates module JSON and sanitizes image names before writing, Home/Manage/Stats pages register sync reload callbacks (fixing the documented-but-unwired UI reload after background sync), auto-backup also runs from the 15-minute periodic timer with a re-entrancy guard, backup failures show a snackbar, the restore module label is localized, backup UI text/CJK terminology was standardized across MyAnime/MyDay/MyDevice (zh uses 还原), unused test imports were removed, and versions are unified to `1.2.2+46` / MSIX `1.2.2.0` / installer `1.2.2`.
+- `v1.2.3`: Sync/backup safety hardening and Android build modernization — restoring a backup now disables WebDAV auto-sync *before* the first file is written and re-enables it only when the restore failed without writing anything (`RestoreResult` with `ok`/`wroteAnything`/`missingImages`), missing v2 backup image blobs surface a localized `backupRestoreMissingImages` warning instead of being silently dropped, WebDAV data/image PUTs heartbeat-refresh the remote `.lock` every 20 seconds so transfers slower than the 60-second TTL can no longer race a second client into a lost update, GitHub Actions were bumped to checkout v7 / setup-java v5 / upload-artifact v7 / download-artifact v8 / cache v6 / gh-release v3 (removing the Node 20 deprecation warnings), Android moved to Gradle 9.3.1 + AGP 9.1.1 with the app-side Built-in Kotlin migration done under the `builtInKotlin=false` compat flags, `file_picker` is pinned to exactly `10.3.7`, and versions are unified to `1.2.3+47` / MSIX `1.2.3.0` / installer `1.2.3`.
+- `v1.3.0`: Shared `myapps_data` package extraction — WebDAV sync, backup/restore, ZIP transfer, and auto-sync scheduling now come from a shared package embedded as a git submodule at `packages/myapps_data`, which MyAnime, MyDay, and MyDevice all build on; 2,038 lines of engine code left this repo and the services became thin facades, so all existing tests pass unmodified. Two intentional behavior changes, both adopting what the other two apps already did: `finalizePendingSync` re-downloads the data file before uploading a resolution (also guarding against uploading over a remote that became unreadable), and a ZIP containing a path-traversal entry is rejected outright instead of having that entry skipped and the rest imported. Versions unified to `1.3.0+48` / MSIX `1.3.0.0` / installer `1.3.0`.

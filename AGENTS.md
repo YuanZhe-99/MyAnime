@@ -1,238 +1,138 @@
 # AGENTS.md
 
-This file is the operating guide for agents working on **MyAnime!!!!!**. Read it before editing anything, then read the relevant code and the user's request carefully. The user's message is the change request: plan the work, execute it in this workspace, verify it, and keep this document current when the project changes.
+Operating guide for agents working on **MyAnime!!!!!**. This file holds **only** rules about how to
+work here. Everything describing what the code *is* or *does* lives in `doc/en-us/` — see
+[Where to read what](#where-to-read-what).
 
-## Function Explanation Layer
+MyAnime!!!!! is a privacy-first anime tracking app (Flutter; Windows, Android, iOS, macOS). Treat the
+user's message as the change request: plan, implement, verify, report.
 
-Handwritten source files and tracked generated localization files across the project now use short English function explanations as the first reading layer for future agents. Before reading a full implementation, read the structured explanation immediately above each function, method, significant callback helper, constructor, getter, setter, or similar declaration.
+## Reading order
 
-Each explanation should stay concise and use this structure:
+When you need to understand code, read in this order and stop as soon as you have what you need:
 
-- `Purpose: <one short sentence describing what the declaration is responsible for>`
-- `Inputs: <important parameters only; omit obvious ones if trivial>`
-- `Returns: <what the caller receives, or None>`
-- `Side effects: <state changes, file/network/database/UI effects, logging, mutation, or None>`
-- `Notes: <important assumptions, edge cases, invariants, or when the declaration should be used; prefer None when there is nothing special to add>`
+1. **`doc/en-us/`** — start here, always. `architecture.md` for shape and rules;
+   `functions/<mirrored path>.md` for a specific file's declarations; `functions/INDEX.md` to find
+   the right page; the concept docs for behavior.
+2. **Comments in the source** — the Function Explanation Layer above each declaration.
+3. **The implementation** — only when the docs and comments are insufficient, or when you must
+   confirm actual behavior before changing it.
 
-Maintenance rules:
+Do not jump straight to reading source bodies. Where docs and code disagree on something you are
+about to change, verify against the code, then fix the docs in the same commit.
 
-- When editing an existing function or method, update its explanation in the same change.
-- When adding a new function, method, significant callback helper, constructor, getter, setter, or similar declaration, add the explanation immediately above the declaration.
-- Prefer the established `///` doc-comment style in Dart and matching line comments/doc comments in other languages when appropriate.
-- Keep tracked generated localization files aligned with this explanation layer when they are intentionally updated in the same change.
-- Use these explanations as the first-pass orientation layer, but still verify important behavior in the implementation before making changes.
+## Where to read what
 
-## Documentation Maintenance
+| Question | Read |
+|---|---|
+| App shell, flavors, repository layout, core rules, shared package | `doc/en-us/architecture.md` |
+| What a file or function does | `doc/en-us/functions/<mirrored path>.md` |
+| Which page covers which source file | `doc/en-us/functions/INDEX.md` |
+| WebDAV sync flow, lock, conflicts | `doc/en-us/sync.md` |
+| Backup, restore, blob store | `doc/en-us/backup-restore.md` |
+| Files on disk, what syncs, `storage_config.json` keys | `doc/en-us/data-formats.md` |
+| Per-feature behavior | `doc/en-us/features/*.md` |
+| Merge algorithm details | `doc/en-us/algorithms/three-way-merge.md` |
+| Worked end-to-end scenarios | `doc/en-us/examples/*.md` |
+| Windows/macOS/iOS/Android specifics, `file_picker` pin, Gradle/AGP state | `doc/en-us/platform-notes.md` |
+| CI jobs, build commands, `tool/` scripts, fresh-clone steps | `doc/en-us/ci-cd.md` |
+| Why a behavior exists; past releases | `doc/en-us/version-history.md` |
+| English→Chinese terminology | `doc/en-us/translation-guide.md` |
 
-`doc/en-us/` holds comprehensive project documentation: architecture, data formats, sync/backup
-algorithms, feature docs, and a complete function index under `doc/en-us/functions/` (one page per
-source file, mirroring the `lib/` tree, listing every declaration and giving full Purpose/Inputs/
-Returns/Side effects/Algorithm/Usage/Notes detail for models, services, utils, and other
-non-trivial logic). `doc/en-us/translation-guide.md` is the English-to-Chinese glossary and style
-guide for the planned `doc/zh-cn/` tree, kept byte-identical across this repo and its siblings
-(MyDay, MyDevice, MyApps-DATA).
+The shared sync/backup/ZIP engines are **not in this repo** — they live in `myapps_data`, embedded at
+`packages/myapps_data`. Their documentation is at `packages/myapps_data/doc/en-us/`.
 
-Any change that adds, removes, or changes the behavior/signature of a function, data format, sync
-rule, or feature must update the corresponding page(s) under `doc/en-us/` in the same commit: the
-per-file page under `doc/en-us/functions/` and its area `INDEX.md` row, plus any affected concept
-doc (`architecture.md`, `data-formats.md`, `sync.md`, `backup-restore.md`, `features/*.md`,
-`algorithms/*.md`). Once `doc/zh-cn/` exists, it must mirror `doc/en-us/` exactly (same files, same
-heading structure, same tables, same examples) and gets updated in the same commit too, translated
-per `translation-guide.md`; new terminology goes into the glossary in all four sibling repos, not
-just this one. Never write the real Gitea host in documentation — always `<local_gitea_address>`.
-Documentation-only commits do not bump versions or create tags.
-
-## Project Snapshot
-
-- **Name:** MyAnime!!!!!, with five exclamation marks in user-facing app names, installer metadata, macOS bundle names, iOS display names, and window titles.
-- **Description:** A privacy-first anime tracking app with a JST-aware calendar, seasonal quarter management, statistics, multi-source anime search, watch-progress tracking, daily reminders, share/export flows, WebDAV sync, local backup, a desktop local API server, tray behavior, launch-at-startup, and a kana quick-reference module.
-- **Author / package id:** `yuanzhe`, `com.yuanzhe.my_anime`.
-- **License:** GPL-3.0.
-- **Current version:** `1.2.3+47` in `pubspec.yaml`, `1.2.3.0` for MSIX, and `1.2.3` in `installer.iss`.
-- **Framework:** Flutter with Dart SDK `^3.11.3`; CI uses Flutter `3.44.2`.
-- **Platforms:** Windows, Android, iOS, macOS. Linux project files exist and desktop services include Linux branches, but Linux is not a primary release target. Web is not targeted.
-- **Repository:** Use the system-provided workspace or working-directory environment to determine the repository path at runtime; do not hardcode a machine-specific absolute path here.
-- **Remotes:**
-  - `origin` -> `<local_gitea_address>`
-  - `github` -> `git@github.com:YuanZhe-99/MyAnime.git`
-
-Do not include secrets, credentials, WebDAV configuration, signing keys, private personal anime data, generated app data, or local-only machine addresses in commits or in this file. Keep the `origin` URL masked as `<local_gitea_address>` in public documentation; do not write the underlying Tailscale host here.
-
-## Required Agent Workflow
+## Required workflow
 
 1. Treat the user's message as the modification request.
-2. Before making any modification, fetch from the relevant remotes and verify whether the remote branch has new commits. Do not start editing until remote updates have been checked and any divergence is understood.
-3. Read this `AGENTS.md`, then read the function explanations in the relevant source files as the first-pass orientation layer, then inspect the implementation details you need before editing.
-   - When investigating an implementation, read the relevant comments first. Only inspect the detailed code if the comments are insufficient or if reading the code is necessary to understand the actual behavior.
-4. Make a concise plan when the work is non-trivial, then implement the requested changes directly in the workspace.
-5. Keep changes scoped. Do not revert unrelated user work in the tree.
-6. Update `AGENTS.md` in the same change set whenever architecture, behavior, data formats, commands, release process, version locations, remotes, caveats, or project descriptions change. This document replaces the older role of an external summary and must stay current and complete.
-7. Verify with the narrowest meaningful checks for the change, usually `flutter analyze` and relevant `flutter test` targets for Dart changes.
-8. When the work is complete, report briefly in both English and Chinese:
-   - what changed,
-   - what was verified,
-   - the current/pre-change version,
-   - the configured remotes,
-   - whether anything could not be done.
-9. For normal code changes, ask whether the user wants to push to all remotes. The user must provide or confirm the release version before a release push.
+2. Before editing, fetch the relevant remote(s) and check whether the local branch is behind. Do not
+   start until any divergence is understood.
+3. Read per [Reading order](#reading-order).
+4. Plan when the work is non-trivial, then implement it in this workspace.
+5. Keep changes scoped. Do not revert unrelated work in the tree.
+6. Update documentation in the same change set — see [Documentation maintenance](#documentation-maintenance).
+7. Verify with the narrowest meaningful checks, usually `flutter analyze` plus the relevant
+   `flutter test` targets.
+8. Report briefly, in English and Chinese: what changed, what was verified, the current/pre-change
+   version, the configured remotes, and anything that could not be done.
+9. For normal code changes, ask whether to push to all remotes. The user must confirm the release
+   version before a release push.
 
-## Release, Version, Commit, Tag, and Push Flow
+## Documentation maintenance
 
-For ordinary feature/fix work, do not bump versions or tag until the user confirms the release version and confirms pushing.
+**Docs are the primary artifact. Update them first, and never let them drift.**
 
-When the user confirms the version and wants to push:
+Any change that adds, removes, or changes the behavior or signature of a function, a data format, a
+sync rule, or a feature must update, in the same commit:
 
-1. Update every version location:
-   - `pubspec.yaml`: `version: X.Y.Z+N`, where `N` is the Flutter build number and increments for releases.
-   - `pubspec.yaml`: `msix_config.msix_version: X.Y.Z.0`.
-   - `installer.iss`: `AppVersion=X.Y.Z`.
-   - `installer.iss`: output filenames use `{#SetupSetting("AppVersion")}` for both x64 and ARM64; keep them derived from `AppVersion`.
-   - `installer.iss`: `VersionInfoVersion=X.Y.Z.0`.
-   - `installer.iss`: `VersionInfoProductVersion=X.Y.Z`.
-   - Do not manually edit the settings page version display; `settings_page.dart` reads `PackageInfo.fromPlatform()`.
-2. If the MSIX version ever differs from the other version locations, keep versions aligned starting with the next version bump instead of making an unrelated version-only edit.
-3. Re-run appropriate verification.
-4. Commit all intended changes.
-5. Create an annotated tag named `vX.Y.Z`.
-6. Push the commit to both `origin` and `github`.
-7. Push the tag to both `origin` and `github`.
+- the per-file page under `doc/en-us/functions/` and its `INDEX.md` row,
+- every affected concept doc (`architecture.md`, `data-formats.md`, `sync.md`,
+  `backup-restore.md`, `features/*.md`, `algorithms/*.md`, `platform-notes.md`, `ci-cd.md`).
 
-GitHub Actions release builds are triggered by tag pushes to `github`. Tags must be pushed explicitly, either with `git push <remote> <tag>` or an intentional `--tags`.
+Once `doc/zh-cn/` exists it must mirror `doc/en-us/` exactly — same files, headings, tables, and
+examples — updated in the same commit and translated per `translation-guide.md`. New terminology goes
+into the glossary in **all four** sibling repos (MyAnime, MyDay, MyDevice, MyApps-DATA).
 
-For documentation-only maintenance that the user explicitly says does not require a release, commit and push the documentation change to the requested remotes without changing versions or creating a tag.
+**Put explanation in the docs, not here.** This file is for agent instructions only. If you are about
+to add a paragraph describing how the code works, it belongs in `doc/en-us/`. Only add to this file
+when the rule is about how an agent should behave.
 
-## Agent Co-Author Attribution
+Add a `doc/en-us/version-history.md` entry for each release. Documentation-only commits do not bump
+versions or create tags.
 
-An Agent that made a real, material contribution to a commit may add its own accurate `Co-authored-by:` trailer. Attribution is per commit: do not add an Agent merely because it reviewed, observed, or continued work produced by another Agent, and never copy a trailer automatically from an earlier commit. When multiple Agents materially contributed, include one accurate trailer for each. Use the Agent's actual documented identity; never invent a provider, model, name, or email. Approved examples are `Co-authored-by: Codex <noreply@openai.com>` and, for Claude Code, `Co-Authored-By: Claude Sonnet 5 <noreply@anthropic.com>` with the model name replaced by the actual Claude model that performed the work (for example Claude Opus 4.6 or Claude Fable 5). For OpenCode or another Agent, use its verified documented identity; if none is verified, omit the AI trailer unless the repository owner explicitly approves one.
+## Authoring rules
 
-## Build Flavors
+**Function Explanation Layer.** Every function, method, significant callback helper, constructor,
+getter, and setter carries a structured comment immediately above it:
 
-Flavor logic lives in `lib/app/flavor.dart`.
+- `Purpose:` one short sentence on what the declaration is responsible for
+- `Inputs:` important parameters only; omit trivial ones
+- `Returns:` what the caller receives, or None
+- `Side effects:` state, file/network/DB/UI effects, logging, mutation, or None
+- `Notes:` assumptions, edge cases, invariants, or when to use it; prefer None when there is nothing
+  to add
 
-| Flavor | Dart define | Online search | Distribution |
-| --- | --- | --- | --- |
-| `full` | `--dart-define=FLAVOR=full` | Enabled | GitHub Releases, sideload builds, direct APK, desktop installers |
-| `store` | `--dart-define=FLAVOR=store` | Disabled in store-facing UI | Google Play and App Store builds |
+Add it for new declarations and update it in the same change when editing an existing one. Use `///`
+doc comments in Dart. Keep tracked generated localization files aligned when they are intentionally
+updated in the same change.
 
-Online anime search must stay hidden from store builds. Existing UI gates use `AppFlavor.isFull` in `anime_edit_page.dart` for search actions. `AnimeSearchService` itself is a shared utility and does not enforce flavor gating, so every new store-reachable caller must gate access. The desktop local API server can call `AnimeSearchService.searchAll()` and is a desktop feature, not a store/mobile surface.
+Other conventions:
 
-## Repository Structure
+- **UTC timestamps** for anything compared across devices (`modifiedAt`). Local-time values break
+  sync conflict detection.
+- **Pretty-printed JSON** via `JsonEncoder.withIndent('  ')` for anything written to disk — sync
+  relies on it so an unchanged file hits the raw-equality fast path.
+- **Preserve unknown JSON fields** with the `extraJson` pattern, so an older build never deletes a
+  newer build's data.
+- **File I/O goes through `AnimeStorage.getAppDir()`** so custom storage paths keep working.
 
-```text
-lib/
-  main.dart
-  app/
-    app.dart
-    flavor.dart
-    router.dart
-    theme.dart
-  features/
-    anime/
-      models/anime.dart
-      services/
-        anime_search_service.dart
-        anime_storage.dart
-      views/
-        home_page.dart
-        management_page.dart
-        statistics_page.dart
-        quarter_picker_dialog.dart
-        anime_detail_page.dart
-        anime_edit_page.dart
-        anime_search_dialog.dart
-    kana/views/kana_page.dart
-    settings/views/
-      backup_page.dart
-      license_page.dart
-      privacy_policy_page.dart
-      settings_page.dart
-  shared/
-    providers/app_settings.dart
-    services/
-      auto_sync_service.dart
-      backup_service.dart
-      duplicate_service.dart
-      file_open_service.dart
-      image_service.dart
-      import_export_service.dart
-      local_api_server.dart
-      reminder_service.dart
-      share_service.dart
-      sync_merge.dart
-      sync_progress.dart
-      sync_wake_lock.dart
-      tray_service.dart
-      webdav_service.dart
-    utils/
-      chinese_convert.dart
-      jst_time.dart
-    views/webdav_config_page.dart
-    widgets/
-      duplicate_check_page.dart
-      import_bundle_dialog.dart
-  l10n/
-packages/
-  myapps_data/            # git submodule: shared sync/backup/ZIP engines
-```
+## Behavior contract
 
-`lib/app/data_modules.dart` holds the `StorageAdapter` and `DataModule` registry that connect this
-app to `packages/myapps_data`. The services listed under `shared/services/` above are facades over
-that package — see "Shared Package (`myapps_data`)".
+Do not change these without the user explicitly deciding to:
 
-Primary tests currently include:
+- The **WebDAV wire format**, remote layout, and `.lock` semantics are a compatibility contract with
+  builds already in the field.
+- Local formats — `webdav_config.json`, `.sync_base/`, `backups/` bundles and blobs — likewise.
+- Conflicts are **never** silently auto-resolved; `autoResolve` stays false at every call site.
+- Restore disables WebDAV auto-sync before the first write and re-enables it only if nothing was
+  written.
+- **Online anime search stays hidden from store builds.** Every new store-reachable caller must gate
+  on `AppFlavor.isFull`; `AnimeSearchService` itself does not enforce gating.
+- **The shared-service facades keep their public shape.** `WebDAVService`, `BackupService`,
+  `ImportExportService`, and `AutoSyncService` are thin wrappers over `myapps_data`. If a change
+  seems to require editing a facade's public API, stop — the facade exists so call sites and tests
+  keep working, and behavior changes belong in the package.
+- `lib/app/data_modules.dart` is the single source of truth for data-file names and backup module
+  keys. Never hardcode them elsewhere.
+- `sync_progress.dart`, `sync_wake_lock.dart`, and the generic half of `sync_merge.dart` are
+  re-export shims. Do not reintroduce implementations in them.
 
-- `test/anime_json_test.dart`: unknown JSON preservation and auto-resolved sync merge behavior.
-- `test/backup_service_test.dart`: backup format v2 blob dedup, reference-counted blob GC, legacy inline-image restore, image-name sanitization, restore validation, corrupt-bundle detection.
-- `test/audit_fixes_test.dart`: identical-content conflict suppression and forward-snapped episode air dates.
-- `test/duplicate_service_test.dart`: duplicate detection (same-id, same-url, same-title-season), transitive grouping, and merge semantics.
-- `test/bundle_import_test.dart`: `.myanimeitem` v1 backward compatibility, v2 multi-anime bundle format, and export personal-data stripping.
-- `test/widget_test.dart`: basic widget smoke coverage.
+## Working with the shared package
 
-The `tool/` directory contains ad hoc scripts such as icon generation and search-source validation. `tool/generate_ios_icons.dart` derives padded iOS default, dark, and tinted icon sources from `assets/icon/app_icon.png` and writes preview PNGs under `/tmp`; after changing iOS icon sources, regenerate `ios/Runner/Assets.xcassets/AppIcon.appiconset/` with `flutter_launcher_icons`. Prefer focused tests for production behavior and keep tool scripts out of release-critical paths unless the user asks for them.
+The submodule uses the **relative** URL `../MyApps-DATA.git`, so it resolves against whichever remote
+this clone tracks. Never write a host name into `.gitmodules`.
 
-## Shared Package (`myapps_data`)
-
-The WebDAV sync engine, backup engine, ZIP transfer engine, and auto-sync scheduler are **not in
-this repo**. They live in the shared `myapps_data` package, embedded at `packages/myapps_data` as a
-git submodule and consumed as a pub path dependency. MyAnime, MyDay, and MyDevice all use it.
-
-What stays here: all models, `AnimeStorage`, the per-record merge wrapper `mergeAnimeData`, the
-Markdown export, and every page. What moved: the transport, lock lifecycle, merge pipeline, base
-snapshots, image sync, backup bundle/blob store, ZIP allowlist, and sync scheduling.
-
-`lib/app/data_modules.dart` is the seam and **the single source of truth** for MyAnime's data files.
-It declares the `StorageAdapter` over `AnimeStorage` plus the `DataModule` describing
-`anime_data.json` — file name, backup module id, validator, merge callback, and cover-image
-references. Never hardcode a data-file name or backup module key anywhere else; read it from the
-registry.
-
-`lib/shared/services/` still holds `WebDAVService`, `BackupService`, `ImportExportService`, and
-`AutoSyncService`, but they are now thin facades that delegate to the package. Their public APIs are
-deliberately unchanged. **If a change seems to require editing a facade's public shape, stop** — the
-facade exists so call sites and tests keep working. Behavior changes belong in the package.
-
-`sync_progress.dart`, `sync_wake_lock.dart`, and the generic half of `sync_merge.dart` are
-re-export shims over the package. Do not reintroduce implementations in them.
-
-### Working with the submodule
-
-Fresh clone:
-
-```bash
-git clone --recurse-submodules <app-url>
-```
-
-After a plain clone, or when the pointer moves:
-
-```bash
-git submodule update --init
-```
-
-`.gitmodules` uses the **relative** URL `../MyApps-DATA.git`, so it resolves against whichever remote
-this clone tracks: a Gitea clone fetches from Gitea, a GitHub clone from GitHub. Never write a host
-name into `.gitmodules` — the real Gitea address must not appear in any committed file.
-
-Consuming a newer shared version:
+Consume a newer shared version:
 
 ```bash
 cd packages/myapps_data
@@ -242,345 +142,62 @@ flutter analyze && flutter test
 git add packages/myapps_data && git commit -m "Bump myapps_data to vX.Y.Z"
 ```
 
-Changing shared code: the submodule checks out detached, so `git switch main` inside it first, then
-commit and **push to both remotes before** committing the pointer bump here. A pointer to an
-unpushed commit breaks every other clone and CI.
-
-## Core Architecture
-
-- State management uses `flutter_riverpod`; do not introduce Provider or Bloc for normal changes.
-- Navigation uses `go_router` with a `ShellRoute` and five bottom tabs: Home, Manage, Stats, Kana, Settings.
-- The visual system uses Material 3 through `flex_color_scheme`.
-- L10n supports English, Japanese, Simplified Chinese, and Traditional Chinese. The ARB template is `lib/l10n/app_en.arb`; generated localization files live under `lib/l10n/`.
-- File I/O should go through `AnimeStorage.getAppDir()` so custom storage paths work.
-- JSON output is pretty-printed with `JsonEncoder.withIndent('  ')`.
-- Timestamps in the anime model use UTC, usually `DateTime.now().toUtc()`. Local-time `modifiedAt` values break sync conflict detection.
-- Calendar and airing logic are JST-aware through `shared/utils/jst_time.dart`. Reminder time comparison is local system time, not JST.
-- Preserve unknown JSON fields with the existing `extraJson` pattern so older versions do not delete newer fields during normal saves, imports, or sync merges.
-
-## Feature Areas
-
-### Anime Model and Tracking
-
-The core data model is `Anime` in `lib/features/anime/models/anime.dart`.
-
-Important fields and concepts:
-
-- Identity: UUID `id`, main `title`, optional Japanese `titleJa`.
-- URLs: `infoUrl` for source/reference pages and `watchUrl` for streaming/watch pages.
-- Schedule: `airDayOfWeek` where Monday is 1 and Sunday is 7, `airTime` with late-night values such as `25:00`, and optional `firstAirDate`. When `airDayOfWeek` disagrees with the weekday of `firstAirDate`, episode dates snap forward to the next occurrence of the air day so episode 1 never lands before `firstAirDate`.
-- Episodes: `startEpisode`, `endEpisode`, `episodeStatuses`, and `episodeWeekOffsets` for batch premieres, delays, and schedule corrections.
-- Status: derived from episode statuses, not stored as a separate status field. Completed, watching, dropped/abandoned, and not-started states are computed.
-- Type: `AnimeType` can be auto-detected from episode count or manually overridden. Manual type must take precedence when set.
-- Rating: optional `AnimeRating` stores a manual overall score plus visual/direction, story, character, music/sound, and enjoyment/recommendation sub-scores on a 0-10 scale. Manual overall wins; if empty, the effective overall score is the average of filled sub-scores.
-- Compatibility: `Anime`, `AnimeRating`, and `AnimeData` preserve unknown per-anime, per-rating, and top-level JSON fields.
-
-Quarter placement uses Japanese anime cour conventions. When `manualType` is set, it determines the quarter span. Without `manualType`, placement estimates the actual run based on episode count and `episodeWeekOffsets`, with long-running fallback behavior.
-
-### Home, Management, and Statistics
-
-- `home_page.dart`: JST-aware calendar, optional local-time date grid, localized/Japanese calendar labels, configurable week start, current-format calendar button text, and unwatched aired episodes.
-- The home calendar can display either localized app-language month/weekday labels or Japanese 日月火水木金土 labels. The global week-start preference defaults to Sunday; Japanese calendar layout locks the effective week start to Sunday. The home calendar date grid defaults to Japan time, can be switched to the device local timezone, and still calculates anime airing timestamps in Japan time with blank air times treated as 23:59 JST by the anime model.
-- `management_page.dart`: seasonal quarter browser, global search, dynamic year/quarter picker, and an Other page for anime without `firstAirDate`.
-- `statistics_page.dart`: quarter/year/all scopes, summary counts, full-range scrollable trend charts with focused quarter/year selection, quarter/year granularity for all-scope trends, expandable lists grouped by derived status, and a separate Ranking view for rating-based ranking. Ranking supports all/quarter/year/custom-quarter-range filters, type filtering, overall or sub-score sorting, ascending/descending order, direct quarter/year pickers, cover thumbnails, and image export/share for the current filtered ranking.
-- Creating a new anime navigates to the detail page and returns management to the anime's quarter when applicable.
-
-### Kana Quick Reference
-
-`lib/features/kana/views/kana_page.dart` is a UI-only reference module. It does not read or write anime data and is not synced.
-
-It includes:
-
-- Hiragana and katakana segmented switching.
-- Kana and romaji search.
-- Basic gojuon table.
-- Dakuten and handakuten table.
-- Yoon combinations.
-- Pronunciation rule cards for mora rhythm, stable vowels, sokuon, long vowels, and nasal sounds.
-
-### Multi-Source Search
-
-`anime_search_service.dart` searches or scrapes multiple sources in full builds:
-
-- `bangumi.tv` legacy search API.
-- MyAnimeList via Jikan v4.
-- AniList GraphQL API.
-- `acgsecrets.hk` seasonal page JSON-LD.
-- `filmarks.com` HTML.
-- `anime1.me` for watch URL lookup.
-
-Features include result deduplication, Simplified/Traditional Chinese variants for Chinese-language sources, fuzzy matching, cover image extraction, and saving search result source URLs into `infoUrl`. Keep public data-source behavior reflected in `PRIVACY_POLICY.md` when sources change.
-
-### Share and File Import
-
-`share_service.dart` supports sharing an anime as an image card, exporting/sharing the current statistics ranking as an image, and exporting/sharing the current statistics summary view as an image or data file.
-
-- The share flow first asks whether to share as an image, a data file, or a TXT name list.
-- Image cards include cover art, titles, season/type/schedule, broadcast progress, notes, selected info/watch URLs as QR codes, the app logo, and the MyAnime!!!!! watermark.
-- Ranking image exports include the current ranking filters, sort/order, ranked anime rows with cover thumbnails and scores, the app logo, and the MyAnime!!!!! watermark. Ranking export is image-only and does not create `.myanimeitem` data files. When more than 50 ranking rows would be rendered, the user is warned that generation may take time and may set a row limit; limited ranking exports keep the current ranking order and take the first N rows.
-- Statistics summary image exports include a horizontal bar chart at the top showing tracked, completed, and dropped counts, followed by anime rows with cover thumbnails, status labels, progress, and optional scores. Before summary image generation, the user can choose which derived statuses to include (completed, watching, dropped, not-started; all selected by default), and the bar chart reflects the final rendered rows. When more than 50 summary rows would be rendered, the user is warned that generation may take time and may set a row limit with first-air-date recent/oldest priority; image generation shows a progress dialog while covers are loaded.
-- Statistics and ranking image exports are split across multiple PNG pages when the single-page pixel height would exceed the platform texture dimension cap (`_maxImageDimension = 16000` in `share_service.dart`), so tall lists (e.g. 200+ anime) are no longer cut off at the right/bottom edges. Each page repeats the header (and the summary bar chart appears on page 1 only); the watermark appears on the final page. Multi-page sharing uses Android `ACTION_SEND_MULTIPLE` via the `shareFiles` MethodChannel, iOS multi-file `Share.shareXFiles`, and a desktop scrollable multi-page preview with a save-all action.
-- Statistics data file exports create a `.myanimeitem` multi-anime bundle containing the visible anime list, with personal viewing data stripped.
-- Statistics TXT exports write one anime display name per line, sorted in dictionary order, with no personal viewing data. The TXT option is available from the same statistics share dialog as image and data-file exports.
-- Android uses a custom `MethodChannel` named `com.yuanzhe.my_anime/share` and `FLAG_ACTIVITY_NEW_TASK` so share targets open outside the MyAnime task stack.
-- iOS uses the system share sheet.
-- Desktop shows a preview dialog and can copy or save the generated image.
-
-`file_open_service.dart` supports `.myanimeitem` export/import for both single-anime (v1) and multi-anime bundle (v2) formats.
-
-`.myanimeitem` files are JSON. Version 1 contains `anime` metadata, optional base64 `coverImage`, and `coverImageExt`. Version 2 contains an `items` array, each with `anime`, optional `coverImage`, and `coverImageExt`. Export strips personal viewing data such as `episodeStatuses` and `episodeWeekOffsets`. Import always creates a new UUID and never overwrites an existing anime. Multi-anime bundle imports detect conflicts with existing local records and show a per-conflict dialog offering keep-local, use-imported, or merge.
-
-Platform file association is configured on Android, iOS, macOS, and Windows. Windows registration lives in `installer.iss`.
-
-### Duplicate Detection and Merge
-
-`duplicate_service.dart` provides duplicate detection and merge logic for anime records.
-
-- Duplicate detection groups records by same ID, same non-empty info/watch URL, or same normalized title + season + first air date.
-- Groups are formed transitively (union-find); each anime appears in at most one group.
-- The settings page has a "Check Duplicates" entry that opens a dedicated page listing all duplicate groups with keep/merge/delete options.
-- Merge logic preserves the primary record's ID and lets primary fields win conflicts. Missing fields are filled from fallbacks. Episode statuses merge with watched > skipped > unwatched. Rating sub-scores fill from fallbacks. Notes are concatenated (non-duplicate). Unknown JSON fields are preserved.
-- Import conflict resolution reuses the same duplicate detection to decide whether an incoming `.myanimeitem` record conflicts with an existing local record, showing a per-conflict dialog with keep-local, use-imported, or merge options.
-
-### Backup, Export, Import, and Images
-
-- `backup_service.dart`: local auto-backup once per day, manual backups, retention, and selective restore.
-- Backup format v2: each `backups/backup_*.json` bundle stores data-module JSON strings plus an `_imageRefs` map pointing at content-addressed image blobs in `backups/blobs/<sha256><ext>`. Identical images are stored once and shared by every backup; a blob is physically deleted only when no remaining backup references it (GC runs after create/delete/retention, aborts if any remaining bundle is unparseable, and never deletes blobs younger than a 10-minute grace window). Legacy v1 bundles with inline base64 `_images` remain restorable.
-- Bundle writes are atomic (tmp-then-rename). Corrupt (unparseable) bundles are flagged in the backup history with restore disabled and do not count as "already backed up today", so an interrupted auto-backup is retried. `runAutoBackupIfNeeded()` is re-entrancy guarded; auto-backup triggers are app launch, app resume, and the auto-sync 15-minute periodic timer (covers desktop instances running across midnight).
-- Restore validates module JSON via `AnimeData.fromJson` before writing anything, writes atomically, and sanitizes image names (flat `images/<name>` only; traversal/absolute paths rejected).
-- When WebDAV auto-sync is enabled, restoring a backup disables auto-sync in `webdav_config.json` *before* the first file is written (no `mounted` gate), so a crash or page disposal mid-restore can never leave restored-old data with auto-sync still on. `BackupService.restoreBackup` returns a `RestoreResult` (`ok`, `wroteAnything`, `missingImages`); auto-sync is re-enabled only when the restore failed with `wroteAnything == false` (local data guaranteed untouched). After a successful restore the backup page reloads open pages (`AutoSyncService.notifyLocalDataChangedNow()`), refreshes reminders, warns when v2 image blobs were missing from the blob store (`backupRestoreMissingImages`), and — only when WebDAV sync is configured — asks whether to force-upload the restored data (wake lock held, result recorded in sync status). Without this, the next sync would treat restored-old data as local edits/deletions and propagate them to the remote and other devices.
-- `import_export_service.dart`: ZIP export/import and Markdown export.
-- ZIP export includes `anime_data.json` and `images/`.
-- ZIP import must keep path traversal protection: only allowlisted entries (the registry's data files and flat files under `images/`) are extracted and the resolved output path must stay inside the app dir, so a crafted ZIP cannot overwrite configuration such as `webdav_config.json`. Every entry is classified before any is written, so an archive containing a traversal entry is **rejected outright** (`importZIP` returns false and writes nothing) rather than having the bad entry skipped. Unknown entries are still skipped, so an archive from a newer build still imports.
-- Markdown export is LLM-friendly, sorted by `firstAirDate` with nulls last, and includes titles, type, air schedule, episode range, derived viewing status, watched/total counts, URLs, and notes.
-- `image_service.dart`: image download and caching. Cover images live under `images/`.
-
-### Reminder Notifications
-
-- Reminder settings are stored in `storage_config.json`.
-- Android/iOS use `flutter_local_notifications` with `zonedSchedule()` to schedule per-day one-shot notifications for the next 7 days. Each day's body is computed from current anime data (airing + unwatched counts) and days with nothing to watch are skipped, so no generic or empty reminder fires.
-- Mobile schedules are refreshed on app launch, on reminder-settings change, after anime data saves (`ReminderService.notifyDataChanged()`, debounced), and on app resume.
-- The timezone database location is resolved from the OS IANA zone id via `flutter_timezone`; never use `DateTime.now().timeZoneName` (it is an abbreviation the tz database cannot look up).
-- Desktop uses a 60-second periodic check through `local_notifier`; the in-process check is desktop-only so mobile is never double-notified.
-- Desktop reminders fire when now ≥ reminder time and not yet notified today; `lastReminderDate` prevents duplicates.
-- Reminder counts include today's JST airing episodes and unwatched episodes that have already aired.
-- Android requires notification and boot permissions, plus `ScheduledNotificationReceiver` and `ScheduledNotificationBootReceiver` in `AndroidManifest.xml`. `SCHEDULE_EXACT_ALARM` is intentionally not requested because scheduling uses `inexactAllowWhileIdle`.
-- When reminder settings change, call `ReminderService.startPeriodicCheck()` to reschedule.
-
-### Desktop API, Tray, and Startup
-
-`local_api_server.dart` is a desktop-only Shelf server. It is disabled by default and controlled from settings.
-
-- Default listen address: `localhost`.
-- Default port: `7788`.
-- Users may set `0.0.0.0` for LAN access.
-- Non-loopback listening requires API credentials; unsafe non-localhost startup without credentials is refused.
-- CORS is permissive.
-- When credentials are configured, HTTP Basic Auth is required for every non-OPTIONS request including loopback (permissive CORS would otherwise let any local web page read the API). Without credentials, loopback requests are allowed and non-loopback requests are rejected.
-- Endpoints include `GET /ping`, `POST /anime/search`, `POST /anime/add`, `GET /anime/list`, `GET /anime/unwatched`, `GET /anime/history`, and `GET /anime/ranking`.
-- `/anime/list` and `/anime/history` return objects with `total`, `counts`, and `data`.
-- Anime API item JSON includes the derived `status` (`completed`, `watching`, `dropped`, or `notStarted`), progress counts, URLs, cover path, notes, modified timestamp, and optional rating summary while preserving older fields.
-- `/anime/ranking` returns rated anime with `total`, `filters`, `sort`, `limit`, and ranked `data`; filters include all/quarter/year/range, anime type, rating field, sort order, and result limit.
-- Season filters include `current`, `YYYYQn`, `unassigned`, and `all`; `all` may sample returned rows while keeping full counts.
-- API date serialization converts JST-derived episode dates to UTC strings with `Z`.
-
-`tray_service.dart` handles desktop tray behavior: Show, Quit, minimize-to-tray, close-to-tray, and macOS/Linux/Windows branches. `launch_at_startup` handles desktop auto-start.
-
-## WebDAV Sync Rules
-
-WebDAV sync is per-record three-way merge, not whole-file replacement.
-
-Flow:
-
-1. Acquire remote `.lock` before data downloads with the stable local client id, one upload token, UTC timestamp, and 60-second TTL. Active locks from another client block uploads; expired locks are treated as failed uploads and may be replaced. Local `.sync_base/upload_lock.json` lets the next launch detect interrupted uploads and re-download/re-merge before uploading again.
-2. Download remote `anime_data.json` with a discriminated result: only HTTP 404 counts as "missing on remote"; any other failure (auth/server/network) aborts the sync with a visible error so local data is never uploaded over an unreadable remote file.
-3. Load local `anime_data.json` and `.sync_base/anime_data.json`.
-4. Merge per anime using `modifiedAt`. Records whose serialized content is identical on both sides merge without a conflict.
-5. Auto-resolve when only one side changed.
-6. Detect conflict when the same anime changed on both sides after the last sync.
-7. Re-read the local file to detect concurrent saves made during network I/O and re-merge if it changed.
-8. If there are no record conflicts, force-upload the complete merged JSON while the `.lock` is valid. Data JSON PUTs do not use data-file `If-Match` or `If-None-Match`; `.lock` is the concurrency guard.
-9. If there are record conflicts, return them to the user. After the user resolves them, `finalizePendingSync` reacquires `.lock`, re-downloads the remote data file, and force-uploads the complete resolved JSON. The re-download does not re-merge known fields; it guards against uploading a resolution over a remote that has become unreadable.
-10. Save the new base snapshot only after upload succeeds, then clear the matching remote/local upload lock.
-
-Manual sync uses `autoResolve: false` and shows conflict dialogs. Auto-sync also leaves `autoResolve` disabled: it records failures and true two-sided conflicts as visible status in Settings/WebDAV instead of silently applying last-writer-wins. Users must open the WebDAV page and resolve conflicts manually. Dismissing any conflict dialog (system back) aborts the whole resolution: nothing is uploaded, the conflict stays pending in the visible sync status, and no record is silently resolved to the local version. `finalizePendingSync` returns false when applying or force-uploading the resolution under `.lock` fails so the UI reports the failure; the base snapshot stays untouched and the next sync re-merges.
-
-Foreground sync operations on the WebDAV page (manual sync, conflict finalize upload, force upload, force download) hold a screen wake lock through `shared/services/sync_wake_lock.dart` (`wakelock_plus`). The lock is reference-counted, only enabled if no other feature already holds one, acquired only after force-action confirmation, released in `finally` on completion/failure/cancel/exception, and never used by background auto-sync.
-
-Important sync constraints:
-
-- `anime_data.json` merges `Anime` records by `id` and `modifiedAt`.
-- Unknown top-level and per-anime JSON fields must survive parsing, editing, importing, exporting, and sync merging.
-- `_syncing` prevents concurrent syncs.
-- `_atomicWrite()` uses tmp-then-rename to avoid corrupting local files.
-- Local files are re-read after network I/O to detect concurrent user edits during sync.
-- Data JSON uploads are complete-file force PUTs under `.lock`; only `.lock` writes/deletes use ETag preconditions, and weak ETags are never used for those lock preconditions.
-- Images sync additively and only for cover images referenced by local or remote anime records.
-- The referenced image set is the union of `coverImage` basenames from local and remote anime data.
-- Orphaned images are not uploaded or downloaded, but they are also not automatically deleted.
-- Sync errors and image transfer warnings should be visible in dialogs, not only snackbars.
-- Remote image directory listings return null on any failure; `_syncImages` then skips the image phase with a visible warning instead of treating the unknown remote state as empty, which previously re-uploaded every referenced image after a transient PROPFIND failure.
-- Downloaded images set the local-data-changed flag so UI pages reload even when the data JSON itself did not change.
-- Transient network failures (socket/timeout/client errors and HTTP 5xx) are retried up to 2 extra times with 1s/2s backoff on data GET/PUT, byte GET/PUT, and PROPFIND listings. `.lock` writes are never retried so a retried create-only PUT cannot misreport lock contention; 4xx responses are never retried.
-- While a data or image PUT is in flight, the held `.lock` is heartbeat-refreshed every 20 seconds (`_withLockHeartbeat`), so a transfer slower than the 60-second lock TTL cannot let another client treat the lock as expired and upload concurrently. Heartbeat failures are swallowed and never abort the in-flight transfer.
-- Sync writes merged JSON pretty-printed (`JsonEncoder.withIndent('  ')`) to match `AnimeStorage` local saves, so an unchanged file hits the raw-equality fast path on the next sync.
-- `WebDAVService.progress` is a `ValueNotifier<SyncProgress>` (see `sync_progress.dart`) publishing connecting/downloading/merging/uploading phases with per-file and per-image counts. The service emits raw phases and file names only; the WebDAV page maps phases to localized text and renders a `LinearProgressIndicator`.
-- `WebDAVService.forceUpload()` overwrites remote data files and uploads referenced images without any merge or conflict check, under the remote `.lock`, then saves base snapshots. `WebDAVService.forceDownload()` replaces local data files (JSON-validated first, atomic writes) and downloads referenced images without merging, saves base snapshots, and sets the local-data-changed flag; it is download-only and takes no remote lock. Both share the `_syncing` guard and require a destructive-action confirmation dialog in the WebDAV page.
-- After manual sync or force operations the WebDAV page calls `AutoSyncService.notifyLocalDataChangedIfNeeded()` so open pages reload without waiting for the next background sync.
-
-Auto-sync triggers include app launch, app resume, a 30-second debounce after storage saves, immediate sync after enabling/saving auto-sync config, and a 15-minute timer while the app process is alive (the same timer also runs the daily auto-backup check). Home, Manage, and Stats pages register `AutoSyncService.addOnLocalDataChanged` reload callbacks in `initState`/`dispose`, so background sync merges, downloaded images, and backup restores refresh open pages without renavigation. Mobile OS suspension may delay timers until resume. Storage-layer `save()` methods should notify auto-sync so non-UI writes are covered. Auto-sync records latest success, failure, and pending-conflict state in memory so Settings and the WebDAV page can surface sync health.
-
-## Persisted Data Inventory
-
-Default app data directory is `Documents/MyAnime` on desktop or the platform app documents directory on mobile. Custom storage paths are stored in `storage_config.json`; path changes migrate data files, backups, and images.
-
-| Data | File | Synced | Notes |
-| --- | --- | --- | --- |
-| Anime records | `anime_data.json` | Yes | Per-record by `id` and `modifiedAt`; unknown fields preserved |
-| Cover images | `images/` | Yes | Referenced-only additive sync by filename |
-| Theme mode | `storage_config.json` | No | Device-specific preference |
-| Locale | `storage_config.json` | No | Device-specific preference |
-| Calendar week start day | `storage_config.json` | No | Device-specific preference, default Sunday, ignored while Japanese home calendar layout is active |
-| Home calendar layout | `storage_config.json` | No | Device-specific local-vs-Japanese calendar label preference |
-| Home calendar time basis | `storage_config.json` | No | Device-specific JST-vs-local date grid preference; anime schedule timestamps remain JST-based |
-| Storage path override | `storage_config.json` | No | Device-specific path |
-| Auto-backup enabled | `storage_config.json` | No | Device-specific config |
-| Backup retention days | `storage_config.json` | No | Device-specific config |
-| Reminder enabled/time/last reminder date | `storage_config.json` | No | Device-specific local-time reminder config and internal state |
-| API server enabled/listen address/port/credentials | `storage_config.json` | No | Local desktop config; credentials must not be committed |
-| Tray and launch-at-startup preferences | `storage_config.json` | No | Local desktop config |
-| WebDAV configuration | `webdav_config.json` | No | Local secret/config only |
-| Sync base snapshot | `.sync_base/anime_data.json` | No | Local merge tracking |
-| Local backups | `backups/backup_*.json` | No | Local recovery; v2 bundles reference deduplicated image blobs |
-| Backup image blobs | `backups/blobs/` | No | Content-addressed (`sha256`), shared across backups, reference-counted GC |
-
-## Platform Caveats
-
-### Windows
-
-- Inno Setup installer is defined in `installer.iss`; output goes to `build/installer/`.
-- The installer creates Start Menu shortcuts. Do not create shortcuts programmatically.
-- App icon: `windows/runner/resources/app_icon.ico`.
-- File association: `.myanimeitem` -> `MyAnimeItem` -> `my_anime.exe "%1"` via registry entries in `installer.iss`.
-- Inno uses `#ifdef ARM64` to build both x64 and ARM64 installers from one script.
-
-### macOS
-
-- App name is `MyAnime!!!!!` in `macos/Runner/Configs/AppInfo.xcconfig`.
-- `com.apple.security.network.client` must be present in both `DebugProfile.entitlements` and `Release.entitlements` for network access.
-- Custom app icons are generated with `flutter_launcher_icons`.
-- `.myanimeitem` file association uses UTI `com.yuanzhe.my-anime.myanimeitem` in `Info.plist`.
-
-### iOS
-
-- `CFBundleDisplayName` is `MyAnime!!!!!` in `Info.plist`.
-- HTTPS network access needs no special entitlement.
-- iOS app icons use dedicated padded sources for default, dark, and tinted modes: `assets/icon/app_icon_ios.png`, `assets/icon/app_icon_ios_dark.png`, and `assets/icon/app_icon_ios_tinted.png`.
-- `.myanimeitem` file association uses the same UTI declarations as macOS.
-- App Store IPA requires signing/provisioning and is not built by CI.
-
-### Android
-
-- `android/app/build.gradle.kts` should use `import java.util.Properties`.
-- Built-in Kotlin migration state (app side migrated): Gradle wrapper `9.3.1`, AGP `9.1.1`, and the app no longer applies `kotlin-android`. The Kotlin jvmTarget is set by a top-level `kotlin { compilerOptions { jvmTarget = JvmTarget.JVM_17 } }` block (not `jvmToolchain`, which required a real JDK 17 install; not `kotlinOptions`, which is removed). `android/gradle.properties` keeps the Flutter-migrator compat flags `android.builtInKotlin=false` and `android.newDsl=false` because several plugins still apply KGP — setting `builtInKotlin=true` breaks every KGP-applying plugin (verified). Keep `org.jetbrains.kotlin.android` declared (apply false) in `settings.gradle.kts`; KGP-applying plugins resolve it from there.
-- `file_picker` is pinned to exactly `10.3.7`: it is the last release that both applies KGP itself (required while `builtInKotlin=false`) and compiles against `flutter.compileSdkVersion` (required by AGP 9 AAR metadata checks). 10.3.9+ and 11.x rely on AGP built-in Kotlin and fail to compile in compat mode; 10.3.2 and older pin compileSdk 34 and fail the metadata check. Do not use a caret constraint. Its Dart API is `FilePicker.platform.*`.
-- Keystore properties should use nullable casts such as `as String?`.
-- Core library desugaring is enabled.
-- Signing is optional locally via `key.properties`; CI uses GitHub Secrets.
-- FileProvider and `FLAG_ACTIVITY_NEW_TASK` support share/import flows.
-
-## CI/CD
-
-`.github/workflows/build.yml` runs on `v*` tag pushes and `workflow_dispatch`.
-
-Every checkout step passes `submodules: recursive`. Without it `flutter pub get` fails on the
-missing `packages/myapps_data` path dependency. The relative submodule URL resolves to the public
-GitHub copy in CI, so the default `GITHUB_TOKEN` is sufficient.
-
-Jobs:
-
-- Android APK full flavor and AAB store flavor.
-- Windows x64 full installer on `windows-latest`.
-- Windows ARM64 full installer on `windows-11-arm`; this currently uses cached Flutter master because stable ARM64 engine support was not yet available when the workflow was written.
-- iOS full sideload IPA without codesign.
-- macOS full DMG via `create-dmg`.
-- GitHub Release artifact upload on tag push.
-
-Important workflow caveats:
-
-- Keep workflow Flutter version aligned with the Dart SDK constraint.
-- GitHub `secrets` cannot be used directly in step `if` expressions; route through job-level `env`.
-- Windows ARM64 output is controlled by `iscc /DARM64 installer.iss`.
-- The ARM64 Flutter master cache is weekly so Windows Defender reputation can accumulate for reused DLL hashes. Once stable Flutter ships suitable ARM64 support, switch this job back to a stable-channel setup.
-- Remove the `CL=/D_SILENCE_EXPERIMENTAL_COROUTINE_DEPRECATION_WARNINGS` compatibility macro once the dependency chain no longer includes `<experimental/coroutine>`.
-- Action versions: `actions/checkout@v7`, `actions/setup-java@v5`, `actions/upload-artifact@v7`, `actions/download-artifact@v8`, `actions/cache@v6`, `softprops/action-gh-release@v3` (bumped from the Node 20-based majors that GitHub deprecated). Validate workflow changes with a `workflow_dispatch` run before the next tag release.
-- Known remaining warning: the Android job still prints Flutter's "plugins that apply KGP" warning for flutter_timezone, package_info_plus, share_plus, shared_preferences_android, wakelock_plus, and file_picker. The app side is already migrated (AGP 9.1.1, no app-level `kotlin-android`); the remaining warning is plugin-side only and, as of 2026-07, even the latest releases of those plugins still apply KGP. Full elimination requires flipping `android.builtInKotlin=true` once every plugin ships Built-in Kotlin support; verify with real APK/AAB builds when attempting it.
-
-## Useful Commands
-
-```powershell
-flutter pub get
-flutter analyze
-flutter test
-flutter test test/anime_json_test.dart
-flutter gen-l10n
-flutter build apk --release --dart-define=FLAVOR=full
-flutter build appbundle --release --dart-define=FLAVOR=store
-flutter build windows --release --dart-define=FLAVOR=full
-iscc installer.iss
-iscc /DARM64 installer.iss
-```
-
-Use the narrowest relevant command set for verification. For model/sync changes, include `flutter test test/anime_json_test.dart`. Full `flutter analyze` has previously reported pre-existing info/warning items and pub advisory decode warnings; distinguish pre-existing noise from regressions introduced by the current change.
-
-## Git History and Version Reference
-
-The latest release tag before this documentation guide was `v0.6.7`, and both `origin/master` and `github/master` were aligned there before the guide was added. There is an early-history caveat: two root commits had the same content after an early `git commit --amend`, and tag `v0.1.0` points to the later root. Avoid `git commit --amend` on root commits.
-
-Version highlights:
-
-- `v0.1.0`: Initial anime tracker.
-- `v0.1.1`: Store/full flavors, daily reminders, JST calendar note, macOS support, CI/CD, platform naming and icons.
-- `v0.1.2`: Per-record three-way WebDAV merge, conflict resolution UI, sync base tracking.
-- `v0.1.3`: UTC `modifiedAt` fixes and schedule validation fixes.
-- `v0.2.0`: Share anime as image card with cover, info, QR code, and watermark.
-- `v0.2.1`: Share card broadcast-progress improvements and app logo.
-- `v0.2.2`: Higher-resolution share card, truncation indicator, add-anime validation, desktop preview dialog.
-- `v0.3.0`: AniList source, `infoUrl`, share URL options.
-- `v0.3.1`: Android share target opens in its own task.
-- `v0.4.0`: Statistics page, management global search, quarter jump picker.
-- `v0.4.1`: Navigate to detail after creation and return to the anime quarter.
-- `v0.4.2`: Redesigned quarter picker and scrollable statistics trend chart.
-- `v0.4.3`: Year-by-quarter grid picker, wider quarter range, sticky Y-axis, default scroll to latest stats.
-- `v0.4.4`: Quarter jump fix, optional `firstAirDate`, Japanese title fallback, Other page.
-- `v0.5.0`: Comprehensive i18n cleanup for day names, season names, notifications, sync conflicts, and search labels.
-- `v0.5.1`: Share as `.myanimeitem` data file and file-open support on all platforms.
-- `v0.5.2`: Import `.myanimeitem` from add menus, strip personal viewing data from export, better filenames, manual type override fix, installer metadata.
-- `v0.5.3`: `airsInQuarter()` respects `manualType` and episode week offsets.
-- `v0.5.4`: Markdown export option for LLM personalization.
-- `v0.6.0`: Local HTTP API server, system tray service, desktop settings UI.
-- `v0.6.1`: API server enable/disable toggle and configurable listen address.
-- `v0.6.2`: Launch at startup, corrected unwatched endpoint, season filters for list/history.
-- `v0.6.3`: API `nextEpisodeAirDate` and improved abandoned/not-yet-aired classification.
-- `v0.6.4`: API list/history return `total`, `counts`, and `data`; abandoned classification fix.
-- `v0.6.5`: Referenced-only image sync and detailed sync error/warning reporting.
-- `v0.6.6`: Periodic auto-sync and forward-compatible JSON field preservation.
-- `v0.6.7`: Kana quick reference module, l10n updates, remotes synchronized to both `origin` and `github`.
-- `v0.7.0`: Optional anime rating system and statistics ranking view with rating filters and sorting.
-- `v0.7.1`: Ranking filter UX improvements with reusable quarter/year pickers, quarter-range custom filters, corrected top selection state, and cover thumbnails.
-- `v0.7.2`: Ranking button selected-state contrast, ranking image export/share, and release version metadata updates.
-- `v0.7.3`: Statistics quick quarter/year pickers, quieter skipped-only calendar markers, richer unwatched episode counts, and reminder wording/count updates.
-- `v0.7.4`: Configurable home calendar localization, week start, Japanese calendar layout, JST/local date-grid mode, and release version metadata updates.
-- `v0.7.5`: Full-range statistics trend scrolling with focused quarter/year selection, all-scope quarter/year trend granularity, collapsed all-scope status lists, current-format home calendar button text, and release version metadata updates.
-- `v0.8.0`: Local API status/rating/progress field refresh, `/anime/ranking` endpoint, shared viewing-status derivation, and release version metadata updates.
-- `v1.0.0`: Pre-release audit hardening — WebDAV downloads distinguish 404 from errors so transient failures can never overwrite the remote or cascade into cross-device deletions, ETag `If-Match`/`If-None-Match` preconditions on data uploads with visible 412 errors, fresh local re-read before writing merged data, identical-content concurrent edits no longer raise conflicts, conflict-resolution upload failures are reported, content-aware per-day mobile reminder scheduling (empty days skipped, no duplicate in-app notification), IANA timezone resolution via `flutter_timezone`, Basic Auth enforced on loopback when API credentials are configured, allowlist-based ZIP import, removed unused `SCHEDULE_EXACT_ALARM` permission, forward-snapped episode air dates, and versions unified to `1.0.0+37` / MSIX `1.0.0.0` / installer `1.0.0`.
-- `v1.0.1`: Statistics page share button (image or data file), summary image with horizontal bar chart (tracked/completed/dropped), multi-anime `.myanimeitem` bundle export/import (v2 format), import conflict resolution with keep-local/use-imported/merge options, settings duplicate check page with transitive grouping and merge, CI Flutter updated to `3.44.2`, and versions unified to `1.0.1+38` / MSIX `1.0.1.0` / installer `1.0.1`.
-- `v1.0.2`: Statistics image sharing now supports summary status selection with filtered bar-chart counts, large-image warnings, optional row limits, summary first-air-date priority, ranking first-N limiting in current rank order, generation progress dialogs while cover images load, and versions unified to `1.0.2+39` / MSIX `1.0.2.0` / installer `1.0.2`.
-- `v1.1.0`: WebDAV auto-sync failures and true sync conflicts are surfaced in Settings/WebDAV, background sync no longer silently resolves conflicts with LWW, manual conflict resolution clears the visible status on success, and versions are unified to `1.1.0+40` / MSIX `1.1.0.0` / installer `1.1.0`.
-- `v1.1.1`: Statistics share now supports a TXT export of anime display names sorted in dictionary order, statistics/ranking image exports are split across multiple PNG pages when the single-page pixel height would exceed the platform texture cap (`_maxImageDimension = 16000`) so tall lists are no longer cut off, multi-page sharing uses Android `ACTION_SEND_MULTIPLE` plus a desktop multi-page preview with save-all, and versions are unified to `1.1.1+41` / MSIX `1.1.1.0` / installer `1.1.1`.
-- `v1.1.2`: WebDAV uploads now use a remote `.lock` with a stable local client id and 150-second TTL, interrupted local uploads are detected on the next sync, and HTTP 412 upload races re-download remote data and re-run per-record merge before surfacing only true record conflicts; versions are unified to `1.1.2+42` / MSIX `1.1.2.0` / installer `1.1.2`.
-- `v1.1.3`: WebDAV now acquires `.lock` before downloading and merging remote data, lowers the lock TTL to 60 seconds, and force-uploads complete merged/resolved JSON under the valid lock without data-file `If-Match`/`If-None-Match` retry loops; versions are unified to `1.1.3+43` / MSIX `1.1.3.0` / installer `1.1.3`.
-- `v1.2.0`: WebDAV sync hardening and force transfers — remote image listing failures no longer masquerade as an empty directory (fixing repeated re-uploads of already-uploaded images), transient network errors and HTTP 5xx are retried with backoff, sync progress is published through `WebDAVService.progress` and shown as a progress bar with localized phase text, Force Upload / Force Download actions with confirmation dialogs were added to the WebDAV page, sync-written JSON is pretty-printed to match local saves, `AnimeStorage` data/config writes and sync base/lock writes are atomic, `notifySaved` is ignored before auto-sync starts, downloaded images trigger UI reloads, manual sync notifies reload listeners, WebDAV terminology was standardized across MyAnime/MyDay/MyDevice (`settingsWebDAVTest` renamed to `settingsWebDAVTestConnection`), the search cover-fetch error is localized, installer filenames derive from `AppVersion`, and versions are unified to `1.2.0+44` / MSIX `1.2.0.0` / installer `1.2.0`.
-- `v1.2.1`: Foreground sync operations (manual sync, conflict finalize, force upload/download) hold a screen wake lock via the new `sync_wake_lock.dart` and `wakelock_plus`, released in `finally` on completion/failure/cancel/exception; dismissing a sync conflict dialog now aborts the resolution instead of silently uploading keep-local; backup retention gains a 3-day option; Japanese `statsTracked`/`statsWatching` values were un-swapped; backup/restore terminology was standardized across MyAnime/MyDay/MyDevice (`backupRestoreModules` says "Modules", ja `backupCreate` unified); remaining ASCII `...` in localization strings was converted to `…`; and versions are unified to `1.2.1+45` / MSIX `1.2.1.0` / installer `1.2.1`.
-- `v1.2.3`: Sync/backup safety hardening and Android build modernization — restoring a backup now disables WebDAV auto-sync *before* the first file is written and re-enables it only when the restore failed without writing anything (`RestoreResult` with `ok`/`wroteAnything`/`missingImages`), missing v2 backup image blobs surface a localized `backupRestoreMissingImages` warning instead of being silently dropped, WebDAV data/image PUTs heartbeat-refresh the remote `.lock` every 20 seconds so transfers slower than the 60-second TTL can no longer race a second client into a lost update, GitHub Actions were bumped to checkout v7 / setup-java v5 / upload-artifact v7 / download-artifact v8 / cache v6 / gh-release v3 (removing the Node 20 deprecation warnings), Android moved to Gradle 9.3.1 + AGP 9.1.1 with the app-side Built-in Kotlin migration done under the `builtInKotlin=false` compat flags, `file_picker` is pinned to exactly `10.3.7`, and versions are unified to `1.2.3+47` / MSIX `1.2.3.0` / installer `1.2.3`.
-- `v1.2.2`: Backup overhaul — backup format v2 stores images once in a content-addressed `backups/blobs/` store shared by all backups with reference-counted GC (a blob is deleted only when no remaining backup references it; legacy inline-image bundles stay restorable), bundle writes are atomic and corrupt bundles are flagged in the history (restore disabled) without suppressing the daily auto-backup retry, restoring a backup now reloads open pages and reminders, disables WebDAV auto-sync when sync is configured and offers an explicit force upload of the restored data (preventing restored-old data from propagating deletions to other devices), restore validates module JSON and sanitizes image names before writing, Home/Manage/Stats pages register sync reload callbacks (fixing the documented-but-unwired UI reload after background sync), auto-backup also runs from the 15-minute periodic timer with a re-entrancy guard, backup failures show a snackbar, the restore module label is localized, backup UI text/CJK terminology was standardized across MyAnime/MyDay/MyDevice (zh uses 还原), unused test imports were removed, and versions are unified to `1.2.2+46` / MSIX `1.2.2.0` / installer `1.2.2`.
+To change shared code: the submodule checks out detached, so `git switch main` inside it first, then
+commit and **push to both remotes before** committing the pointer bump here. A pointer to an unpushed
+commit breaks every other clone and CI.
+
+## Release, version, commit, tag, push
+
+For ordinary feature/fix work, do not bump versions or tag until the user confirms the release
+version and confirms pushing.
+
+When the user confirms:
+
+1. Update every version location:
+   - `pubspec.yaml`: `version: X.Y.Z+N` (`N` increments for releases)
+   - `pubspec.yaml`: `msix_config.msix_version: X.Y.Z.0`
+   - `installer.iss`: `AppVersion=X.Y.Z`, `VersionInfoVersion=X.Y.Z.0`,
+     `VersionInfoProductVersion=X.Y.Z`
+   - `installer.iss` output filenames stay derived from `{#SetupSetting("AppVersion")}` for both x64
+     and ARM64
+   - Never hand-edit the settings-page version display; it reads `PackageInfo.fromPlatform()`
+2. If MSIX ever diverges from the other locations, realign at the next bump rather than making a
+   version-only edit.
+3. Re-run verification.
+4. Commit all intended changes, and add the `doc/en-us/version-history.md` entry.
+5. Create an annotated tag `vX.Y.Z`.
+6. Push **the commit first**, then the tag, to both `origin` and `github`.
+
+This repo's branch is `master` (MyDay uses `main` — do not assume). Push `HEAD` or check
+`git branch --show-current` first, and verify with `git ls-remote`.
+
+GitHub Actions release builds trigger on tag pushes to `github`. Tags must be pushed explicitly.
+
+Documentation-only maintenance the user says needs no release: commit and push without changing
+versions or creating a tag.
+
+## Agent co-author attribution
+
+An agent that made a real, material contribution to a commit may add its own accurate
+`Co-authored-by:` trailer. Attribution is per commit: do not add an agent merely because it reviewed,
+observed, or continued another agent's work, and never copy a trailer automatically from an earlier
+commit. When multiple agents materially contributed, include one accurate trailer each. Use the
+agent's actual documented identity; never invent a provider, model, name, or email. Approved
+examples are `Co-authored-by: Codex <noreply@openai.com>` and, for Claude Code,
+`Co-Authored-By: Claude Sonnet 5 <noreply@anthropic.com>` with the model name replaced by the actual
+model that did the work. For another agent, use its verified documented identity; if none is
+verified, omit the AI trailer unless the repository owner approves one.
+
+## Remotes and secrets
+
+- `origin` → `<local_gitea_address>` (private Gitea)
+- `github` → `git@github.com:YuanZhe-99/MyAnime.git`
+
+Determine the repository path from the runtime workspace; do not hardcode a machine-specific absolute
+path here.
+
+**Masking rule:** keep the `origin` URL written as `<local_gitea_address>` in every committed file.
+Never write the underlying Tailscale host or port anywhere in the repo, including `.gitmodules`.
+
+**Never commit:** secrets, credentials, WebDAV configuration, signing keys, private personal anime
+data, generated app data, or local-only machine addresses.
