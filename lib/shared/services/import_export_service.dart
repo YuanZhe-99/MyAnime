@@ -1,98 +1,61 @@
+/// Purpose: MyAnime's ZIP and Markdown export/import API. The ZIP half is now a
+/// facade over the shared `ZipTransfer` engine; the Markdown export is
+/// domain-specific and stays here (PLAN.md M14 non-goal).
+/// Inputs: Destination directories and ZIP file paths from the settings pages.
+/// Returns: Written file paths, or import success flags.
+/// Side effects: Reads and writes the app data directory.
+/// Notes: PLAN.md P3.1.3. `exportZIP`/`importZIP` keep their names, signatures,
+/// and archive naming (`myanime_export_<stamp>.zip`) (I7).
+library;
+
 import 'dart:convert';
 import 'dart:io';
 
-import 'package:archive/archive.dart';
 import 'package:intl/intl.dart';
+import 'package:myapps_data/myapps_data.dart' as shared;
 import 'package:path/path.dart' as p;
 
+import '../../app/data_modules.dart';
 import '../../features/anime/models/anime.dart';
 import '../../features/anime/services/anime_storage.dart';
 
 class ImportExportService {
+  /// Shared ZIP engine configured to match MyAnime's existing leniency.
+  ///
+  /// Unknown entries are skipped rather than rejected so an archive from a
+  /// newer build still imports, and payloads are written as raw bytes without
+  /// UTF-8 or model validation — exactly what this service did before.
+  /// Path traversal is the one thing that is not configurable: the engine
+  /// always refuses such an archive outright.
+  static final shared.ZipTransfer _zip = shared.ZipTransfer(
+    storage: const AnimeStorageAdapter(),
+    modules: animeModuleRegistry,
+    archiveNamePrefix: animeArchiveNamePrefix,
+    rejectUnknownEntries: false,
+    strictUtf8: false,
+    validateBeforeWrite: false,
+    atomicWrites: false,
+  );
+
   /// Purpose: Export all anime data as a ZIP file containing anime_data.json and images/.
   /// Inputs: `destDir`.
-  /// Returns: `Future<String?>`.
-  /// Side effects: May read or mutate application state, storage, or service resources.
-  /// Notes: Export all anime data as a ZIP file containing anime_data.json and images/. Returns the exported file path, or null on failure.
-  static Future<String?> exportZIP(String destDir) async {
-    try {
-      final appDir = await AnimeStorage.getAppDir();
-      final archive = Archive();
-
-      final dataFile = File(p.join(appDir.path, 'anime_data.json'));
-      if (await dataFile.exists()) {
-        final bytes = await dataFile.readAsBytes();
-        archive.addFile(ArchiveFile('anime_data.json', bytes.length, bytes));
-      }
-
-      // Include images
-      final imgDir = Directory(p.join(appDir.path, 'images'));
-      if (await imgDir.exists()) {
-        await for (final entity in imgDir.list()) {
-          if (entity is File) {
-            final bytes = await entity.readAsBytes();
-            final name = 'images/${p.basename(entity.path)}';
-            archive.addFile(ArchiveFile(name, bytes.length, bytes));
-          }
-        }
-      }
-
-      final zipData = ZipEncoder().encode(archive);
-
-      final stamp = DateFormat('yyyyMMdd_HHmmss').format(DateTime.now());
-      final outFile = File(p.join(destDir, 'myanime_export_$stamp.zip'));
-      await outFile.writeAsBytes(zipData);
-      return outFile.path;
-    } catch (_) {
-      return null;
-    }
-  }
+  /// Returns: `Future<String?>` — the exported file path, or null on failure.
+  /// Side effects: Writes `myanime_export_<yyyyMMdd_HHmmss>.zip` in `destDir`.
+  /// Notes: Bundles the registry's data files plus flat `images/<name>` entries.
+  /// Config, `.sync_base/`, and `backups/` are never included.
+  static Future<String?> exportZIP(String destDir) => _zip.exportZip(destDir);
 
   /// Purpose: Import data from a previously exported ZIP file.
   /// Inputs: `filePath`.
-  /// Returns: `Future<bool>`.
-  /// Side effects: May read or mutate application state, storage, or service resources.
-  /// Notes: Import data from a previously exported ZIP file. Returns true on success.
-  /// Only allowlisted entries (`anime_data.json` and flat files under `images/`)
-  /// are extracted, and the resolved output path must stay inside the app dir,
-  /// so a crafted ZIP cannot overwrite configuration such as `webdav_config.json`.
-  static Future<bool> importZIP(String filePath) async {
-    try {
-      final file = File(filePath);
-      if (!await file.exists()) return false;
-
-      final bytes = await file.readAsBytes();
-      final archive = ZipDecoder().decodeBytes(bytes);
-      final appDir = await AnimeStorage.getAppDir();
-
-      for (final entry in archive) {
-        if (entry.isFile) {
-          final normalizedName = p.normalize(entry.name).replaceAll('\\', '/');
-          final allowed =
-              normalizedName == 'anime_data.json' ||
-              (normalizedName.startsWith('images/') &&
-                  normalizedName.split('/').length == 2);
-          if (!allowed || normalizedName.contains('..')) continue;
-
-          final outFile = File(p.join(appDir.path, normalizedName));
-          final normalizedOut = p.normalize(outFile.absolute.path);
-          final normalizedAppDir = p.normalize(appDir.absolute.path);
-          if (!p.isWithin(normalizedAppDir, normalizedOut)) continue;
-
-          // Ensure parent directory exists
-          final parent = Directory(p.dirname(normalizedOut));
-          if (!await parent.exists()) {
-            await parent.create(recursive: true);
-          }
-          await outFile.writeAsBytes(entry.content as List<int>);
-        }
-      }
-
-      return true;
-    } catch (_) {
-      return false;
-    }
-  }
+  /// Returns: `Future<bool>` — true on success.
+  /// Side effects: Overwrites allowlisted data files and images.
+  /// Notes: Only allowlisted entries (the registry's data files and flat files
+  /// under `images/`) are extracted, and every entry must resolve inside the
+  /// app dir, so a crafted ZIP cannot overwrite configuration such as
+  /// `webdav_config.json`. An archive containing a traversal entry is now
+  /// rejected outright (returns false, writes nothing) rather than having the
+  /// bad entry skipped — see PLAN.md's accepted-unification list.
+  static Future<bool> importZIP(String filePath) => _zip.importZip(filePath);
 
   /// Purpose: Export all anime data as a Markdown file, sorted by first air date.
   /// Inputs: `destDir`.
@@ -102,7 +65,7 @@ class ImportExportService {
   static Future<String?> exportMarkdown(String destDir) async {
     try {
       final appDir = await AnimeStorage.getAppDir();
-      final dataFile = File(p.join(appDir.path, 'anime_data.json'));
+      final dataFile = File(p.join(appDir.path, animeDataFileName));
       if (!await dataFile.exists()) return null;
 
       final jsonStr = await dataFile.readAsString();

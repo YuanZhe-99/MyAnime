@@ -400,10 +400,16 @@ void main() {
       final zipFile = File(p.join(sb.dir.path, 'evil.zip'));
       await zipFile.writeAsBytes(zip);
       final ok = await ImportExportService.importZIP(zipFile.path);
-      // MyAnime skips (continues) bad entries but imports the valid one.
-      expect(ok, isTrue);
+      // Accepted unification (PLAN.md, P3.1.3): MyAnime used to skip the bad
+      // entry and import the rest. The shared engine classifies every entry
+      // before writing any, so an archive containing a traversal entry is
+      // rejected outright. Strictly safer — a tampered archive can no longer be
+      // half-applied — and it matches MyDay's long-standing behavior.
+      expect(ok, isFalse);
       expect(await File(p.join(sb.appDir, '..', 'evil.txt')).exists(), isFalse,
           reason: 'traversal entry must not be written outside appDir');
+      expect(await File(p.join(sb.appDir, 'anime_data.json')).exists(), isFalse,
+          reason: 'a rejected archive must not write any of its entries');
       await sb.dir.delete(recursive: true);
     });
   });
