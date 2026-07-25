@@ -125,6 +125,28 @@ Primary tests (mirroring the structure above where relevant):
 `tool/` contains ad hoc scripts (icon generation, search-source validation) that are not part of
 the release-critical path.
 
+## Shared package (`myapps_data`)
+
+The WebDAV sync engine, backup engine, ZIP transfer engine, and auto-sync scheduler are **not in this
+repo**. They live in the shared `myapps_data` package, embedded at `packages/myapps_data` as a git
+submodule and consumed as a pub path dependency. MyAnime, MyDay, and MyDevice all use it, which is
+what keeps their wire format, backup format, and lock semantics interoperable.
+
+- **What stays here:** all models, `AnimeStorage`, the `mergeAnimeData` wrapper, the Markdown export,
+  and every page.
+- **What moved:** the transport, lock lifecycle, merge pipeline, `.sync_base` snapshots, image sync,
+  backup bundle and blob store, ZIP allowlist, and sync scheduling.
+- **The seam:** [`functions/app/data_modules.md`](functions/app/data_modules.md) declares the
+  `StorageAdapter` over `AnimeStorage` plus the `DataModule` describing `anime_data.json`. It is the
+  single source of truth for the data-file name and backup module key.
+- **The facades:** `WebDAVService`, `BackupService`, `ImportExportService`, and `AutoSyncService`
+  keep their previous public APIs and delegate to the package. Their shapes are deliberately frozen
+  so call sites and tests keep working; behavior changes belong in the package.
+
+`.gitmodules` uses the relative URL `../MyApps-DATA.git`, so it resolves against whichever remote a
+clone tracks — Gitea clones fetch from Gitea, GitHub clones from GitHub, and no host name is ever
+committed. Fresh clones need `git clone --recurse-submodules` or `git submodule update --init`.
+
 ## Core architectural rules
 
 These rules apply across the whole codebase and are worth internalizing before reading any single
