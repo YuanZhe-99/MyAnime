@@ -3,7 +3,7 @@
 /// Inputs: `WebDAVConfig` values from the config page and auto-sync service.
 /// Returns: App-typed `SyncResult`/`PendingSync` values.
 /// Side effects: Delegates all local and remote I/O to the shared engine.
-/// Notes: PLAN.md P3.1.3. Every public member below kept its name, signature,
+/// Notes: Every public member below kept its name, signature,
 /// and semantics so call sites, the conflict dialog, and the existing tests
 /// compile and behave unchanged (I7). The ~1400 lines of transport, lock,
 /// merge-pipeline, and image-sync code this file used to hold now live in the

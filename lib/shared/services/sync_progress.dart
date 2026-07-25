@@ -3,7 +3,7 @@
 /// Returns: N/A.
 /// Side effects: None.
 /// Notes: `SyncPhase`, `SyncProgress`, and `SyncProgressListenable` moved to the
-/// `myapps_data` package verbatim (PLAN.md P2.1) — the three apps' copies were
+/// `myapps_data` package verbatim — the three apps' copies were
 /// byte-identical (SHA-256 verified). This file stays so every existing import
 /// keeps working unchanged (I7).
 library;

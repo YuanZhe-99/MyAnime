@@ -5,7 +5,7 @@
 /// Returns: A `StorageAdapter` implementation and the app's `ModuleRegistry`.
 /// Side effects: None at import time; callbacks perform parsing and storage I/O.
 /// Notes: Every hardcoded `anime_data.json` list in the shared services is
-/// replaced by this registry (PLAN.md P3.1.2). File names and module IDs are
+/// replaced by this registry. File names and module IDs are
 /// persisted compatibility contracts (I1/I2) and must never change.
 library;
 

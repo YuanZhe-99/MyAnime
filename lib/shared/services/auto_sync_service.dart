@@ -3,7 +3,7 @@
 /// Inputs: Lifecycle events, storage saves, and manual sync results.
 /// Returns: Sync status for the settings UI.
 /// Side effects: Schedules and runs background syncs; runs the daily backup.
-/// Notes: PLAN.md P3.1.3. The scheduler owns only the trigger topology —
+/// Notes: The scheduler owns only the trigger topology —
 /// launch, resume, the 15-minute timer, and the 30-second save debounce. What
 /// MyAnime does that the other apps do not stays here as hooks: the periodic
 /// tick and resume both run the daily auto-backup, and resume also refreshes

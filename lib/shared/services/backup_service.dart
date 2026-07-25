@@ -3,7 +3,7 @@
 /// Inputs: Backup files and module selections from the backup page.
 /// Returns: `BackupInfo` listings and `RestoreResult` outcomes.
 /// Side effects: Delegates bundle, blob, and restore I/O to the shared engine.
-/// Notes: PLAN.md P3.1.3. Every public member kept its name and signature so
+/// Notes: Every public member kept its name and signature so
 /// `backup_service_test.dart` and the backup page compile and behave unchanged
 /// (I7) — including the `@visibleForTesting appDirProvider` seam, which is
 /// wired into the storage adapter and read on every call.
