@@ -171,7 +171,13 @@ lib/
       duplicate_check_page.dart
       import_bundle_dialog.dart
   l10n/
+packages/
+  myapps_data/            # git submodule: shared sync/backup/ZIP engines
 ```
+
+`lib/app/data_modules.dart` holds the `StorageAdapter` and `DataModule` registry that connect this
+app to `packages/myapps_data`. The services listed under `shared/services/` above are facades over
+that package — see "Shared Package (`myapps_data`)".
 
 Primary tests currently include:
 
@@ -183,6 +189,62 @@ Primary tests currently include:
 - `test/widget_test.dart`: basic widget smoke coverage.
 
 The `tool/` directory contains ad hoc scripts such as icon generation and search-source validation. `tool/generate_ios_icons.dart` derives padded iOS default, dark, and tinted icon sources from `assets/icon/app_icon.png` and writes preview PNGs under `/tmp`; after changing iOS icon sources, regenerate `ios/Runner/Assets.xcassets/AppIcon.appiconset/` with `flutter_launcher_icons`. Prefer focused tests for production behavior and keep tool scripts out of release-critical paths unless the user asks for them.
+
+## Shared Package (`myapps_data`)
+
+The WebDAV sync engine, backup engine, ZIP transfer engine, and auto-sync scheduler are **not in
+this repo**. They live in the shared `myapps_data` package, embedded at `packages/myapps_data` as a
+git submodule and consumed as a pub path dependency. MyAnime, MyDay, and MyDevice all use it.
+
+What stays here: all models, `AnimeStorage`, the per-record merge wrapper `mergeAnimeData`, the
+Markdown export, and every page. What moved: the transport, lock lifecycle, merge pipeline, base
+snapshots, image sync, backup bundle/blob store, ZIP allowlist, and sync scheduling.
+
+`lib/app/data_modules.dart` is the seam and **the single source of truth** for MyAnime's data files.
+It declares the `StorageAdapter` over `AnimeStorage` plus the `DataModule` describing
+`anime_data.json` — file name, backup module id, validator, merge callback, and cover-image
+references. Never hardcode a data-file name or backup module key anywhere else; read it from the
+registry.
+
+`lib/shared/services/` still holds `WebDAVService`, `BackupService`, `ImportExportService`, and
+`AutoSyncService`, but they are now thin facades that delegate to the package. Their public APIs are
+deliberately unchanged. **If a change seems to require editing a facade's public shape, stop** — the
+facade exists so call sites and tests keep working. Behavior changes belong in the package.
+
+`sync_progress.dart`, `sync_wake_lock.dart`, and the generic half of `sync_merge.dart` are
+re-export shims over the package. Do not reintroduce implementations in them.
+
+### Working with the submodule
+
+Fresh clone:
+
+```bash
+git clone --recurse-submodules <app-url>
+```
+
+After a plain clone, or when the pointer moves:
+
+```bash
+git submodule update --init
+```
+
+`.gitmodules` uses the **relative** URL `../MyApps-DATA.git`, so it resolves against whichever remote
+this clone tracks: a Gitea clone fetches from Gitea, a GitHub clone from GitHub. Never write a host
+name into `.gitmodules` — the real Gitea address must not appear in any committed file.
+
+Consuming a newer shared version:
+
+```bash
+cd packages/myapps_data
+git fetch origin --tags && git checkout vX.Y.Z
+cd ../..
+flutter analyze && flutter test
+git add packages/myapps_data && git commit -m "Bump myapps_data to vX.Y.Z"
+```
+
+Changing shared code: the submodule checks out detached, so `git switch main` inside it first, then
+commit and **push to both remotes before** committing the pointer bump here. A pointer to an
+unpushed commit breaks every other clone and CI.
 
 ## Core Architecture
 
@@ -289,7 +351,7 @@ Platform file association is configured on Android, iOS, macOS, and Windows. Win
 - When WebDAV auto-sync is enabled, restoring a backup disables auto-sync in `webdav_config.json` *before* the first file is written (no `mounted` gate), so a crash or page disposal mid-restore can never leave restored-old data with auto-sync still on. `BackupService.restoreBackup` returns a `RestoreResult` (`ok`, `wroteAnything`, `missingImages`); auto-sync is re-enabled only when the restore failed with `wroteAnything == false` (local data guaranteed untouched). After a successful restore the backup page reloads open pages (`AutoSyncService.notifyLocalDataChangedNow()`), refreshes reminders, warns when v2 image blobs were missing from the blob store (`backupRestoreMissingImages`), and — only when WebDAV sync is configured — asks whether to force-upload the restored data (wake lock held, result recorded in sync status). Without this, the next sync would treat restored-old data as local edits/deletions and propagate them to the remote and other devices.
 - `import_export_service.dart`: ZIP export/import and Markdown export.
 - ZIP export includes `anime_data.json` and `images/`.
-- ZIP import must keep path traversal protection: only allowlisted entries (`anime_data.json` and flat files under `images/`) are extracted and the resolved output path must stay inside the app dir, so a crafted ZIP cannot overwrite configuration such as `webdav_config.json`.
+- ZIP import must keep path traversal protection: only allowlisted entries (the registry's data files and flat files under `images/`) are extracted and the resolved output path must stay inside the app dir, so a crafted ZIP cannot overwrite configuration such as `webdav_config.json`. Every entry is classified before any is written, so an archive containing a traversal entry is **rejected outright** (`importZIP` returns false and writes nothing) rather than having the bad entry skipped. Unknown entries are still skipped, so an archive from a newer build still imports.
 - Markdown export is LLM-friendly, sorted by `firstAirDate` with nulls last, and includes titles, type, air schedule, episode range, derived viewing status, watched/total counts, URLs, and notes.
 - `image_service.dart`: image download and caching. Cover images live under `images/`.
 
@@ -338,7 +400,7 @@ Flow:
 6. Detect conflict when the same anime changed on both sides after the last sync.
 7. Re-read the local file to detect concurrent saves made during network I/O and re-merge if it changed.
 8. If there are no record conflicts, force-upload the complete merged JSON while the `.lock` is valid. Data JSON PUTs do not use data-file `If-Match` or `If-None-Match`; `.lock` is the concurrency guard.
-9. If there are record conflicts, return them to the user. After the user resolves them, `finalizePendingSync` reacquires `.lock` and force-uploads the complete resolved JSON.
+9. If there are record conflicts, return them to the user. After the user resolves them, `finalizePendingSync` reacquires `.lock`, re-downloads the remote data file, and force-uploads the complete resolved JSON. The re-download does not re-merge known fields; it guards against uploading a resolution over a remote that has become unreadable.
 10. Save the new base snapshot only after upload succeeds, then clear the matching remote/local upload lock.
 
 Manual sync uses `autoResolve: false` and shows conflict dialogs. Auto-sync also leaves `autoResolve` disabled: it records failures and true two-sided conflicts as visible status in Settings/WebDAV instead of silently applying last-writer-wins. Users must open the WebDAV page and resolve conflicts manually. Dismissing any conflict dialog (system back) aborts the whole resolution: nothing is uploaded, the conflict stays pending in the visible sync status, and no record is silently resolved to the local version. `finalizePendingSync` returns false when applying or force-uploading the resolution under `.lock` fails so the UI reports the failure; the base snapshot stays untouched and the next sync re-merges.
@@ -430,6 +492,10 @@ Default app data directory is `Documents/MyAnime` on desktop or the platform app
 ## CI/CD
 
 `.github/workflows/build.yml` runs on `v*` tag pushes and `workflow_dispatch`.
+
+Every checkout step passes `submodules: recursive`. Without it `flutter pub get` fails on the
+missing `packages/myapps_data` path dependency. The relative submodule URL resolves to the public
+GitHub copy in CI, so the default `GITHUB_TOKEN` is sufficient.
 
 Jobs:
 
