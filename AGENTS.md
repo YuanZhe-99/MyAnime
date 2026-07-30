@@ -71,7 +71,9 @@ sync rule, or a feature must update, in the same commit:
 
 Once `doc/zh-cn/` exists it must mirror `doc/en-us/` exactly — same files, headings, tables, and
 examples — updated in the same commit and translated per `translation-guide.md`. New terminology goes
-into the glossary in **all four** sibling repos (MyAnime, MyDay, MyDevice, MyApps-DATA).
+into the glossary in `translation-guide.md`: cross-cutting terms into Section 5.1 in **all four**
+sibling repos (MyAnime, MyDay, MyDevice, MyApps-DATA), app-specific terms into this repo's
+Section 5.2 only.
 
 **Put explanation in the docs, not here.** This file is for agent instructions only. If you are about
 to add a paragraph describing how the code works, it belongs in `doc/en-us/`. Only add to this file

@@ -1,10 +1,11 @@
 # English → Simplified Chinese Translation Guide
 
 This guide governs how `doc/zh-cn/` is produced and kept in sync with `doc/en-us/` across
-MyAnime, MyDay, MyDevice, and MyApps-DATA. It is copied byte-identically into every repo's
-`doc/en-us/translation-guide.md` (and, once the Chinese tree exists, `doc/zh-cn/translation-guide.md`
-holds the Chinese rendering of this same guide). Read this before writing or updating any
-Chinese documentation page.
+MyAnime, MyDay, MyDevice, and MyApps-DATA. Sections 1-4 and 6 are copied byte-identically into
+every repo's `doc/en-us/translation-guide.md`; Section 5's glossary is split into a shared core
+that is identical everywhere plus a per-repo section for terms only that repo uses (and, once the
+Chinese tree exists, `doc/zh-cn/translation-guide.md` holds the Chinese rendering of this same
+guide). Read this before writing or updating any Chinese documentation page.
 
 ## 1. Scope and workflow
 
@@ -14,8 +15,11 @@ Chinese documentation page.
   glossary in Section 5.
 - Any future change to a function, data format, sync rule, or feature must update the English
   page and the Chinese page in the same commit. Do not let the two trees drift.
-- New terminology encountered while translating must be added to Section 5 in **all four repos**,
-  not just the one being worked on.
+- New terminology encountered while translating goes into Section 5. Put it in **Section 5.1** and
+  copy it to all four repos only if the term is genuinely cross-cutting (sync, backup, storage,
+  documentation, Flutter and Dart vocabulary). If it names something only one app has, put it in
+  that repo's **Section 5.2** and leave the other repos alone — a term nobody in MyDevice can
+  encounter does not belong in MyDevice's glossary.
 
 ## 2. Structural parity rules
 
@@ -59,7 +63,11 @@ two trees file-by-file; both must match exactly.
 
 ## 5. Terminology glossary
 
-New entries must be appended here and copied into all four repos' copies of this file.
+Section 5.1 is the shared core and must stay identical in all four repos. Section 5.2 lists terms
+specific to this repo's own domain and deliberately differs per repo. Before adding a term, decide
+which one it belongs in — see the rule in Section 1.
+
+### 5.1 Shared core (identical in all four repos)
 
 | English | 中文 | Notes |
 |---|---|---|
@@ -77,10 +85,6 @@ New entries must be appended here and copied into all four repos' copies of this
 | heartbeat | 心跳 | periodic lock-refresh signal |
 | stale lock | 过期锁 | |
 | interrupted upload | 中断的上传 | |
-| quarter / cour | 季度 / 一季（cour） | 动画播出档期语境下保留英文 cour |
-| episode | 集 | |
-| air date / air time | 播出日期 / 播出时间 | |
-| tray (system tray) | 系统托盘 | |
 | provider | provider | Riverpod 术语，不译 |
 | route / router | 路由 / 路由器 | |
 | deep link | 深层链接 | |
@@ -92,7 +96,6 @@ New entries must be appended here and copied into all four repos' copies of this
 | getter / setter | getter / setter | 不译 |
 | widget | 组件（widget） | 首次出现附英文原词 |
 | side effects | 副作用 | |
-| local API server | 本地 API 服务器 | |
 | remote (git) | 远程仓库 | |
 | submodule | 子模块 | git submodule |
 | facade | 门面（facade） | 设计模式术语，首次出现附英文原词 |
@@ -105,7 +108,6 @@ New entries must be appended here and copied into all four repos' copies of this
 | build method | build 方法 | Flutter widget 的 build() |
 | l10n / localization | 本地化（l10n） | |
 | ARB file | ARB 文件 | Application Resource Bundle |
-| JST (Japan Standard Time) | 日本标准时间（JST） | |
 | ZIP export / import | ZIP 导出 / 导入 | |
 | path traversal | 路径穿越 | 安全术语，指目录遍历攻击 |
 | allowlist | 允许列表 | |
@@ -113,13 +115,29 @@ New entries must be appended here and copied into all four repos' copies of this
 | debounce | 防抖 | |
 | wake lock | 唤醒锁 | screen wake lock, `wakelock_plus` |
 
+### 5.2 MyAnime-specific terms
+
+Not copied to the other repos — no other app has these.
+
+| English | 中文 | Notes |
+|---|---|---|
+| tray (system tray) | 系统托盘 | |
+| local API server | 本地 API 服务器 | |
+| trend chart | 趋势图 | |
+| metric | 指标 | a selectable series on a trend chart |
+| quarter / cour | 季度 / 一季（cour） | 动画播出档期语境下保留英文 cour |
+| episode | 集 | |
+| air date / air time | 播出日期 / 播出时间 | |
+| JST (Japan Standard Time) | 日本标准时间（JST） | 番组播出时间基准时区 |
+
 ## 6. Review checklist (run before committing a Chinese page)
 
 - [ ] File exists at the same relative path under `doc/zh-cn/` as its English counterpart.
 - [ ] Heading count matches (`grep -c '^#'`).
 - [ ] Code-fence count matches (`grep -c '^```'`), and code contents are byte-identical to English.
 - [ ] Table row counts match.
-- [ ] Every glossary term used matches Section 5 exactly; any new term was added to Section 5 in
-      all four repos.
+- [ ] Every glossary term used matches Section 5 exactly; any new cross-cutting term was added to
+      Section 5.1 in all four repos, and any app-specific term was added only to this repo's
+      Section 5.2.
 - [ ] No real Gitea host appears; `<local_gitea_address>` is used wherever the host would be.
 - [ ] Internal links resolve to the Chinese-tree equivalents, not back to `doc/en-us/`.
