@@ -69,11 +69,13 @@ sync rule, or a feature must update, in the same commit:
 - every affected concept doc (`architecture.md`, `data-formats.md`, `sync.md`,
   `backup-restore.md`, `features/*.md`, `algorithms/*.md`, `platform-notes.md`, `ci-cd.md`).
 
-Once `doc/zh-cn/` exists it must mirror `doc/en-us/` exactly — same files, headings, tables, and
-examples — updated in the same commit and translated per `translation-guide.md`. New terminology goes
-into the glossary in `translation-guide.md`: cross-cutting terms into Section 5.1 in **all four**
-sibling repos (MyAnime, MyDay, MyDevice, MyApps-DATA), app-specific terms into this repo's
-Section 5.2 only.
+Every language directory under `doc/` (currently `en-us` and `zh-cn`) mirrors the others exactly —
+same files, headings, tables, and examples. `doc/en-us/` is authoritative: any documentation change
+updates **all** language directories in the same commit, translated per `translation-guide.md`.
+Adding a new language means creating a complete mirror of `doc/en-us/` in the same change. New
+terminology goes into the glossary in `translation-guide.md`: cross-cutting terms into Section 5.1
+in **all four** sibling repos (MyAnime, MyDay, MyDevice, MyApps-DATA), app-specific terms into this
+repo's Section 5.2 only.
 
 **Put explanation in the docs, not here.** This file is for agent instructions only. If you are about
 to add a paragraph describing how the code works, it belongs in `doc/en-us/`. Only add to this file
