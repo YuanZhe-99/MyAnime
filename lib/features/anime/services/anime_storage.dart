@@ -376,4 +376,29 @@ class AnimeStorage {
     }
     await writeConfig(config);
   }
+
+  /// Purpose: Return the persisted home calendar view format value.
+  /// Inputs: None.
+  /// Returns: `Future<String?>`.
+  /// Side effects: None.
+  /// Notes: `null` means the default full-month view.
+  static Future<String?> getHomeCalendarFormat() async {
+    final config = await readConfig();
+    return config['homeCalendarFormat'] as String?;
+  }
+
+  /// Purpose: Persist the home calendar view format value.
+  /// Inputs: `format`.
+  /// Returns: None.
+  /// Side effects: Writes `storage_config.json`.
+  /// Notes: Passing `null` removes the value and restores the default full-month view.
+  static Future<void> setHomeCalendarFormat(String? format) async {
+    final config = await readConfig();
+    if (format == null) {
+      config.remove('homeCalendarFormat');
+    } else {
+      config['homeCalendarFormat'] = format;
+    }
+    await writeConfig(config);
+  }
 }

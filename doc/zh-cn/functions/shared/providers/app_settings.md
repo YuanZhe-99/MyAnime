@@ -1,6 +1,6 @@
 # lib/shared/providers/app_settings.dart
 
-设备本地应用偏好的 `flutter_riverpod` provider：主题模式、语言区域、日历周起始日，以及主页日历布局/时间基准对。`AppSettingsNotifier` 在构造时从 `AnimeStorage`（`lib/features/anime/services/anime_storage.dart`）加载持久化值，并把每个 setter 调用持久化回它。`AppSettings` 是经 `appSettingsProvider` 暴露的不可变状态类。状态管理约定（Riverpod、不用 Provider/Bloc）见 [../../../architecture.md](../../../architecture.md)，这些值在 `storage_config.json` 中的位置见 [../../../data-formats.md](../../../data-formats.md)。
+设备本地应用偏好的 `flutter_riverpod` provider：主题模式、语言区域、日历周起始日，以及主页日历布局/时间基准/视图格式三项。`AppSettingsNotifier` 在构造时从 `AnimeStorage`（`lib/features/anime/services/anime_storage.dart`）加载持久化值，并把每个 setter 调用持久化回它。`AppSettings` 是经 `appSettingsProvider` 暴露的不可变状态类。状态管理约定（Riverpod、不用 Provider/Bloc）见 [../../../architecture.md](../../../architecture.md)，这些值在 `storage_config.json` 中的位置见 [../../../data-formats.md](../../../data-formats.md)。
 
 ## 声明
 
@@ -8,6 +8,7 @@
 |---|---|---|---|
 | [`_parseHomeCalendarLayout`](#parsehomecalendarlayout) | 顶层函数 | A | 解析存储的主页日历布局字符串。 |
 | [`_parseHomeCalendarTimeBasis`](#parsehomecalendartimebasis) | 顶层函数 | A | 解析存储的主页日历时间基准字符串。 |
+| [`_parseHomeCalendarFormat`](#parsehomecalendarformat) | 顶层函数 | A | 解析存储的主页日历视图格式字符串。 |
 | [`AppSettingsNotifier.new`](#appsettingsnotifier-new) | 构造函数（`AppSettingsNotifier`） | A | 创建 `AppSettingsNotifier` 并触发加载持久化设置。 |
 | [`AppSettingsNotifier._loadPersisted`](#appsettingsnotifier_loadpersisted) | 方法（`AppSettingsNotifier`） | A | 把持久化设置从存储加载进状态。 |
 | [`AppSettingsNotifier.setThemeMode`](#appsettingsnotifier-setthememode) | 方法（`AppSettingsNotifier`） | A | 更新主题模式并持久化它。 |
@@ -15,17 +16,18 @@
 | [`AppSettingsNotifier.setWeekStartDay`](#appsettingsnotifier-setweekstartday) | 方法（`AppSettingsNotifier`） | A | 更新应用级日历周起始日并持久化它。 |
 | [`AppSettingsNotifier.setHomeCalendarLayout`](#appsettingsnotifier-sethomecalendarlayout) | 方法（`AppSettingsNotifier`） | A | 更新主页日历日名布局并持久化它。 |
 | [`AppSettingsNotifier.setHomeCalendarTimeBasis`](#appsettingsnotifier-sethomecalendartimebasis) | 方法（`AppSettingsNotifier`） | A | 更新主页日历日期网格使用 JST 还是本地日期，并持久化它。 |
+| [`AppSettingsNotifier.setHomeCalendarFormat`](#appsettingsnotifier-sethomecalendarformat) | 方法（`AppSettingsNotifier`） | A | 更新记住的主页日历视图格式并持久化它。 |
 | [`AppSettings.new`](#appsettings-new) | 构造函数（`AppSettings`） | A | 创建 `AppSettings` 实例。 |
 | [`AppSettings.effectiveWeekStartDay`](#appsettings-effectiveweekstartday) | getter（`AppSettings`） | A | 返回应应用于日历的周起始日。 |
 | [`AppSettings.copyWith`](#appsettings-copywith) | 方法（`AppSettings`） | A | 用所选字段创建副本。 |
 
-`AppSettings` 的五个字段（`themeMode`、`locale`、`weekStartDay`、`homeCalendarLayout`、`homeCalendarTimeBasis`）和顶层 `appSettingsProvider` 是源码中没有 `/// Purpose:` 注释的普通字段/provider 声明，不作为单独行索引。
+`AppSettings` 的六个字段（`themeMode`、`locale`、`weekStartDay`、`homeCalendarLayout`、`homeCalendarTimeBasis`、`homeCalendarFormat`）和顶层 `appSettingsProvider` 是源码中没有 `/// Purpose:` 注释的普通字段/provider 声明，不作为单独行索引。
 
 ## 文档
 
 ### `HomeCalendarLayout _parseHomeCalendarLayout(String? value)` <a id="parsehomecalendarlayout"></a>
 - **种类：** 顶层函数
-- **来源：** `lib/shared/providers/app_settings.dart`（约第 12 行）
+- **来源：** `lib/shared/providers/app_settings.dart`（约第 13 行）
 - **用途：** 把持久化的主页日历布局 `storage_config.json` 字符串转换为 `HomeCalendarLayout` 枚举。
 - **输入：** `value` — 原始存储字符串，或 `null`。
 - **返回：** `value == 'japanese'` 时为 `HomeCalendarLayout.japanese`，否则 `HomeCalendarLayout.local`。
@@ -42,7 +44,7 @@
 
 ### `HomeCalendarTimeBasis _parseHomeCalendarTimeBasis(String? value)` <a id="parsehomecalendartimebasis"></a>
 - **种类：** 顶层函数
-- **来源：** `lib/shared/providers/app_settings.dart`（约第 24 行）
+- **来源：** `lib/shared/providers/app_settings.dart`（约第 25 行）
 - **用途：** 把持久化的主页日历时间基准 `storage_config.json` 字符串转换为 `HomeCalendarTimeBasis` 枚举。
 - **输入：** `value` — 原始存储字符串，或 `null`。
 - **返回：** `value == 'local'` 时为 `HomeCalendarTimeBasis.local`，否则 `HomeCalendarTimeBasis.jst`。
@@ -57,9 +59,26 @@
   （来自 `AppSettingsNotifier._loadPersisted`，同一文件）
 - **备注：** JST 是默认/回退基准，匹配应用 JST 优先的动画排程模型（见 `shared/utils/jst_time.dart`）。
 
+### `CalendarFormat _parseHomeCalendarFormat(String? value)` <a id="parsehomecalendarformat"></a>
+- **种类：** 顶层函数
+- **来源：** `lib/shared/providers/app_settings.dart`（约第 37 行）
+- **用途：** 把持久化的主页日历视图格式 `storage_config.json` 字符串转换为 `table_calendar` 的 `CalendarFormat` 枚举。
+- **输入：** `value` — 原始存储字符串，或 `null`。
+- **返回：** `'twoWeeks'` 为 `CalendarFormat.twoWeeks`，`'week'` 为 `CalendarFormat.week`，否则 `CalendarFormat.month`。
+- **副作用：** 无。
+- **算法：** 对两个非默认枚举名的单个 `switch` 表达式；其他一切（包括 `null`）默认为 `CalendarFormat.month`。
+- **用法：**
+  ```dart
+  final homeCalendarFormat = _parseHomeCalendarFormat(
+    await AnimeStorage.getHomeCalendarFormat(),
+  );
+  ```
+  （来自 `AppSettingsNotifier._loadPersisted`，同一文件）
+- **备注：** 这是设置层唯一依赖 `table_calendar` 的地方。复用该枚举而不是在 `calendar_preferences.dart` 里镜像一份，使调用点不需要任何格式映射；持久化的字符串就是枚举自己的 `name` 值。
+
 ### `AppSettingsNotifier()` <a id="appsettingsnotifier-new"></a>
 - **种类：** `AppSettingsNotifier` 的构造函数（一个 `StateNotifier<AppSettings>`）
-- **来源：** `lib/shared/providers/app_settings.dart`（约第 37 行）
+- **来源：** `lib/shared/providers/app_settings.dart`（约第 51 行）
 - **用途：** 用默认 `AppSettings` 初始化 notifier，并启动加载持久化值。
 - **输入：** 无。
 - **返回：** 新的 `AppSettingsNotifier` 实例。
@@ -77,14 +96,14 @@
 
 ### `Future<void> _loadPersisted()` <a id="appsettingsnotifier_loadpersisted"></a>
 - **种类：** `AppSettingsNotifier` 的方法
-- **来源：** `lib/shared/providers/app_settings.dart`（约第 46 行）
+- **来源：** `lib/shared/providers/app_settings.dart`（约第 60 行）
 - **用途：** 从 `AnimeStorage` 读取每个持久化偏好，并用完全填充的 `AppSettings` 替换 `state`。
 - **输入：** 无。
 - **返回：** `Future<void>`。
-- **副作用：** 读取 `AnimeStorage.getThemeMode()`、`getLocaleTag()`、`getWeekStartDay()`、`getHomeCalendarLayout()` 和 `getHomeCalendarTimeBasis()`；替换 `state`。
+- **副作用：** 读取 `AnimeStorage.getThemeMode()`、`getLocaleTag()`、`getWeekStartDay()`、`getHomeCalendarLayout()`、`getHomeCalendarTimeBasis()` 和 `getHomeCalendarFormat()`；替换 `state`。
 - **算法：**
-  1. Await 五个 `AnimeStorage` getter（主题模式字符串、语言区域标签、周起始日、主页日历布局字符串、主页日历时间基准字符串）。
-  2. 经 `_parseHomeCalendarLayout`/`_parseHomeCalendarTimeBasis` 解析布局/时间基准字符串。
+  1. Await 六个 `AnimeStorage` getter（主题模式字符串、语言区域标签、周起始日、主页日历布局字符串、主页日历时间基准字符串、主页日历格式字符串）。
+  2. 经 `_parseHomeCalendarLayout`/`_parseHomeCalendarTimeBasis`/`_parseHomeCalendarFormat` 解析布局/时间基准/格式字符串。
   3. 经 `switch` 表达式把主题模式字符串（`'light'`/`'dark'`/其他任何东西）映射为 `ThemeMode.light`/`.dark`/`.system`。
   4. 存在语言区域标签时按 `_` 拆分；带 country code 部分的标签（如 `zh_TW`）变成 `Locale('zh', 'TW')`，否则普通 `Locale(languageCode)`。
   5. 用从解析值构建的新 `AppSettings(...)` 替换 `state`。
@@ -93,7 +112,7 @@
 
 ### `void setThemeMode(ThemeMode mode)` <a id="appsettingsnotifier-setthememode"></a>
 - **种类：** `AppSettingsNotifier` 的方法
-- **来源：** `lib/shared/providers/app_settings.dart`（约第 83 行）
+- **来源：** `lib/shared/providers/app_settings.dart`（约第 101 行）
 - **用途：** 更新内存中的主题模式并持久化该选择。
 - **输入：** `mode` — 新的 `ThemeMode`。
 - **返回：** 无。
@@ -108,7 +127,7 @@
 
 ### `void setLocale(Locale? locale)` <a id="appsettingsnotifier-setlocale"></a>
 - **种类：** `AppSettingsNotifier` 的方法
-- **来源：** `lib/shared/providers/app_settings.dart`（约第 98 行）
+- **来源：** `lib/shared/providers/app_settings.dart`（约第 116 行）
 - **用途：** 更新内存中的语言区域并持久化该选择（或清除它以跟随系统）。
 - **输入：** `locale` — 新的 `Locale`，或 `null` 跟随系统语言区域。
 - **返回：** 无。
@@ -123,7 +142,7 @@
 
 ### `void setWeekStartDay(int weekday)` <a id="appsettingsnotifier-setweekstartday"></a>
 - **种类：** `AppSettingsNotifier` 的方法
-- **来源：** `lib/shared/providers/app_settings.dart`（约第 115 行）
+- **来源：** `lib/shared/providers/app_settings.dart`（约第 133 行）
 - **用途：** 更新应用级日历周起始日并持久化它。
 - **输入：** `weekday` — Dart 星期编号（周一=1 … 周日=7）。
 - **返回：** 无。
@@ -142,7 +161,7 @@
 
 ### `void setHomeCalendarLayout(HomeCalendarLayout layout)` <a id="appsettingsnotifier-sethomecalendarlayout"></a>
 - **种类：** `AppSettingsNotifier` 的方法
-- **来源：** `lib/shared/providers/app_settings.dart`（约第 126 行）
+- **来源：** `lib/shared/providers/app_settings.dart`（约第 144 行）
 - **用途：** 更新主页日历日名布局（本地 vs 日式）并持久化它。
 - **输入：** `layout` — 新的 `HomeCalendarLayout`。
 - **返回：** 无。
@@ -159,7 +178,7 @@
 
 ### `void setHomeCalendarTimeBasis(HomeCalendarTimeBasis basis)` <a id="appsettingsnotifier-sethomecalendartimebasis"></a>
 - **种类：** `AppSettingsNotifier` 的方法
-- **来源：** `lib/shared/providers/app_settings.dart`（约第 138 行）
+- **来源：** `lib/shared/providers/app_settings.dart`（约第 156 行）
 - **用途：** 更新主页日历日期网格使用 JST 还是本地日期，并持久化它。
 - **输入：** `basis` — 新的 `HomeCalendarTimeBasis`。
 - **返回：** 无。
@@ -168,11 +187,28 @@
 - **用法：** 接到与 `setHomeCalendarLayout` 类似的设置页控件上（见 `lib/features/settings/views/settings_page.dart`，主页日历时间基准小节）。
 - **备注：** 此设置只改变主页日历网格显示哪些日期；动画播出时间戳本身始终基于 JST，按 `AGENTS.md`。
 
+### `void setHomeCalendarFormat(CalendarFormat format)` <a id="appsettingsnotifier-sethomecalendarformat"></a>
+- **种类：** `AppSettingsNotifier` 的方法
+- **来源：** `lib/shared/providers/app_settings.dart`（约第 168 行）
+- **用途：** 记住用户上次选择的主页日历视图（整月、两周或单周）。
+- **输入：** `format` — 新选择的 `CalendarFormat`。
+- **返回：** 无。
+- **副作用：** 更新 `state`；调用 `AnimeStorage.setHomeCalendarFormat(...)`。
+- **算法：** 1) `state = state.copyWith(homeCalendarFormat: format)`。2) `format == CalendarFormat.month`（默认）时持久化 `null`，否则持久化 `format.name`（`'twoWeeks'` 或 `'week'`）。
+- **用法：**
+  ```dart
+  onFormatChanged: (format) {
+    ref.read(appSettingsProvider.notifier).setHomeCalendarFormat(format);
+  },
+  ```
+  （来自 `lib/features/anime/views/home_page.dart` 的 `_buildCalendarSection`）
+- **备注：** 它没有设置页控件——日历自己的格式按钮和纵向滑动手势是仅有的调用方，两者都经 `onFormatChanged` 路由。把格式放在这里而不是 `_HomePageState`，正是它能挺过底部导航标签切换的原因，因为标签切换会经 `go_router` 外壳重建 `HomePage`。
+
 ### `const AppSettings({...})` <a id="appsettings-new"></a>
 - **种类：** `AppSettings` 的构造函数
-- **来源：** `lib/shared/providers/app_settings.dart`（约第 158 行）
+- **来源：** `lib/shared/providers/app_settings.dart`（约第 189 行）
 - **用途：** 构造每个字段都带默认值的不可变设置快照。
-- **输入：** `themeMode`（默认 `ThemeMode.system`）、`locale`（默认 `null`）、`weekStartDay`（默认 `defaultWeekStartDay`，即周日）、`homeCalendarLayout`（默认 `HomeCalendarLayout.local`）、`homeCalendarTimeBasis`（默认 `HomeCalendarTimeBasis.jst`）。
+- **输入：** `themeMode`（默认 `ThemeMode.system`）、`locale`（默认 `null`）、`weekStartDay`（默认 `defaultWeekStartDay`，即周日）、`homeCalendarLayout`（默认 `HomeCalendarLayout.local`）、`homeCalendarTimeBasis`（默认 `HomeCalendarTimeBasis.jst`）、`homeCalendarFormat`（默认 `CalendarFormat.month`）。
 - **返回：** 新的 `AppSettings` 实例。
 - **副作用：** 无。
 - **算法：** 从命名参数直接 `const` 字段赋值，全部带默认值，使单独的 `const AppSettings()` 产出应用的出厂默认偏好。
@@ -187,7 +223,7 @@
 
 ### `int get effectiveWeekStartDay` <a id="appsettings-effectiveweekstartday"></a>
 - **种类：** `AppSettings` 的 getter
-- **来源：** `lib/shared/providers/app_settings.dart`（约第 171 行）
+- **来源：** `lib/shared/providers/app_settings.dart`（约第 203 行）
 - **用途：** 返回日历组件实际应使用的周起始日，考虑日式日历布局覆盖。
 - **输入：** 无。
 - **返回：** `int` — `homeCalendarLayout == HomeCalendarLayout.japanese` 时为 `DateTime.sunday`，否则存储的 `weekStartDay`。
@@ -204,12 +240,12 @@
 
 ### `AppSettings copyWith({...})` <a id="appsettings-copywith"></a>
 - **种类：** `AppSettings` 的方法
-- **来源：** `lib/shared/providers/app_settings.dart`（约第 181 行）
+- **来源：** `lib/shared/providers/app_settings.dart`（约第 213 行）
 - **用途：** 产生 `AppSettings` 实例的修改副本，未指定的字段默认当前值。
-- **输入：** 全部五个字段的可选覆盖，外加 `clearLocale`（默认 `false`），强制 `locale` 为 `null`，尽管 `locale` 本身默认"不变"。
+- **输入：** 全部六个字段的可选覆盖，外加 `clearLocale`（默认 `false`），强制 `locale` 为 `null`，尽管 `locale` 本身默认"不变"。
 - **返回：** 新的 `AppSettings`。
 - **副作用：** 无。
-- **算法：** 对 `themeMode`、`weekStartDay`、`homeCalendarLayout` 和 `homeCalendarTimeBasis` 用标准 `??`-回退复制。`locale` 特判：`clearLocale` 为 `true` 时结果是 `null`；否则 `locale ?? this.locale`。
+- **算法：** 对 `themeMode`、`weekStartDay`、`homeCalendarLayout`、`homeCalendarTimeBasis` 和 `homeCalendarFormat` 用标准 `??`-回退复制。`locale` 特判：`clearLocale` 为 `true` 时结果是 `null`；否则 `locale ?? this.locale`。
 - **用法：**
   ```dart
   state = state.copyWith(themeMode: mode);

@@ -1,6 +1,6 @@
 # lib/features/anime/views/home_page.dart
 
-`HomePage` 是应用的默认标签：一个感知 JST 的日历（`table_calendar`），显示所选日期播出哪些剧集，外加跨每部被跟踪动画的已播出但未看剧集的滚动列表。它读取 `AppSettings`（经 `flutter_riverpod`，[`../../../shared/providers/app_settings.md`](../../../shared/providers/app_settings.md)）决定日历布局/时间基准，用 `JstTime`（[`../../../shared/utils/jst_time.md`](../../../shared/utils/jst_time.md)）和 `calendar_preferences.dart`（[`../../../shared/utils/calendar_preferences.md`](../../../shared/utils/calendar_preferences.md)）做日期数学，并经 `AnimeStorage`（[`../services/anime_storage.md`](../services/anime_storage.md)）持久化剧集状态变更。日历/时间基准功能描述见 [`../../../../features/home-management-statistics.md`](../../../../features/home-management-statistics.md)，本页消费的底层剧集播出日期逻辑见 [`../../../../features/anime-tracking.md`](../../../../features/anime-tracking.md)。
+`HomePage` 是应用的默认标签：一个感知 JST 的日历（`table_calendar`），显示所选日期播出哪些剧集，外加跨每部被跟踪动画的已播出但未看剧集的滚动列表。它读取 `AppSettings`（经 `flutter_riverpod`，[`../../../shared/providers/app_settings.md`](../../../shared/providers/app_settings.md)）决定日历布局/时间基准以及要恢复哪种视图格式（整月、两周或单周）——本页自己不保留任何日历格式状态，因此所选视图能同时挺过标签切换和应用重启。它用 `JstTime`（[`../../../shared/utils/jst_time.md`](../../../shared/utils/jst_time.md)）和 `calendar_preferences.dart`（[`../../../shared/utils/calendar_preferences.md`](../../../shared/utils/calendar_preferences.md)）做日期数学，并经 `AnimeStorage`（[`../services/anime_storage.md`](../services/anime_storage.md)）持久化剧集状态变更。日历/时间基准功能描述见 [`../../../../features/home-management-statistics.md`](../../../../features/home-management-statistics.md)，本页消费的底层剧集播出日期逻辑见 [`../../../../features/anime-tracking.md`](../../../../features/anime-tracking.md)。
 
 ## 声明
 
@@ -19,7 +19,8 @@
 | [`_countUnwatchedAiredEpisodes`](#_countunwatchedairedepisodes) | 方法（`_HomePageState`） | A | 统计每部动画中所有已播出未看剧集。 |
 | [`_toggleWatched`](#_togglewatched) | 方法（`_HomePageState`） | A | 在已看与未看之间切换一集。 |
 | [`_showAddOptions`](#_showaddoptions) | 方法（`_HomePageState`） | A | 显示新增/导入选择对话框并打开结果动画。 |
-| `_HomePageState.build` | 方法（`_HomePageState`，组件构建） | B | 构建日历、所选日列表和未看列表。 |
+| `_HomePageState.build` | 方法（`_HomePageState`，组件构建） | B | 构建日历区块、所选日列表和未看列表。 |
+| `_buildCalendarSection` | 方法（组件辅助） | B | 构建按当前视口和文本缩放定尺寸、宽度设上限的日历网格及其时间基准注记。 |
 | `_calendarDateLocale` | 方法（`_HomePageState`） | B | 选日历月/日期文本使用的语言区域。 |
 | `_formatCalendarMonth` | 方法（`_HomePageState`） | B | 格式化日历页头的月份标签。 |
 | `_calendarWeekdayLabel` | 方法（`_HomePageState`） | B | 格式化一个星期行标签（日式单字符或本地化）。 |
@@ -32,7 +33,7 @@
 
 ### `Future<void> _load()` <a id="_load"></a>
 - **种类：** `_HomePageState` 的方法
-- **来源：** `lib/features/anime/views/home_page.dart`（约第 73 行）
+- **来源：** `lib/features/anime/views/home_page.dart`（约第 72 行）
 - **用途：** 把完整动画列表从存储重载进 `_allAnime`。
 - **输入：** 无。
 - **返回：** `Future<void>`。
@@ -52,7 +53,7 @@
 
 ### `List<_AiringEpisode> _getEventsForDay(DateTime day, HomeCalendarTimeBasis timeBasis)` <a id="_geteventsforday"></a>
 - **种类：** `_HomePageState` 的方法
-- **来源：** `lib/features/anime/views/home_page.dart`（约第 83 行）
+- **来源：** `lib/features/anime/views/home_page.dart`（约第 82 行）
 - **用途：** 收集跨每部被跟踪动画、日历日期（在给定时间基准下）匹配 `day` 的每个剧集。
 - **输入：** `day`；`timeBasis` — `HomeCalendarTimeBasis.jst` 或 `.local`。
 - **返回：** `List<_AiringEpisode>`。
@@ -71,7 +72,7 @@
 
 ### `DateTime _today(HomeCalendarTimeBasis timeBasis)` <a id="_today"></a>
 - **种类：** `_HomePageState` 的方法
-- **来源：** `lib/features/anime/views/home_page.dart`（约第 106 行）
+- **来源：** `lib/features/anime/views/home_page.dart`（约第 105 行）
 - **用途：** 返回日历应高亮并默认选中其日期的纯日期"今天"，在所选主页日历时间基准下。
 - **输入：** `timeBasis`。
 - **返回：** `DateTime`（纯日期）。
@@ -88,7 +89,7 @@
 
 ### `DateTime? _getEpisodeCalendarDate(Anime anime, int episode, HomeCalendarTimeBasis timeBasis)` <a id="_getepisodecalendardate"></a>
 - **种类：** `_HomePageState` 的方法
-- **来源：** `lib/features/anime/views/home_page.dart`（约第 118 行）
+- **来源：** `lib/features/anime/views/home_page.dart`（约第 117 行）
 - **用途：** 解析一集在日历网格归属中应落在哪个日历日，尊重本地时间切换，同时把一次性放送固定在其 JST 发布日期上。
 - **输入：** `anime`；`episode`；`timeBasis`。
 - **返回：** `DateTime?`（纯日期），动画日程数据不完整时为 `null`。
@@ -108,7 +109,7 @@
 
 ### `DateTime? _getEpisodeDisplayAirDate(Anime anime, int episode, HomeCalendarTimeBasis timeBasis)` <a id="_getepisodedisplayairdate"></a>
 - **种类：** `_HomePageState` 的方法
-- **来源：** `lib/features/anime/views/home_page.dart`（约第 142 行）
+- **来源：** `lib/features/anime/views/home_page.dart`（约第 141 行）
 - **用途：** 解析剧集块上作为文本显示的播出日期/时间，遵循与 [`_getEpisodeCalendarDate`](#_getepisodecalendardate) 相同的本地/JST 和一次性放送规则，但在相关时返回完整播出时刻（不只是日期）。
 - **输入：** `anime`；`episode`；`timeBasis`。
 - **返回：** `DateTime?`。
@@ -130,7 +131,7 @@
 
 ### `List<_AiringEpisode> _getUnwatchedEpisodes()` <a id="_getunwatchedepisodes"></a>
 - **种类：** `_HomePageState` 的方法
-- **来源：** `lib/features/anime/views/home_page.dart`（约第 163 行）
+- **来源：** `lib/features/anime/views/home_page.dart`（约第 162 行）
 - **用途：** 构建日历下方显示的"已播出但未看"列表——每部动画最早的一条未看、已播出剧集，按播出日期排序。
 - **输入：** 无。
 - **返回：** `List<_AiringEpisode>`。
@@ -149,7 +150,7 @@
 
 ### `int _countUnwatchedAiredEpisodes()` <a id="_countunwatchedairedepisodes"></a>
 - **种类：** `_HomePageState` 的方法
-- **来源：** `lib/features/anime/views/home_page.dart`（约第 194 行）
+- **来源：** `lib/features/anime/views/home_page.dart`（约第 193 行）
 - **用途：** 统计每部动画中所有仍未看的已播出剧集，供未看列表上方的摘要文本使用。
 - **输入：** 无。
 - **返回：** `int`。
@@ -164,7 +165,7 @@
 
 ### `Future<void> _toggleWatched(_AiringEpisode ep)` <a id="_togglewatched"></a>
 - **种类：** `_HomePageState` 的方法
-- **来源：** `lib/features/anime/views/home_page.dart`（约第 217 行）
+- **来源：** `lib/features/anime/views/home_page.dart`（约第 216 行）
 - **用途：** 从主页的剧集块在 `watched` 与 `unwatched` 之间切换一集。
 - **输入：** `ep` — 被切换的 `_AiringEpisode`（动画 + 集编号）。
 - **返回：** `Future<void>`。
@@ -179,7 +180,7 @@
 
 ### `Future<void> _showAddOptions()` <a id="_showaddoptions"></a>
 - **种类：** `_HomePageState` 的方法
-- **来源：** `lib/features/anime/views/home_page.dart`（约第 237 行）
+- **来源：** `lib/features/anime/views/home_page.dart`（约第 236 行）
 - **用途：** 显示"创建"vs"导入"选择对话框，然后导航到用户选择的流程并打开结果动画的详情页。
 - **输入：** 无。
 - **返回：** `Future<void>`。

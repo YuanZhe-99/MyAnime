@@ -17,6 +17,14 @@ model/quarter logic and [`../architecture.md`](../architecture.md) for how these
   Japan time — blank air times are treated as 23:59 JST by the anime model (see
   [`../data-formats.md`](../data-formats.md)).
 - Current-format calendar button text.
+- The chosen calendar view (full month, two weeks, or week) is remembered. It lives in
+  `AppSettings` rather than in page state, so it survives both bottom-nav tab switches and app
+  restarts; only a non-default view is written to `storage_config.json`.
+- Responsive calendar layout: the weekday header row is sized from the label text and the device
+  font scale, so 日月火水木金土 are never clipped; the grid is capped at 560 logical pixels wide and
+  centred, so square, landscape, tablet, and desktop windows do not stretch the day cells; and on
+  short viewports the row height shrinks (down to 34 from the usual 52), with tighter cell margins
+  and smaller airing markers, so a six-week month still fits above the episode list.
 - Unwatched aired episodes are surfaced directly on the calendar.
 
 ## Management (`management_page.dart`)

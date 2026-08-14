@@ -90,6 +90,7 @@ enum AnimeType {
 | 日历周起始日 | `storage_config.json` | 否 | 设备特有偏好，默认周日，日式主页日历布局激活时忽略 |
 | 主页日历布局 | `storage_config.json` | 否 | 设备特有的本地 vs 日式日历标签偏好 |
 | 主页日历时间基准 | `storage_config.json` | 否 | 设备特有的 JST vs 本地日期网格偏好；动画日程时间戳仍基于 JST |
+| 主页日历视图格式 | `storage_config.json` | 否 | 设备特有的上次使用的日历视图（`homeCalendarFormat`：`twoWeeks` 或 `week`；缺省表示默认的整月） |
 | 存储路径覆盖 | `storage_config.json` | 否 | 设备特有路径 |
 | 自动备份启用 | `storage_config.json` | 否 | 设备特有配置 |
 | 备份保留天数 | `storage_config.json` | 否 | 设备特有配置 |
@@ -103,7 +104,7 @@ enum AnimeType {
 
 ### `storage_config.json`
 
-保存上表中除 WebDAV 配置外的每个设备本地偏好：主题模式、语言区域、日历周起始/布局/时间基准偏好、存储路径覆盖、自动备份启用 + 保留天数（`backupRetentionDays`）、提醒设置、API 服务器启用/监听地址/端口/凭据，以及托盘/开机自启偏好。此文件的任何内容都不被同步——它刻意设备特有。
+保存上表中除 WebDAV 配置外的每个设备本地偏好：主题模式、语言区域、日历周起始/布局/时间基准/视图格式偏好、存储路径覆盖、自动备份启用 + 保留天数（`backupRetentionDays`）、提醒设置、API 服务器启用/监听地址/端口/凭据，以及托盘/开机自启偏好。此文件的任何内容都不被同步——它刻意设备特有。
 
 ### `webdav_config.json`
 

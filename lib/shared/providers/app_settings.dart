@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:table_calendar/table_calendar.dart';
 
 import '../../features/anime/services/anime_storage.dart';
 import '../utils/calendar_preferences.dart';
@@ -28,6 +29,19 @@ HomeCalendarTimeBasis _parseHomeCalendarTimeBasis(String? value) {
   };
 }
 
+/// Purpose: Parse a stored home calendar view format string.
+/// Inputs: `value`.
+/// Returns: `CalendarFormat`.
+/// Side effects: None.
+/// Notes: Unknown values fall back to the full-month view.
+CalendarFormat _parseHomeCalendarFormat(String? value) {
+  return switch (value) {
+    'twoWeeks' => CalendarFormat.twoWeeks,
+    'week' => CalendarFormat.week,
+    _ => CalendarFormat.month,
+  };
+}
+
 class AppSettingsNotifier extends StateNotifier<AppSettings> {
   /// Purpose: Create a app settings notifier instance.
   /// Inputs: None.
@@ -53,6 +67,9 @@ class AppSettingsNotifier extends StateNotifier<AppSettings> {
     final homeCalendarTimeBasis = _parseHomeCalendarTimeBasis(
       await AnimeStorage.getHomeCalendarTimeBasis(),
     );
+    final homeCalendarFormat = _parseHomeCalendarFormat(
+      await AnimeStorage.getHomeCalendarFormat(),
+    );
 
     final themeMode = switch (modeStr) {
       'light' => ThemeMode.light,
@@ -72,6 +89,7 @@ class AppSettingsNotifier extends StateNotifier<AppSettings> {
       weekStartDay: weekStartDay,
       homeCalendarLayout: homeCalendarLayout,
       homeCalendarTimeBasis: homeCalendarTimeBasis,
+      homeCalendarFormat: homeCalendarFormat,
     );
   }
 
@@ -141,6 +159,18 @@ class AppSettingsNotifier extends StateNotifier<AppSettings> {
       basis == HomeCalendarTimeBasis.jst ? null : basis.name,
     );
   }
+
+  /// Purpose: Update the remembered home calendar view format.
+  /// Inputs: `format`.
+  /// Returns: None.
+  /// Side effects: Persists the selected calendar view format.
+  /// Notes: Called whenever the user switches month/two-week/week view on the home calendar.
+  void setHomeCalendarFormat(CalendarFormat format) {
+    state = state.copyWith(homeCalendarFormat: format);
+    AnimeStorage.setHomeCalendarFormat(
+      format == CalendarFormat.month ? null : format.name,
+    );
+  }
 }
 
 class AppSettings {
@@ -149,9 +179,10 @@ class AppSettings {
   final int weekStartDay;
   final HomeCalendarLayout homeCalendarLayout;
   final HomeCalendarTimeBasis homeCalendarTimeBasis;
+  final CalendarFormat homeCalendarFormat;
 
   /// Purpose: Create a app settings instance.
-  /// Inputs: `themeMode`, `locale`, `weekStartDay`, `homeCalendarLayout`, `homeCalendarTimeBasis`.
+  /// Inputs: `themeMode`, `locale`, `weekStartDay`, `homeCalendarLayout`, `homeCalendarTimeBasis`, `homeCalendarFormat`.
   /// Returns: A new `AppSettings` instance.
   /// Side effects: None.
   /// Notes: `weekStartDay` stores the local-calendar preference; Japanese layout uses Sunday effectively.
@@ -161,6 +192,7 @@ class AppSettings {
     this.weekStartDay = defaultWeekStartDay,
     this.homeCalendarLayout = HomeCalendarLayout.local,
     this.homeCalendarTimeBasis = HomeCalendarTimeBasis.jst,
+    this.homeCalendarFormat = CalendarFormat.month,
   });
 
   /// Purpose: Return the week start day that should be applied to calendars.
@@ -174,7 +206,7 @@ class AppSettings {
       : weekStartDay;
 
   /// Purpose: Create a copy with selected fields replaced.
-  /// Inputs: `themeMode`, `locale`, `weekStartDay`, `homeCalendarLayout`, `homeCalendarTimeBasis`, `clearLocale`.
+  /// Inputs: `themeMode`, `locale`, `weekStartDay`, `homeCalendarLayout`, `homeCalendarTimeBasis`, `homeCalendarFormat`, `clearLocale`.
   /// Returns: `AppSettings`.
   /// Side effects: None.
   /// Notes: None.
@@ -184,6 +216,7 @@ class AppSettings {
     int? weekStartDay,
     HomeCalendarLayout? homeCalendarLayout,
     HomeCalendarTimeBasis? homeCalendarTimeBasis,
+    CalendarFormat? homeCalendarFormat,
     bool clearLocale = false,
   }) {
     return AppSettings(
@@ -193,6 +226,7 @@ class AppSettings {
       homeCalendarLayout: homeCalendarLayout ?? this.homeCalendarLayout,
       homeCalendarTimeBasis:
           homeCalendarTimeBasis ?? this.homeCalendarTimeBasis,
+      homeCalendarFormat: homeCalendarFormat ?? this.homeCalendarFormat,
     );
   }
 }

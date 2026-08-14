@@ -31,6 +31,8 @@
 | [`setHomeCalendarLayout`](#sethomecalendarlayout) | 静态方法（`AnimeStorage`） | A | 持久化主页日历日名布局偏好。 |
 | [`getHomeCalendarTimeBasis`](#gethomecalendartimebasis) | 静态方法（`AnimeStorage`） | A | 读取持久化的主页日历 JST-vs-本地时间基准偏好。 |
 | [`setHomeCalendarTimeBasis`](#sethomecalendartimebasis) | 静态方法（`AnimeStorage`） | A | 持久化主页日历 JST-vs-本地时间基准偏好。 |
+| [`getHomeCalendarFormat`](#gethomecalendarformat) | 静态方法（`AnimeStorage`） | A | 读取持久化的主页日历视图格式偏好。 |
+| [`setHomeCalendarFormat`](#sethomecalendarformat) | 静态方法（`AnimeStorage`） | A | 持久化主页日历视图格式偏好。 |
 
 ## 文档
 
@@ -452,4 +454,38 @@
   );
   ```
   （`lib/shared/providers/app_settings.dart`，`setHomeCalendarTimeBasis`）
+- **备注：** 无。
+
+### `static Future<String?> getHomeCalendarFormat()` <a id="gethomecalendarformat"></a>
+- **种类：** `AnimeStorage` 的静态方法
+- **来源：** `lib/features/anime/services/anime_storage.dart`（第 385 行）
+- **用途：** 读取持久化的主页日历视图格式（整月、两周或单周）。
+- **输入：** 无。
+- **返回：** `Future<String?>` — `null` 表示默认的整月视图。
+- **副作用：** 无。
+- **算法：** `(await readConfig())['homeCalendarFormat'] as String?`。
+- **用法：**
+  ```dart
+  final homeCalendarFormat = _parseHomeCalendarFormat(
+    await AnimeStorage.getHomeCalendarFormat(),
+  );
+  ```
+  （`lib/shared/providers/app_settings.dart`，`_loadPersisted`）
+- **备注：** 存储的字符串是 `table_calendar` 的 `CalendarFormat` 枚举名，因此只可能写入 `'twoWeeks'` 和 `'week'`。
+
+### `static Future<void> setHomeCalendarFormat(String? format)` <a id="sethomecalendarformat"></a>
+- **种类：** `AnimeStorage` 的静态方法
+- **来源：** `lib/features/anime/services/anime_storage.dart`（第 395 行）
+- **用途：** 持久化（或清除）主页日历视图格式偏好。
+- **输入：** `format` — `null` 移除键并恢复默认的整月视图。
+- **返回：** 无。
+- **副作用：** 写入 `storage_config.json`。
+- **算法：** 读-改-写，与 `setThemeMode` 形态相同。
+- **用法：**
+  ```dart
+  AnimeStorage.setHomeCalendarFormat(
+    format == CalendarFormat.month ? null : format.name,
+  );
+  ```
+  （`lib/shared/providers/app_settings.dart`，`setHomeCalendarFormat`）
 - **备注：** 无。

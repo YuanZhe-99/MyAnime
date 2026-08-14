@@ -4,7 +4,9 @@
 air on a selected day, plus a rolling list of aired-but-unwatched episodes across every tracked
 anime. It reads `AppSettings` (via `flutter_riverpod`,
 [`../../../shared/providers/app_settings.md`](../../../shared/providers/app_settings.md)) to decide
-calendar layout/time-basis, uses `JstTime`
+calendar layout/time-basis and which view format (month, two weeks, or week) to restore — the page
+keeps no calendar-format state of its own, so the chosen view survives both tab switches and app
+restarts. It uses `JstTime`
 ([`../../../shared/utils/jst_time.md`](../../../shared/utils/jst_time.md)) and
 `calendar_preferences.dart`
 ([`../../../shared/utils/calendar_preferences.md`](../../../shared/utils/calendar_preferences.md))
@@ -32,7 +34,8 @@ underlying episode air-date logic this page consumes.
 | [`_countUnwatchedAiredEpisodes`](#_countunwatchedairedepisodes) | method (`_HomePageState`) | A | Count all aired unwatched episodes across every anime. |
 | [`_toggleWatched`](#_togglewatched) | method (`_HomePageState`) | A | Toggle one episode between watched and unwatched. |
 | [`_showAddOptions`](#_showaddoptions) | method (`_HomePageState`) | A | Show the add/import choice dialog and open the resulting anime. |
-| `_HomePageState.build` | method (`_HomePageState`, widget build) | B | Build the calendar, selected-day list, and unwatched list. |
+| `_HomePageState.build` | method (`_HomePageState`, widget build) | B | Build the calendar section, selected-day list, and unwatched list. |
+| `_buildCalendarSection` | method (widget helper) | B | Build the width-capped calendar grid and its time-basis note, sized for the current viewport and text scale. |
 | `_calendarDateLocale` | method (`_HomePageState`) | B | Pick the locale used for calendar month/date text. |
 | `_formatCalendarMonth` | method (`_HomePageState`) | B | Format the calendar header's month label. |
 | `_calendarWeekdayLabel` | method (`_HomePageState`) | B | Format one weekday-row label (Japanese single-character or localized). |
@@ -45,7 +48,7 @@ underlying episode air-date logic this page consumes.
 
 ### `Future<void> _load()` <a id="_load"></a>
 - **Kind:** method of `_HomePageState`
-- **Source:** `lib/features/anime/views/home_page.dart` (approx. line 73)
+- **Source:** `lib/features/anime/views/home_page.dart` (approx. line 72)
 - **Purpose:** Reload the full anime list from storage into `_allAnime`.
 - **Inputs:** None.
 - **Returns:** `Future<void>`.
@@ -70,7 +73,7 @@ underlying episode air-date logic this page consumes.
 
 ### `List<_AiringEpisode> _getEventsForDay(DateTime day, HomeCalendarTimeBasis timeBasis)` <a id="_geteventsforday"></a>
 - **Kind:** method of `_HomePageState`
-- **Source:** `lib/features/anime/views/home_page.dart` (approx. line 83)
+- **Source:** `lib/features/anime/views/home_page.dart` (approx. line 82)
 - **Purpose:** Collect every episode, across every tracked anime, whose calendar date (under the
   given time basis) matches `day`.
 - **Inputs:** `day`; `timeBasis` — `HomeCalendarTimeBasis.jst` or `.local`.
@@ -93,7 +96,7 @@ underlying episode air-date logic this page consumes.
 
 ### `DateTime _today(HomeCalendarTimeBasis timeBasis)` <a id="_today"></a>
 - **Kind:** method of `_HomePageState`
-- **Source:** `lib/features/anime/views/home_page.dart` (approx. line 106)
+- **Source:** `lib/features/anime/views/home_page.dart` (approx. line 105)
 - **Purpose:** Return the date-only "today" that the calendar should highlight and default its
   selection to, under the selected home calendar time basis.
 - **Inputs:** `timeBasis`.
@@ -114,7 +117,7 @@ underlying episode air-date logic this page consumes.
 
 ### `DateTime? _getEpisodeCalendarDate(Anime anime, int episode, HomeCalendarTimeBasis timeBasis)` <a id="_getepisodecalendardate"></a>
 - **Kind:** method of `_HomePageState`
-- **Source:** `lib/features/anime/views/home_page.dart` (approx. line 118)
+- **Source:** `lib/features/anime/views/home_page.dart` (approx. line 117)
 - **Purpose:** Resolve which calendar day an episode belongs on for calendar-grid placement,
   respecting the local-time toggle while keeping all-at-once releases pinned to their JST release
   date.
@@ -144,7 +147,7 @@ underlying episode air-date logic this page consumes.
 
 ### `DateTime? _getEpisodeDisplayAirDate(Anime anime, int episode, HomeCalendarTimeBasis timeBasis)` <a id="_getepisodedisplayairdate"></a>
 - **Kind:** method of `_HomePageState`
-- **Source:** `lib/features/anime/views/home_page.dart` (approx. line 142)
+- **Source:** `lib/features/anime/views/home_page.dart` (approx. line 141)
 - **Purpose:** Resolve the air date/time shown as text on an episode tile, following the same
   local/JST and all-at-once rules as [`_getEpisodeCalendarDate`](#_getepisodecalendardate) but
   returning the full air instant (not date-only) when relevant.
@@ -170,7 +173,7 @@ underlying episode air-date logic this page consumes.
 
 ### `List<_AiringEpisode> _getUnwatchedEpisodes()` <a id="_getunwatchedepisodes"></a>
 - **Kind:** method of `_HomePageState`
-- **Source:** `lib/features/anime/views/home_page.dart` (approx. line 163)
+- **Source:** `lib/features/anime/views/home_page.dart` (approx. line 162)
 - **Purpose:** Build the "aired but not yet watched" list shown below the calendar — the single
   earliest unwatched, already-aired episode per anime, sorted by air date.
 - **Inputs:** None.
@@ -195,7 +198,7 @@ underlying episode air-date logic this page consumes.
 
 ### `int _countUnwatchedAiredEpisodes()` <a id="_countunwatchedairedepisodes"></a>
 - **Kind:** method of `_HomePageState`
-- **Source:** `lib/features/anime/views/home_page.dart` (approx. line 194)
+- **Source:** `lib/features/anime/views/home_page.dart` (approx. line 193)
 - **Purpose:** Count every aired episode across every anime that is still unwatched, for the summary
   text above the unwatched list.
 - **Inputs:** None.
@@ -216,7 +219,7 @@ underlying episode air-date logic this page consumes.
 
 ### `Future<void> _toggleWatched(_AiringEpisode ep)` <a id="_togglewatched"></a>
 - **Kind:** method of `_HomePageState`
-- **Source:** `lib/features/anime/views/home_page.dart` (approx. line 217)
+- **Source:** `lib/features/anime/views/home_page.dart` (approx. line 216)
 - **Purpose:** Toggle one episode between `watched` and `unwatched` from the home page's episode
   tiles.
 - **Inputs:** `ep` — the `_AiringEpisode` (anime + episode number) being toggled.
@@ -236,7 +239,7 @@ underlying episode air-date logic this page consumes.
 
 ### `Future<void> _showAddOptions()` <a id="_showaddoptions"></a>
 - **Kind:** method of `_HomePageState`
-- **Source:** `lib/features/anime/views/home_page.dart` (approx. line 237)
+- **Source:** `lib/features/anime/views/home_page.dart` (approx. line 236)
 - **Purpose:** Show a "Create" vs. "Import" choice dialog, then navigate to whichever flow the user
   picked and open the resulting anime's detail page.
 - **Inputs:** None.

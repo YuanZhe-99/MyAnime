@@ -40,6 +40,8 @@ notifies `AutoSyncService`/`ReminderService` after every save. See
 | [`setHomeCalendarLayout`](#sethomecalendarlayout) | static method (`AnimeStorage`) | A | Persist the home calendar day-name layout preference. |
 | [`getHomeCalendarTimeBasis`](#gethomecalendartimebasis) | static method (`AnimeStorage`) | A | Read the persisted home calendar JST-vs-local time basis preference. |
 | [`setHomeCalendarTimeBasis`](#sethomecalendartimebasis) | static method (`AnimeStorage`) | A | Persist the home calendar JST-vs-local time basis preference. |
+| [`getHomeCalendarFormat`](#gethomecalendarformat) | static method (`AnimeStorage`) | A | Read the persisted home calendar view format preference. |
+| [`setHomeCalendarFormat`](#sethomecalendarformat) | static method (`AnimeStorage`) | A | Persist the home calendar view format preference. |
 
 ## Documentation
 
@@ -467,4 +469,39 @@ notifies `AutoSyncService`/`ReminderService` after every save. See
   );
   ```
   (`lib/shared/providers/app_settings.dart`, `setHomeCalendarTimeBasis`)
+- **Notes:** None.
+
+### `static Future<String?> getHomeCalendarFormat()` <a id="gethomecalendarformat"></a>
+- **Kind:** static method of `AnimeStorage`
+- **Source:** `lib/features/anime/services/anime_storage.dart` (line 385)
+- **Purpose:** Read the persisted home-calendar view format (month, two weeks, or week).
+- **Inputs:** None.
+- **Returns:** `Future<String?>` — `null` means the default full-month view.
+- **Side effects:** None.
+- **Algorithm:** `(await readConfig())['homeCalendarFormat'] as String?`.
+- **Usage:**
+  ```dart
+  final homeCalendarFormat = _parseHomeCalendarFormat(
+    await AnimeStorage.getHomeCalendarFormat(),
+  );
+  ```
+  (`lib/shared/providers/app_settings.dart`, `_loadPersisted`)
+- **Notes:** The stored strings are `table_calendar`'s `CalendarFormat` enum names, so only
+  `'twoWeeks'` and `'week'` are ever written.
+
+### `static Future<void> setHomeCalendarFormat(String? format)` <a id="sethomecalendarformat"></a>
+- **Kind:** static method of `AnimeStorage`
+- **Source:** `lib/features/anime/services/anime_storage.dart` (line 395)
+- **Purpose:** Persist (or clear) the home-calendar view format preference.
+- **Inputs:** `format` — `null` removes the key and restores the default full-month view.
+- **Returns:** None.
+- **Side effects:** Writes `storage_config.json`.
+- **Algorithm:** Read-modify-write, identical shape to `setThemeMode`.
+- **Usage:**
+  ```dart
+  AnimeStorage.setHomeCalendarFormat(
+    format == CalendarFormat.month ? null : format.name,
+  );
+  ```
+  (`lib/shared/providers/app_settings.dart`, `setHomeCalendarFormat`)
 - **Notes:** None.

@@ -38,7 +38,6 @@ class _HomePageState extends ConsumerState<HomePage> {
   DateTime? _focusedDay;
   DateTime? _selectedDay;
   List<Anime> _allAnime = [];
-  CalendarFormat _calendarFormat = CalendarFormat.month;
 
   /// Purpose: Initialize listeners, controllers, and first-load work for this state object.
   /// Inputs: None.
@@ -317,99 +316,14 @@ class _HomePageState extends ConsumerState<HomePage> {
         child: ListView(
           children: [
             // Calendar
-            TableCalendar<_AiringEpisode>(
-              firstDay: DateTime(2020),
-              lastDay: DateTime(2030),
+            _buildCalendarSection(
+              context,
+              theme,
+              l10n,
+              settings,
+              calendarToday: calendarToday,
               focusedDay: focusedDay,
-              currentDay: calendarToday,
-              locale: _calendarDateLocale(settings, l10n),
-              startingDayOfWeek: _startingDayOfWeek(
-                settings.effectiveWeekStartDay,
-              ),
-              availableCalendarFormats: {
-                CalendarFormat.month: l10n.calendarFormatMonth,
-                CalendarFormat.twoWeeks: l10n.calendarFormatTwoWeeks,
-                CalendarFormat.week: l10n.calendarFormatWeek,
-              },
-              calendarFormat: _calendarFormat,
-              selectedDayPredicate: (day) => isSameDay(selectedDay, day),
-              onDaySelected: (selectedDay, focusedDay) {
-                setState(() {
-                  _selectedDay = selectedDay;
-                  _focusedDay = focusedDay;
-                });
-              },
-              onFormatChanged: (format) {
-                setState(() => _calendarFormat = format);
-              },
-              onPageChanged: (focusedDay) {
-                _focusedDay = focusedDay;
-              },
-              eventLoader: (day) =>
-                  _getEventsForDay(day, settings.homeCalendarTimeBasis),
-              headerStyle: HeaderStyle(
-                formatButtonShowsNext: false,
-                titleTextFormatter: (date, _) => _formatCalendarMonth(
-                  date,
-                  settings.homeCalendarLayout,
-                  l10n,
-                ),
-              ),
-              daysOfWeekStyle: DaysOfWeekStyle(
-                dowTextFormatter: (date, _) => _calendarWeekdayLabel(
-                  date.weekday,
-                  settings.homeCalendarLayout,
-                  l10n,
-                ),
-              ),
-              calendarBuilders: CalendarBuilders(
-                markerBuilder: (context, day, events) {
-                  if (events.isEmpty) return null;
-                  final hasUnwatched = events.any((ep) {
-                    final s =
-                        ep.anime.episodeStatuses[ep.episode] ??
-                        EpisodeStatus.unwatched;
-                    return s == EpisodeStatus.unwatched;
-                  });
-                  return Positioned(
-                    bottom: 1,
-                    child: Container(
-                      width: 7,
-                      height: 7,
-                      decoration: BoxDecoration(
-                        color: hasUnwatched
-                            ? theme.colorScheme.primary
-                            : theme.colorScheme.outlineVariant,
-                        shape: BoxShape.circle,
-                      ),
-                    ),
-                  );
-                },
-              ),
-              calendarStyle: CalendarStyle(
-                markersMaxCount: 1,
-                markerDecoration: const BoxDecoration(),
-                todayDecoration: BoxDecoration(
-                  color: theme.colorScheme.primaryContainer,
-                  shape: BoxShape.circle,
-                ),
-                selectedDecoration: BoxDecoration(
-                  color: theme.colorScheme.primary,
-                  shape: BoxShape.circle,
-                ),
-              ),
-            ),
-            Padding(
-              padding: const EdgeInsets.only(right: 16, bottom: 4),
-              child: Align(
-                alignment: Alignment.centerRight,
-                child: Text(
-                  _calendarTimeNote(settings.homeCalendarTimeBasis, l10n),
-                  style: theme.textTheme.bodySmall?.copyWith(
-                    color: theme.colorScheme.onSurfaceVariant,
-                  ),
-                ),
-              ),
+              selectedDay: selectedDay,
             ),
 
             // Selected day episodes
@@ -469,6 +383,151 @@ class _HomePageState extends ConsumerState<HomePage> {
         onPressed: _showAddOptions,
         tooltip: l10n.animeAdd,
         child: const Icon(Icons.add),
+      ),
+    );
+  }
+
+  /// Purpose: Build the home calendar grid together with its time-basis note.
+  /// Inputs: `context`, `theme`, `l10n`, `settings`, `calendarToday`, `focusedDay`, `selectedDay`.
+  /// Returns: `Widget`.
+  /// Side effects: Persists the calendar view format when the user switches it.
+  /// Notes: The weekday header height follows the label text scale so its glyphs are never
+  /// clipped, row height shrinks on short viewports, and the grid is width-capped so square or
+  /// landscape windows do not stretch the day cells.
+  Widget _buildCalendarSection(
+    BuildContext context,
+    ThemeData theme,
+    AppLocalizations l10n,
+    AppSettings settings, {
+    required DateTime calendarToday,
+    required DateTime focusedDay,
+    required DateTime selectedDay,
+  }) {
+    final dowTextStyle =
+        (theme.textTheme.bodySmall ?? const TextStyle(fontSize: 12)).copyWith(
+          fontWeight: FontWeight.w600,
+          color: theme.colorScheme.onSurfaceVariant,
+        );
+    final labelLineHeight =
+        MediaQuery.textScalerOf(context).scale(dowTextStyle.fontSize ?? 12) *
+        (dowTextStyle.height ?? 1.4);
+    final daysOfWeekHeight = homeCalendarDaysOfWeekHeight(labelLineHeight);
+    final rowHeight = homeCalendarRowHeight(
+      MediaQuery.sizeOf(context).height,
+      daysOfWeekHeight,
+    );
+    final isCompact = rowHeight < 48;
+    final markerSize = isCompact ? 5.0 : 7.0;
+
+    return Center(
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: homeCalendarMaxWidth),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            TableCalendar<_AiringEpisode>(
+              firstDay: DateTime(2020),
+              lastDay: DateTime(2030),
+              focusedDay: focusedDay,
+              currentDay: calendarToday,
+              locale: _calendarDateLocale(settings, l10n),
+              startingDayOfWeek: _startingDayOfWeek(
+                settings.effectiveWeekStartDay,
+              ),
+              availableCalendarFormats: {
+                CalendarFormat.month: l10n.calendarFormatMonth,
+                CalendarFormat.twoWeeks: l10n.calendarFormatTwoWeeks,
+                CalendarFormat.week: l10n.calendarFormatWeek,
+              },
+              calendarFormat: settings.homeCalendarFormat,
+              daysOfWeekHeight: daysOfWeekHeight,
+              rowHeight: rowHeight,
+              selectedDayPredicate: (day) => isSameDay(selectedDay, day),
+              onDaySelected: (selectedDay, focusedDay) {
+                setState(() {
+                  _selectedDay = selectedDay;
+                  _focusedDay = focusedDay;
+                });
+              },
+              onFormatChanged: (format) {
+                ref
+                    .read(appSettingsProvider.notifier)
+                    .setHomeCalendarFormat(format);
+              },
+              onPageChanged: (focusedDay) {
+                _focusedDay = focusedDay;
+              },
+              eventLoader: (day) =>
+                  _getEventsForDay(day, settings.homeCalendarTimeBasis),
+              headerStyle: HeaderStyle(
+                formatButtonShowsNext: false,
+                titleTextFormatter: (date, _) => _formatCalendarMonth(
+                  date,
+                  settings.homeCalendarLayout,
+                  l10n,
+                ),
+              ),
+              daysOfWeekStyle: DaysOfWeekStyle(
+                weekdayStyle: dowTextStyle,
+                weekendStyle: dowTextStyle,
+                dowTextFormatter: (date, _) => _calendarWeekdayLabel(
+                  date.weekday,
+                  settings.homeCalendarLayout,
+                  l10n,
+                ),
+              ),
+              calendarBuilders: CalendarBuilders(
+                markerBuilder: (context, day, events) {
+                  if (events.isEmpty) return null;
+                  final hasUnwatched = events.any((ep) {
+                    final s =
+                        ep.anime.episodeStatuses[ep.episode] ??
+                        EpisodeStatus.unwatched;
+                    return s == EpisodeStatus.unwatched;
+                  });
+                  return Positioned(
+                    bottom: isCompact ? 0 : 1,
+                    child: Container(
+                      width: markerSize,
+                      height: markerSize,
+                      decoration: BoxDecoration(
+                        color: hasUnwatched
+                            ? theme.colorScheme.primary
+                            : theme.colorScheme.outlineVariant,
+                        shape: BoxShape.circle,
+                      ),
+                    ),
+                  );
+                },
+              ),
+              calendarStyle: CalendarStyle(
+                markersMaxCount: 1,
+                markerDecoration: const BoxDecoration(),
+                cellMargin: EdgeInsets.all(isCompact ? 2 : 6),
+                todayDecoration: BoxDecoration(
+                  color: theme.colorScheme.primaryContainer,
+                  shape: BoxShape.circle,
+                ),
+                selectedDecoration: BoxDecoration(
+                  color: theme.colorScheme.primary,
+                  shape: BoxShape.circle,
+                ),
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.only(right: 16, bottom: 4),
+              child: Align(
+                alignment: Alignment.centerRight,
+                child: Text(
+                  _calendarTimeNote(settings.homeCalendarTimeBasis, l10n),
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: theme.colorScheme.onSurfaceVariant,
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

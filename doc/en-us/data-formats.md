@@ -135,6 +135,7 @@ migrates data files, backups, and images.
 | Calendar week start day | `storage_config.json` | No | Device-specific preference, default Sunday, ignored while Japanese home calendar layout is active |
 | Home calendar layout | `storage_config.json` | No | Device-specific local-vs-Japanese calendar label preference |
 | Home calendar time basis | `storage_config.json` | No | Device-specific JST-vs-local date grid preference; anime schedule timestamps remain JST-based |
+| Home calendar view format | `storage_config.json` | No | Device-specific last-used calendar view (`homeCalendarFormat`: `twoWeeks` or `week`; absent means the default full month) |
 | Storage path override | `storage_config.json` | No | Device-specific path |
 | Auto-backup enabled | `storage_config.json` | No | Device-specific config |
 | Backup retention days | `storage_config.json` | No | Device-specific config |
@@ -149,7 +150,7 @@ migrates data files, backups, and images.
 ### `storage_config.json`
 
 Holds every device-local preference from the table above that isn't WebDAV configuration: theme
-mode, locale, calendar week-start/layout/time-basis preferences, storage path override,
+mode, locale, calendar week-start/layout/time-basis/view-format preferences, storage path override,
 auto-backup enabled + retention days (`backupRetentionDays`), reminder settings, API server
 enabled/listen address/port/credentials, and tray/launch-at-startup preferences. None of this file
 is synced — it is intentionally device-specific.

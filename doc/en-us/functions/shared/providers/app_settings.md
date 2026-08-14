@@ -1,7 +1,8 @@
 # lib/shared/providers/app_settings.dart
 
 The `flutter_riverpod` provider for device-local app preferences: theme mode, locale, calendar week
-start day, and the home-calendar layout/time-basis pair. `AppSettingsNotifier` loads persisted
+start day, and the home-calendar layout/time-basis/view-format trio. `AppSettingsNotifier` loads
+persisted
 values from `AnimeStorage` (`lib/features/anime/services/anime_storage.dart`) on construction and
 persists every setter call back through it. `AppSettings` is the immutable state class exposed via
 `appSettingsProvider`. See [../../../architecture.md](../../../architecture.md) for state
@@ -15,6 +16,7 @@ management conventions (Riverpod, no Provider/Bloc) and
 |---|---|---|---|
 | [`_parseHomeCalendarLayout`](#parsehomecalendarlayout) | top-level function | A | Parse a stored home calendar layout string. |
 | [`_parseHomeCalendarTimeBasis`](#parsehomecalendartimebasis) | top-level function | A | Parse a stored home calendar time basis string. |
+| [`_parseHomeCalendarFormat`](#parsehomecalendarformat) | top-level function | A | Parse a stored home calendar view format string. |
 | [`AppSettingsNotifier.new`](#appsettingsnotifier-new) | constructor (`AppSettingsNotifier`) | A | Create an `AppSettingsNotifier` and trigger loading persisted settings. |
 | [`AppSettingsNotifier._loadPersisted`](#appsettingsnotifier_loadpersisted) | method (`AppSettingsNotifier`) | A | Load persisted settings from storage into state. |
 | [`AppSettingsNotifier.setThemeMode`](#appsettingsnotifier-setthememode) | method (`AppSettingsNotifier`) | A | Update theme mode and persist it. |
@@ -22,19 +24,21 @@ management conventions (Riverpod, no Provider/Bloc) and
 | [`AppSettingsNotifier.setWeekStartDay`](#appsettingsnotifier-setweekstartday) | method (`AppSettingsNotifier`) | A | Update the app-wide calendar week start day and persist it. |
 | [`AppSettingsNotifier.setHomeCalendarLayout`](#appsettingsnotifier-sethomecalendarlayout) | method (`AppSettingsNotifier`) | A | Update the home calendar day-name layout and persist it. |
 | [`AppSettingsNotifier.setHomeCalendarTimeBasis`](#appsettingsnotifier-sethomecalendartimebasis) | method (`AppSettingsNotifier`) | A | Update whether the home calendar date grid uses JST or local dates, and persist it. |
+| [`AppSettingsNotifier.setHomeCalendarFormat`](#appsettingsnotifier-sethomecalendarformat) | method (`AppSettingsNotifier`) | A | Update the remembered home calendar view format and persist it. |
 | [`AppSettings.new`](#appsettings-new) | constructor (`AppSettings`) | A | Create an `AppSettings` instance. |
 | [`AppSettings.effectiveWeekStartDay`](#appsettings-effectiveweekstartday) | getter (`AppSettings`) | A | Return the week start day that should be applied to calendars. |
 | [`AppSettings.copyWith`](#appsettings-copywith) | method (`AppSettings`) | A | Create a copy with selected fields replaced. |
 
-`AppSettings`'s five fields (`themeMode`, `locale`, `weekStartDay`, `homeCalendarLayout`,
-`homeCalendarTimeBasis`) and the top-level `appSettingsProvider` are plain field/provider
-declarations without `/// Purpose:` comments in the source and are not indexed as separate rows.
+`AppSettings`'s six fields (`themeMode`, `locale`, `weekStartDay`, `homeCalendarLayout`,
+`homeCalendarTimeBasis`, `homeCalendarFormat`) and the top-level `appSettingsProvider` are plain
+field/provider declarations without `/// Purpose:` comments in the source and are not indexed as
+separate rows.
 
 ## Documentation
 
 ### `HomeCalendarLayout _parseHomeCalendarLayout(String? value)` <a id="parsehomecalendarlayout"></a>
 - **Kind:** top-level function
-- **Source:** `lib/shared/providers/app_settings.dart` (approx. line 12)
+- **Source:** `lib/shared/providers/app_settings.dart` (approx. line 13)
 - **Purpose:** Convert the persisted `storage_config.json` string for home calendar layout into the
   `HomeCalendarLayout` enum.
 - **Inputs:** `value` — the raw stored string, or `null`.
@@ -55,7 +59,7 @@ declarations without `/// Purpose:` comments in the source and are not indexed a
 
 ### `HomeCalendarTimeBasis _parseHomeCalendarTimeBasis(String? value)` <a id="parsehomecalendartimebasis"></a>
 - **Kind:** top-level function
-- **Source:** `lib/shared/providers/app_settings.dart` (approx. line 24)
+- **Source:** `lib/shared/providers/app_settings.dart` (approx. line 25)
 - **Purpose:** Convert the persisted `storage_config.json` string for home calendar time basis into
   the `HomeCalendarTimeBasis` enum.
 - **Inputs:** `value` — the raw stored string, or `null`.
@@ -74,9 +78,31 @@ declarations without `/// Purpose:` comments in the source and are not indexed a
 - **Notes:** JST is the default/fallback basis, matching the app's JST-first anime scheduling model
   (see `shared/utils/jst_time.dart`).
 
+### `CalendarFormat _parseHomeCalendarFormat(String? value)` <a id="parsehomecalendarformat"></a>
+- **Kind:** top-level function
+- **Source:** `lib/shared/providers/app_settings.dart` (approx. line 37)
+- **Purpose:** Convert the persisted `storage_config.json` string for the home calendar view format
+  into `table_calendar`'s `CalendarFormat` enum.
+- **Inputs:** `value` — the raw stored string, or `null`.
+- **Returns:** `CalendarFormat.twoWeeks` for `'twoWeeks'`, `CalendarFormat.week` for `'week'`,
+  otherwise `CalendarFormat.month`.
+- **Side effects:** None.
+- **Algorithm:** A single `switch` expression over the two non-default enum names; everything else
+  (including `null`) defaults to `CalendarFormat.month`.
+- **Usage:**
+  ```dart
+  final homeCalendarFormat = _parseHomeCalendarFormat(
+    await AnimeStorage.getHomeCalendarFormat(),
+  );
+  ```
+  (from `AppSettingsNotifier._loadPersisted`, same file)
+- **Notes:** This is the one place the settings layer depends on `table_calendar`. The enum is
+  reused rather than mirrored into `calendar_preferences.dart` so no format mapping is needed at the
+  call site; the persisted strings are the enum's own `name` values.
+
 ### `AppSettingsNotifier()` <a id="appsettingsnotifier-new"></a>
 - **Kind:** constructor of `AppSettingsNotifier` (a `StateNotifier<AppSettings>`)
-- **Source:** `lib/shared/providers/app_settings.dart` (approx. line 37)
+- **Source:** `lib/shared/providers/app_settings.dart` (approx. line 51)
 - **Purpose:** Initialize the notifier with default `AppSettings` and kick off loading persisted
   values.
 - **Inputs:** None.
@@ -100,17 +126,19 @@ declarations without `/// Purpose:` comments in the source and are not indexed a
 
 ### `Future<void> _loadPersisted()` <a id="appsettingsnotifier_loadpersisted"></a>
 - **Kind:** method of `AppSettingsNotifier`
-- **Source:** `lib/shared/providers/app_settings.dart` (approx. line 46)
+- **Source:** `lib/shared/providers/app_settings.dart` (approx. line 60)
 - **Purpose:** Read every persisted preference from `AnimeStorage` and replace `state` with the
   fully-populated `AppSettings`.
 - **Inputs:** None.
 - **Returns:** `Future<void>`.
 - **Side effects:** Reads `AnimeStorage.getThemeMode()`, `getLocaleTag()`, `getWeekStartDay()`,
-  `getHomeCalendarLayout()`, and `getHomeCalendarTimeBasis()`; replaces `state`.
+  `getHomeCalendarLayout()`, `getHomeCalendarTimeBasis()`, and `getHomeCalendarFormat()`; replaces
+  `state`.
 - **Algorithm:**
-  1. Await the five `AnimeStorage` getters (theme mode string, locale tag, week start day, home
-     calendar layout string, home calendar time basis string).
-  2. Parse the layout/time-basis strings via `_parseHomeCalendarLayout`/`_parseHomeCalendarTimeBasis`.
+  1. Await the six `AnimeStorage` getters (theme mode string, locale tag, week start day, home
+     calendar layout string, home calendar time basis string, home calendar format string).
+  2. Parse the layout/time-basis/format strings via `_parseHomeCalendarLayout`/
+     `_parseHomeCalendarTimeBasis`/`_parseHomeCalendarFormat`.
   3. Map the theme mode string (`'light'`/`'dark'`/anything else) to `ThemeMode.light`/`.dark`/
      `.system` via a `switch` expression.
   4. If a locale tag is present, split it on `_`; a tag with a country-code part (e.g. `zh_TW`)
@@ -122,7 +150,7 @@ declarations without `/// Purpose:` comments in the source and are not indexed a
 
 ### `void setThemeMode(ThemeMode mode)` <a id="appsettingsnotifier-setthememode"></a>
 - **Kind:** method of `AppSettingsNotifier`
-- **Source:** `lib/shared/providers/app_settings.dart` (approx. line 83)
+- **Source:** `lib/shared/providers/app_settings.dart` (approx. line 101)
 - **Purpose:** Update the in-memory theme mode and persist the choice.
 - **Inputs:** `mode` — the new `ThemeMode`.
 - **Returns:** None.
@@ -142,7 +170,7 @@ declarations without `/// Purpose:` comments in the source and are not indexed a
 
 ### `void setLocale(Locale? locale)` <a id="appsettingsnotifier-setlocale"></a>
 - **Kind:** method of `AppSettingsNotifier`
-- **Source:** `lib/shared/providers/app_settings.dart` (approx. line 98)
+- **Source:** `lib/shared/providers/app_settings.dart` (approx. line 116)
 - **Purpose:** Update the in-memory locale and persist the choice (or clear it for system default).
 - **Inputs:** `locale` — the new `Locale`, or `null` to follow the system locale.
 - **Returns:** None.
@@ -164,7 +192,7 @@ declarations without `/// Purpose:` comments in the source and are not indexed a
 
 ### `void setWeekStartDay(int weekday)` <a id="appsettingsnotifier-setweekstartday"></a>
 - **Kind:** method of `AppSettingsNotifier`
-- **Source:** `lib/shared/providers/app_settings.dart` (approx. line 115)
+- **Source:** `lib/shared/providers/app_settings.dart` (approx. line 133)
 - **Purpose:** Update the app-wide calendar week start day and persist it.
 - **Inputs:** `weekday` — Dart weekday numbering (Monday=1 … Sunday=7).
 - **Returns:** None.
@@ -188,7 +216,7 @@ declarations without `/// Purpose:` comments in the source and are not indexed a
 
 ### `void setHomeCalendarLayout(HomeCalendarLayout layout)` <a id="appsettingsnotifier-sethomecalendarlayout"></a>
 - **Kind:** method of `AppSettingsNotifier`
-- **Source:** `lib/shared/providers/app_settings.dart` (approx. line 126)
+- **Source:** `lib/shared/providers/app_settings.dart` (approx. line 144)
 - **Purpose:** Update the home calendar day-name layout (local vs. Japanese) and persist it.
 - **Inputs:** `layout` — the new `HomeCalendarLayout`.
 - **Returns:** None.
@@ -208,7 +236,7 @@ declarations without `/// Purpose:` comments in the source and are not indexed a
 
 ### `void setHomeCalendarTimeBasis(HomeCalendarTimeBasis basis)` <a id="appsettingsnotifier-sethomecalendartimebasis"></a>
 - **Kind:** method of `AppSettingsNotifier`
-- **Source:** `lib/shared/providers/app_settings.dart` (approx. line 138)
+- **Source:** `lib/shared/providers/app_settings.dart` (approx. line 156)
 - **Purpose:** Update whether the home calendar date grid uses JST or local dates, and persist it.
 - **Inputs:** `basis` — the new `HomeCalendarTimeBasis`.
 - **Returns:** None.
@@ -221,13 +249,36 @@ declarations without `/// Purpose:` comments in the source and are not indexed a
 - **Notes:** This setting only changes which dates are shown in the home calendar grid; anime
   airing timestamps themselves remain JST-based regardless, per `AGENTS.md`.
 
+### `void setHomeCalendarFormat(CalendarFormat format)` <a id="appsettingsnotifier-sethomecalendarformat"></a>
+- **Kind:** method of `AppSettingsNotifier`
+- **Source:** `lib/shared/providers/app_settings.dart` (approx. line 168)
+- **Purpose:** Remember which home calendar view (month, two weeks, or week) the user last chose.
+- **Inputs:** `format` — the newly selected `CalendarFormat`.
+- **Returns:** None.
+- **Side effects:** Updates `state`; calls `AnimeStorage.setHomeCalendarFormat(...)`.
+- **Algorithm:** 1) `state = state.copyWith(homeCalendarFormat: format)`. 2) Persist `null` when
+  `format == CalendarFormat.month` (the default), otherwise persist `format.name` (`'twoWeeks'` or
+  `'week'`).
+- **Usage:**
+  ```dart
+  onFormatChanged: (format) {
+    ref.read(appSettingsProvider.notifier).setHomeCalendarFormat(format);
+  },
+  ```
+  (from `lib/features/anime/views/home_page.dart`, `_buildCalendarSection`)
+- **Notes:** There is no settings-page control for this — the calendar's own format button and its
+  vertical-swipe gesture are the only callers, and both route through `onFormatChanged`. Holding the
+  format here instead of in `_HomePageState` is what makes it survive bottom-nav tab switches, which
+  rebuild `HomePage` through the `go_router` shell.
+
 ### `const AppSettings({...})` <a id="appsettings-new"></a>
 - **Kind:** constructor of `AppSettings`
-- **Source:** `lib/shared/providers/app_settings.dart` (approx. line 158)
+- **Source:** `lib/shared/providers/app_settings.dart` (approx. line 189)
 - **Purpose:** Construct an immutable settings snapshot with defaults for every field.
 - **Inputs:** `themeMode` (default `ThemeMode.system`), `locale` (default `null`), `weekStartDay`
   (default `defaultWeekStartDay`, i.e. Sunday), `homeCalendarLayout` (default
-  `HomeCalendarLayout.local`), `homeCalendarTimeBasis` (default `HomeCalendarTimeBasis.jst`).
+  `HomeCalendarLayout.local`), `homeCalendarTimeBasis` (default `HomeCalendarTimeBasis.jst`),
+  `homeCalendarFormat` (default `CalendarFormat.month`).
 - **Returns:** A new `AppSettings` instance.
 - **Side effects:** None.
 - **Algorithm:** Straight `const` field assignment from named parameters, all with defaults so
@@ -243,7 +294,7 @@ declarations without `/// Purpose:` comments in the source and are not indexed a
 
 ### `int get effectiveWeekStartDay` <a id="appsettings-effectiveweekstartday"></a>
 - **Kind:** getter of `AppSettings`
-- **Source:** `lib/shared/providers/app_settings.dart` (approx. line 171)
+- **Source:** `lib/shared/providers/app_settings.dart` (approx. line 203)
 - **Purpose:** Return the week start day that calendar widgets should actually use, accounting for
   the Japanese calendar layout override.
 - **Inputs:** None.
@@ -264,16 +315,17 @@ declarations without `/// Purpose:` comments in the source and are not indexed a
 
 ### `AppSettings copyWith({...})` <a id="appsettings-copywith"></a>
 - **Kind:** method of `AppSettings`
-- **Source:** `lib/shared/providers/app_settings.dart` (approx. line 181)
+- **Source:** `lib/shared/providers/app_settings.dart` (approx. line 213)
 - **Purpose:** Produce a modified copy of an `AppSettings` instance, defaulting unspecified fields
   to the current values.
-- **Inputs:** Optional overrides for all five fields, plus `clearLocale` (default `false`) to force
+- **Inputs:** Optional overrides for all six fields, plus `clearLocale` (default `false`) to force
   `locale` to `null` even though `locale` itself defaults to "unchanged".
 - **Returns:** A new `AppSettings`.
 - **Side effects:** None.
 - **Algorithm:** Standard `??`-fallback copy for `themeMode`, `weekStartDay`,
-  `homeCalendarLayout`, and `homeCalendarTimeBasis`. `locale` is special-cased: if `clearLocale` is
-  `true`, the result is `null`; otherwise it's `locale ?? this.locale`.
+  `homeCalendarLayout`, `homeCalendarTimeBasis`, and `homeCalendarFormat`. `locale` is
+  special-cased: if `clearLocale` is `true`, the result is `null`; otherwise it's
+  `locale ?? this.locale`.
 - **Usage:**
   ```dart
   state = state.copyWith(themeMode: mode);
