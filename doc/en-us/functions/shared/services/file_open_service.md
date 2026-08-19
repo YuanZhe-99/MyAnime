@@ -28,7 +28,7 @@ registers the `.myanimeitem` file association.
 | [`importFromPicker`](#importfrompicker) | method (`FileOpenService`) | A | Let the user pick and directly import a `.myanimeitem` file. |
 | [`exportAnimeItem`](#exportanimeitem) | method (`FileOpenService`) | A | Export one anime to a v1 `.myanimeitem` JSON file. |
 | [`exportAnimeBundle`](#exportanimebundle) | method (`FileOpenService`) | A | Export a collection of anime to a v2 multi-anime `.myanimeitem` file. |
-| `_stripPersonalData` | method (`FileOpenService`) | B | Remove `episodeStatuses`/`episodeWeekOffsets` from exported JSON. |
+| `_stripPersonalData` | method (`FileOpenService`) | B | Remove `episodeStatuses`/`episodeWeekOffsets`/`localArchive` from exported JSON. |
 | [`_readCoverBase64`](#_readcoverbase64) | method (`FileOpenService`) | A | Read an anime's cover image file and base64-encode it. |
 | [`_writeBundleFile`](#_writebundlefile) | method (`FileOpenService`) | A | Write a JSON bundle to a temp `.myanimeitem` file. |
 | [`_sanitizeFileName`](#_sanitizefilename) | method (`FileOpenService`) | A | Sanitize a display name for use as a cross-platform filename. |
@@ -119,9 +119,11 @@ registers the `.myanimeitem` file association.
      `coverImage` (the just-written local path, or `parsed.coverImage` if there was no embedded
      image), and `createdAt`/`modifiedAt` (both set to now).
 - **Usage:** Called internally from [`handleFile`](#handlefile) and [`parseBundle`](#parsebundle).
-- **Notes:** Personal viewing fields (`episodeStatuses`, `episodeWeekOffsets`) are carried over
-  as-is from `parsed` — stripping only happens on export (see
-  `_stripPersonalData`), not on import.
+- **Notes:** Personal fields (`episodeStatuses`, `episodeWeekOffsets`, `localArchive`) are carried
+  over as-is from `parsed` — stripping only happens on export (see `_stripPersonalData`), not on
+  import. Since export strips them, they are normally absent from an incoming file; carrying them
+  anyway keeps this a complete field-copy list, so a hand-written file's values are not silently
+  dropped and a future field added to `Anime` is not forgotten here.
 
 ### `static Future<ImportBundle?> parseBundle(String path)` <a id="parsebundle"></a>
 - **Kind:** static method of `FileOpenService`

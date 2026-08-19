@@ -1,6 +1,6 @@
 # lib/features/anime/models/anime.dart
 
-核心数据模型：`Anime`（一部被跟踪的系列）、`AnimeRating`（可选个人评分）、`AnimeData`（顶层 `{animes: [...]}` 持久化容器），外加 `AnimeType`、`EpisodeStatus`、`AnimeViewingStatus` 和 `AnimeRatingField` 枚举。本文件拥有全部三个类的 `fromJson`/`toJson`、同步合并使用的 `extraJson` 未知字段保留模式，以及驱动主页日历和按季度管理视图的季度归属/剧集播出日期逻辑。逐字段参考（身份、日程、剧集、`AnimeType` 阈值、`AnimeRating` 计分、`extraJson`）在 [`../../../../data-formats.md`](../../../../data-formats.md)；构建在这些字段之上的跟踪/季度归属算法在 [`../../../../features/anime-tracking.md`](../../../../features/anime-tracking.md) 中走查。使用者包括 `AnimeStorage`（[`../services/anime_storage.md`](../services/anime_storage.md)）、`WebDAVService`/`sync_merge.dart`（三方同步，[`../../../../algorithms/three-way-merge.md`](../../../../algorithms/three-way-merge.md)），以及 `lib/features/anime/views/` 下的每个视图。
+核心数据模型：`Anime`（一部被跟踪的系列）、`AnimeRating`（可选个人评分）、`AnimeLocalArchive`（可选的本地下载存档记录）、`AnimeData`（顶层 `{animes: [...]}` 持久化容器），外加 `AnimeType`、`EpisodeStatus`、`AnimeViewingStatus`、`AnimeRatingField`、`ArchiveSource` 和 `ArchiveResolution` 枚举。本文件拥有全部四个类的 `fromJson`/`toJson`、同步合并使用的 `extraJson` 未知字段保留模式，以及驱动主页日历和按季度管理视图的季度归属/剧集播出日期逻辑。逐字段参考（身份、日程、剧集、`AnimeType` 阈值、`AnimeRating` 计分、`extraJson`）在 [`../../../../data-formats.md`](../../../../data-formats.md)；构建在这些字段之上的跟踪/季度归属算法在 [`../../../../features/anime-tracking.md`](../../../../features/anime-tracking.md) 中走查。使用者包括 `AnimeStorage`（[`../services/anime_storage.md`](../services/anime_storage.md)）、`WebDAVService`/`sync_merge.dart`（三方同步，[`../../../../algorithms/three-way-merge.md`](../../../../algorithms/three-way-merge.md)），以及 `lib/features/anime/views/` 下的每个视图。
 
 ## 声明
 
@@ -10,6 +10,8 @@
 | [`_stringKeyedMap`](#stringkeyedmap) | 顶层函数 | A | 把 `Map<dynamic, dynamic>`（来自 JSON decode）规范化为 `Map<String, dynamic>`。 |
 | [`_mergeJsonMaps`](#mergejsonmaps) | 顶层函数 | A | 深度合并 JSON 映射列表，后置映射的标量值胜出，嵌套映射递归合并。 |
 | [`_parseAnimeType`](#parseanimetype) | 顶层函数 | A | 把 JSON 字符串解析为 `AnimeType`，不认识则 `null`。 |
+| [`_parseArchiveSource`](#parsearchivesource) | 顶层函数 | A | 把 JSON 字符串解析为 `ArchiveSource`，不认识则 `null`。 |
+| [`_parseArchiveResolution`](#parsearchiveresolution) | 顶层函数 | A | 把 JSON 字符串解析为 `ArchiveResolution`，不认识则 `null`。 |
 | [`_parseEpisodeStatus`](#parseepisodestatus) | 顶层函数 | A | 把 JSON 字符串解析为 `EpisodeStatus`，不认识则 `null`。 |
 | [`AnimeRating(...)`](#animerating-new) | 构造函数（`AnimeRating`） | A | 创建个人评分值（手动总分 + 五个子分）。 |
 | `hasManualOverall` | getter（`AnimeRating`） | B | `overall` 是否已设置。 |
@@ -22,6 +24,12 @@
 | [`AnimeRating.fromJson`](#animerating-fromjson) | 工厂构造函数 | A | 从 JSON 解析评分，把非数值分数路由进 `extraJson`。 |
 | [`_parseScore`](#parsescore) | 顶层函数 | A | 把 JSON 值解析为 `double` 分数，否则 `null`。 |
 | [`_writeScore`](#writescore) | 顶层函数 | A | 在构建中的 JSON 映射里写入（或移除）一个分数键。 |
+| [`AnimeLocalArchive(...)`](#animelocalarchive-new) | 构造函数（`AnimeLocalArchive`） | A | 创建本地下载存档记录（标志、片源、分辨率、份数、位置）。 |
+| `hasAnyDetail` | getter（`AnimeLocalArchive`） | B | 除 `archived` 标志外是否还填了任何明细。 |
+| `hasAnyData` | getter（`AnimeLocalArchive`） | B | 是否有任何值得持久化的内容（标志、明细或保留的 `extraJson`）。 |
+| [`withExtraJson`](#withextrajson-animelocalarchive) | 方法（`AnimeLocalArchive`） | A | 复制并替换 `extraJson`。 |
+| [`toJson`](#tojson-animelocalarchive) | 方法（`AnimeLocalArchive`） | A | 序列化为存放在 `Anime.localArchive` 下的 JSON 形状。 |
+| [`AnimeLocalArchive.fromJson`](#animelocalarchive-fromjson) | 工厂构造函数 | A | 从 JSON 解析存档记录，无法解析的值转入 `extraJson`。 |
 | [`Anime(...)`](#anime-new) | 构造函数（`Anime`） | A | 用全部持久化字段创建动画记录。 |
 | [`displayTitle`](#displaytitle) | getter（`Anime`） | A | 最佳可用标题：`title`，否则 `titleJa`，否则空字符串。 |
 | [`totalEpisodes`](#totalepisodes) | getter（`Anime`） | A | `endEpisode - startEpisode + 1`，开放结局时为 `null`。 |
@@ -48,13 +56,13 @@
 | [`toJson`](#tojson-animedata) | 方法（`AnimeData`） | A | 序列化为 `{...extraJson, animes: [...]}`。 |
 | [`AnimeData.fromJson`](#animedata-fromjson) | 工厂构造函数 | A | 从 JSON 解析 `{animes: [...]}` 容器。 |
 
-关于校验计数的说明：源文件有 40 个 `/// Purpose:` 文档注释，但本表有 41 行——`AnimeData` 默认构造函数（第 1063 行）在源码中完全没有文档注释（与本文件其他构造函数不同），但它仍是真实声明，被索引在上（Tier B：无逻辑的平凡默认值构造函数）。
+关于校验计数的说明：源文件有 48 个 `/// Purpose:` 文档注释，但本表有 49 行——`AnimeData` 默认构造函数（第 1337 行）在源码中完全没有文档注释（与本文件其他构造函数不同），但它仍是真实声明，被索引在上（Tier B：无逻辑的平凡默认值构造函数）。
 
 ## 文档
 
 ### `Map<String, dynamic> _unknownJson(Map<String, dynamic> json, Set<String> knownKeys)` <a id="unknownjson"></a>
 - **种类：** 顶层函数
-- **来源：** `lib/features/anime/models/anime.dart`（第 41 行）
+- **来源：** `lib/features/anime/models/anime.dart`（第 50 行）
 - **用途：** 计算原始 JSON 映射中本应用版本不认识、按给定类型的已知键集合过滤后的子集。
 - **输入：** `json` — 原始解码映射；`knownKeys` — 本类型理解的字段名（`_animeJsonKeys`、`_ratingJsonKeys` 或 `_animeDataJsonKeys`）。
 - **返回：** `Map<String, dynamic>` — `json` 移除 `knownKeys` 中每个键后的副本。
@@ -69,7 +77,7 @@
 
 ### `Map<String, dynamic> _stringKeyedMap(Map<dynamic, dynamic> map)` <a id="stringkeyedmap"></a>
 - **种类：** 顶层函数
-- **来源：** `lib/features/anime/models/anime.dart`（第 55 行）
+- **来源：** `lib/features/anime/models/anime.dart`（第 64 行）
 - **用途：** 把动态键映射（`jsonDecode` 为嵌套对象产生的）强转为 `Map<String, dynamic>`。
 - **输入：** `map`。
 - **返回：** `Map<String, dynamic>`，每个键都经 `.toString()` 转换。
@@ -84,7 +92,7 @@
 
 ### `Map<String, dynamic> _mergeJsonMaps(Iterable<Map<String, dynamic>> maps)` <a id="mergejsonmaps"></a>
 - **种类：** 顶层函数
-- **来源：** `lib/features/anime/models/anime.dart`（第 64 行）
+- **来源：** `lib/features/anime/models/anime.dart`（第 73 行）
 - **用途：** 按顺序深度合并任意数量的 JSON 映射，使来自多个候选来源（如一条记录的本地和远程副本）的 `extraJson` 字段合并，而不是后置来源把前置来源的嵌套键冲掉。
 - **输入：** `maps` — 从左到右合并，标量值后置条目优先。
 - **返回：** `Map<String, dynamic>`。
@@ -106,7 +114,7 @@
 
 ### `AnimeType? _parseAnimeType(Object? value)` <a id="parseanimetype"></a>
 - **种类：** 顶层函数
-- **来源：** `lib/features/anime/models/anime.dart`（第 88 行）
+- **来源：** `lib/features/anime/models/anime.dart`（第 97 行）
 - **用途：** 把原始 JSON 值解析为 `AnimeType` 枚举，容忍任何不是可识别字符串的东西。
 - **输入：** `value` — 通常是 `json['manualType']`。
 - **返回：** `AnimeType?` — `value` 不是 `String` 或不匹配任何枚举名时为 `null`。
@@ -122,9 +130,42 @@
   （`Anime.fromJson`，同一文件）
 - **备注：** 存在但不可解析的 `manualType`（如本应用版本不认识的未来枚举值）由调用方原样保留在 `extraJson` 中，而不是静默丢弃——见上面的用法。
 
+### `ArchiveSource? _parseArchiveSource(Object? value)` <a id="parsearchivesource"></a>
+- **种类：** 顶层函数
+- **来源：** `lib/features/anime/models/anime.dart`（第 110 行）
+- **用途：** 把原始 JSON 值解析为 `ArchiveSource` 枚举。
+- **输入：** `value` — `localArchive` JSON 对象的 `source` 条目。
+- **返回：** `ArchiveSource?` — `value` 不是可识别的片源字符串时为 `null`。
+- **副作用：** 无。
+- **算法：** 与 `_parseAnimeType` 形态相同：先类型守卫，再按 `.name` 线性扫描 `ArchiveSource.values`。
+- **用法：**
+  ```dart
+  final source = _parseArchiveSource(json['source']);
+  if (json.containsKey('source') && source == null) {
+    extraJson['source'] = json['source'];
+  }
+  ```
+  （同文件 `AnimeLocalArchive.fromJson`）
+- **备注：** 本版本不认识的未来片源值由调用方原样保留到存档自身的 `extraJson`，而不是丢弃。
+
+### `ArchiveResolution? _parseArchiveResolution(Object? value)` <a id="parsearchiveresolution"></a>
+- **种类：** 顶层函数
+- **来源：** `lib/features/anime/models/anime.dart`（第 123 行）
+- **用途：** 把原始 JSON 值解析为 `ArchiveResolution` 枚举。
+- **输入：** `value` — `localArchive` JSON 对象的 `resolution` 条目。
+- **返回：** `ArchiveResolution?` — `value` 不是可识别的分辨率字符串时为 `null`。
+- **副作用：** 无。
+- **算法：** 与 `_parseArchiveSource` 形态相同。
+- **用法：**
+  ```dart
+  final resolution = _parseArchiveResolution(json['resolution']);
+  ```
+  （同文件 `AnimeLocalArchive.fromJson`）
+- **备注：** 枚举名是存储标识符而非展示文本——`uhd2160p`/`fhd1080p`/`hd720p`/`sd480p` 通过 [`../views/archive_labels.md`](../views/archive_labels.md) 中的 `archiveResolutionLabel` 渲染为 `2160p`/`1080p`/`720p`/`480p`。
+
 ### `EpisodeStatus? _parseEpisodeStatus(Object? value)` <a id="parseepisodestatus"></a>
 - **种类：** 顶层函数
-- **来源：** `lib/features/anime/models/anime.dart`（第 101 行）
+- **来源：** `lib/features/anime/models/anime.dart`（第 136 行）
 - **用途：** 把原始 JSON 值解析为 `EpisodeStatus` 枚举。
 - **输入：** `value` — `episodeStatuses` JSON 映射中一个条目的值。
 - **返回：** `EpisodeStatus?` — `value` 不是可识别的状态字符串时为 `null`。
@@ -144,7 +185,7 @@
 
 ### `const AnimeRating({overall, visual, story, character, music, enjoyment, extraJson = const {}})` <a id="animerating-new"></a>
 - **种类：** `AnimeRating` 的构造函数
-- **来源：** `lib/features/anime/models/anime.dart`（第 154 行）
+- **来源：** `lib/features/anime/models/anime.dart`（第 225 行）
 - **用途：** 保存个人评分：可选的手动总分加五个可选的 0–10 子分（visual、story、character、music、enjoyment）。
 - **输入：** 六个分数字段都可选；`extraJson` 默认为 `{}`。
 - **返回：** 新的 `AnimeRating`。
@@ -167,7 +208,7 @@
 
 ### `double? get effectiveOverall` <a id="effectiveoverall"></a>
 - **种类：** `AnimeRating` 的 getter
-- **来源：** `lib/features/anime/models/anime.dart`（第 196 行）
+- **来源：** `lib/features/anime/models/anime.dart`（第 267 行）
 - **用途：** 手动总分已设置时返回它，否则返回已填子分的平均。
 - **输入：** 无。
 - **返回：** `double?` — 只在 `overall` 未设置且每个子分也未设置时为 `null`。
@@ -187,7 +228,7 @@
 
 ### `double? scoreFor(AnimeRatingField field)` <a id="scorefor"></a>
 - **种类：** `AnimeRating` 的方法
-- **来源：** `lib/features/anime/models/anime.dart`（第 215 行）
+- **来源：** `lib/features/anime/models/anime.dart`（第 286 行）
 - **用途：** 查找该评分对给定可排序/可显示字段的值，把 `AnimeRatingField.overall` 经 `effectiveOverall` 路由，而不是原始 `overall` 字段。
 - **输入：** `field`。
 - **返回：** `double?`。
@@ -202,7 +243,7 @@
 
 ### `AnimeRating withExtraJson(Map<String, dynamic> extraJson)` <a id="withextrajson-animerating"></a>
 - **种类：** `AnimeRating` 的方法
-- **来源：** `lib/features/anime/models/anime.dart`（第 237 行）
+- **来源：** `lib/features/anime/models/anime.dart`（第 308 行）
 - **用途：** 返回只替换 `extraJson` 的评分副本。
 - **输入：** `extraJson`。
 - **返回：** 每个分数字段都未变的新 `AnimeRating`。
@@ -221,7 +262,7 @@
 
 ### `Map<String, dynamic> toJson()`（`AnimeRating`） <a id="tojson-animerating"></a>
 - **种类：** `AnimeRating` 的方法
-- **来源：** `lib/features/anime/models/anime.dart`（第 252 行）
+- **来源：** `lib/features/anime/models/anime.dart`（第 323 行）
 - **用途：** 把评分序列化为存储在 `Anime.rating` 下的 JSON 形态。
 - **输入：** 无。
 - **返回：** `Map<String, dynamic>` — `extraJson` 覆盖上每个已知分数键。
@@ -240,7 +281,7 @@
 
 ### `factory AnimeRating.fromJson(Map<String, dynamic> json)` <a id="animerating-fromjson"></a>
 - **种类：** `AnimeRating` 的工厂构造函数
-- **来源：** `lib/features/anime/models/anime.dart`（第 268 行）
+- **来源：** `lib/features/anime/models/anime.dart`（第 339 行）
 - **用途：** 从持久化 JSON 形态重建评分，保留任何不是可识别分数名的键和任何不是数值的分数值。
 - **输入：** `json`。
 - **返回：** 新的 `AnimeRating`。
@@ -259,7 +300,7 @@
 
 ### `double? _parseScore(Object? value)` <a id="parsescore"></a>
 - **种类：** 顶层函数
-- **来源：** `lib/features/anime/models/anime.dart`（第 296 行）
+- **来源：** `lib/features/anime/models/anime.dart`（第 367 行）
 - **用途：** 把原始 JSON 值解析为 `double` 分数。
 - **输入：** `value`。
 - **返回：** `double?` — `value is num` 时为 `value.toDouble()`，否则 `null`。
@@ -276,7 +317,7 @@
 
 ### `void _writeScore(Map<String, dynamic> json, String key, double? score)` <a id="writescore"></a>
 - **种类：** 顶层函数
-- **来源：** `lib/features/anime/models/anime.dart`（第 306 行）
+- **来源：** `lib/features/anime/models/anime.dart`（第 377 行）
 - **用途：** 在构建评分 JSON 映射时设置或清除一个分数键。
 - **输入：** `json`（原地修改）、`key`、`score`。
 - **返回：** 无。
@@ -289,9 +330,72 @@
   （`AnimeRating.toJson`，同一文件）
 - **备注：** `else if (!json.containsKey(key)) json.remove(key);` 分支按构造是空操作（只在键已缺失时才到达 `remove`）——实际效果就是"类型化字段为 null 时不要动既有的未识别值"。
 
-### `const Anime({required id, title, titleJa, season = 'Season 1', startEpisode = 1, endEpisode = 13, manualType, airDayOfWeek, airTime, firstAirDate, episodeStatuses = const {}, coverImage, infoUrl, watchUrl, episodeWeekOffsets = const {}, notes, rating, required createdAt, required modifiedAt, extraJson = const {}})` <a id="anime-new"></a>
+### `const AnimeLocalArchive({archived = false, source, resolution, copies, location, extraJson = const {}})` <a id="animelocalarchive-new"></a>
+- **种类：** 构造函数（`AnimeLocalArchive`）
+- **来源：** `lib/features/anime/models/anime.dart`（第 415 行）
+- **用途：** 创建一部动画本地下载存档的可选记录。
+- **输入：** `archived` — 是否保留了本地资源；`source` — `ArchiveSource` 片源（BD/DVD/WEB/TV/其他）；`resolution` — `ArchiveResolution`；`copies` — 保留了几份存档；`location` — 自由文本的资料仓库代码或物理位置，因此可以一次列出多个代码（`NAS-01, HDD-C3`）；`extraJson` — 保留的未知字段。
+- **返回：** 新的 `AnimeLocalArchive`。
+- **副作用：** 无。
+- **备注：** 这里的一切都是个人基础设施信息。它持久化在 `anime_data.json` 中并在用户自己的设备间通过
+  WebDAV 同步，但刻意**永不绘制进分享图片卡片**，并且**从 `.myanimeitem` 分享文件中剥离**——见
+  [`../../../../features/share-and-import.md`](../../../../features/share-and-import.md)。编辑在
+  [`../views/anime_edit_page.md`](../views/anime_edit_page.md)；只读摘要在
+  [`../views/anime_detail_page.md`](../views/anime_detail_page.md)。
+
+### `bool get hasAnyDetail` / `bool get hasAnyData`（`AnimeLocalArchive`） <a id="animelocalarchive-hasanydata"></a>
+- **种类：** getter（`AnimeLocalArchive`）
+- **来源：** `lib/features/anime/models/anime.dart`（第 429 行和第 441 行）
+- **用途：** `hasAnyDetail` 报告除 `archived` 标志外是否还填了任何字段；`hasAnyData` 报告该记录是否有任何值得持久化的内容。
+- **返回：** `bool`。
+- **副作用：** 无。
+- **算法：** `hasAnyDetail` 为 `source != null || resolution != null || copies != null || (location != null && location.isNotEmpty)`。`hasAnyData` 为 `archived || hasAnyDetail || extraJson.isNotEmpty`。
+- **备注：** `hasAnyData` 是保持磁盘格式稳定的闸门。仅当它为真时 `Anime.toJson` 才写出 `localArchive`
+  键，而 `Anime.fromJson` 会丢弃全空的解析结果，因此从未使用过该功能的动画序列化结果与该功能存在之前
+  逐字节一致。这正是 `test/golden/goldens/myanime/` 中 WebDAV 请求金样本得以保持有效的原因。
+
+### `AnimeLocalArchive withExtraJson(Map<String, dynamic> extraJson)` <a id="withextrajson-animelocalarchive"></a>
+- **种类：** 方法（`AnimeLocalArchive`）
+- **来源：** `lib/features/anime/models/anime.dart`（第 448 行）
+- **用途：** 复制该记录并替换其保留未知字段的映射。
+- **输入：** `extraJson` — 替换用的映射。
+- **返回：** `AnimeLocalArchive`。
+- **副作用：** 无。
+- **用法：** 由 `Anime.withPreservedUnknownJson` 在深度合并每个候选来源的存档 `extraJson` 之后调用，与它对 `AnimeRating` 的既有做法完全一致。
+
+### `Map<String, dynamic> toJson()`（`AnimeLocalArchive`） <a id="tojson-animelocalarchive"></a>
+- **种类：** 方法（`AnimeLocalArchive`）
+- **来源：** `lib/features/anime/models/anime.dart`（第 463 行）
+- **用途：** 序列化为存放在 `Anime.localArchive` 下的 JSON 对象。
+- **返回：** `Map<String, dynamic>`。
+- **副作用：** 无。
+- **算法：**
+  1. 从 `extraJson` 的副本开始，让未知字段位于输出前部。
+  2. 写入 `archived`——**除非** `extraJson` 中已有 `archived` 键，这只在存储值无法解析为 bool 而被原样保留时发生。
+  3. 对 `source`、`resolution`、`copies`、`location` 逐个处理：已设置时写入类型化的值；否则仅在 `extraJson` 没有保留该键时才移除。
+- **输出形状：**
+  ```json
+  { "archived": true, "source": "bd", "resolution": "fhd1080p",
+    "copies": 2, "location": "NAS-01, HDD-C3" }
+  ```
+- **备注：** 枚举按 `.name` 序列化，与 `AnimeType` 和 `EpisodeStatus` 一致。
+
+### `factory AnimeLocalArchive.fromJson(Map<String, dynamic> json)` <a id="animelocalarchive-fromjson"></a>
+- **种类：** 工厂构造函数
+- **来源：** `lib/features/anime/models/anime.dart`（第 499 行）
+- **用途：** 从 JSON 解析存档记录，不丢失本版本无法解释的任何内容。
+- **输入：** `json` — 解码后的 `localArchive` 对象。
+- **返回：** 新的 `AnimeLocalArchive`。
+- **副作用：** 无。
+- **算法：**
+  1. `extraJson = _unknownJson(json, _localArchiveJsonKeys)`。
+  2. 对每个已知键做类型检查（`archived` 用 `bool`，`source`/`resolution` 用两个枚举解析器，`copies` 用 `int`，`location` 用 `String`）。存在但无法解析的值会被写**回** `extraJson`，类型化字段保持 null/false。
+- **备注：** 与 `AnimeRating.fromJson` 的前向兼容契约相同：旧版本编辑由新版本写入的记录时，新版本的值原样往返。
+  由 `test/anime_json_test.dart`（"local archive preserves unknown and unparseable fields"）覆盖。
+
+### `const Anime({required id, title, titleJa, season = 'Season 1', startEpisode = 1, endEpisode = 13, manualType, airDayOfWeek, airTime, firstAirDate, episodeStatuses = const {}, coverImage, infoUrl, watchUrl, episodeWeekOffsets = const {}, notes, rating, localArchive, required createdAt, required modifiedAt, extraJson = const {}})` <a id="anime-new"></a>
 - **种类：** `Anime` 的构造函数
-- **来源：** `lib/features/anime/models/anime.dart`（第 384 行）
+- **来源：** `lib/features/anime/models/anime.dart`（第 620 行）
 - **用途：** 直接从每个持久化字段构造 `Anime` 记录。
 - **输入：** `id`、`createdAt`、`modifiedAt` 必填；`season` 默认为 `'Season 1'`、`startEpisode` 为 `1`、`endEpisode` 为 `13`（新的单 cour 假设）、`episodeStatuses`/`episodeWeekOffsets`/`extraJson` 默认为空；其余全可选。
 - **返回：** 新的 `Anime`。
@@ -314,7 +418,7 @@
 
 ### `String get displayTitle` <a id="displaytitle"></a>
 - **种类：** `Anime` 的 getter
-- **来源：** `lib/features/anime/models/anime.dart`（第 412 行）
+- **来源：** `lib/features/anime/models/anime.dart`（第 649 行）
 - **用途：** 返回用于显示的最佳可用标题。
 - **输入：** 无。
 - **返回：** `String` — `title` 非空则它，否则 `titleJa` 非空则它，否则 `''`。
@@ -329,7 +433,7 @@
 
 ### `int? get totalEpisodes` <a id="totalepisodes"></a>
 - **种类：** `Anime` 的 getter
-- **来源：** `lib/features/anime/models/anime.dart`（第 421 行）
+- **来源：** `lib/features/anime/models/anime.dart`（第 658 行）
 - **用途：** 运行长度已知时返回总集数。
 - **输入：** 无。
 - **返回：** `int?` — `endEpisode` 已设置时为 `endEpisode! - startEpisode + 1`，否则 `null`。
@@ -344,7 +448,7 @@
 
 ### `AnimeType get autoType` <a id="autotype"></a>
 - **种类：** `Anime` 的 getter
-- **来源：** `lib/features/anime/models/anime.dart`（第 429 行）
+- **来源：** `lib/features/anime/models/anime.dart`（第 666 行）
 - **用途：** 仅从当前集数推断播出类型，忽略任何手动覆盖。
 - **输入：** 无。
 - **返回：** `AnimeType`。
@@ -362,7 +466,7 @@
 
 ### `AnimeType get effectiveType` <a id="effectivetype"></a>
 - **种类：** `Anime` 的 getter
-- **来源：** `lib/features/anime/models/anime.dart`（第 443 行）
+- **来源：** `lib/features/anime/models/anime.dart`（第 680 行）
 - **用途：** 返回真正应驱动应用行为（日历渲染、季度归属、剧集日期回卷）的 `AnimeType`，在存在时应用手动覆盖。
 - **输入：** 无。
 - **返回：** `AnimeType`。
@@ -379,7 +483,7 @@
 
 ### `bool airsInQuarter(int year, int quarter)` <a id="airsinquarter"></a>
 - **种类：** `Anime` 的方法
-- **来源：** `lib/features/anime/models/anime.dart`（第 453 行）
+- **来源：** `lib/features/anime/models/anime.dart`（第 690 行）
 - **用途：** 决定这部动画是否应出现在给定的 `(year, quarter)` 列表中（管理和统计页使用的"cour"分组）。
 - **输入：** `year`、`quarter`（1–4）。
 - **返回：** `bool`。
@@ -400,7 +504,7 @@
 
 ### `(int, int)? get startQuarter` <a id="startquarter"></a>
 - **种类：** `Anime` 的 getter
-- **来源：** `lib/features/anime/models/anime.dart`（第 518 行）
+- **来源：** `lib/features/anime/models/anime.dart`（第 755 行）
 - **用途：** 返回从 `firstAirDate` 的月份派生的起始播出季度。
 - **输入：** 无。
 - **返回：** `(int, int)?` — `(year, quarter)`，`firstAirDate` 未设置时为 `null`。
@@ -417,7 +521,7 @@
 
 ### `int weekOffsetFor(int episodeNumber)` <a id="weekoffsetfor"></a>
 - **种类：** `Anime` 的方法
-- **来源：** `lib/features/anime/models/anime.dart`（第 533 行）
+- **来源：** `lib/features/anime/models/anime.dart`（第 770 行）
 - **用途：** 对每个影响给定剧集的已配置周调整求和。
 - **输入：** `episodeNumber`。
 - **返回：** `int` — 要偏移的总周数（正 = 延期，负 = 提前）。
@@ -433,7 +537,7 @@
 
 ### `DateTime? getEpisodeAirDate(int episodeNumber)` <a id="getepisodeairdate"></a>
 - **种类：** `Anime` 的方法
-- **来源：** `lib/features/anime/models/anime.dart`（第 546 行）
+- **来源：** `lib/features/anime/models/anime.dart`（第 783 行）
 - **用途：** 计算一集的 JST 播出时间戳，包括深夜档回卷（如 `"25:00"` = 次日 01:00）。
 - **输入：** `episodeNumber`。
 - **返回：** `DateTime?` — 日程数据不完整时（`firstAirDate` 或 `airDayOfWeek` 缺失，或 `episodeNumber < startEpisode`）为 `null`。
@@ -457,7 +561,7 @@
 
 ### `DateTime? getEpisodeCalendarDate(int episodeNumber)` <a id="getepisodecalendardate"></a>
 - **种类：** `Anime` 的方法
-- **来源：** `lib/features/anime/models/anime.dart`（第 592 行）
+- **来源：** `lib/features/anime/models/anime.dart`（第 829 行）
 - **用途：** 计算一集的 JST 日历播出日期，刻意不应用 `airTime` 的深夜回卷。
 - **输入：** `episodeNumber`。
 - **返回：** `DateTime?` — 与 [`getEpisodeAirDate`](#getepisodeairdate) 相同的 null 条件。
@@ -474,7 +578,7 @@
 
 ### `int? get nextUnwatchedEpisode` <a id="nextunwatchedepisode"></a>
 - **种类：** `Anime` 的 getter
-- **来源：** `lib/features/anime/models/anime.dart`（第 623 行）
+- **来源：** `lib/features/anime/models/anime.dart`（第 860 行）
 - **用途：** 返回第一个仍未观看的集编号。
 - **输入：** 无。
 - **返回：** `int?` — 每个被跟踪的剧集（到 `endEpisode` 为止，开放结局系列则为 `startEpisode + 999`）都已是 `watched` 或 `skippedThisWeek` 时为 `null`。
@@ -489,7 +593,7 @@
 
 ### `bool get isCompleted` <a id="iscompleted"></a>
 - **种类：** `Anime` 的 getter
-- **来源：** `lib/features/anime/models/anime.dart`（第 639 行）
+- **来源：** `lib/features/anime/models/anime.dart`（第 876 行）
 - **用途：** 每一集是否都已看。
 - **输入：** 无。
 - **返回：** `bool` — `endEpisode` 为 `null` 时总是 `false`（开放结局系列永远不可能"完成"）。
@@ -504,7 +608,7 @@
 
 ### `AnimeViewingStatus get viewingStatus` <a id="viewingstatus"></a>
 - **种类：** `Anime` 的 getter
-- **来源：** `lib/features/anime/models/anime.dart`（第 652 行）
+- **来源：** `lib/features/anime/models/anime.dart`（第 889 行）
 - **用途：** 派生整个 UI 显示的观看状态，从 `episodeStatuses` 计算而不是单独存储。
 - **输入：** 无。
 - **返回：** `AnimeViewingStatus` — `completed`、`watching`、`dropped`、`notStarted` 之一。
@@ -524,9 +628,9 @@
 
 ### `Anime copyWith({...})` <a id="copywith"></a>
 - **种类：** `Anime` 的方法
-- **来源：** `lib/features/anime/models/anime.dart`（第 685 行）
+- **来源：** `lib/features/anime/models/anime.dart`（第 922 行）
 - **用途：** 用所选字段创建副本，用 `clearXxx` 布尔标志显式清空本来可空的字段（因为给参数传 `null` 与"未提供"无法区分）。
-- **输入：** 每个可变字段一个可选参数，外加 `clearEndEpisode`/`clearManualType`/`clearAirDayOfWeek`/`clearAirTime`/`clearFirstAirDate`/`clearCoverImage`/`clearInfoUrl`/`clearWatchUrl`/`clearNotes`/`clearRating`（全部默认 `false`）；`modifiedAt` 可选（未提供时默认为 `DateTime.now().toUtc()`）。
+- **输入：** 每个可变字段一个可选参数，外加 `clearEndEpisode`/`clearManualType`/`clearAirDayOfWeek`/`clearAirTime`/`clearFirstAirDate`/`clearCoverImage`/`clearInfoUrl`/`clearWatchUrl`/`clearNotes`/`clearRating`/`clearLocalArchive`（全部默认 `false`）；`modifiedAt` 可选（未提供时默认为 `DateTime.now().toUtc()`）。
 - **返回：** 新的 `Anime`；`id`、`createdAt` 和 `extraJson` 总是原样带过。
 - **副作用：** 无（但不带显式 `modifiedAt` 调用它会读取当前时间）。
 - **算法：** 对每个带 `clearXxx` 标志的可空字段：标志为 `true` 则字段变 `null`；否则提供值非 null 时用之，否则保留既有值（`value ?? this.value`）。不可空字段（`season`、`startEpisode`）和 `episodeStatuses`/`episodeWeekOffsets` 直接 `?? this.field`，无 clear 标志。
@@ -537,6 +641,8 @@
     ...
     rating: rating,
     clearRating: rating == null,
+    localArchive: localArchive,
+    clearLocalArchive: localArchive == null,
     modifiedAt: DateTime.now().toUtc(),
   );
   await AnimeStorage.addOrUpdate(updated);
@@ -546,7 +652,7 @@
 
 ### `Anime withExtraJson(Map<String, dynamic> extraJson)`（`Anime`） <a id="withextrajson-anime"></a>
 - **种类：** `Anime` 的方法
-- **来源：** `lib/features/anime/models/anime.dart`（第 747 行）
+- **来源：** `lib/features/anime/models/anime.dart`（第 989 行）
 - **用途：** 返回只替换 `extraJson` 的动画副本。
 - **输入：** `extraJson`。
 - **返回：** 其他每个字段都未变的新 `Anime`。
@@ -560,16 +666,17 @@
 
 ### `Anime withPreservedUnknownJson(Iterable<Anime?> fallbackSources)` <a id="withpreservedunknownjson-anime"></a>
 - **种类：** `Anime` 的方法
-- **来源：** `lib/features/anime/models/anime.dart`（第 775 行）
-- **用途：** 把本记录的 `extraJson`（及其评分的 `extraJson`）与一个或多个后备候选的 `extraJson` 合并——通常是同步合并中同一条记录的本地和远程副本——使*本*应用版本不认识但任一侧存在的字段存活。
+- **来源：** `lib/features/anime/models/anime.dart`（第 1018 行）
+- **用途：** 把本记录的 `extraJson`（及其嵌套 `rating` 和 `localArchive` 的 `extraJson`）与一个或多个后备候选的 `extraJson` 合并——通常是同步合并中同一条记录的本地和远程副本——使*本*应用版本不认识但任一侧存在的字段存活。
 - **输入：** `fallbackSources` — `Anime?` 的可迭代（null 被跳过）。
-- **返回：** `extraJson` 和 `rating.extraJson` 各自替换为合并形态的新 `Anime`；其他每个字段都从 `this` 原样复制。
+- **返回：** `extraJson`、`rating.extraJson` 和 `localArchive.extraJson` 各自替换为合并形态的新 `Anime`；其他每个字段都从 `this` 原样复制。
 - **副作用：** 无（纯）。
 - **算法：**
   1. 经 [`_mergeJsonMaps`](#mergejsonmaps) 合并每个有非 null `rating` 的来源的 `rating.extraJson`，加上本记录自己的 `rating?.extraJson`。
   2. `this.rating` 非 null 时，产出 `rating!.withExtraJson(mergedRatingExtraJson)`；否则合并映射非空时，合成一个无分数的 `AnimeRating(extraJson: ...)`，使只在另一台设备上通过 `extraJson` 存在的评分不会消失；否则 `null`。
-  3. 用同样的方式跨所有来源加 `this.extraJson` 合并顶层 `extraJson`。
-  4. 返回 `this` 的完整副本，带合并后的 `rating` 和 `extraJson`。
+  3. 对 `localArchive` 原样重复第 1–2 步，同样情形下合成一个字段全空的 `AnimeLocalArchive(extraJson: ...)`。
+  4. 用同样的方式跨所有来源加 `this.extraJson` 合并顶层 `extraJson`。
+  5. 返回 `this` 的完整副本，带合并后的 `rating`、`localArchive` 和 `extraJson`。
 - **用法：**
   ```dart
   all.add(chosen.withPreservedUnknownJson([c.localRecord, c.remoteRecord]));
@@ -579,7 +686,7 @@
 
 ### `Map<String, dynamic> toJson()`（`Anime`） <a id="tojson-anime"></a>
 - **种类：** `Anime` 的方法
-- **来源：** `lib/features/anime/models/anime.dart`（第 821 行）
+- **来源：** `lib/features/anime/models/anime.dart`（第 1076 行）
 - **用途：** 把本记录序列化为持久化在 `anime_data.json` 中的 JSON 形态。
 - **输入：** 无。
 - **返回：** `Map<String, dynamic>`。
@@ -587,9 +694,10 @@
 - **算法：**
   1. 从 `extraJson` 的副本开始。
   2. 构建 `episodeStatuses`'/`episodeWeekOffsets`' 的 JSON：从保留在 `extraJson['episodeStatuses']`/`extraJson['episodeWeekOffsets']` 中的任何未知条目开始（经 [`_stringKeyedMap`](#stringkeyedmap)），然后覆盖上每个已知条目（`k.toString(): v.name` / `k.toString(): v`）。
-  3. 写每个标量字段（`id`、`title`、`titleJa`、`season`、`startEpisode`、`endEpisode`、`manualType`、`airDayOfWeek`、`airTime`、`firstAirDate`、`coverImage`、`infoUrl`、`watchUrl`、`notes`、`createdAt`、`modifiedAt`）——可空字段非 null 时写入，否则 `json.remove(key)`，唯独 `manualType`/`rating` 在字段为 null 但键已通过 `extraJson` 存活时保持原样（不移除）。
+  3. 写每个标量字段（`id`、`title`、`titleJa`、`season`、`startEpisode`、`endEpisode`、`manualType`、`airDayOfWeek`、`airTime`、`firstAirDate`、`coverImage`、`infoUrl`、`watchUrl`、`notes`、`createdAt`、`modifiedAt`）——可空字段非 null 时写入，否则 `json.remove(key)`，唯独 `manualType`/`rating`/`localArchive` 在字段为 null 但键已通过 `extraJson` 存活时保持原样（不移除）。
   4. `episodeStatuses` 总是写入（即使为空）；`episodeWeekOffsets` 只在非空时写入。
   5. `rating` 只在 `rating != null && rating!.hasAnyData` 时通过 `rating!.toJson()` 写入。
+  6. `localArchive` 通过 `localArchive!.toJson()` 和 `hasAnyData` 遵循同一规则，因此从未使用过该功能的记录完全不会产生 `localArchive` 键。
 - **用法：**
   ```dart
   final jsonStr = const JsonEncoder.withIndent('  ').convert(data.toJson());
@@ -599,7 +707,7 @@
 
 ### `factory Anime.fromJson(Map<String, dynamic> json)` <a id="anime-fromjson"></a>
 - **种类：** `Anime` 的工厂构造函数
-- **来源：** `lib/features/anime/models/anime.dart`（第 922 行）
+- **来源：** `lib/features/anime/models/anime.dart`（第 1182 行）
 - **用途：** 从持久化 JSON 形态重建 `Anime`，保留本应用版本不认识或无法解析的每个字段。
 - **输入：** `json`。
 - **返回：** 新的 `Anime`。
@@ -610,7 +718,8 @@
   3. `episodeStatuses` 经 [`_parseEpisodeStatus`](#parseepisodestatus) 解析每个条目；解析失败的条目（坏键或坏值）收集进 `extraJson['episodeStatuses']` 而不是类型化映射；原始值根本不是 `Map` 时，保留整个原始值。
   4. `episodeWeekOffsets` 走完全相同的模式，要求 `int` 值。
   5. `rating` 在原始值是 `Map` 时经 [`AnimeRating.fromJson`](#animerating-fromjson) 解析，解析出的评分没有数据时收缩为 `null`；非 `Map` 原始值保留进 `extraJson['rating']`。
-  6. 必填标量字段（`id`、`createdAt`、`modifiedAt`）用 `as` 转型读取（缺失/类型错误时抛出）；其余用 `as Type?` 带合理默认值（`season` → `'Season 1'`，`startEpisode` → `1`）。
+  6. `localArchive` 通过 [`AnimeLocalArchive.fromJson`](#animelocalarchive-fromjson) 及其 `hasAnyData` 闸门遵循完全相同的模式。
+  7. 必填标量字段（`id`、`createdAt`、`modifiedAt`）用 `as` 转型读取（缺失/类型错误时抛出）；其余用 `as Type?` 带合理默认值（`season` → `'Season 1'`，`startEpisode` → `1`）。
 - **用法：**
   ```dart
   final data = AnimeData.fromJson(jsonDecode(json) as Map<String, dynamic>);
@@ -618,9 +727,9 @@
   （`lib/shared/services/webdav_service.dart`，提取被引用的封面图像名——内部经 `AnimeData.fromJson` 对每个数组元素调用一次 `Anime.fromJson`）
 - **备注：** `createdAt`/`modifiedAt`/`firstAirDate` 解析使用 `DateTime.parse`（格式错误时抛出）而不是 `DateTime.tryParse`——`anime_data.json` 中的损坏时间戳使整个加载失败，而不是静默丢弃那个字段。
 
-### `factory Anime.create({title, titleJa, season, startEpisode = 1, endEpisode = 13, manualType, airDayOfWeek, airTime, firstAirDate, coverImage, infoUrl, watchUrl, notes, rating})` <a id="anime-create"></a>
+### `factory Anime.create({title, titleJa, season, startEpisode = 1, endEpisode = 13, manualType, airDayOfWeek, airTime, firstAirDate, coverImage, infoUrl, watchUrl, notes, rating, localArchive})` <a id="anime-create"></a>
 - **种类：** `Anime` 的工厂构造函数
-- **来源：** `lib/features/anime/models/anime.dart`（第 1012 行）
+- **来源：** `lib/features/anime/models/anime.dart`（第 1284 行）
 - **用途：** 为手动录入或导入创建全新动画记录，生成新 UUID 和 UTC 创建/修改时间戳。
 - **输入：** 与默认构造函数相同的可选字段，减去 `id`/`createdAt`/`modifiedAt`/`episodeStatuses`/`episodeWeekOffsets`/`extraJson`（这些在创建时种子化都没有意义）。
 - **返回：** `id = const Uuid().v4()` 且 `createdAt == modifiedAt == DateTime.now().toUtc()` 的新 `Anime`。
@@ -640,7 +749,7 @@
 
 ### `AnimeData withExtraJson(Map<String, dynamic> extraJson)`（`AnimeData`） <a id="withextrajson-animedata"></a>
 - **种类：** `AnimeData` 的方法
-- **来源：** `lib/features/anime/models/anime.dart`（第 1070 行）
+- **来源：** `lib/features/anime/models/anime.dart`（第 1344 行）
 - **用途：** 返回只替换 `extraJson` 的容器副本。
 - **输入：** `extraJson`。
 - **返回：** 带相同 `animes` 列表的新 `AnimeData`。
@@ -658,7 +767,7 @@
 
 ### `AnimeData withPreservedUnknownJson(Iterable<AnimeData?> fallbackSources)` <a id="withpreservedunknownjson-animedata"></a>
 - **种类：** `AnimeData` 的方法
-- **来源：** `lib/features/anime/models/anime.dart`（第 1078 行）
+- **来源：** `lib/features/anime/models/anime.dart`（第 1352 行）
 - **用途：** 把本容器的顶层 `extraJson` 与一个或多个后备候选的合并（如同步合并中的远程 `AnimeData`）。
 - **输入：** `fallbackSources`。
 - **返回：** 经 [`withExtraJson`](#withextrajson-animedata) 的新 `AnimeData`。
@@ -673,7 +782,7 @@
 
 ### `Map<String, dynamic> toJson()`（`AnimeData`） <a id="tojson-animedata"></a>
 - **种类：** `AnimeData` 的方法
-- **来源：** `lib/features/anime/models/anime.dart`（第 1092 行）
+- **来源：** `lib/features/anime/models/anime.dart`（第 1366 行）
 - **用途：** 把整个容器序列化为写入 `anime_data.json` 的 JSON 形态。
 - **输入：** 无。
 - **返回：** `Map<String, dynamic>` — `{...extraJson, 'animes': [...]}`。
@@ -690,7 +799,7 @@
 
 ### `factory AnimeData.fromJson(Map<String, dynamic> json)` <a id="animedata-fromjson"></a>
 - **种类：** `AnimeData` 的工厂构造函数
-- **来源：** `lib/features/anime/models/anime.dart`（第 1102 行）
+- **来源：** `lib/features/anime/models/anime.dart`（第 1376 行）
 - **用途：** 从 JSON 解析顶层 `{animes: [...]}` 容器。
 - **输入：** `json` — 解码后的 `anime_data.json`（或备份/导入捆绑）映射。
 - **返回：** 新的 `AnimeData`。

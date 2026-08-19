@@ -716,6 +716,7 @@ class LocalApiServer {
       'airedEpisodes': _airedEpisodeCount(a),
       'airedUnwatchedEpisodes': _airedUnwatchedEpisodeCount(a),
       'rating': _ratingToJson(a.rating),
+      'localArchive': _localArchiveToJson(a.localArchive),
       'createdAt': a.createdAt.toIso8601String(),
       'modifiedAt': a.modifiedAt.toIso8601String(),
     };
@@ -801,6 +802,24 @@ class LocalApiServer {
       'character': rating.character,
       'music': rating.music,
       'enjoyment': rating.enjoyment,
+    };
+  }
+
+  /// Purpose: Serialize a local-archive record for local API responses.
+  /// Inputs: `archive`.
+  /// Returns: `Map<String, dynamic>?`.
+  /// Side effects: None.
+  /// Notes: Enums are exposed by their persisted `.name` so consumers match the
+  /// on-disk values. Unknown future archive fields are intentionally not
+  /// exposed. Returns null when no archive record exists.
+  static Map<String, dynamic>? _localArchiveToJson(AnimeLocalArchive? archive) {
+    if (archive == null || !archive.hasAnyData) return null;
+    return {
+      'archived': archive.archived,
+      'source': archive.source?.name,
+      'resolution': archive.resolution?.name,
+      'copies': archive.copies,
+      'location': archive.location,
     };
   }
 

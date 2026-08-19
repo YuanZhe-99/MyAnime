@@ -56,3 +56,30 @@ Viewing status (completed / watching / dropped / not-started) is computed from
 `episodeStatuses`, not stored — see [`../data-formats.md`](../data-formats.md) for the derivation
 and [`../features/home-management-statistics.md`](home-management-statistics.md) for where it's
 displayed.
+
+## Local archive
+
+Independent of watching progress, each anime can carry an optional record of a **downloaded local
+copy**: whether one is kept, its source medium and resolution, how many copies exist, and which
+repository or physical location holds them. The field shape is `AnimeLocalArchive` under the
+`localArchive` key — see [`../data-formats.md`](../data-formats.md#animelocalarchive).
+
+It answers one question the rest of the model cannot: *do I already have this, and where?* Nothing
+in it feeds quarter placement, air dates, status derivation, or statistics — it is descriptive
+metadata about the user's own storage, not about the series.
+
+- **Edited** in the collapsible "Local Archive" section of the edit page, structured like the
+  rating section: a switch for `archived`, two dropdowns (source × resolution), and the copies and
+  location fields.
+- **Displayed** as a read-only card on the anime detail page, next to the rating card, showing the
+  joined quality label (`BD · 1080p`), the copy count, and the location.
+- **Filtered** on the management page via an AppBar filter with three states — all, archived, not
+  archived — applied to the quarter pages, the "Other" page, and search results alike. "Not
+  archived" folds together anime with no record and anime explicitly marked as not kept, since the
+  question being asked is "what still needs downloading". The filter is view state only; it resets
+  to "all" when the page rebuilds.
+
+Because the values name the user's own storage infrastructure, the field is **synced but never
+shared**: it travels over WebDAV between the user's devices, but is stripped from `.myanimeitem`
+share files and never drawn into shared image cards. See
+[`share-and-import.md`](share-and-import.md).

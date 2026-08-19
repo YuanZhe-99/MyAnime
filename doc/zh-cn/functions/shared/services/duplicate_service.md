@@ -180,8 +180,9 @@
   2. **周偏移：** primary 胜出；缺失键按顺序从 `others` 填补。
   3. **评分：** 逐字段构建（`overall`、`visual`、`story`、`character`、`music`、`enjoyment`）——每字段 primary 值胜出，回退到 `primary` + `others` 中第一个非 null 值；primary 完全没有评分时，第一个有任何数据的后备评分被整体采用。每个来源的未知评分 JSON（`extraJson`）经 `withExtraJson` 求并集。
   4. **备注：** `primary` 和 `others` 中每个非空、不同（按修剪文本）的备注，按顺序用换行连接（拼接，不按措辞不同的备注去重）。
-  5. **封面图像：** primary 胜出；回退到 `others` 中第一个非 null 封面。
-  6. 对 `endEpisode`、`manualType`、`airDayOfWeek`、`airTime`、`firstAirDate`（primary 胜出-否则-第一个非 null 模式）、`episodeStatuses`、`episodeWeekOffsets`、`coverImage`、`infoUrl`、`watchUrl`、`notes`、`rating` 和新 UTC `modifiedAt` 经 `primary.copyWith(...)` 构建最终 `Anime`；然后调用 `withPreservedUnknownJson([primary, ...others])`，使未知顶层 JSON 字段在合并中存活（`extraJson` 模式——见 [`../../../data-formats.md`](../../../data-formats.md)）。
+  5. **本地存档：** 整体取用而非逐字段——`primary` 的记录 `hasAnyData` 时胜出，否则取 `others` 中第一个有数据的。与评分不同，一份存档是对同一份实体拷贝的完整描述，把一条记录的 `source` 和另一条的 `location` 混在一起会描述出一份并不存在的拷贝。
+  6. **封面图像：** primary 胜出；回退到 `others` 中第一个非 null 封面。
+  7. 对 `endEpisode`、`manualType`、`airDayOfWeek`、`airTime`、`firstAirDate`（primary 胜出-否则-第一个非 null 模式）、`episodeStatuses`、`episodeWeekOffsets`、`coverImage`、`infoUrl`、`watchUrl`、`notes`、`rating`、`localArchive` 和新 UTC `modifiedAt` 经 `primary.copyWith(...)` 构建最终 `Anime`；然后调用 `withPreservedUnknownJson([primary, ...others])`，使未知顶层 JSON 字段在合并中存活（`extraJson` 模式——见 [`../../../data-formats.md`](../../../data-formats.md)）。
 - **用法：**
   ```dart
   final merged = DuplicateService.merge(local, [imported]);

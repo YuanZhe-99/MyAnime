@@ -59,9 +59,51 @@ enum AnimeType {
 
 `effectiveOverall` 在 `overall` 已设置时返回它；否则对非 null 的子分求平均（`scores.fold(...) / scores.length`），只在每个子分也都是 null 时返回 `null`。简言之：**手动总分优先；为空时，有效总分为已填子分的平均。**
 
+### `AnimeLocalArchive`
+
+可选的逐动画**本地下载存档**记录——是否保留了本地资源、什么画质、几份、放在哪里。存放在 `localArchive` 键下：
+
+```json
+"localArchive": {
+  "archived": true,
+  "source": "bd",
+  "resolution": "fhd1080p",
+  "copies": 2,
+  "location": "NAS-01, HDD-C3"
+}
+```
+
+- `archived` — 是否保留了本地资源。这是"总开关"；其余都是明细。
+- `source` — `ArchiveSource`：`bd`、`dvd`、`web`、`tv`、`other`。显示为 `BD`/`DVD`/`WEB`/`TV`。
+- `resolution` — `ArchiveResolution`：`uhd2160p`、`fhd1080p`、`hd720p`、`sd480p`、`other`。显示为
+  `2160p`/`1080p`/`720p`/`480p`。片源与分辨率是两个独立维度，因此 `BD` `1080p` 和 `WEB` `1080p` 可以区分。
+- `copies` — 保留了几份存档（正整数）。
+- `location` — 自由文本的资料仓库代码或物理位置。刻意用自由文本，这样多份拷贝分散在不同地方时可以在一个字段里列出多个代码。
+
+两个枚举都按 Dart 的 `.name` 序列化，与 `AnimeType` 和 `EpisodeStatus` 一致。枚举成员名是存储标识符而非
+展示字符串——落到磁盘上的是 `fhd1080p`，用户看到的是 `1080p`。
+
+**整个对象为空时会被省略。** `AnimeLocalArchive.hasAnyData` 为
+`archived || <任一明细已设置> || extraJson.isNotEmpty`；仅当其为真时 `Anime.toJson()` 才写出
+`localArchive` 键，而 `Anime.fromJson()` 会丢弃全空的解析结果。因此从未使用过该功能的动画，其序列化结果
+与该功能存在之前逐字节一致——这正是新增它无需改动 WebDAV 请求金样本的原因。
+
+**它去哪里、不去哪里。** 这是个人基础设施信息，因此：
+
+| 界面 | 是否包含？ |
+|---|---|
+| 磁盘上的 `anime_data.json` | **是** |
+| WebDAV 同步（用户自己的设备） | **是**——无需任何同步层改动；该字段随普通的整记录合并一起传输 |
+| 备份包 | **是**——备份原样携带 `anime_data.json` |
+| 本地 HTTP API（`/anime/list` 等） | **是**——绑定回环地址且受 Basic Auth 保护 |
+| 分享图片卡片 | **否**——永不绘制 |
+| `.myanimeitem` 分享文件 | **否**——与 `episodeStatuses`/`episodeWeekOffsets` 一起被剥离 |
+
+该表的分享一侧见 [`features/share-and-import.md`](features/share-and-import.md)。
+
 ### 兼容性：未知 JSON 字段保留（`extraJson`）
 
-`Anime`、`AnimeRating` 和 `AnimeData`（顶层 `{animes: [...]}` 容器）各携带一个 `extraJson` 映射，保存当前应用版本不认识的任何 JSON 键。模式：
+`Anime`、`AnimeRating`、`AnimeLocalArchive` 和 `AnimeData`（顶层 `{animes: [...]}` 容器）各携带一个 `extraJson` 映射，保存当前应用版本不认识的任何 JSON 键。模式：
 
 - `fromJson()` 把 `extraJson` 计算为"原始 JSON 中每个键减去该类型的已知键"（经由内部 `_unknownJson` 辅助），并且把任何无法按预期类型解析的值（如不是 `num` 的评分子分）也路由回 `extraJson`，而不是丢弃。
 - `toJson()` 从 `extraJson` 的副本开始，再把已知字段覆盖在上层，因此未知键原样随行。

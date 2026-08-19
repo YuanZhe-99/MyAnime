@@ -1,9 +1,13 @@
 # lib/features/anime/views/anime_detail_page.dart
 
 `AnimeDetailPage` is the read/act page for one tracked anime: cover, metadata chips, rating
-summary, prev/next-season navigation, and the per-episode watch-status list with schedule-shift
-controls. It reads and writes through `AnimeStorage` ([`../services/anime_storage.md`](../services/anime_storage.md))
-and operates on the `Anime`/`AnimeRating` model ([`../models/anime.md`](../models/anime.md)). See
+summary, local-archive summary, prev/next-season navigation, and the per-episode watch-status list
+with schedule-shift controls. It reads and writes through `AnimeStorage` ([`../services/anime_storage.md`](../services/anime_storage.md))
+and operates on the `Anime`/`AnimeRating`/`AnimeLocalArchive` model
+([`../models/anime.md`](../models/anime.md)), rendering the archive enums through
+[`archive_labels.md`](archive_labels.md). The archive card is display-only and deliberately absent
+from the shared image card this page's Share action produces — see
+[`../../../../features/share-and-import.md`](../../../../features/share-and-import.md). See
 [`../../../../features/anime-tracking.md`](../../../../features/anime-tracking.md) for the episode
 air-date/rollover and schedule-shift semantics this page exposes controls for.
 
@@ -23,6 +27,7 @@ air-date/rollover and schedule-shift semantics this page exposes controls for.
 | [`_toggleAllWatched`](#_toggleallwatched) | method (`_AnimeDetailPageState`) | A | Mark every tracked episode watched, or all unwatched if already complete. |
 | `_buildAbandonOrResume` | method (widget helper) | B | Render the "Abandon"/"Resume" action button for the episode list header. |
 | `_buildRatingCard` | method (widget helper) | B | Render the rating summary card. |
+| `_buildLocalArchiveCard` | method (widget helper) | B | Render the read-only local-archive summary card. |
 | `_formatScore` | method (`_AnimeDetailPageState`) | B | Format a score as an integer when whole, else one decimal place. |
 | [`_abandonAnime`](#_abandonanime) | method (`_AnimeDetailPageState`) | A | Mark every remaining unwatched episode as skipped. |
 | [`_resumeAnime`](#_resumeanime) | method (`_AnimeDetailPageState`) | A | Revert every skipped episode back to unwatched. |

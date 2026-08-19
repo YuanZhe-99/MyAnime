@@ -138,6 +138,9 @@ class FileOpenService {
       episodeWeekOffsets: parsed.episodeWeekOffsets,
       notes: parsed.notes,
       rating: parsed.rating,
+      // Export strips this, so it is normally absent; carried through anyway so
+      // a hand-written file's value is not silently dropped.
+      localArchive: parsed.localArchive,
       createdAt: now,
       modifiedAt: now,
       extraJson: parsed.extraJson,
@@ -285,7 +288,7 @@ class FileOpenService {
   /// Inputs: `anime`.
   /// Returns: `Future<String?>`.
   /// Side effects: May read or mutate application state, storage, or service resources.
-  /// Notes: Export an anime to a .myanimeitem JSON file. Returns the file path, or null on failure. Personal data (episodeStatuses, episodeWeekOffsets) is stripped.
+  /// Notes: Export an anime to a .myanimeitem JSON file. Returns the file path, or null on failure. Personal data (episodeStatuses, episodeWeekOffsets, localArchive) is stripped.
   static Future<String?> exportAnimeItem(Anime anime) async {
     final animeJson = _stripPersonalData(anime.toJson());
     final json = <String, dynamic>{
@@ -309,7 +312,7 @@ class FileOpenService {
   /// Side effects: Writes a temporary `.myanimeitem` file.
   /// Notes: Returns the file path, or null on failure. Uses bundle version 2
   /// so single-anime v1 files remain backward compatible. Personal viewing
-  /// data (episodeStatuses, episodeWeekOffsets) is stripped from each record.
+  /// data (episodeStatuses, episodeWeekOffsets, localArchive) is stripped from each record.
   static Future<String?> exportAnimeBundle(
     List<Anime> animes, {
     String displayName = 'myanime_collection',
@@ -339,11 +342,14 @@ class FileOpenService {
   /// Returns: `Map<String, dynamic>`.
   /// Side effects: None.
   /// Notes: Internal helper used within this file only. Removes personal
-  /// viewing data so shared bundles do not leak the sender's watch progress.
+  /// viewing data so shared bundles do not leak the sender's watch progress,
+  /// and the local-archive record so they do not leak the sender's storage
+  /// repository codes and copy counts.
   static Map<String, dynamic> _stripPersonalData(Map<String, dynamic> json) {
     final copy = Map<String, dynamic>.from(json);
     copy.remove('episodeStatuses');
     copy.remove('episodeWeekOffsets');
+    copy.remove('localArchive');
     return copy;
   }
 

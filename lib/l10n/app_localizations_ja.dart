@@ -154,6 +154,44 @@ class AppLocalizationsJa extends AppLocalizations {
   String get animeRatingAutoOverall => '項目平均による総合評価';
 
   @override
+  String get animeLocalArchive => 'ローカル保存';
+
+  @override
+  String get animeLocalArchiveHint => '任意。ダウンロードした動画を保管しているかどうか。';
+
+  @override
+  String get animeLocalArchiveArchived => 'ローカルに保存済み';
+
+  @override
+  String get animeLocalArchiveNone => '未保存';
+
+  @override
+  String get animeArchiveSource => 'ソース';
+
+  @override
+  String get animeArchiveResolution => '解像度';
+
+  @override
+  String get animeArchiveOther => 'その他';
+
+  @override
+  String get animeArchiveCopies => '保存本数';
+
+  @override
+  String get animeArchiveCopiesInvalid => '正の整数を入力してください';
+
+  @override
+  String animeArchiveCopiesValue(int count) {
+    return '×$count';
+  }
+
+  @override
+  String get animeArchiveLocation => '保管場所・リポジトリコード';
+
+  @override
+  String get animeArchiveLocationHint => '例: NAS-01、HDD-C3';
+
+  @override
   String get searchAnimeInfo => '作品情報を検索';
 
   @override
@@ -741,6 +779,18 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get manageNoSearchResults => '該当するアニメが見つかりません';
+
+  @override
+  String get manageFilterArchive => 'ローカル保存';
+
+  @override
+  String get manageFilterAll => 'すべて';
+
+  @override
+  String get manageFilterArchived => '保存済み';
+
+  @override
+  String get manageFilterNotArchived => '未保存';
 
   @override
   String get manageOther => 'その他';

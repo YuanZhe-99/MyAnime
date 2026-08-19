@@ -52,6 +52,24 @@
   "animeRatingManualOverall": "手動の総合評価",
   "animeRatingAutoOverall": "項目平均による総合評価",
 
+  "animeLocalArchive": "ローカル保存",
+  "animeLocalArchiveHint": "任意。ダウンロードした動画を保管しているかどうか。",
+  "animeLocalArchiveArchived": "ローカルに保存済み",
+  "animeLocalArchiveNone": "未保存",
+  "animeArchiveSource": "ソース",
+  "animeArchiveResolution": "解像度",
+  "animeArchiveOther": "その他",
+  "animeArchiveCopies": "保存本数",
+  "animeArchiveCopiesInvalid": "正の整数を入力してください",
+  "animeArchiveCopiesValue": "×{count}",
+  "@animeArchiveCopiesValue": {
+    "placeholders": {
+      "count": { "type": "int" }
+    }
+  },
+  "animeArchiveLocation": "保管場所・リポジトリコード",
+  "animeArchiveLocationHint": "例: NAS-01、HDD-C3",
+
   "searchAnimeInfo": "作品情報を検索",
   "searchHint": "タイトルを入力して検索…",
   "searchButton": "検索",
@@ -247,6 +265,10 @@
 
   "manageJumpToQuarter": "クールに移動",
   "manageNoSearchResults": "該当するアニメが見つかりません",
+  "manageFilterArchive": "ローカル保存",
+  "manageFilterAll": "すべて",
+  "manageFilterArchived": "保存済み",
+  "manageFilterNotArchived": "未保存",
   "manageOther": "その他",
 
   "dayMon": "月",

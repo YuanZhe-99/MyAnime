@@ -40,6 +40,7 @@
 | [`_airedEpisodeCount`](#airedepisodecount) | 静态方法 | A | 统计已播出剧集数（感知 JST）。 |
 | [`_airedUnwatchedEpisodeCount`](#airedunwatchedepisodecount) | 静态方法 | A | 统计已播出但未看剧集数（感知 JST）。 |
 | [`_ratingToJson`](#ratingtojson) | 静态方法 | A | 序列化 `AnimeRating` 供 API 响应。 |
+| [`_localArchiveToJson`](#localarchivetojson) | 静态方法 | A | 序列化 `AnimeLocalArchive` 供 API 响应。 |
 | [`_computeCounts`](#computecounts) | 静态方法 | A | 派生逐状态计数，带旧键别名。 |
 | `_json` | 静态方法 | B | 把值包装为 `200 application/json` `Response`。 |
 | [`_jstToUtcString`](#jsttoutcstring) | 静态方法 | A | 把 JST 朴素 `DateTime` 转换为 UTC ISO 字符串。 |
@@ -316,7 +317,7 @@
 - **来源：** `lib/shared/services/local_api_server.dart`（第 689 行）。
 - **用途：** 把一个 `Anime` 序列化为每个 API 响应（`/anime/list`、`/anime/unwatched`、`/anime/history`、`/anime/ranking`）使用的平铺 JSON 形态。
 - **输入：** `a` — 要序列化的 `Anime`。
-- **返回：** `Map<String, dynamic>`，带身份/URL/日程字段加派生字段：`status`（`viewingStatus.name`）、`nextUnwatchedEpisode`/`nextEpisodeAirDate`（经 `_jstToUtcString` 的 UTC 字符串）、`type`/`manualType`、`watchedEpisodes`/`skippedEpisodes`（`_episodeStatusCount`）、`airedEpisodes`/`airedUnwatchedEpisodes`、`rating`（`_ratingToJson`）和作为 ISO 8601 字符串的 `createdAt`/`modifiedAt`。
+- **返回：** `Map<String, dynamic>`，带身份/URL/日程字段加派生字段：`status`（`viewingStatus.name`）、`nextUnwatchedEpisode`/`nextEpisodeAirDate`（经 `_jstToUtcString` 的 UTC 字符串）、`type`/`manualType`、`watchedEpisodes`/`skippedEpisodes`（`_episodeStatusCount`）、`airedEpisodes`/`airedUnwatchedEpisodes`、`rating`（`_ratingToJson`）、`localArchive`（`_localArchiveToJson`）和作为 ISO 8601 字符串的 `createdAt`/`modifiedAt`。
 - **副作用：** 无（只读）。
 - **算法：** 直接字段映射加对上面列出的每个派生字段的小辅助函数调用；文档化字段列表见本仓库 `AGENTS.md` 的"桌面 API"一节。
 - **用法：** 每个返回动画行的路由处理器调用：`_handleList`、`_handleUnwatched`、`_handleHistory` 和（经 `buildRankingSnapshotForQuery`）`_handleRanking`。
@@ -324,7 +325,7 @@
 
 ### `static int _episodeStatusCount(Anime anime, EpisodeStatus status)` <a id="episodestatuscount"></a>
 - **种类：** `LocalApiServer` 的静态方法。
-- **来源：** `lib/shared/services/local_api_server.dart`（第 729 行）。
+- **来源：** `lib/shared/services/local_api_server.dart`（第 730 行）。
 - **用途：** 统计多少条已记录剧集状态等于给定 `EpisodeStatus`。
 - **输入：** `anime`、`status`。
 - **返回：** `int`。
@@ -335,7 +336,7 @@
 
 ### `static int _episodeScanEnd(Anime anime)` <a id="episodescanend"></a>
 - **种类：** `LocalApiServer` 的静态方法。
-- **来源：** `lib/shared/services/local_api_server.dart`（第 740 行）。
+- **来源：** `lib/shared/services/local_api_server.dart`（第 741 行）。
 - **用途：** `anime.endEpisode` 未知（进行中系列）时，确定值得为进度/播出日期计算扫描的最后一个集编号。
 - **输入：** `anime`。
 - **返回：** `int`。
@@ -346,7 +347,7 @@
 
 ### `static int? _airedEpisodeCount(Anime anime)` <a id="airedepisodecount"></a>
 - **种类：** `LocalApiServer` 的静态方法。
-- **来源：** `lib/shared/services/local_api_server.dart`（第 756 行）。
+- **来源：** `lib/shared/services/local_api_server.dart`（第 757 行）。
 - **用途：** 统计截至现在已播出的剧集数，感知 JST。
 - **输入：** `anime`。
 - **返回：** `int?` — 日程数据不完整时（扫描范围内无法计算某集播出日期）为 `null`。
@@ -357,7 +358,7 @@
 
 ### `static int? _airedUnwatchedEpisodeCount(Anime anime)` <a id="airedunwatchedepisodecount"></a>
 - **种类：** `LocalApiServer` 的静态方法。
-- **来源：** `lib/shared/services/local_api_server.dart`（第 774 行）。
+- **来源：** `lib/shared/services/local_api_server.dart`（第 775 行）。
 - **用途：** 统计仍未看的已播出剧集数，感知 JST。
 - **输入：** `anime`。
 - **返回：** `int?` — 与 `_airedEpisodeCount` 相同的日程不完整条件下为 `null`。
@@ -368,7 +369,7 @@
 
 ### `static Map<String, dynamic>? _ratingToJson(AnimeRating? rating)` <a id="ratingtojson"></a>
 - **种类：** `LocalApiServer` 的静态方法。
-- **来源：** `lib/shared/services/local_api_server.dart`（第 793 行）。
+- **来源：** `lib/shared/services/local_api_server.dart`（第 794 行）。
 - **用途：** 序列化动画评分供 API 响应，无事可报时完全省略。
 - **输入：** `rating` — 可空 `AnimeRating`。
 - **返回：** `Map<String, dynamic>?` — `rating` 为 null 或完全没有分数（`!rating.hasAnyScore`）时为 `null`；否则 `{overall, effectiveOverall, hasManualOverall, visual, story, character, music, enjoyment}`。
@@ -377,9 +378,25 @@
 - **用法：** `_animeToJson` 为 `rating` 字段调用。
 - **备注：** 按其自己的文档注释，"未知的未来评分字段刻意不通过 API 暴露"——这是固定、策划的字段集，不是完整评分模型的透传（不同于 `_animeToJson` 对顶层动画字段的"添加式"契约）。
 
+### `static Map<String, dynamic>? _localArchiveToJson(AnimeLocalArchive? archive)` <a id="localarchivetojson"></a>
+- **种类：** `LocalApiServer` 的静态方法。
+- **来源：** `lib/shared/services/local_api_server.dart`（第 815 行）。
+- **用途：** 序列化一部动画的本地存档记录供 API 响应；没有任何记录时整体省略。
+- **输入：** `archive` — 可空的 `AnimeLocalArchive`。
+- **返回：** `Map<String, dynamic>?` — `archive` 为 null 或 `!archive.hasAnyData` 时为 `null`；
+  否则为 `{archived, source, resolution, copies, location}`。
+- **副作用：** 无。
+- **算法：** 空值检查，然后直接字段映射。两个枚举按持久化的 `.name`（`"bd"`、`"fhd1080p"`……）暴露而不是
+  展示标签，这样 API 使用者匹配到的就是它在 `anime_data.json` 中会看到的值。
+- **用法：** 由 `_animeToJson` 为 `localArchive` 字段调用。
+- **备注：** 与 `_ratingToJson` 相同的精选字段集契约：记录 `extraJson` 中保存的未来存档字段刻意不暴露。
+  在 API 的前向兼容契约下 `localArchive` 是**追加**键，因此既有使用者不受影响。注意它与 `.myanimeitem`
+  分享的不对称——后者会*剥离*该字段：本地 API 绑定在回环地址并在用户自己的机器上受 Basic Auth 保护，而
+  分享文件是交给别人的——见 [`../../../features/share-and-import.md`](../../../features/share-and-import.md)。
+
 ### `static Map<String, int> _computeCounts(List<Anime> animes)` <a id="computecounts"></a>
 - **种类：** `LocalApiServer` 的静态方法。
-- **来源：** `lib/shared/services/local_api_server.dart`（第 812 行）。
+- **来源：** `lib/shared/services/local_api_server.dart`（第 831 行）。
 - **用途：** 为动画列表派生逐派生状态计数（completed/watching/dropped/not-started），包括为既有 API 消费者准备的旧键别名。
 - **输入：** `animes`。
 - **返回：** `Map<String, int>`，键为 `completed`、`watching`、`inProgress`（`watching` 的别名）、`dropped`、`abandoned`（`dropped` 的别名）、`notStarted`。
@@ -390,7 +407,7 @@
 
 ### `static String? _jstToUtcString(DateTime? jst)` <a id="jsttoutcstring"></a>
 - **种类：** `LocalApiServer` 的静态方法。
-- **来源：** `lib/shared/services/local_api_server.dart`（第 854 行）。
+- **来源：** `lib/shared/services/local_api_server.dart`（第 873 行）。
 - **用途：** 把 JST 朴素 `DateTime`（动画日程模型产生的那种）转换为带尾部 `Z` 的 UTC ISO-8601 字符串，供 API 序列化。
 - **输入：** `jst` — 可空基于 JST 的 `DateTime`。
 - **返回：** `String?` — `jst` 为 null 时为 `null`。
@@ -401,7 +418,7 @@
 
 ### `static Future<Map<String, dynamic>?> _parseBody(Request request)` <a id="parsebody"></a>
 - **种类：** `LocalApiServer` 的静态方法。
-- **来源：** `lib/shared/services/local_api_server.dart`（第 883 行）。
+- **来源：** `lib/shared/services/local_api_server.dart`（第 902 行）。
 - **用途：** 读取并 JSON 解码请求体，容忍格式错误或非 JSON 输入。
 - **输入：** `request`。
 - **返回：** `Future<Map<String, dynamic>?>` — 正文缺失、不是有效 JSON 或不是 JSON 对象时为 `null`。
@@ -412,7 +429,7 @@
 
 ### `static Middleware _corsMiddleware()` <a id="corsmiddleware"></a>
 - **种类：** `LocalApiServer` 的静态方法。
-- **来源：** `lib/shared/services/local_api_server.dart`（第 900 行）。
+- **来源：** `lib/shared/services/local_api_server.dart`（第 919 行）。
 - **用途：** 给每个响应附加宽松 CORS 头，使基于浏览器的本地工具能跨域调用 API。
 - **输入：** 无。
 - **返回：** `Middleware`（一个 `shelf` 中间件工厂）。
@@ -423,7 +440,7 @@
 
 ### `static Middleware _authMiddleware()` <a id="authmiddleware"></a>
 - **种类：** `LocalApiServer` 的静态方法。
-- **来源：** `lib/shared/services/local_api_server.dart`（第 926 行）。
+- **来源：** `lib/shared/services/local_api_server.dart`（第 945 行）。
 - **用途：** 强制 API 的访问控制规则：回环默认可信，但一旦配置凭据，每个请求（包括回环）都必须出示有效的 HTTP Basic Auth。
 - **输入：** 无。
 - **返回：** `Middleware`。
@@ -438,7 +455,7 @@
 
 ### `static bool _validateBasicAuth(String header)` <a id="validatebasicauth"></a>
 - **种类：** `LocalApiServer` 的静态方法。
-- **来源：** `lib/shared/services/local_api_server.dart`（第 968 行）。
+- **来源：** `lib/shared/services/local_api_server.dart`（第 987 行）。
 - **用途：** 对照配置的 `_username`/`_password` 校验 `Authorization: Basic <base64>` 头。
 - **输入：** `header` — 原始 `Authorization` 头值。
 - **返回：** `bool`。
@@ -449,7 +466,7 @@
 
 ### `static Middleware _errorMiddleware()` <a id="errormiddleware"></a>
 - **种类：** `LocalApiServer` 的静态方法。
-- **来源：** `lib/shared/services/local_api_server.dart`（第 985 行）。
+- **来源：** `lib/shared/services/local_api_server.dart`（第 1004 行）。
 - **用途：** 捕获路由处理器抛出的任何未处理异常，把它变成干净的 JSON `500` 响应，而不是未处理错误崩溃或裸堆栈泄漏给客户端。
 - **输入：** 无。
 - **返回：** `Middleware`。

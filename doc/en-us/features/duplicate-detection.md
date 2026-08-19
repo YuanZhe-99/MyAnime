@@ -27,6 +27,11 @@ When merging a duplicate group down to one record:
   duplicate has it unwatched.
 - Rating sub-scores fill in from fallback records where the primary is missing a value (see
   `AnimeRating` in [`../data-formats.md`](../data-formats.md)).
+- The local-archive record is taken **whole** from the first record that has one — the primary if it
+  does, otherwise the first fallback that does. Unlike ratings, it is not merged field-by-field: an
+  archive describes one physical copy, so combining a `source` from one record with a `location`
+  from another would describe a copy that does not exist (see `AnimeLocalArchive` in
+  [`../data-formats.md`](../data-formats.md)).
 - Notes are concatenated (not deduplicated against each other).
 - Unknown JSON fields are preserved via the `extraJson` pattern (see
   [`../data-formats.md`](../data-formats.md)), the same as every other merge path in the app.

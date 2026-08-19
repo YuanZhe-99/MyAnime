@@ -18,6 +18,7 @@ const _animeJsonKeys = {
   'episodeWeekOffsets',
   'notes',
   'rating',
+  'localArchive',
   'createdAt',
   'modifiedAt',
 };
@@ -29,6 +30,14 @@ const _ratingJsonKeys = {
   'character',
   'music',
   'enjoyment',
+};
+
+const _localArchiveJsonKeys = {
+  'archived',
+  'source',
+  'resolution',
+  'copies',
+  'location',
 };
 
 const _animeDataJsonKeys = {'animes'};
@@ -93,6 +102,32 @@ AnimeType? _parseAnimeType(Object? value) {
   return null;
 }
 
+/// Purpose: Provide the internal parse archive source helper for this file.
+/// Inputs: `value`.
+/// Returns: `ArchiveSource?`.
+/// Side effects: None.
+/// Notes: Internal helper used within this file only.
+ArchiveSource? _parseArchiveSource(Object? value) {
+  if (value is! String) return null;
+  for (final source in ArchiveSource.values) {
+    if (source.name == value) return source;
+  }
+  return null;
+}
+
+/// Purpose: Provide the internal parse archive resolution helper for this file.
+/// Inputs: `value`.
+/// Returns: `ArchiveResolution?`.
+/// Side effects: None.
+/// Notes: Internal helper used within this file only.
+ArchiveResolution? _parseArchiveResolution(Object? value) {
+  if (value is! String) return null;
+  for (final resolution in ArchiveResolution.values) {
+    if (resolution.name == value) return resolution;
+  }
+  return null;
+}
+
 /// Purpose: Provide the internal parse episode status helper for this file.
 /// Inputs: `value`.
 /// Returns: `EpisodeStatus?`.
@@ -132,6 +167,42 @@ enum AnimeViewingStatus { completed, watching, dropped, notStarted }
 
 /// Rating fields available for sorting and display.
 enum AnimeRatingField { overall, visual, story, character, music, enjoyment }
+
+/// Source medium a locally archived copy was obtained from.
+enum ArchiveSource {
+  /// Ripped from a Blu-ray release.
+  bd,
+
+  /// Ripped from a DVD release.
+  dvd,
+
+  /// Downloaded from a streaming/web release.
+  web,
+
+  /// Recorded from a broadcast.
+  tv,
+
+  /// Anything the other values do not cover.
+  other,
+}
+
+/// Video resolution of a locally archived copy.
+enum ArchiveResolution {
+  /// 3840×2160 (4K UHD).
+  uhd2160p,
+
+  /// 1920×1080 (Full HD).
+  fhd1080p,
+
+  /// 1280×720 (HD).
+  hd720p,
+
+  /// 854×480 or lower (SD).
+  sd480p,
+
+  /// Anything the other values do not cover.
+  other,
+}
 
 class AnimeRating {
   /// Manual overall score. When null, [effectiveOverall] is averaged from
@@ -311,6 +382,168 @@ void _writeScore(Map<String, dynamic> json, String key, double? score) {
   }
 }
 
+/// Optional record of a downloaded local copy of an anime.
+///
+/// Everything here is personal infrastructure information: it is persisted and
+/// WebDAV-synced across the user's own devices, but never drawn into shared
+/// image cards and stripped from `.myanimeitem` share files.
+class AnimeLocalArchive {
+  /// Whether a local copy of this anime is kept.
+  final bool archived;
+
+  /// Medium the local copy came from.
+  final ArchiveSource? source;
+
+  /// Video resolution of the local copy.
+  final ArchiveResolution? resolution;
+
+  /// Number of archived copies kept.
+  final int? copies;
+
+  /// Repository code or physical location holding the copies. Free text, so
+  /// several codes can be listed together (e.g. `NAS-01, HDD-C3`).
+  final String? location;
+
+  /// JSON fields this app version does not understand yet.
+  final Map<String, dynamic> extraJson;
+
+  /// Purpose: Create a anime local archive instance.
+  /// Inputs: `archived`, `source`, `resolution`, `copies`, `location`, `extraJson`.
+  /// Returns: A new `AnimeLocalArchive` instance.
+  /// Side effects: None.
+  /// Notes: None.
+  const AnimeLocalArchive({
+    this.archived = false,
+    this.source,
+    this.resolution,
+    this.copies,
+    this.location,
+    this.extraJson = const {},
+  });
+
+  /// Purpose: Report whether any archive detail beyond the flag was filled in.
+  /// Inputs: None.
+  /// Returns: `bool`.
+  /// Side effects: None.
+  /// Notes: None.
+  bool get hasAnyDetail =>
+      source != null ||
+      resolution != null ||
+      copies != null ||
+      (location != null && location!.isNotEmpty);
+
+  /// Purpose: Report whether this record carries anything worth persisting.
+  /// Inputs: None.
+  /// Returns: `bool`.
+  /// Side effects: None.
+  /// Notes: When false the owning `Anime` drops the record entirely, so an
+  /// untouched anime never gains a `localArchive` key.
+  bool get hasAnyData => archived || hasAnyDetail || extraJson.isNotEmpty;
+
+  /// Purpose: Create a copy with extra json.
+  /// Inputs: `extraJson`.
+  /// Returns: `AnimeLocalArchive`.
+  /// Side effects: None.
+  /// Notes: None.
+  AnimeLocalArchive withExtraJson(Map<String, dynamic> extraJson) =>
+      AnimeLocalArchive(
+        archived: archived,
+        source: source,
+        resolution: resolution,
+        copies: copies,
+        location: location,
+        extraJson: extraJson,
+      );
+
+  /// Purpose: Serialize this value into a JSON-compatible map.
+  /// Inputs: None.
+  /// Returns: `Map<String, dynamic>`.
+  /// Side effects: None.
+  /// Notes: None.
+  Map<String, dynamic> toJson() {
+    final json = Map<String, dynamic>.from(extraJson);
+    // A raw `archived` that failed to parse is preserved verbatim in extraJson;
+    // only write the parsed flag when there is nothing to preserve.
+    if (!extraJson.containsKey('archived')) {
+      json['archived'] = archived;
+    }
+    if (source != null) {
+      json['source'] = source!.name;
+    } else if (!extraJson.containsKey('source')) {
+      json.remove('source');
+    }
+    if (resolution != null) {
+      json['resolution'] = resolution!.name;
+    } else if (!extraJson.containsKey('resolution')) {
+      json.remove('resolution');
+    }
+    if (copies != null) {
+      json['copies'] = copies;
+    } else if (!extraJson.containsKey('copies')) {
+      json.remove('copies');
+    }
+    if (location != null) {
+      json['location'] = location;
+    } else if (!extraJson.containsKey('location')) {
+      json.remove('location');
+    }
+    return json;
+  }
+
+  /// Purpose: Create an instance from a JSON-compatible map.
+  /// Inputs: `json`.
+  /// Returns: A new `AnimeLocalArchive.fromJson` instance.
+  /// Side effects: None.
+  /// Notes: Values that fail to parse are kept in `extraJson` rather than
+  /// dropped, so a newer build's data survives an older build's edits.
+  factory AnimeLocalArchive.fromJson(Map<String, dynamic> json) {
+    final extraJson = _unknownJson(json, _localArchiveJsonKeys);
+
+    final rawArchived = json['archived'];
+    var archived = false;
+    if (rawArchived is bool) {
+      archived = rawArchived;
+    } else if (json.containsKey('archived')) {
+      extraJson['archived'] = rawArchived;
+    }
+
+    final source = _parseArchiveSource(json['source']);
+    if (json.containsKey('source') && source == null) {
+      extraJson['source'] = json['source'];
+    }
+
+    final resolution = _parseArchiveResolution(json['resolution']);
+    if (json.containsKey('resolution') && resolution == null) {
+      extraJson['resolution'] = json['resolution'];
+    }
+
+    final rawCopies = json['copies'];
+    int? copies;
+    if (rawCopies is int) {
+      copies = rawCopies;
+    } else if (json.containsKey('copies')) {
+      extraJson['copies'] = rawCopies;
+    }
+
+    final rawLocation = json['location'];
+    String? location;
+    if (rawLocation is String) {
+      location = rawLocation;
+    } else if (json.containsKey('location')) {
+      extraJson['location'] = rawLocation;
+    }
+
+    return AnimeLocalArchive(
+      archived: archived,
+      source: source,
+      resolution: resolution,
+      copies: copies,
+      location: location,
+      extraJson: extraJson,
+    );
+  }
+}
+
 class Anime {
   final String id;
 
@@ -367,6 +600,9 @@ class Anime {
   /// Optional personal rating.
   final AnimeRating? rating;
 
+  /// Optional record of a downloaded local copy.
+  final AnimeLocalArchive? localArchive;
+
   final DateTime createdAt;
   final DateTime modifiedAt;
 
@@ -377,7 +613,7 @@ class Anime {
   final Map<String, dynamic> extraJson;
 
   /// Purpose: Create a anime instance.
-  /// Inputs: `id`, `title`, `titleJa`, `season`, `startEpisode`, `endEpisode`, `manualType`, `airDayOfWeek`, `airTime`, `firstAirDate`, `episodeStatuses`, `coverImage`, `infoUrl`, `watchUrl`, `episodeWeekOffsets`, `notes`, `rating`, `createdAt`, `modifiedAt`, `extraJson`.
+  /// Inputs: `id`, `title`, `titleJa`, `season`, `startEpisode`, `endEpisode`, `manualType`, `airDayOfWeek`, `airTime`, `firstAirDate`, `episodeStatuses`, `coverImage`, `infoUrl`, `watchUrl`, `episodeWeekOffsets`, `notes`, `rating`, `localArchive`, `createdAt`, `modifiedAt`, `extraJson`.
   /// Returns: A new `Anime` instance.
   /// Side effects: None.
   /// Notes: None.
@@ -399,6 +635,7 @@ class Anime {
     this.episodeWeekOffsets = const {},
     this.notes,
     this.rating,
+    this.localArchive,
     required this.createdAt,
     required this.modifiedAt,
     this.extraJson = const {},
@@ -678,7 +915,7 @@ class Anime {
   }
 
   /// Purpose: Create a copy with selected fields replaced.
-  /// Inputs: `title`, `titleJa`, `season`, `startEpisode`, `endEpisode`, `clearEndEpisode`, `manualType`, `clearManualType`, `airDayOfWeek`, `clearAirDayOfWeek`, `airTime`, `clearAirTime`, `firstAirDate`, `clearFirstAirDate`, `episodeStatuses`, `coverImage`, `clearCoverImage`, `infoUrl`, `clearInfoUrl`, `watchUrl`, `clearWatchUrl`, `episodeWeekOffsets`, `notes`, `clearNotes`, `rating`, `clearRating`, `modifiedAt`.
+  /// Inputs: `title`, `titleJa`, `season`, `startEpisode`, `endEpisode`, `clearEndEpisode`, `manualType`, `clearManualType`, `airDayOfWeek`, `clearAirDayOfWeek`, `airTime`, `clearAirTime`, `firstAirDate`, `clearFirstAirDate`, `episodeStatuses`, `coverImage`, `clearCoverImage`, `infoUrl`, `clearInfoUrl`, `watchUrl`, `clearWatchUrl`, `episodeWeekOffsets`, `notes`, `clearNotes`, `rating`, `clearRating`, `localArchive`, `clearLocalArchive`, `modifiedAt`.
   /// Returns: `Anime`.
   /// Side effects: None.
   /// Notes: None.
@@ -709,6 +946,8 @@ class Anime {
     bool clearNotes = false,
     AnimeRating? rating,
     bool clearRating = false,
+    AnimeLocalArchive? localArchive,
+    bool clearLocalArchive = false,
     DateTime? modifiedAt,
   }) {
     return Anime(
@@ -733,6 +972,9 @@ class Anime {
       episodeWeekOffsets: episodeWeekOffsets ?? this.episodeWeekOffsets,
       notes: clearNotes ? null : (notes ?? this.notes),
       rating: clearRating ? null : (rating ?? this.rating),
+      localArchive: clearLocalArchive
+          ? null
+          : (localArchive ?? this.localArchive),
       createdAt: createdAt,
       modifiedAt: modifiedAt ?? DateTime.now().toUtc(),
       extraJson: extraJson,
@@ -762,6 +1004,7 @@ class Anime {
     episodeWeekOffsets: episodeWeekOffsets,
     notes: notes,
     rating: rating,
+    localArchive: localArchive,
     createdAt: createdAt,
     modifiedAt: modifiedAt,
     extraJson: extraJson,
@@ -785,6 +1028,17 @@ class Anime {
               ? AnimeRating(extraJson: mergedRatingExtraJson)
               : null);
 
+    final mergedArchiveExtraJson = _mergeJsonMaps([
+      for (final source in sources)
+        if (source?.localArchive != null) source!.localArchive!.extraJson,
+      if (localArchive != null) localArchive!.extraJson,
+    ]);
+    final preservedLocalArchive = localArchive != null
+        ? localArchive!.withExtraJson(mergedArchiveExtraJson)
+        : (mergedArchiveExtraJson.isNotEmpty
+              ? AnimeLocalArchive(extraJson: mergedArchiveExtraJson)
+              : null);
+
     return Anime(
       id: id,
       title: title,
@@ -803,6 +1057,7 @@ class Anime {
       episodeWeekOffsets: episodeWeekOffsets,
       notes: notes,
       rating: preservedRating,
+      localArchive: preservedLocalArchive,
       createdAt: createdAt,
       modifiedAt: modifiedAt,
       extraJson: _mergeJsonMaps([
@@ -908,6 +1163,11 @@ class Anime {
     } else if (!extraJson.containsKey('rating')) {
       json.remove('rating');
     }
+    if (localArchive != null && localArchive!.hasAnyData) {
+      json['localArchive'] = localArchive!.toJson();
+    } else if (!extraJson.containsKey('localArchive')) {
+      json.remove('localArchive');
+    }
     json['createdAt'] = createdAt.toIso8601String();
     json['modifiedAt'] = modifiedAt.toIso8601String();
 
@@ -978,6 +1238,17 @@ class Anime {
       extraJson['rating'] = rawRatingValue;
     }
 
+    AnimeLocalArchive? localArchive;
+    final rawArchiveValue = json['localArchive'];
+    if (rawArchiveValue is Map) {
+      localArchive = AnimeLocalArchive.fromJson(
+        _stringKeyedMap(rawArchiveValue),
+      );
+      if (!localArchive.hasAnyData) localArchive = null;
+    } else if (json.containsKey('localArchive')) {
+      extraJson['localArchive'] = rawArchiveValue;
+    }
+
     return Anime(
       id: json['id'] as String,
       title: json['title'] as String?,
@@ -998,6 +1269,7 @@ class Anime {
       episodeWeekOffsets: weekOffsets,
       notes: json['notes'] as String?,
       rating: rating,
+      localArchive: localArchive,
       createdAt: DateTime.parse(json['createdAt'] as String),
       modifiedAt: DateTime.parse(json['modifiedAt'] as String),
       extraJson: extraJson,
@@ -1005,7 +1277,7 @@ class Anime {
   }
 
   /// Purpose: Create a new anime record with default values for manual entry.
-  /// Inputs: `title`, `titleJa`, `season`, `startEpisode`, `endEpisode`, `manualType`, `airDayOfWeek`, `airTime`, `firstAirDate`, `coverImage`, `infoUrl`, `watchUrl`, `notes`, `rating`.
+  /// Inputs: `title`, `titleJa`, `season`, `startEpisode`, `endEpisode`, `manualType`, `airDayOfWeek`, `airTime`, `firstAirDate`, `coverImage`, `infoUrl`, `watchUrl`, `notes`, `rating`, `localArchive`.
   /// Returns: A new `Anime.create` instance.
   /// Side effects: None.
   /// Notes: Generates a new UUID and initializes UTC creation and modification timestamps.
@@ -1024,6 +1296,7 @@ class Anime {
     String? watchUrl,
     String? notes,
     AnimeRating? rating,
+    AnimeLocalArchive? localArchive,
   }) {
     final now = DateTime.now().toUtc();
     return Anime(
@@ -1042,6 +1315,7 @@ class Anime {
       watchUrl: watchUrl,
       notes: notes,
       rating: rating,
+      localArchive: localArchive,
       createdAt: now,
       modifiedAt: now,
     );

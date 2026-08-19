@@ -293,7 +293,8 @@ class DuplicateService {
   /// Side effects: None.
   /// Notes: Missing fields on `primary` are filled from `others`. Episode
   /// statuses merge with watched > skipped > unwatched. Rating sub-scores fill
-  /// from fallbacks. Notes are concatenated. Unknown JSON is preserved.
+  /// from fallbacks. Notes are concatenated. The local-archive record is taken
+  /// whole from the first source that has one. Unknown JSON is preserved.
   static Anime merge(Anime primary, List<Anime> others) {
     // Episode statuses: union, watched wins over skipped wins over unwatched.
     final mergedStatuses = Map<int, EpisodeStatus>.of(primary.episodeStatuses);
@@ -372,6 +373,18 @@ class DuplicateService {
     final mergedNotes =
         notesParts.isEmpty ? null : notesParts.join('\n');
 
+    // Local archive: whole-object, primary wins when it holds anything.
+    AnimeLocalArchive? mergedArchive =
+        primary.localArchive?.hasAnyData == true ? primary.localArchive : null;
+    if (mergedArchive == null) {
+      for (final other in others) {
+        if (other.localArchive?.hasAnyData == true) {
+          mergedArchive = other.localArchive;
+          break;
+        }
+      }
+    }
+
     // Cover: primary wins, fill from others.
     String? mergedCover = primary.coverImage;
     if (mergedCover == null) {
@@ -403,6 +416,7 @@ class DuplicateService {
           _firstNonNull(others.map((o) => o.watchUrl)),
       notes: mergedNotes,
       rating: mergedRating,
+      localArchive: mergedArchive,
       modifiedAt: DateTime.now().toUtc(),
     ).withPreservedUnknownJson([primary, ...others]);
   }

@@ -9,6 +9,7 @@ import '../models/anime.dart';
 import '../services/anime_search_service.dart';
 import '../services/anime_storage.dart';
 import 'anime_search_dialog.dart';
+import 'archive_labels.dart';
 
 class AnimeEditPage extends StatefulWidget {
   final String? animeId;
@@ -46,11 +47,16 @@ class _AnimeEditPageState extends State<AnimeEditPage> {
   final _ratingCharacterController = TextEditingController();
   final _ratingMusicController = TextEditingController();
   final _ratingEnjoymentController = TextEditingController();
+  final _archiveCopiesController = TextEditingController();
+  final _archiveLocationController = TextEditingController();
 
   int? _airDayOfWeek;
   DateTime? _firstAirDate;
   AnimeType? _manualType;
   String? _coverImage;
+  bool _archived = false;
+  ArchiveSource? _archiveSource;
+  ArchiveResolution? _archiveResolution;
 
   bool _isEdit = false;
   Anime? _existing;
@@ -104,6 +110,12 @@ class _AnimeEditPageState extends State<AnimeEditPage> {
         _firstAirDate = found.firstAirDate;
         _manualType = found.manualType;
         _coverImage = found.coverImage;
+        _archived = found.localArchive?.archived ?? false;
+        _archiveSource = found.localArchive?.source;
+        _archiveResolution = found.localArchive?.resolution;
+        _archiveCopiesController.text =
+            found.localArchive?.copies?.toString() ?? '';
+        _archiveLocationController.text = found.localArchive?.location ?? '';
       });
     }
   }
@@ -130,6 +142,8 @@ class _AnimeEditPageState extends State<AnimeEditPage> {
     _ratingCharacterController.dispose();
     _ratingMusicController.dispose();
     _ratingEnjoymentController.dispose();
+    _archiveCopiesController.dispose();
+    _archiveLocationController.dispose();
     super.dispose();
   }
 
@@ -292,6 +306,7 @@ class _AnimeEditPageState extends State<AnimeEditPage> {
     final startEp = int.tryParse(_startEpController.text) ?? 1;
     var endEp = int.tryParse(_endEpController.text) ?? 12;
     final rating = _buildRating();
+    final localArchive = _buildLocalArchive();
 
     // If startEpisode > endEpisode, adjust endEpisode to preserve episode count.
     if (startEp > endEp) {
@@ -328,6 +343,8 @@ class _AnimeEditPageState extends State<AnimeEditPage> {
             : _notesController.text.trim(),
         rating: rating,
         clearRating: rating == null,
+        localArchive: localArchive,
+        clearLocalArchive: localArchive == null,
         modifiedAt: DateTime.now().toUtc(),
       );
       await AnimeStorage.addOrUpdate(updated);
@@ -361,6 +378,7 @@ class _AnimeEditPageState extends State<AnimeEditPage> {
             ? null
             : _notesController.text.trim(),
         rating: rating,
+        localArchive: localArchive,
       );
       await AnimeStorage.addOrUpdate(anime);
       if (mounted) context.pop(anime.id);
@@ -386,6 +404,26 @@ class _AnimeEditPageState extends State<AnimeEditPage> {
       extraJson: _existing?.rating?.extraJson ?? const {},
     );
     return rating.hasAnyData ? rating : null;
+  }
+
+  /// Purpose: Provide the internal build local archive helper for this file.
+  /// Inputs: None.
+  /// Returns: `AnimeLocalArchive?`.
+  /// Side effects: None.
+  /// Notes: Internal helper used within this file only. Returns null when the
+  /// section was left untouched, so an anime without archive data never gains
+  /// a `localArchive` key on disk.
+  AnimeLocalArchive? _buildLocalArchive() {
+    final location = _archiveLocationController.text.trim();
+    final archive = AnimeLocalArchive(
+      archived: _archived,
+      source: _archiveSource,
+      resolution: _archiveResolution,
+      copies: int.tryParse(_archiveCopiesController.text.trim()),
+      location: location.isEmpty ? null : location,
+      extraJson: _existing?.localArchive?.extraJson ?? const {},
+    );
+    return archive.hasAnyData ? archive : null;
   }
 
   /// Purpose: Provide the internal parse score helper for this file.
@@ -711,6 +749,115 @@ class _AnimeEditPageState extends State<AnimeEditPage> {
                   _buildRatingField(
                     controller: _ratingEnjoymentController,
                     label: l10n.animeRatingEnjoyment,
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 12),
+
+            // Local archive
+            Card(
+              margin: EdgeInsets.zero,
+              child: ExpansionTile(
+                title: Text(l10n.animeLocalArchive),
+                subtitle: Text(l10n.animeLocalArchiveHint),
+                childrenPadding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+                children: [
+                  SwitchListTile(
+                    contentPadding: EdgeInsets.zero,
+                    title: Text(l10n.animeLocalArchiveArchived),
+                    value: _archived,
+                    onChanged: (v) => setState(() => _archived = v),
+                  ),
+                  const SizedBox(height: 12),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: DropdownButtonFormField<ArchiveSource?>(
+                          initialValue: _archiveSource,
+                          isExpanded: true,
+                          decoration: InputDecoration(
+                            labelText: l10n.animeArchiveSource,
+                            border: const OutlineInputBorder(),
+                          ),
+                          items: [
+                            const DropdownMenuItem<ArchiveSource?>(
+                              value: null,
+                              child: Text('-'),
+                            ),
+                            ...ArchiveSource.values.map(
+                              (s) => DropdownMenuItem(
+                                value: s,
+                                child: Text(archiveSourceLabel(s, l10n)),
+                              ),
+                            ),
+                          ],
+                          onChanged: (v) => setState(() => _archiveSource = v),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: DropdownButtonFormField<ArchiveResolution?>(
+                          initialValue: _archiveResolution,
+                          isExpanded: true,
+                          decoration: InputDecoration(
+                            labelText: l10n.animeArchiveResolution,
+                            border: const OutlineInputBorder(),
+                          ),
+                          items: [
+                            const DropdownMenuItem<ArchiveResolution?>(
+                              value: null,
+                              child: Text('-'),
+                            ),
+                            ...ArchiveResolution.values.map(
+                              (r) => DropdownMenuItem(
+                                value: r,
+                                child: Text(archiveResolutionLabel(r, l10n)),
+                              ),
+                            ),
+                          ],
+                          onChanged: (v) =>
+                              setState(() => _archiveResolution = v),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      SizedBox(
+                        width: 110,
+                        child: TextFormField(
+                          controller: _archiveCopiesController,
+                          decoration: InputDecoration(
+                            labelText: l10n.animeArchiveCopies,
+                            border: const OutlineInputBorder(),
+                          ),
+                          keyboardType: TextInputType.number,
+                          validator: (value) {
+                            final text = value?.trim() ?? '';
+                            if (text.isEmpty) return null;
+                            final copies = int.tryParse(text);
+                            if (copies == null || copies < 1) {
+                              return l10n.animeArchiveCopiesInvalid;
+                            }
+                            return null;
+                          },
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: TextFormField(
+                          controller: _archiveLocationController,
+                          decoration: InputDecoration(
+                            labelText: l10n.animeArchiveLocation,
+                            hintText: l10n.animeArchiveLocationHint,
+                            border: const OutlineInputBorder(),
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
                 ],
               ),

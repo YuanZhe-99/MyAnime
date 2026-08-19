@@ -4,9 +4,9 @@ This is the top-level index of the hand-written Function Explanation Layer docum
 `lib/` in the MyAnime repo. Each row links to a per-source-file page under `doc/en-us/functions/`
 mirroring the `lib/` tree (with `.dart` replaced by `.md`).
 
-**Totals:** the repo's `/// Purpose:` comment count is **667** (per the Function Explanation Layer
+**Totals:** the repo's `/// Purpose:` comment count is **682** (per the Function Explanation Layer
 convention in `AGENTS.md`, excluding generated `lib/l10n/` code — see [l10n/INDEX.md](l10n/INDEX.md)).
-This index documents **670** declarations — 3 more than 667 — because three real declarations
+This index documents **685** declarations — 3 more than 682 — because three real declarations
 (`AnimeData`'s default constructor in `anime.dart`; `_searchAnime1Single` in
 `anime_search_service.dart`; and one further case noted on those pages) have no `///` doc comment
 in source at all but are still real, documented declarations. Every such case is called out
@@ -15,9 +15,9 @@ force a round number.
 
 | Tier | Count |
 |---|---|
-| Tier A (full entry: Purpose/Inputs/Returns/Side effects/Algorithm/Usage/Notes) | 441 |
-| Tier B (index row only) | 229 |
-| **Total** | **670** |
+| Tier A (full entry: Purpose/Inputs/Returns/Side effects/Algorithm/Usage/Notes) | 452 |
+| Tier B (index row only) | 233 |
+| **Total** | **685** |
 
 ## Root (`lib/`)
 
@@ -43,14 +43,15 @@ convention (function/method/constructor/getter/setter); see that page for detail
 
 | Source file | Page | Declarations | Tier A count |
 |---|---|---|---|
-| `lib/features/anime/models/anime.dart` | [features/anime/models/anime.md](features/anime/models/anime.md) | 41 | 36 |
+| `lib/features/anime/models/anime.dart` | [features/anime/models/anime.md](features/anime/models/anime.md) | 49 | 42 |
 | `lib/features/anime/services/anime_storage.dart` | [features/anime/services/anime_storage.md](features/anime/services/anime_storage.md) | 27 | 27 |
 | `lib/features/anime/services/anime_search_service.dart` | [features/anime/services/anime_search_service.md](features/anime/services/anime_search_service.md) | 16 | 16 |
-| `lib/features/anime/views/anime_detail_page.dart` | [features/anime/views/anime_detail_page.md](features/anime/views/anime_detail_page.md) | 20 | 8 |
-| `lib/features/anime/views/anime_edit_page.dart` | [features/anime/views/anime_edit_page.md](features/anime/views/anime_edit_page.md) | 24 | 8 |
+| `lib/features/anime/views/anime_detail_page.dart` | [features/anime/views/anime_detail_page.md](features/anime/views/anime_detail_page.md) | 21 | 8 |
+| `lib/features/anime/views/anime_edit_page.dart` | [features/anime/views/anime_edit_page.md](features/anime/views/anime_edit_page.md) | 25 | 9 |
 | `lib/features/anime/views/anime_search_dialog.dart` | [features/anime/views/anime_search_dialog.md](features/anime/views/anime_search_dialog.md) | 19 | 5 |
+| `lib/features/anime/views/archive_labels.dart` | [features/anime/views/archive_labels.md](features/anime/views/archive_labels.md) | 3 | 3 |
 | `lib/features/anime/views/home_page.dart` | [features/anime/views/home_page.md](features/anime/views/home_page.md) | 22 | 9 |
-| `lib/features/anime/views/management_page.dart` | [features/anime/views/management_page.md](features/anime/views/management_page.md) | 20 | 9 |
+| `lib/features/anime/views/management_page.dart` | [features/anime/views/management_page.md](features/anime/views/management_page.md) | 22 | 10 |
 | `lib/features/anime/views/quarter_picker_dialog.dart` | [features/anime/views/quarter_picker_dialog.md](features/anime/views/quarter_picker_dialog.md) | 5 | 1 |
 | `lib/features/anime/views/statistics_page.dart` | [features/anime/views/statistics_page.md](features/anime/views/statistics_page.md) | 66 | 27 |
 
@@ -77,7 +78,7 @@ respectively have no doc comment at all in source, but are still real, documente
 ## l10n/
 
 `lib/l10n/` is already documented at [l10n/INDEX.md](l10n/INDEX.md) (generated code, not part of
-the 660/663 hand-documented declarations above).
+the 675/678 hand-documented declarations above).
 
 ## shared/
 
@@ -113,10 +114,10 @@ the 660/663 hand-documented declarations above).
 |---|---|---|---|---|
 | Root (`lib/`) | 1 | 1 | 1 | 0 |
 | `app/` | 4 | 7 | 2 | 5 |
-| `features/anime/` | 10 | 257 | 144 | 113 |
+| `features/anime/` | 11 | 272 | 155 | 117 |
 | `features/kana/` | 1 | 19 | 3 | 16 |
 | `features/settings/` | 4 | 45 | 24 | 21 |
 | `shared/` (utils/widgets/providers) | 8 | 42 | 27 | 15 |
 | `shared/services/` | 14 | 270 | 222 | 48 |
 | `shared/views/` | 1 | 22 | 12 | 10 |
-| **Total** | **43** | **663** | **435** | **228** |
+| **Total** | **44** | **678** | **446** | **232** |

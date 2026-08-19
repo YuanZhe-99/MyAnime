@@ -2,7 +2,8 @@
 
 `ManagementPage` is the seasonal quarter browser: a swipeable `PageView` of quarters (2000–2040)
 plus a final "Other" page for anime with no `firstAirDate`, a jump-to-quarter picker
-([`quarter_picker_dialog.md`](quarter_picker_dialog.md)), and a global title search. It reads and
+([`quarter_picker_dialog.md`](quarter_picker_dialog.md)), a global title search, and an AppBar
+local-archive filter (all / archived / not archived) that narrows every list on the page. It reads and
 writes through `AnimeStorage` ([`../services/anime_storage.md`](../services/anime_storage.md)) and
 places anime into quarters using [`Anime.airsInQuarter`](../models/anime.md#airsinquarter). See
 [`../../../../features/home-management-statistics.md`](../../../../features/home-management-statistics.md)
@@ -23,6 +24,8 @@ for the quarter-placement rules this page's grouping relies on.
 | [`_animeForQuarter`](#_animeforquarter) | method (`_ManagementPageState`) | A | Filter and sort the anime airing in a given quarter. |
 | [`_otherAnime`](#_otheranime) | getter (`_ManagementPageState`) | A | Anime with no `firstAirDate`, sorted by title. |
 | [`_searchResults`](#_searchresults) | method (`_ManagementPageState`) | A | Filter and sort anime by a case-insensitive title substring match. |
+| [`_applyArchiveFilter`](#_applyarchivefilter) | method (`_ManagementPageState`) | A | Narrow a list to the selected local-archive filter. |
+| `_archiveFilterLabel` | method (`_ManagementPageState`) | B | Localize an `_ArchiveFilter` value for the filter menu. |
 | `_quarterLabel` | method (`_ManagementPageState`) | B | Format a quarter as "`year` `season name`". |
 | `_dayLabel` | method (`_ManagementPageState`) | B | Localize a day-of-week number for the anime tile subtitle. |
 | [`_deleteAnime`](#_deleteanime) | method (`_ManagementPageState`) | A | Confirm and delete an anime record. |
@@ -95,7 +98,8 @@ for the quarter-placement rules this page's grouping relies on.
 - **Returns:** `List<Anime>`.
 - **Side effects:** None.
 - **Algorithm:**
-  1. Filter `_allAnime` to those where `a.airsInQuarter(quarter.year, quarter.q)` is `true`.
+  1. Run `_allAnime` through [`_applyArchiveFilter`](#_applyarchivefilter), then keep those where
+     `a.airsInQuarter(quarter.year, quarter.q)` is `true`.
   2. Sort by `airDayOfWeek` (missing values sort last, using `8` as a sentinel), then by
      `displayTitle` for anime sharing the same air day.
 - **Usage:**
@@ -115,7 +119,7 @@ for the quarter-placement rules this page's grouping relies on.
 - **Inputs:** None.
 - **Returns:** `List<Anime>`.
 - **Side effects:** None.
-- **Algorithm:** Filter `_allAnime` to `firstAirDate == null`, sort by `displayTitle`.
+- **Algorithm:** Run `_allAnime` through [`_applyArchiveFilter`](#_applyarchivefilter), filter to `firstAirDate == null`, sort by `displayTitle`.
 - **Usage:**
   ```dart
   otherCount: _otherAnime.length,
@@ -130,7 +134,7 @@ for the quarter-placement rules this page's grouping relies on.
 - **Inputs:** None (reads `_searchQuery`).
 - **Returns:** `List<Anime>`.
 - **Side effects:** None.
-- **Algorithm:** Lowercase `_searchQuery`; filter `_allAnime` to those whose `title` or `titleJa`
+- **Algorithm:** Lowercase `_searchQuery`; run `_allAnime` through [`_applyArchiveFilter`](#_applyarchivefilter); filter to those whose `title` or `titleJa`
   (lowercased) contains it; sort the matches by `displayTitle`.
 - **Usage:**
   ```dart
@@ -142,6 +146,28 @@ for the quarter-placement rules this page's grouping relies on.
 - **Notes:** Matches against both the primary and Japanese title independently — an anime matches if
   *either* field contains the query, not just the one currently displayed.
 
+### `List<Anime> _applyArchiveFilter(List<Anime> animes)` <a id="_applyarchivefilter"></a>
+- **Kind:** method of `_ManagementPageState`
+- **Source:** `lib/features/anime/views/management_page.dart` (approx. line 130)
+- **Purpose:** Narrow a candidate list to the local-archive filter currently selected in the AppBar,
+  so one rule serves all three list builders on this page.
+- **Inputs:** `animes` — the unfiltered candidates (always `_allAnime` today).
+- **Returns:** `List<Anime>`.
+- **Side effects:** None (reads `_archiveFilter`).
+- **Algorithm:** `switch` on the private `_ArchiveFilter` enum — `all` returns the input untouched,
+  `archived` keeps `a.localArchive?.archived == true`, `notArchived` keeps the complement
+  (`!= true`).
+- **Usage:**
+  ```dart
+  return _applyArchiveFilter(_allAnime).where((a) {
+    return a.airsInQuarter(quarter.year, quarter.q);
+  }).toList()
+  ```
+  (`_animeForQuarter`, same file; also `_otherAnime` and `_searchResults`)
+- **Notes:** `notArchived` deliberately folds together "never recorded" (`localArchive == null`) and
+  "explicitly recorded as not kept" (`archived: false`), because the question the filter answers is
+  "what still needs downloading". The filter is view state only — it is not persisted to
+  `storage_config.json` and resets to `all` whenever the shell rebuilds this page.
 ### `Future<void> _deleteAnime(Anime anime)` <a id="_deleteanime"></a>
 - **Kind:** method of `_ManagementPageState`
 - **Source:** `lib/features/anime/views/management_page.dart` (approx. line 176)

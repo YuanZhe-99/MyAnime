@@ -1,6 +1,6 @@
 # lib/features/anime/views/anime_detail_page.dart
 
-`AnimeDetailPage` 是一部被跟踪动画的读/操作页：封面、元数据徽章、评分摘要、上一季/下一季导航，以及带日程偏移控件的逐集观看状态列表。它通过 `AnimeStorage`（[`../services/anime_storage.md`](../services/anime_storage.md)）读写，并操作 `Anime`/`AnimeRating` 模型（[`../models/anime.md`](../models/anime.md)）。本页为剧集播出日期/回卷和日程偏移语义暴露的控件见 [`../../../../features/anime-tracking.md`](../../../../features/anime-tracking.md)。
+`AnimeDetailPage` 是一部被跟踪动画的读/操作页：封面、元数据徽章、评分摘要、本地存档摘要、上一季/下一季导航，以及带日程偏移控件的逐集观看状态列表。它通过 `AnimeStorage`（[`../services/anime_storage.md`](../services/anime_storage.md)）读写，并操作 `Anime`/`AnimeRating`/`AnimeLocalArchive` 模型（[`../models/anime.md`](../models/anime.md)），存档枚举通过 [`archive_labels.md`](archive_labels.md) 渲染。存档卡片仅供展示，且刻意不出现在本页分享操作生成的分享图片卡片中——见 [`../../../../features/share-and-import.md`](../../../../features/share-and-import.md)。本页为剧集播出日期/回卷和日程偏移语义暴露的控件见 [`../../../../features/anime-tracking.md`](../../../../features/anime-tracking.md)。
 
 ## 声明
 
@@ -18,6 +18,7 @@
 | [`_toggleAllWatched`](#_toggleallwatched) | 方法（`_AnimeDetailPageState`） | A | 把每个被跟踪剧集标记为已看，已完整时则全部标记为未看。 |
 | `_buildAbandonOrResume` | 方法（组件辅助） | B | 渲染剧集列表页头的"放弃"/"恢复"操作按钮。 |
 | `_buildRatingCard` | 方法（组件辅助） | B | 渲染评分摘要卡片。 |
+| `_buildLocalArchiveCard` | 方法（组件辅助） | B | 渲染只读的本地存档摘要卡片。 |
 | `_formatScore` | 方法（`_AnimeDetailPageState`） | B | 分数为整数时格式化为整数，否则保留一位小数。 |
 | [`_abandonAnime`](#_abandonanime) | 方法（`_AnimeDetailPageState`） | A | 把每个剩余未看剧集标记为跳过。 |
 | [`_resumeAnime`](#_resumeanime) | 方法（`_AnimeDetailPageState`） | A | 把每个跳过剧集还原为未看。 |

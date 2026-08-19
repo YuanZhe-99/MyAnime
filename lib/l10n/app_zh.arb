@@ -52,6 +52,24 @@
   "animeRatingManualOverall": "手动综合评分",
   "animeRatingAutoOverall": "综合评分由子项平均计算",
 
+  "animeLocalArchive": "本地存档",
+  "animeLocalArchiveHint": "选填。是否保留了本地下载资源。",
+  "animeLocalArchiveArchived": "已下载到本地",
+  "animeLocalArchiveNone": "未下载",
+  "animeArchiveSource": "片源",
+  "animeArchiveResolution": "分辨率",
+  "animeArchiveOther": "其他",
+  "animeArchiveCopies": "存档份数",
+  "animeArchiveCopiesInvalid": "请输入正整数",
+  "animeArchiveCopiesValue": "×{count}",
+  "@animeArchiveCopiesValue": {
+    "placeholders": {
+      "count": { "type": "int" }
+    }
+  },
+  "animeArchiveLocation": "资料仓库代码或位置",
+  "animeArchiveLocationHint": "例如 NAS-01、HDD-C3",
+
   "searchAnimeInfo": "搜索番剧信息",
   "searchHint": "输入标题搜索…",
   "searchButton": "搜索",
@@ -247,6 +265,10 @@
 
   "manageJumpToQuarter": "跳转到季度",
   "manageNoSearchResults": "没有匹配的番剧",
+  "manageFilterArchive": "本地存档",
+  "manageFilterAll": "全部",
+  "manageFilterArchived": "已存档",
+  "manageFilterNotArchived": "未存档",
   "manageOther": "其他",
 
   "dayMon": "周一",

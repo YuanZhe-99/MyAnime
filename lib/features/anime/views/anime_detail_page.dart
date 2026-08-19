@@ -11,6 +11,7 @@ import '../../../shared/services/share_service.dart';
 import '../../../shared/widgets/delete_confirm.dart';
 import '../models/anime.dart';
 import '../services/anime_storage.dart';
+import 'archive_labels.dart';
 
 class AnimeDetailPage extends StatefulWidget {
   final String animeId;
@@ -315,6 +316,10 @@ class _AnimeDetailPageState extends State<AnimeDetailPage> {
                   const SizedBox(height: 12),
                   _buildRatingCard(anime.rating!, theme, l10n),
                 ],
+                if (anime.localArchive?.hasAnyData == true) ...[
+                  const SizedBox(height: 12),
+                  _buildLocalArchiveCard(anime.localArchive!, theme, l10n),
+                ],
                 if (anime.notes != null && anime.notes!.isNotEmpty) ...[
                   const SizedBox(height: 12),
                   Text(anime.notes!, style: theme.textTheme.bodyMedium),
@@ -503,6 +508,72 @@ class _AnimeDetailPageState extends State<AnimeDetailPage> {
       );
     }
     return const SizedBox.shrink();
+  }
+
+  /// Purpose: Provide the internal build local archive card helper for this file.
+  /// Inputs: `archive`, `theme`, `l10n`.
+  /// Returns: `Widget`.
+  /// Side effects: None.
+  /// Notes: Internal helper used within this file only. Read-only summary of
+  /// the downloaded-copy record; editing happens on the edit page.
+  Widget _buildLocalArchiveCard(
+    AnimeLocalArchive archive,
+    ThemeData theme,
+    AppLocalizations l10n,
+  ) {
+    final details = <String>[
+      ?archiveQualityLabel(archive, l10n),
+      if (archive.copies != null) l10n.animeArchiveCopiesValue(archive.copies!),
+      if (archive.location != null && archive.location!.isNotEmpty)
+        archive.location!,
+    ];
+
+    return Card(
+      margin: EdgeInsets.zero,
+      child: Padding(
+        padding: const EdgeInsets.all(12),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Icon(
+                  archive.archived ? Icons.download_done : Icons.cloud_off,
+                  color: archive.archived
+                      ? theme.colorScheme.primary
+                      : theme.colorScheme.onSurfaceVariant,
+                  size: 20,
+                ),
+                const SizedBox(width: 8),
+                Text(l10n.animeLocalArchive, style: theme.textTheme.titleSmall),
+                const Spacer(),
+                Text(
+                  archive.archived
+                      ? l10n.animeLocalArchiveArchived
+                      : l10n.animeLocalArchiveNone,
+                  style: theme.textTheme.bodyMedium?.copyWith(
+                    color: archive.archived
+                        ? theme.colorScheme.primary
+                        : theme.colorScheme.onSurfaceVariant,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ],
+            ),
+            if (details.isNotEmpty) ...[
+              const SizedBox(height: 8),
+              Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: details
+                    .map((detail) => Chip(label: Text(detail)))
+                    .toList(),
+              ),
+            ],
+          ],
+        ),
+      ),
+    );
   }
 
   /// Purpose: Provide the internal build rating card helper for this file.

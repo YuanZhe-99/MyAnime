@@ -13,7 +13,12 @@ image, and exporting/sharing the current statistics summary view as an image or 
 - The share flow first asks whether to share as an **image**, a **data file**, or a **TXT** name
   list.
 - **Image cards** include cover art, titles, season/type/schedule, broadcast progress, notes,
-  selected info/watch URLs as QR codes, the app logo, and the MyAnime!!!!! watermark.
+  selected info/watch URLs as QR codes, the app logo, and the MyAnime!!!!! watermark. They
+  deliberately **exclude** the local-archive record — repository codes and copy counts are the
+  user's own storage infrastructure and have no place on a card handed to someone else. There is no
+  central "fields to draw" list in `share_service.dart`; each renderer reads named `anime.<field>`
+  properties, so a new field is excluded by default and stays that way as long as it is not added
+  to the `infoLines` block or the ranking/statistics `detail` lists.
 - **Ranking image exports** include the current ranking filters, sort/order, ranked anime rows
   with cover thumbnails and scores, the app logo, and the watermark. Ranking export is image-only
   — it does not create `.myanimeitem` data files. When more than 50 ranking rows would be
@@ -50,8 +55,13 @@ image, and exporting/sharing the current statistics summary view as an image or 
 Supports `.myanimeitem` export/import for both single-anime (v1) and multi-anime bundle (v2)
 formats — see [`../data-formats.md`](../data-formats.md) for the exact JSON shape of each version.
 
-- Export strips personal viewing data (`episodeStatuses`, `episodeWeekOffsets`) from every
-  exported record.
+- Export strips personal data — `episodeStatuses`, `episodeWeekOffsets`, and `localArchive` — from
+  every exported record, via `_stripPersonalData`. The archive record is stripped for a different
+  reason than the viewing fields: it does not leak what the sender watched, it leaks where the
+  sender stores things. Import still carries the field through when a hand-written file happens to
+  contain one, so the copy list stays complete.
+- Statistics data-file and TXT exports go through the same stripping, so no share surface in the
+  app emits `localArchive`.
 - Import always creates a new UUID for the incoming record and never overwrites an existing anime.
 - Multi-anime bundle imports detect conflicts with existing local records (reusing
   [`duplicate-detection.md`](duplicate-detection.md)'s grouping logic) and show a per-conflict

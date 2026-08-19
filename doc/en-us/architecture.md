@@ -120,6 +120,8 @@ Primary tests (mirroring the structure above where relevant):
   same-title-season), transitive grouping, and merge semantics.
 - `test/bundle_import_test.dart` — `.myanimeitem` v1 backward compatibility, v2 multi-anime bundle
   format, and export personal-data stripping.
+- `test/local_archive_ui_test.dart` — Local Archive section rendering, the archived switch, the
+  source dropdown, and the archive enum label helpers.
 - `test/widget_test.dart` — basic widget smoke coverage.
 
 `tool/` contains ad hoc scripts (icon generation, search-source validation) that are not part of

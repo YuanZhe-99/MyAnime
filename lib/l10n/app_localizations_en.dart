@@ -156,6 +156,45 @@ class AppLocalizationsEn extends AppLocalizations {
   String get animeRatingAutoOverall => 'Overall score averaged from sub-scores';
 
   @override
+  String get animeLocalArchive => 'Local Archive';
+
+  @override
+  String get animeLocalArchiveHint =>
+      'Optional. Whether you keep a downloaded copy.';
+
+  @override
+  String get animeLocalArchiveArchived => 'Downloaded locally';
+
+  @override
+  String get animeLocalArchiveNone => 'Not downloaded';
+
+  @override
+  String get animeArchiveSource => 'Source';
+
+  @override
+  String get animeArchiveResolution => 'Resolution';
+
+  @override
+  String get animeArchiveOther => 'Other';
+
+  @override
+  String get animeArchiveCopies => 'Copies';
+
+  @override
+  String get animeArchiveCopiesInvalid => 'Enter a positive whole number';
+
+  @override
+  String animeArchiveCopiesValue(int count) {
+    return '×$count';
+  }
+
+  @override
+  String get animeArchiveLocation => 'Repository / Location';
+
+  @override
+  String get animeArchiveLocationHint => 'e.g. NAS-01, HDD-C3';
+
+  @override
   String get searchAnimeInfo => 'Search Anime Info';
 
   @override
@@ -750,6 +789,18 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get manageNoSearchResults => 'No matching anime found';
+
+  @override
+  String get manageFilterArchive => 'Local archive';
+
+  @override
+  String get manageFilterAll => 'All';
+
+  @override
+  String get manageFilterArchived => 'Archived';
+
+  @override
+  String get manageFilterNotArchived => 'Not archived';
 
   @override
   String get manageOther => 'Other';

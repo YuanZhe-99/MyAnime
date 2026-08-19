@@ -102,6 +102,7 @@ lib/
 - `test/audit_fixes_test.dart` — 相同内容冲突抑制和前向吸附的剧集播出日期。
 - `test/duplicate_service_test.dart` — 重复检测（同 id、同 URL、同标题-季度）、传递性分组和合并语义。
 - `test/bundle_import_test.dart` — `.myanimeitem` v1 向后兼容、v2 多动画捆绑格式，以及导出个人数据剥离。
+- `test/local_archive_ui_test.dart` — 本地存档小节的渲染、archived 开关、片源下拉框，以及存档枚举标签辅助函数。
 - `test/widget_test.dart` — 基础组件冒烟覆盖。
 
 `tool/` 包含临时脚本（图标生成、搜索源校验），不在发布关键路径上。

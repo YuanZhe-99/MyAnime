@@ -54,6 +54,24 @@
   "animeRatingManualOverall": "Manual overall score",
   "animeRatingAutoOverall": "Overall score averaged from sub-scores",
 
+  "animeLocalArchive": "Local Archive",
+  "animeLocalArchiveHint": "Optional. Whether you keep a downloaded copy.",
+  "animeLocalArchiveArchived": "Downloaded locally",
+  "animeLocalArchiveNone": "Not downloaded",
+  "animeArchiveSource": "Source",
+  "animeArchiveResolution": "Resolution",
+  "animeArchiveOther": "Other",
+  "animeArchiveCopies": "Copies",
+  "animeArchiveCopiesInvalid": "Enter a positive whole number",
+  "animeArchiveCopiesValue": "×{count}",
+  "@animeArchiveCopiesValue": {
+    "placeholders": {
+      "count": { "type": "int" }
+    }
+  },
+  "animeArchiveLocation": "Repository / Location",
+  "animeArchiveLocationHint": "e.g. NAS-01, HDD-C3",
+
   "searchAnimeInfo": "Search Anime Info",
   "searchHint": "Enter title to search…",
   "searchButton": "Search",
@@ -261,6 +279,10 @@
 
   "manageJumpToQuarter": "Jump to Quarter",
   "manageNoSearchResults": "No matching anime found",
+  "manageFilterArchive": "Local archive",
+  "manageFilterAll": "All",
+  "manageFilterArchived": "Archived",
+  "manageFilterNotArchived": "Not archived",
   "manageOther": "Other",
 
   "dayMon": "Mon",

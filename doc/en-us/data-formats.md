@@ -86,10 +86,59 @@ non-null (`scores.fold(...) / scores.length`), returning `null` only when every 
 null. In short: **manual overall wins; if empty, the effective overall is the average of filled
 sub-scores.**
 
+### `AnimeLocalArchive`
+
+Optional per-anime record of a **downloaded local copy** — whether one is kept, at what quality, in
+how many copies, and where. Stored under the `localArchive` key:
+
+```json
+"localArchive": {
+  "archived": true,
+  "source": "bd",
+  "resolution": "fhd1080p",
+  "copies": 2,
+  "location": "NAS-01, HDD-C3"
+}
+```
+
+- `archived` — whether a local copy is kept. This is the "big switch"; everything else is detail.
+- `source` — `ArchiveSource`: `bd`, `dvd`, `web`, `tv`, `other`. Displayed as `BD`/`DVD`/`WEB`/`TV`.
+- `resolution` — `ArchiveResolution`: `uhd2160p`, `fhd1080p`, `hd720p`, `sd480p`, `other`.
+  Displayed as `2160p`/`1080p`/`720p`/`480p`. Source and resolution are separate axes, so `BD`
+  `1080p` and `WEB` `1080p` are distinguishable.
+- `copies` — how many archived copies are kept (a positive integer).
+- `location` — free-text repository code or physical location. Free text deliberately, so several
+  codes can be listed in one field when the copies live in different places.
+
+Both enums serialize by their Dart `.name`, matching `AnimeType` and `EpisodeStatus`. The enum
+member names are storage identifiers, not display strings — `fhd1080p` is what lands on disk,
+`1080p` is what the user sees.
+
+**The whole object is omitted when empty.** `AnimeLocalArchive.hasAnyData` is
+`archived || <any detail set> || extraJson.isNotEmpty`; `Anime.toJson()` writes a `localArchive` key
+only when that is true, and `Anime.fromJson()` discards an all-empty parsed record. An anime that
+never touched the feature therefore serializes byte-identically to how it did before the feature
+existed — which is why adding it required no change to the WebDAV request goldens.
+
+**Where it does and does not travel.** This is personal infrastructure information, so:
+
+| Surface | Included? |
+|---|---|
+| `anime_data.json` on disk | **Yes** |
+| WebDAV sync (the user's own devices) | **Yes** — no sync-layer change was needed; the field rides the ordinary whole-record merge |
+| Backup bundles | **Yes** — backups carry `anime_data.json` verbatim |
+| Local HTTP API (`/anime/list` etc.) | **Yes** — loopback-bound and Basic-Auth protected |
+| Shared image cards | **No** — never drawn |
+| `.myanimeitem` share files | **No** — stripped alongside `episodeStatuses`/`episodeWeekOffsets` |
+
+See [`features/share-and-import.md`](features/share-and-import.md) for the sharing side of that
+table.
+
 ### Compatibility: unknown-JSON-field preservation (`extraJson`)
 
-`Anime`, `AnimeRating`, and `AnimeData` (the top-level `{animes: [...]}` container) each carry an
-`extraJson` map holding any JSON keys the current app version doesn't recognize. The pattern:
+`Anime`, `AnimeRating`, `AnimeLocalArchive`, and `AnimeData` (the top-level `{animes: [...]}`
+container) each carry an `extraJson` map holding any JSON keys the current app version doesn't
+recognize. The pattern:
 
 - `fromJson()` computes `extraJson` as "every key in the raw JSON minus the known keys for this
   type" (via an internal `_unknownJson` helper), and also routes any value that fails to parse as

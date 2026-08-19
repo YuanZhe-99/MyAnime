@@ -383,6 +383,78 @@ abstract class AppLocalizations {
   /// **'Overall score averaged from sub-scores'**
   String get animeRatingAutoOverall;
 
+  /// No description provided for @animeLocalArchive.
+  ///
+  /// In en, this message translates to:
+  /// **'Local Archive'**
+  String get animeLocalArchive;
+
+  /// No description provided for @animeLocalArchiveHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Optional. Whether you keep a downloaded copy.'**
+  String get animeLocalArchiveHint;
+
+  /// No description provided for @animeLocalArchiveArchived.
+  ///
+  /// In en, this message translates to:
+  /// **'Downloaded locally'**
+  String get animeLocalArchiveArchived;
+
+  /// No description provided for @animeLocalArchiveNone.
+  ///
+  /// In en, this message translates to:
+  /// **'Not downloaded'**
+  String get animeLocalArchiveNone;
+
+  /// No description provided for @animeArchiveSource.
+  ///
+  /// In en, this message translates to:
+  /// **'Source'**
+  String get animeArchiveSource;
+
+  /// No description provided for @animeArchiveResolution.
+  ///
+  /// In en, this message translates to:
+  /// **'Resolution'**
+  String get animeArchiveResolution;
+
+  /// No description provided for @animeArchiveOther.
+  ///
+  /// In en, this message translates to:
+  /// **'Other'**
+  String get animeArchiveOther;
+
+  /// No description provided for @animeArchiveCopies.
+  ///
+  /// In en, this message translates to:
+  /// **'Copies'**
+  String get animeArchiveCopies;
+
+  /// No description provided for @animeArchiveCopiesInvalid.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter a positive whole number'**
+  String get animeArchiveCopiesInvalid;
+
+  /// No description provided for @animeArchiveCopiesValue.
+  ///
+  /// In en, this message translates to:
+  /// **'×{count}'**
+  String animeArchiveCopiesValue(int count);
+
+  /// No description provided for @animeArchiveLocation.
+  ///
+  /// In en, this message translates to:
+  /// **'Repository / Location'**
+  String get animeArchiveLocation;
+
+  /// No description provided for @animeArchiveLocationHint.
+  ///
+  /// In en, this message translates to:
+  /// **'e.g. NAS-01, HDD-C3'**
+  String get animeArchiveLocationHint;
+
   /// No description provided for @searchAnimeInfo.
   ///
   /// In en, this message translates to:
@@ -1486,6 +1558,30 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'No matching anime found'**
   String get manageNoSearchResults;
+
+  /// No description provided for @manageFilterArchive.
+  ///
+  /// In en, this message translates to:
+  /// **'Local archive'**
+  String get manageFilterArchive;
+
+  /// No description provided for @manageFilterAll.
+  ///
+  /// In en, this message translates to:
+  /// **'All'**
+  String get manageFilterAll;
+
+  /// No description provided for @manageFilterArchived.
+  ///
+  /// In en, this message translates to:
+  /// **'Archived'**
+  String get manageFilterArchived;
+
+  /// No description provided for @manageFilterNotArchived.
+  ///
+  /// In en, this message translates to:
+  /// **'Not archived'**
+  String get manageFilterNotArchived;
 
   /// No description provided for @manageOther.
   ///

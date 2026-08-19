@@ -95,6 +95,160 @@ void main() {
     },
   );
 
+  test('local archive round-trips through JSON', () {
+    final anime = Anime.fromJson({
+      'id': 'anime-1',
+      'title': 'Archived',
+      'season': 'Season 1',
+      'startEpisode': 1,
+      'endEpisode': 12,
+      'localArchive': {
+        'archived': true,
+        'source': 'bd',
+        'resolution': 'fhd1080p',
+        'copies': 2,
+        'location': 'NAS-01, HDD-C3',
+      },
+      'createdAt': createdAt,
+      'modifiedAt': modifiedAt,
+    });
+
+    expect(anime.localArchive?.archived, isTrue);
+    expect(anime.localArchive?.source, ArchiveSource.bd);
+    expect(anime.localArchive?.resolution, ArchiveResolution.fhd1080p);
+    expect(anime.localArchive?.copies, 2);
+    expect(anime.localArchive?.location, 'NAS-01, HDD-C3');
+
+    expect(anime.toJson()['localArchive'], {
+      'archived': true,
+      'source': 'bd',
+      'resolution': 'fhd1080p',
+      'copies': 2,
+      'location': 'NAS-01, HDD-C3',
+    });
+  });
+
+  test('an anime without archive data omits the localArchive key', () {
+    final anime = Anime.fromJson({
+      'id': 'anime-1',
+      'title': 'Plain',
+      'season': 'Season 1',
+      'startEpisode': 1,
+      'endEpisode': 12,
+      'createdAt': createdAt,
+      'modifiedAt': modifiedAt,
+    });
+
+    expect(anime.localArchive, isNull);
+    expect(anime.toJson().containsKey('localArchive'), isFalse);
+
+    // An all-empty archive is dropped rather than written out, so records that
+    // never touched the feature keep serializing exactly as before.
+    const empty = AnimeLocalArchive();
+    expect(empty.hasAnyData, isFalse);
+    expect(
+      anime.copyWith(localArchive: empty).toJson().containsKey('localArchive'),
+      isFalse,
+    );
+  });
+
+  test('local archive preserves unknown and unparseable fields', () {
+    final anime = Anime.fromJson({
+      'id': 'anime-1',
+      'title': 'Archived',
+      'season': 'Season 1',
+      'startEpisode': 1,
+      'endEpisode': 12,
+      'localArchive': {
+        'archived': true,
+        'source': 'futureSource',
+        'resolution': 'fhd1080p',
+        'copies': 'two',
+        'futureArchiveField': {'codec': 'AV1'},
+      },
+      'createdAt': createdAt,
+      'modifiedAt': modifiedAt,
+    });
+
+    // Values this build cannot parse are kept, not dropped.
+    expect(anime.localArchive?.source, isNull);
+    expect(anime.localArchive?.copies, isNull);
+    expect(anime.localArchive?.resolution, ArchiveResolution.fhd1080p);
+
+    final json = anime.copyWith(title: 'Edited').toJson();
+    expect(json['title'], 'Edited');
+    expect(json['localArchive'], {
+      'archived': true,
+      'source': 'futureSource',
+      'copies': 'two',
+      'futureArchiveField': {'codec': 'AV1'},
+      'resolution': 'fhd1080p',
+    });
+  });
+
+  test('sync keeps unknown local archive fields from the non-winning side', () {
+    final base = jsonEncode({
+      'animes': [
+        {
+          'id': 'anime-1',
+          'title': 'Base',
+          'season': 'Season 1',
+          'startEpisode': 1,
+          'endEpisode': 12,
+          'episodeStatuses': <String, dynamic>{},
+          'createdAt': createdAt,
+          'modifiedAt': '2026-01-01T00:00:00.000Z',
+        },
+      ],
+    });
+    final local = jsonEncode({
+      'animes': [
+        {
+          'id': 'anime-1',
+          'title': 'Local wins',
+          'season': 'Season 1',
+          'startEpisode': 1,
+          'endEpisode': 12,
+          'episodeStatuses': <String, dynamic>{},
+          'localArchive': {'archived': true, 'source': 'bd', 'copies': 1},
+          'createdAt': createdAt,
+          'modifiedAt': '2026-01-03T00:00:00.000Z',
+        },
+      ],
+    });
+    final remote = jsonEncode({
+      'animes': [
+        {
+          'id': 'anime-1',
+          'title': 'Remote has future data',
+          'season': 'Season 1',
+          'startEpisode': 1,
+          'endEpisode': 12,
+          'episodeStatuses': <String, dynamic>{},
+          'localArchive': {'archived': true, 'futureArchiveField': 'keep-me'},
+          'createdAt': createdAt,
+          'modifiedAt': '2026-01-02T00:00:00.000Z',
+        },
+      ],
+    });
+
+    final result = mergeAnimeData(local, remote, base, autoResolve: true);
+    final mergedJson = AnimeData(
+      animes: result.merged,
+      extraJson: result.extraJson,
+    ).toJson();
+    final animeJson =
+        (mergedJson['animes'] as List<dynamic>).single as Map<String, dynamic>;
+
+    expect(animeJson['title'], 'Local wins');
+    expect(animeJson['localArchive'], {
+      'futureArchiveField': 'keep-me',
+      'archived': true,
+      'source': 'bd',
+      'copies': 1,
+    });
+  });
+
   test('anime viewing status is derived consistently', () {
     final baseAnime = Anime.create(
       title: 'Status test',

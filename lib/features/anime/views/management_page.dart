@@ -32,6 +32,7 @@ class ManagementPage extends StatefulWidget {
 class _ManagementPageState extends State<ManagementPage> {
   List<Anime> _allAnime = [];
   String _searchQuery = '';
+  _ArchiveFilter _archiveFilter = _ArchiveFilter.all;
   late PageController _pageController;
   late int _currentQuarterIndex;
 
@@ -96,7 +97,7 @@ class _ManagementPageState extends State<ManagementPage> {
   /// Side effects: None.
   /// Notes: Internal helper used within this file only.
   List<Anime> _animeForQuarter(_Quarter quarter) {
-    return _allAnime.where((a) {
+    return _applyArchiveFilter(_allAnime).where((a) {
       return a.airsInQuarter(quarter.year, quarter.q);
     }).toList()..sort((a, b) {
       // Sort by air day of week
@@ -113,8 +114,44 @@ class _ManagementPageState extends State<ManagementPage> {
   /// Side effects: None.
   /// Notes: Internal helper used within this file only. Anime without a firstAirDate — shown on the "Other" page.
   List<Anime> get _otherAnime {
-    return _allAnime.where((a) => a.firstAirDate == null).toList()
+    return _applyArchiveFilter(
+      _allAnime,
+    ).where((a) => a.firstAirDate == null).toList()
       ..sort((a, b) => a.displayTitle.compareTo(b.displayTitle));
+  }
+
+  /// Purpose: Narrow a list to the currently selected local-archive filter.
+  /// Inputs: `animes`.
+  /// Returns: `List<Anime>`.
+  /// Side effects: None.
+  /// Notes: Internal helper used within this file only. "Not archived" folds
+  /// together records never recorded and records explicitly marked as not
+  /// downloaded, which is what "what still needs downloading" means.
+  List<Anime> _applyArchiveFilter(List<Anime> animes) {
+    switch (_archiveFilter) {
+      case _ArchiveFilter.all:
+        return animes;
+      case _ArchiveFilter.archived:
+        return animes.where((a) => a.localArchive?.archived == true).toList();
+      case _ArchiveFilter.notArchived:
+        return animes.where((a) => a.localArchive?.archived != true).toList();
+    }
+  }
+
+  /// Purpose: Provide the internal archive filter label helper for this file.
+  /// Inputs: `filter`, `l10n`.
+  /// Returns: `String`.
+  /// Side effects: None.
+  /// Notes: Internal helper used within this file only.
+  String _archiveFilterLabel(_ArchiveFilter filter, AppLocalizations l10n) {
+    switch (filter) {
+      case _ArchiveFilter.all:
+        return l10n.manageFilterAll;
+      case _ArchiveFilter.archived:
+        return l10n.manageFilterArchived;
+      case _ArchiveFilter.notArchived:
+        return l10n.manageFilterNotArchived;
+    }
   }
 
   /// Purpose: Provide the internal search results helper for this file.
@@ -124,7 +161,7 @@ class _ManagementPageState extends State<ManagementPage> {
   /// Notes: Internal helper used within this file only.
   List<Anime> _searchResults() {
     final q = _searchQuery.toLowerCase();
-    return _allAnime.where((a) {
+    return _applyArchiveFilter(_allAnime).where((a) {
       return (a.title?.toLowerCase().contains(q) ?? false) ||
           (a.titleJa?.toLowerCase().contains(q) ?? false);
     }).toList()..sort((a, b) => a.displayTitle.compareTo(b.displayTitle));
@@ -323,6 +360,25 @@ class _ManagementPageState extends State<ManagementPage> {
     return Scaffold(
       appBar: AppBar(
         title: Text(l10n.navManage),
+        actions: [
+          PopupMenuButton<_ArchiveFilter>(
+            icon: Icon(
+              _archiveFilter == _ArchiveFilter.all
+                  ? Icons.filter_alt_outlined
+                  : Icons.filter_alt,
+            ),
+            tooltip: l10n.manageFilterArchive,
+            initialValue: _archiveFilter,
+            onSelected: (v) => setState(() => _archiveFilter = v),
+            itemBuilder: (context) => [
+              for (final filter in _ArchiveFilter.values)
+                PopupMenuItem(
+                  value: filter,
+                  child: Text(_archiveFilterLabel(filter, l10n)),
+                ),
+            ],
+          ),
+        ],
         bottom: PreferredSize(
           preferredSize: const Size.fromHeight(50),
           child: Padding(
@@ -593,4 +649,16 @@ class _Quarter {
   /// Side effects: None.
   /// Notes: Internal helper used within this file only.
   const _Quarter(this.year, this.q);
+}
+
+/// Local-archive filter applied to every list on the management page.
+enum _ArchiveFilter {
+  /// No filtering.
+  all,
+
+  /// Only anime with a local copy recorded.
+  archived,
+
+  /// Anime without a local copy — never recorded, or recorded as not kept.
+  notArchived,
 }

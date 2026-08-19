@@ -1,9 +1,10 @@
 # lib/features/anime/models/anime.dart
 
 The core data model: `Anime` (one tracked series), `AnimeRating` (optional personal rating),
-`AnimeData` (the top-level `{animes: [...]}` persisted container), plus the `AnimeType`,
-`EpisodeStatus`, `AnimeViewingStatus`, and `AnimeRatingField` enums. This file owns
-`fromJson`/`toJson` for all three classes, the `extraJson` unknown-field-preservation pattern used
+`AnimeLocalArchive` (optional record of a downloaded local copy), `AnimeData` (the top-level
+`{animes: [...]}` persisted container), plus the `AnimeType`, `EpisodeStatus`,
+`AnimeViewingStatus`, `AnimeRatingField`, `ArchiveSource`, and `ArchiveResolution` enums. This file
+owns `fromJson`/`toJson` for all four classes, the `extraJson` unknown-field-preservation pattern used
 by sync merges, and the quarter-placement / episode-air-date logic that drives the home calendar
 and management-by-quarter views. Field-by-field reference (identity, schedule, episodes,
 `AnimeType` thresholds, `AnimeRating` scoring, `extraJson`) lives in
@@ -23,6 +24,8 @@ every view under `lib/features/anime/views/`.
 | [`_stringKeyedMap`](#stringkeyedmap) | top-level function | A | Normalize a `Map<dynamic, dynamic>` (from JSON decode) into `Map<String, dynamic>`. |
 | [`_mergeJsonMaps`](#mergejsonmaps) | top-level function | A | Deep-merge a list of JSON maps, later maps' scalar values winning, nested maps merging recursively. |
 | [`_parseAnimeType`](#parseanimetype) | top-level function | A | Parse a JSON string into an `AnimeType`, or `null` if unrecognized. |
+| [`_parseArchiveSource`](#parsearchivesource) | top-level function | A | Parse a JSON string into an `ArchiveSource`, or `null` if unrecognized. |
+| [`_parseArchiveResolution`](#parsearchiveresolution) | top-level function | A | Parse a JSON string into an `ArchiveResolution`, or `null` if unrecognized. |
 | [`_parseEpisodeStatus`](#parseepisodestatus) | top-level function | A | Parse a JSON string into an `EpisodeStatus`, or `null` if unrecognized. |
 | [`AnimeRating(...)`](#animerating-new) | constructor (`AnimeRating`) | A | Create a personal rating value (manual overall + five sub-scores). |
 | `hasManualOverall` | getter (`AnimeRating`) | B | Whether `overall` is set. |
@@ -35,6 +38,12 @@ every view under `lib/features/anime/views/`.
 | [`AnimeRating.fromJson`](#animerating-fromjson) | factory constructor | A | Parse a rating from JSON, routing non-numeric scores into `extraJson`. |
 | [`_parseScore`](#parsescore) | top-level function | A | Parse a JSON value into a `double` score, or `null`. |
 | [`_writeScore`](#writescore) | top-level function | A | Write (or remove) one score key in a JSON map being built. |
+| [`AnimeLocalArchive(...)`](#animelocalarchive-new) | constructor (`AnimeLocalArchive`) | A | Create a downloaded-copy record (flag, source, resolution, copies, location). |
+| `hasAnyDetail` | getter (`AnimeLocalArchive`) | B | Whether any detail beyond the `archived` flag is filled in. |
+| `hasAnyData` | getter (`AnimeLocalArchive`) | B | Whether there's anything worth persisting (flag, detail, or preserved `extraJson`). |
+| [`withExtraJson`](#withextrajson-animelocalarchive) | method (`AnimeLocalArchive`) | A | Copy with `extraJson` replaced. |
+| [`toJson`](#tojson-animelocalarchive) | method (`AnimeLocalArchive`) | A | Serialize to the JSON shape stored under `Anime.localArchive`. |
+| [`AnimeLocalArchive.fromJson`](#animelocalarchive-fromjson) | factory constructor | A | Parse an archive record from JSON, routing unparseable values into `extraJson`. |
 | [`Anime(...)`](#anime-new) | constructor (`Anime`) | A | Create an anime record with all persisted fields. |
 | [`displayTitle`](#displaytitle) | getter (`Anime`) | A | Best available title: `title`, else `titleJa`, else empty string. |
 | [`totalEpisodes`](#totalepisodes) | getter (`Anime`) | A | `endEpisode - startEpisode + 1`, or `null` if open-ended. |
@@ -61,8 +70,8 @@ every view under `lib/features/anime/views/`.
 | [`toJson`](#tojson-animedata) | method (`AnimeData`) | A | Serialize to `{...extraJson, animes: [...]}`. |
 | [`AnimeData.fromJson`](#animedata-fromjson) | factory constructor | A | Parse the `{animes: [...]}` container from JSON. |
 
-Note on the verification count: the source file has 40 `/// Purpose:` doc comments, but this table
-has 41 rows — the `AnimeData` default constructor (line 1063) has no doc comment at all in source
+Note on the verification count: the source file has 48 `/// Purpose:` doc comments, but this table
+has 49 rows — the `AnimeData` default constructor (line 1337) has no doc comment at all in source
 (unlike every other constructor in this file), yet is still a real declaration and is indexed above
 (Tier B: a plain default-value constructor with no logic).
 
@@ -70,7 +79,7 @@ has 41 rows — the `AnimeData` default constructor (line 1063) has no doc comme
 
 ### `Map<String, dynamic> _unknownJson(Map<String, dynamic> json, Set<String> knownKeys)` <a id="unknownjson"></a>
 - **Kind:** top-level function
-- **Source:** `lib/features/anime/models/anime.dart` (line 41)
+- **Source:** `lib/features/anime/models/anime.dart` (line 50)
 - **Purpose:** Compute the subset of a raw JSON map whose keys this app version doesn't recognize, for a given type's known-key set.
 - **Inputs:** `json` — the raw decoded map; `knownKeys` — the field names this type does understand (`_animeJsonKeys`, `_ratingJsonKeys`, or `_animeDataJsonKeys`).
 - **Returns:** `Map<String, dynamic>` — a copy of `json` with every key in `knownKeys` removed.
@@ -88,7 +97,7 @@ has 41 rows — the `AnimeData` default constructor (line 1063) has no doc comme
 
 ### `Map<String, dynamic> _stringKeyedMap(Map<dynamic, dynamic> map)` <a id="stringkeyedmap"></a>
 - **Kind:** top-level function
-- **Source:** `lib/features/anime/models/anime.dart` (line 55)
+- **Source:** `lib/features/anime/models/anime.dart` (line 64)
 - **Purpose:** Coerce a dynamically-keyed map (as produced by `jsonDecode` for nested objects) into a `Map<String, dynamic>`.
 - **Inputs:** `map`.
 - **Returns:** `Map<String, dynamic>` with every key converted via `.toString()`.
@@ -103,7 +112,7 @@ has 41 rows — the `AnimeData` default constructor (line 1063) has no doc comme
 
 ### `Map<String, dynamic> _mergeJsonMaps(Iterable<Map<String, dynamic>> maps)` <a id="mergejsonmaps"></a>
 - **Kind:** top-level function
-- **Source:** `lib/features/anime/models/anime.dart` (line 64)
+- **Source:** `lib/features/anime/models/anime.dart` (line 73)
 - **Purpose:** Deep-merge any number of JSON maps in order, so `extraJson` fields from multiple candidate sources (e.g. local and remote copies of a record) combine instead of the later source blowing away the earlier one's nested keys.
 - **Inputs:** `maps` — merged left-to-right, later entries taking precedence for scalar values.
 - **Returns:** `Map<String, dynamic>`.
@@ -125,7 +134,7 @@ has 41 rows — the `AnimeData` default constructor (line 1063) has no doc comme
 
 ### `AnimeType? _parseAnimeType(Object? value)` <a id="parseanimetype"></a>
 - **Kind:** top-level function
-- **Source:** `lib/features/anime/models/anime.dart` (line 88)
+- **Source:** `lib/features/anime/models/anime.dart` (line 97)
 - **Purpose:** Parse a raw JSON value into an `AnimeType` enum, tolerating anything that isn't a recognized string.
 - **Inputs:** `value` — typically `json['manualType']`.
 - **Returns:** `AnimeType?` — `null` if `value` isn't a `String` or doesn't match any enum name.
@@ -141,9 +150,42 @@ has 41 rows — the `AnimeData` default constructor (line 1063) has no doc comme
   (`Anime.fromJson`, same file)
 - **Notes:** An unparseable-but-present `manualType` (e.g. a future enum value this app version doesn't know) is preserved verbatim in `extraJson` by the caller rather than silently dropped — see the usage above.
 
+### `ArchiveSource? _parseArchiveSource(Object? value)` <a id="parsearchivesource"></a>
+- **Kind:** top-level function
+- **Source:** `lib/features/anime/models/anime.dart` (line 110)
+- **Purpose:** Parse a raw JSON value into an `ArchiveSource` enum.
+- **Inputs:** `value` — the `source` entry of a `localArchive` JSON object.
+- **Returns:** `ArchiveSource?` — `null` if `value` isn't a recognized source string.
+- **Side effects:** None.
+- **Algorithm:** Same shape as `_parseAnimeType`: type-guard then linear scan of `ArchiveSource.values` by `.name`.
+- **Usage:**
+  ```dart
+  final source = _parseArchiveSource(json['source']);
+  if (json.containsKey('source') && source == null) {
+    extraJson['source'] = json['source'];
+  }
+  ```
+  (`AnimeLocalArchive.fromJson`, same file)
+- **Notes:** A future source value this build doesn't know is preserved verbatim in the archive's own `extraJson` by the caller rather than dropped.
+
+### `ArchiveResolution? _parseArchiveResolution(Object? value)` <a id="parsearchiveresolution"></a>
+- **Kind:** top-level function
+- **Source:** `lib/features/anime/models/anime.dart` (line 123)
+- **Purpose:** Parse a raw JSON value into an `ArchiveResolution` enum.
+- **Inputs:** `value` — the `resolution` entry of a `localArchive` JSON object.
+- **Returns:** `ArchiveResolution?` — `null` if `value` isn't a recognized resolution string.
+- **Side effects:** None.
+- **Algorithm:** Same shape as `_parseArchiveSource`.
+- **Usage:**
+  ```dart
+  final resolution = _parseArchiveResolution(json['resolution']);
+  ```
+  (`AnimeLocalArchive.fromJson`, same file)
+- **Notes:** Enum names are storage identifiers, not display text — `uhd2160p`/`fhd1080p`/`hd720p`/`sd480p` render as `2160p`/`1080p`/`720p`/`480p` via `archiveResolutionLabel` in [`../views/archive_labels.md`](../views/archive_labels.md).
+
 ### `EpisodeStatus? _parseEpisodeStatus(Object? value)` <a id="parseepisodestatus"></a>
 - **Kind:** top-level function
-- **Source:** `lib/features/anime/models/anime.dart` (line 101)
+- **Source:** `lib/features/anime/models/anime.dart` (line 136)
 - **Purpose:** Parse a raw JSON value into an `EpisodeStatus` enum.
 - **Inputs:** `value` — one entry's value from the `episodeStatuses` JSON map.
 - **Returns:** `EpisodeStatus?` — `null` if `value` isn't a recognized status string.
@@ -163,7 +205,7 @@ has 41 rows — the `AnimeData` default constructor (line 1063) has no doc comme
 
 ### `const AnimeRating({overall, visual, story, character, music, enjoyment, extraJson = const {}})` <a id="animerating-new"></a>
 - **Kind:** constructor of `AnimeRating`
-- **Source:** `lib/features/anime/models/anime.dart` (line 154)
+- **Source:** `lib/features/anime/models/anime.dart` (line 225)
 - **Purpose:** Hold a personal rating: an optional manual overall score plus five optional 0–10 sub-scores (visual, story, character, music, enjoyment).
 - **Inputs:** All six score fields optional; `extraJson` defaults to `{}`.
 - **Returns:** A new `AnimeRating`.
@@ -186,7 +228,7 @@ has 41 rows — the `AnimeData` default constructor (line 1063) has no doc comme
 
 ### `double? get effectiveOverall` <a id="effectiveoverall"></a>
 - **Kind:** getter of `AnimeRating`
-- **Source:** `lib/features/anime/models/anime.dart` (line 196)
+- **Source:** `lib/features/anime/models/anime.dart` (line 267)
 - **Purpose:** Return the manual overall score when set, otherwise the average of whichever sub-scores are filled in.
 - **Inputs:** None.
 - **Returns:** `double?` — `null` only when `overall` is unset and every sub-score is also unset.
@@ -206,7 +248,7 @@ has 41 rows — the `AnimeData` default constructor (line 1063) has no doc comme
 
 ### `double? scoreFor(AnimeRatingField field)` <a id="scorefor"></a>
 - **Kind:** method of `AnimeRating`
-- **Source:** `lib/features/anime/models/anime.dart` (line 215)
+- **Source:** `lib/features/anime/models/anime.dart` (line 286)
 - **Purpose:** Look up this rating's value for a given sortable/displayable field, routing `AnimeRatingField.overall` through `effectiveOverall` rather than the raw `overall` field.
 - **Inputs:** `field`.
 - **Returns:** `double?`.
@@ -221,7 +263,7 @@ has 41 rows — the `AnimeData` default constructor (line 1063) has no doc comme
 
 ### `AnimeRating withExtraJson(Map<String, dynamic> extraJson)` <a id="withextrajson-animerating"></a>
 - **Kind:** method of `AnimeRating`
-- **Source:** `lib/features/anime/models/anime.dart` (line 237)
+- **Source:** `lib/features/anime/models/anime.dart` (line 308)
 - **Purpose:** Return a copy of this rating with only `extraJson` replaced.
 - **Inputs:** `extraJson`.
 - **Returns:** A new `AnimeRating` with every score field unchanged.
@@ -240,7 +282,7 @@ has 41 rows — the `AnimeData` default constructor (line 1063) has no doc comme
 
 ### `Map<String, dynamic> toJson()` (`AnimeRating`) <a id="tojson-animerating"></a>
 - **Kind:** method of `AnimeRating`
-- **Source:** `lib/features/anime/models/anime.dart` (line 252)
+- **Source:** `lib/features/anime/models/anime.dart` (line 323)
 - **Purpose:** Serialize the rating to the JSON shape stored under `Anime.rating`.
 - **Inputs:** None.
 - **Returns:** `Map<String, dynamic>` — `extraJson` overlaid with each known score key.
@@ -259,7 +301,7 @@ has 41 rows — the `AnimeData` default constructor (line 1063) has no doc comme
 
 ### `factory AnimeRating.fromJson(Map<String, dynamic> json)` <a id="animerating-fromjson"></a>
 - **Kind:** factory constructor of `AnimeRating`
-- **Source:** `lib/features/anime/models/anime.dart` (line 268)
+- **Source:** `lib/features/anime/models/anime.dart` (line 339)
 - **Purpose:** Reconstruct a rating from its persisted JSON form, preserving any key that isn't a recognized score name and any score value that isn't numeric.
 - **Inputs:** `json`.
 - **Returns:** A new `AnimeRating`.
@@ -278,7 +320,7 @@ has 41 rows — the `AnimeData` default constructor (line 1063) has no doc comme
 
 ### `double? _parseScore(Object? value)` <a id="parsescore"></a>
 - **Kind:** top-level function
-- **Source:** `lib/features/anime/models/anime.dart` (line 296)
+- **Source:** `lib/features/anime/models/anime.dart` (line 367)
 - **Purpose:** Parse a raw JSON value into a `double` score.
 - **Inputs:** `value`.
 - **Returns:** `double?` — `value.toDouble()` if `value is num`, else `null`.
@@ -295,7 +337,7 @@ has 41 rows — the `AnimeData` default constructor (line 1063) has no doc comme
 
 ### `void _writeScore(Map<String, dynamic> json, String key, double? score)` <a id="writescore"></a>
 - **Kind:** top-level function
-- **Source:** `lib/features/anime/models/anime.dart` (line 306)
+- **Source:** `lib/features/anime/models/anime.dart` (line 377)
 - **Purpose:** Set or clear one score key while building a rating's JSON map.
 - **Inputs:** `json` (mutated in place), `key`, `score`.
 - **Returns:** None.
@@ -308,9 +350,75 @@ has 41 rows — the `AnimeData` default constructor (line 1063) has no doc comme
   (`AnimeRating.toJson`, same file)
 - **Notes:** The `else if (!json.containsKey(key)) json.remove(key);` branch is a no-op by construction (you only reach `remove` when the key is already absent) — the practical effect is simply "don't touch an existing unrecognized value when the typed field is null."
 
-### `const Anime({required id, title, titleJa, season = 'Season 1', startEpisode = 1, endEpisode = 13, manualType, airDayOfWeek, airTime, firstAirDate, episodeStatuses = const {}, coverImage, infoUrl, watchUrl, episodeWeekOffsets = const {}, notes, rating, required createdAt, required modifiedAt, extraJson = const {}})` <a id="anime-new"></a>
+### `const AnimeLocalArchive({archived = false, source, resolution, copies, location, extraJson = const {}})` <a id="animelocalarchive-new"></a>
+- **Kind:** constructor (`AnimeLocalArchive`)
+- **Source:** `lib/features/anime/models/anime.dart` (line 415)
+- **Purpose:** Create the optional record of a downloaded local copy of an anime.
+- **Inputs:** `archived` — whether a local copy is kept; `source` — `ArchiveSource` medium (BD/DVD/WEB/TV/other); `resolution` — `ArchiveResolution`; `copies` — how many archived copies are kept; `location` — free-text repository code or physical location, so several codes can be listed together (`NAS-01, HDD-C3`); `extraJson` — preserved unknown fields.
+- **Returns:** A new `AnimeLocalArchive`.
+- **Side effects:** None.
+- **Notes:** Everything here is personal infrastructure information. It is persisted in
+  `anime_data.json` and WebDAV-synced across the user's own devices, but deliberately **never drawn
+  into shared image cards** and **stripped from `.myanimeitem` share files** — see
+  [`../../../../features/share-and-import.md`](../../../../features/share-and-import.md). Editing
+  happens in [`../views/anime_edit_page.md`](../views/anime_edit_page.md); the read-only summary is
+  in [`../views/anime_detail_page.md`](../views/anime_detail_page.md).
+
+### `bool get hasAnyDetail` / `bool get hasAnyData` (`AnimeLocalArchive`) <a id="animelocalarchive-hasanydata"></a>
+- **Kind:** getters (`AnimeLocalArchive`)
+- **Source:** `lib/features/anime/models/anime.dart` (lines 429 and 441)
+- **Purpose:** `hasAnyDetail` reports whether any field beyond the `archived` flag was filled in; `hasAnyData` reports whether the record carries anything worth persisting.
+- **Returns:** `bool`.
+- **Side effects:** None.
+- **Algorithm:** `hasAnyDetail` is `source != null || resolution != null || copies != null || (location != null && location.isNotEmpty)`. `hasAnyData` is `archived || hasAnyDetail || extraJson.isNotEmpty`.
+- **Notes:** `hasAnyData` is the gate that keeps the on-disk format stable. `Anime.toJson` writes a
+  `localArchive` key only when it is true, and `Anime.fromJson` discards an all-empty parsed record,
+  so anime that never touched the feature serialize byte-identically to before it existed. That is
+  what keeps the WebDAV request goldens in `test/golden/goldens/myanime/` valid.
+
+### `AnimeLocalArchive withExtraJson(Map<String, dynamic> extraJson)` <a id="withextrajson-animelocalarchive"></a>
+- **Kind:** method (`AnimeLocalArchive`)
+- **Source:** `lib/features/anime/models/anime.dart` (line 448)
+- **Purpose:** Copy this record with its preserved-unknown-fields map replaced.
+- **Inputs:** `extraJson` — the replacement map.
+- **Returns:** `AnimeLocalArchive`.
+- **Side effects:** None.
+- **Usage:** Called from `Anime.withPreservedUnknownJson` after deep-merging the archive `extraJson` of every candidate source, exactly as it already does for `AnimeRating`.
+
+### `Map<String, dynamic> toJson()` (`AnimeLocalArchive`) <a id="tojson-animelocalarchive"></a>
+- **Kind:** method (`AnimeLocalArchive`)
+- **Source:** `lib/features/anime/models/anime.dart` (line 463)
+- **Purpose:** Serialize to the JSON object stored under `Anime.localArchive`.
+- **Returns:** `Map<String, dynamic>`.
+- **Side effects:** None.
+- **Algorithm:**
+  1. Start from a copy of `extraJson`, so unknown fields lead the output.
+  2. Write `archived` — **unless** `extraJson` already holds an `archived` key, which only happens when the stored value failed to parse as a bool and was preserved verbatim.
+  3. For each of `source`, `resolution`, `copies`, `location`: write the typed value when set; otherwise remove the key only when `extraJson` is not preserving one.
+- **Output shape:**
+  ```json
+  { "archived": true, "source": "bd", "resolution": "fhd1080p",
+    "copies": 2, "location": "NAS-01, HDD-C3" }
+  ```
+- **Notes:** Enums serialize by `.name`, matching `AnimeType` and `EpisodeStatus`.
+
+### `factory AnimeLocalArchive.fromJson(Map<String, dynamic> json)` <a id="animelocalarchive-fromjson"></a>
+- **Kind:** factory constructor
+- **Source:** `lib/features/anime/models/anime.dart` (line 499)
+- **Purpose:** Parse an archive record from JSON without losing anything this build cannot interpret.
+- **Inputs:** `json` — the decoded `localArchive` object.
+- **Returns:** A new `AnimeLocalArchive`.
+- **Side effects:** None.
+- **Algorithm:**
+  1. `extraJson = _unknownJson(json, _localArchiveJsonKeys)`.
+  2. For each known key, type-check the raw value (`bool` for `archived`, the two enum parsers for `source`/`resolution`, `int` for `copies`, `String` for `location`). A present-but-unparseable value is written **back** into `extraJson` and the typed field is left null/false.
+- **Notes:** Same forward-compatibility contract as `AnimeRating.fromJson`: an older build editing a
+  record written by a newer build round-trips the newer build's values untouched. Covered by
+  `test/anime_json_test.dart` ("local archive preserves unknown and unparseable fields").
+
+### `const Anime({required id, title, titleJa, season = 'Season 1', startEpisode = 1, endEpisode = 13, manualType, airDayOfWeek, airTime, firstAirDate, episodeStatuses = const {}, coverImage, infoUrl, watchUrl, episodeWeekOffsets = const {}, notes, rating, localArchive, required createdAt, required modifiedAt, extraJson = const {}})` <a id="anime-new"></a>
 - **Kind:** constructor of `Anime`
-- **Source:** `lib/features/anime/models/anime.dart` (line 384)
+- **Source:** `lib/features/anime/models/anime.dart` (line 620)
 - **Purpose:** Construct an `Anime` record from every persisted field directly.
 - **Inputs:** `id`, `createdAt`, `modifiedAt` required; `season` defaults to `'Season 1'`, `startEpisode` to `1`, `endEpisode` to `13` (a fresh single-cour assumption), `episodeStatuses`/`episodeWeekOffsets`/`extraJson` default to empty; everything else optional.
 - **Returns:** A new `Anime`.
@@ -333,7 +441,7 @@ has 41 rows — the `AnimeData` default constructor (line 1063) has no doc comme
 
 ### `String get displayTitle` <a id="displaytitle"></a>
 - **Kind:** getter of `Anime`
-- **Source:** `lib/features/anime/models/anime.dart` (line 412)
+- **Source:** `lib/features/anime/models/anime.dart` (line 649)
 - **Purpose:** Return the best available title for display.
 - **Inputs:** None.
 - **Returns:** `String` — `title` if non-empty, else `titleJa` if non-empty, else `''`.
@@ -349,7 +457,7 @@ has 41 rows — the `AnimeData` default constructor (line 1063) has no doc comme
 
 ### `int? get totalEpisodes` <a id="totalepisodes"></a>
 - **Kind:** getter of `Anime`
-- **Source:** `lib/features/anime/models/anime.dart` (line 421)
+- **Source:** `lib/features/anime/models/anime.dart` (line 658)
 - **Purpose:** Return the total episode count when the run length is known.
 - **Inputs:** None.
 - **Returns:** `int?` — `endEpisode! - startEpisode + 1` when `endEpisode` is set, else `null`.
@@ -364,7 +472,7 @@ has 41 rows — the `AnimeData` default constructor (line 1063) has no doc comme
 
 ### `AnimeType get autoType` <a id="autotype"></a>
 - **Kind:** getter of `Anime`
-- **Source:** `lib/features/anime/models/anime.dart` (line 429)
+- **Source:** `lib/features/anime/models/anime.dart` (line 666)
 - **Purpose:** Infer the broadcast type from the current episode count alone, ignoring any manual override.
 - **Inputs:** None.
 - **Returns:** `AnimeType`.
@@ -382,7 +490,7 @@ has 41 rows — the `AnimeData` default constructor (line 1063) has no doc comme
 
 ### `AnimeType get effectiveType` <a id="effectivetype"></a>
 - **Kind:** getter of `Anime`
-- **Source:** `lib/features/anime/models/anime.dart` (line 443)
+- **Source:** `lib/features/anime/models/anime.dart` (line 680)
 - **Purpose:** Return the `AnimeType` that should actually drive app behavior (calendar rendering, quarter placement, episode-date rollover), applying the manual override when present.
 - **Inputs:** None.
 - **Returns:** `AnimeType`.
@@ -399,7 +507,7 @@ has 41 rows — the `AnimeData` default constructor (line 1063) has no doc comme
 
 ### `bool airsInQuarter(int year, int quarter)` <a id="airsinquarter"></a>
 - **Kind:** method of `Anime`
-- **Source:** `lib/features/anime/models/anime.dart` (line 453)
+- **Source:** `lib/features/anime/models/anime.dart` (line 690)
 - **Purpose:** Decide whether this anime should appear in a given `(year, quarter)` listing (the "cour" grouping used by the management and statistics pages).
 - **Inputs:** `year`, `quarter` (1–4).
 - **Returns:** `bool`.
@@ -422,7 +530,7 @@ has 41 rows — the `AnimeData` default constructor (line 1063) has no doc comme
 
 ### `(int, int)? get startQuarter` <a id="startquarter"></a>
 - **Kind:** getter of `Anime`
-- **Source:** `lib/features/anime/models/anime.dart` (line 518)
+- **Source:** `lib/features/anime/models/anime.dart` (line 755)
 - **Purpose:** Return the starting broadcast quarter derived from `firstAirDate`'s month.
 - **Inputs:** None.
 - **Returns:** `(int, int)?` — `(year, quarter)`, `null` when `firstAirDate` is unset.
@@ -439,7 +547,7 @@ has 41 rows — the `AnimeData` default constructor (line 1063) has no doc comme
 
 ### `int weekOffsetFor(int episodeNumber)` <a id="weekoffsetfor"></a>
 - **Kind:** method of `Anime`
-- **Source:** `lib/features/anime/models/anime.dart` (line 533)
+- **Source:** `lib/features/anime/models/anime.dart` (line 770)
 - **Purpose:** Sum every configured week adjustment that affects a given episode.
 - **Inputs:** `episodeNumber`.
 - **Returns:** `int` — total weeks to shift (positive = delay, negative = earlier).
@@ -457,7 +565,7 @@ has 41 rows — the `AnimeData` default constructor (line 1063) has no doc comme
 
 ### `DateTime? getEpisodeAirDate(int episodeNumber)` <a id="getepisodeairdate"></a>
 - **Kind:** method of `Anime`
-- **Source:** `lib/features/anime/models/anime.dart` (line 546)
+- **Source:** `lib/features/anime/models/anime.dart` (line 783)
 - **Purpose:** Compute the JST air timestamp for an episode, including late-night broadcast-slot rollover (e.g. `"25:00"` = 01:00 the next day).
 - **Inputs:** `episodeNumber`.
 - **Returns:** `DateTime?` — `null` when scheduling data is incomplete (`firstAirDate` or `airDayOfWeek` missing, or `episodeNumber < startEpisode`).
@@ -484,7 +592,7 @@ has 41 rows — the `AnimeData` default constructor (line 1063) has no doc comme
 
 ### `DateTime? getEpisodeCalendarDate(int episodeNumber)` <a id="getepisodecalendardate"></a>
 - **Kind:** method of `Anime`
-- **Source:** `lib/features/anime/models/anime.dart` (line 592)
+- **Source:** `lib/features/anime/models/anime.dart` (line 829)
 - **Purpose:** Compute the JST calendar broadcast date for an episode, deliberately without applying `airTime`'s late-night rollover.
 - **Inputs:** `episodeNumber`.
 - **Returns:** `DateTime?` — same null conditions as [`getEpisodeAirDate`](#getepisodeairdate).
@@ -504,7 +612,7 @@ has 41 rows — the `AnimeData` default constructor (line 1063) has no doc comme
 
 ### `int? get nextUnwatchedEpisode` <a id="nextunwatchedepisode"></a>
 - **Kind:** getter of `Anime`
-- **Source:** `lib/features/anime/models/anime.dart` (line 623)
+- **Source:** `lib/features/anime/models/anime.dart` (line 860)
 - **Purpose:** Return the first episode number that is still unwatched.
 - **Inputs:** None.
 - **Returns:** `int?` — `null` when every tracked episode (up to `endEpisode`, or `startEpisode + 999` for open-ended series) is already `watched` or `skippedThisWeek`.
@@ -519,7 +627,7 @@ has 41 rows — the `AnimeData` default constructor (line 1063) has no doc comme
 
 ### `bool get isCompleted` <a id="iscompleted"></a>
 - **Kind:** getter of `Anime`
-- **Source:** `lib/features/anime/models/anime.dart` (line 639)
+- **Source:** `lib/features/anime/models/anime.dart` (line 876)
 - **Purpose:** Whether every episode has been watched.
 - **Inputs:** None.
 - **Returns:** `bool` — always `false` when `endEpisode` is `null` (open-ended series can never be "complete").
@@ -534,7 +642,7 @@ has 41 rows — the `AnimeData` default constructor (line 1063) has no doc comme
 
 ### `AnimeViewingStatus get viewingStatus` <a id="viewingstatus"></a>
 - **Kind:** getter of `Anime`
-- **Source:** `lib/features/anime/models/anime.dart` (line 652)
+- **Source:** `lib/features/anime/models/anime.dart` (line 889)
 - **Purpose:** Derive the viewing status shown throughout the UI, computed from `episodeStatuses` rather than stored separately.
 - **Inputs:** None.
 - **Returns:** `AnimeViewingStatus` — one of `completed`, `watching`, `dropped`, `notStarted`.
@@ -556,9 +664,9 @@ has 41 rows — the `AnimeData` default constructor (line 1063) has no doc comme
 
 ### `Anime copyWith({...})` <a id="copywith"></a>
 - **Kind:** method of `Anime`
-- **Source:** `lib/features/anime/models/anime.dart` (line 685)
+- **Source:** `lib/features/anime/models/anime.dart` (line 922)
 - **Purpose:** Create a copy with selected fields replaced, using `clearXxx` boolean flags to explicitly null out an otherwise-nullable field (since passing `null` for a parameter is indistinguishable from "not supplied").
-- **Inputs:** One optional parameter per mutable field, plus `clearEndEpisode`/`clearManualType`/`clearAirDayOfWeek`/`clearAirTime`/`clearFirstAirDate`/`clearCoverImage`/`clearInfoUrl`/`clearWatchUrl`/`clearNotes`/`clearRating` (all default `false`); `modifiedAt` optional (defaults to `DateTime.now().toUtc()` if not supplied).
+- **Inputs:** One optional parameter per mutable field, plus `clearEndEpisode`/`clearManualType`/`clearAirDayOfWeek`/`clearAirTime`/`clearFirstAirDate`/`clearCoverImage`/`clearInfoUrl`/`clearWatchUrl`/`clearNotes`/`clearRating`/`clearLocalArchive` (all default `false`); `modifiedAt` optional (defaults to `DateTime.now().toUtc()` if not supplied).
 - **Returns:** A new `Anime`; `id`, `createdAt`, and `extraJson` are always carried over unchanged.
 - **Side effects:** None (though calling it without an explicit `modifiedAt` reads the current time).
 - **Algorithm:** For each nullable field with a `clearXxx` flag: if the flag is `true`, the field becomes `null`; else the supplied value is used if non-null, else the existing value is kept (`value ?? this.value`). Non-nullable fields (`season`, `startEpisode`) and `episodeStatuses`/`episodeWeekOffsets` just use `?? this.field` directly with no clear flag.
@@ -569,6 +677,8 @@ has 41 rows — the `AnimeData` default constructor (line 1063) has no doc comme
     ...
     rating: rating,
     clearRating: rating == null,
+    localArchive: localArchive,
+    clearLocalArchive: localArchive == null,
     modifiedAt: DateTime.now().toUtc(),
   );
   await AnimeStorage.addOrUpdate(updated);
@@ -578,7 +688,7 @@ has 41 rows — the `AnimeData` default constructor (line 1063) has no doc comme
 
 ### `Anime withExtraJson(Map<String, dynamic> extraJson)` (`Anime`) <a id="withextrajson-anime"></a>
 - **Kind:** method of `Anime`
-- **Source:** `lib/features/anime/models/anime.dart` (line 747)
+- **Source:** `lib/features/anime/models/anime.dart` (line 989)
 - **Purpose:** Return a copy of this anime with only `extraJson` replaced.
 - **Inputs:** `extraJson`.
 - **Returns:** A new `Anime` with every other field unchanged.
@@ -592,16 +702,17 @@ has 41 rows — the `AnimeData` default constructor (line 1063) has no doc comme
 
 ### `Anime withPreservedUnknownJson(Iterable<Anime?> fallbackSources)` <a id="withpreservedunknownjson-anime"></a>
 - **Kind:** method of `Anime`
-- **Source:** `lib/features/anime/models/anime.dart` (line 775)
-- **Purpose:** Merge this record's `extraJson` (and its rating's `extraJson`) with the `extraJson` of one or more fallback candidates — typically the local and remote copies of the same record during a sync merge — so a field unknown to *this* app version but present on either side survives.
+- **Source:** `lib/features/anime/models/anime.dart` (line 1018)
+- **Purpose:** Merge this record's `extraJson` (and the `extraJson` of its nested `rating` and `localArchive`) with the `extraJson` of one or more fallback candidates — typically the local and remote copies of the same record during a sync merge — so a field unknown to *this* app version but present on either side survives.
 - **Inputs:** `fallbackSources` — an iterable of `Anime?` (nulls are skipped).
-- **Returns:** A new `Anime` with `extraJson` and `rating.extraJson` each replaced by their merged form; every other field is copied from `this` unchanged.
+- **Returns:** A new `Anime` with `extraJson`, `rating.extraJson`, and `localArchive.extraJson` each replaced by their merged form; every other field is copied from `this` unchanged.
 - **Side effects:** None (pure).
 - **Algorithm:**
   1. Merge `rating.extraJson` across every source that has a non-null `rating`, plus this record's own `rating?.extraJson`, via [`_mergeJsonMaps`](#mergejsonmaps).
   2. If `this.rating` is non-null, produce `rating!.withExtraJson(mergedRatingExtraJson)`; else, if the merged map is non-empty, synthesize a scores-empty `AnimeRating(extraJson: ...)` so a rating known only via `extraJson` on another device doesn't vanish; else `null`.
-  3. Merge top-level `extraJson` the same way across all sources plus `this.extraJson`.
-  4. Return a full copy of `this` with the merged `rating` and `extraJson`.
+  3. Repeat steps 1–2 verbatim for `localArchive`, synthesizing a field-empty `AnimeLocalArchive(extraJson: ...)` in the same situation.
+  4. Merge top-level `extraJson` the same way across all sources plus `this.extraJson`.
+  5. Return a full copy of `this` with the merged `rating`, `localArchive`, and `extraJson`.
 - **Usage:**
   ```dart
   all.add(chosen.withPreservedUnknownJson([c.localRecord, c.remoteRecord]));
@@ -616,7 +727,7 @@ has 41 rows — the `AnimeData` default constructor (line 1063) has no doc comme
 
 ### `Map<String, dynamic> toJson()` (`Anime`) <a id="tojson-anime"></a>
 - **Kind:** method of `Anime`
-- **Source:** `lib/features/anime/models/anime.dart` (line 821)
+- **Source:** `lib/features/anime/models/anime.dart` (line 1076)
 - **Purpose:** Serialize this record to the JSON shape persisted in `anime_data.json`.
 - **Inputs:** None.
 - **Returns:** `Map<String, dynamic>`.
@@ -624,9 +735,10 @@ has 41 rows — the `AnimeData` default constructor (line 1063) has no doc comme
 - **Algorithm:**
   1. Start from a copy of `extraJson`.
   2. Build `episodeStatuses`'/`episodeWeekOffsets`' JSON by starting from any unknown entries preserved in `extraJson['episodeStatuses']`/`extraJson['episodeWeekOffsets']` (via [`_stringKeyedMap`](#stringkeyedmap)), then overlaying every known entry (`k.toString(): v.name` / `k.toString(): v`).
-  3. Write every scalar field (`id`, `title`, `titleJa`, `season`, `startEpisode`, `endEpisode`, `manualType`, `airDayOfWeek`, `airTime`, `firstAirDate`, `coverImage`, `infoUrl`, `watchUrl`, `notes`, `createdAt`, `modifiedAt`) — nullable fields are written when non-null and otherwise `json.remove(key)`'d, except `manualType`/`rating` which are left alone (not removed) when the field is null but the key already survives via `extraJson`.
+  3. Write every scalar field (`id`, `title`, `titleJa`, `season`, `startEpisode`, `endEpisode`, `manualType`, `airDayOfWeek`, `airTime`, `firstAirDate`, `coverImage`, `infoUrl`, `watchUrl`, `notes`, `createdAt`, `modifiedAt`) — nullable fields are written when non-null and otherwise `json.remove(key)`'d, except `manualType`/`rating`/`localArchive` which are left alone (not removed) when the field is null but the key already survives via `extraJson`.
   4. `episodeStatuses` is always written (even if empty); `episodeWeekOffsets` is only written when non-empty.
   5. `rating` is written via `rating!.toJson()` only when `rating != null && rating!.hasAnyData`.
+  6. `localArchive` follows the same rule via `localArchive!.toJson()` and `hasAnyData`, so a record that never used the feature emits no `localArchive` key at all.
 - **Usage:**
   ```dart
   final jsonStr = const JsonEncoder.withIndent('  ').convert(data.toJson());
@@ -639,7 +751,7 @@ has 41 rows — the `AnimeData` default constructor (line 1063) has no doc comme
 
 ### `factory Anime.fromJson(Map<String, dynamic> json)` <a id="anime-fromjson"></a>
 - **Kind:** factory constructor of `Anime`
-- **Source:** `lib/features/anime/models/anime.dart` (line 922)
+- **Source:** `lib/features/anime/models/anime.dart` (line 1182)
 - **Purpose:** Reconstruct an `Anime` from its persisted JSON form, preserving every field this app version doesn't recognize or can't parse.
 - **Inputs:** `json`.
 - **Returns:** A new `Anime`.
@@ -650,7 +762,8 @@ has 41 rows — the `AnimeData` default constructor (line 1063) has no doc comme
   3. `episodeStatuses` parses each `episodeStatuses` entry via [`_parseEpisodeStatus`](#parseepisodestatus); entries that don't parse (bad key or value) collect into `extraJson['episodeStatuses']` instead of the typed map; if the raw value isn't a `Map` at all, the whole raw value is preserved instead.
   4. `episodeWeekOffsets` follows the identical pattern, requiring `int` values.
   5. `rating` parses via [`AnimeRating.fromJson`](#animerating-fromjson) when the raw value is a `Map` and collapses to `null` if the parsed rating has no data; a non-`Map` raw value is preserved into `extraJson['rating']`.
-  6. Required scalar fields (`id`, `createdAt`, `modifiedAt`) are read with `as` casts (throwing if absent/wrong-typed); everything else uses `as Type?` with sensible defaults (`season` → `'Season 1'`, `startEpisode` → `1`).
+  6. `localArchive` follows the identical pattern via [`AnimeLocalArchive.fromJson`](#animelocalarchive-fromjson) and its `hasAnyData` gate.
+  7. Required scalar fields (`id`, `createdAt`, `modifiedAt`) are read with `as` casts (throwing if absent/wrong-typed); everything else uses `as Type?` with sensible defaults (`season` → `'Season 1'`, `startEpisode` → `1`).
 - **Usage:**
   ```dart
   final data = AnimeData.fromJson(jsonDecode(json) as Map<String, dynamic>);
@@ -658,9 +771,9 @@ has 41 rows — the `AnimeData` default constructor (line 1063) has no doc comme
   (`lib/shared/services/webdav_service.dart`, extracting referenced cover-image names — internally calls `Anime.fromJson` once per array element via `AnimeData.fromJson`)
 - **Notes:** `createdAt`/`modifiedAt`/`firstAirDate` parsing uses `DateTime.parse` (throws on malformed input) rather than `DateTime.tryParse` — a corrupt timestamp in `anime_data.json` fails the whole load rather than silently dropping just that field.
 
-### `factory Anime.create({title, titleJa, season, startEpisode = 1, endEpisode = 13, manualType, airDayOfWeek, airTime, firstAirDate, coverImage, infoUrl, watchUrl, notes, rating})` <a id="anime-create"></a>
+### `factory Anime.create({title, titleJa, season, startEpisode = 1, endEpisode = 13, manualType, airDayOfWeek, airTime, firstAirDate, coverImage, infoUrl, watchUrl, notes, rating, localArchive})` <a id="anime-create"></a>
 - **Kind:** factory constructor of `Anime`
-- **Source:** `lib/features/anime/models/anime.dart` (line 1012)
+- **Source:** `lib/features/anime/models/anime.dart` (line 1284)
 - **Purpose:** Create a brand-new anime record for manual entry or import, generating a fresh UUID and UTC creation/modification timestamps.
 - **Inputs:** Same optional fields as the default constructor, minus `id`/`createdAt`/`modifiedAt`/`episodeStatuses`/`episodeWeekOffsets`/`extraJson` (none of which make sense to seed on creation).
 - **Returns:** A new `Anime` with `id = const Uuid().v4()` and `createdAt == modifiedAt == DateTime.now().toUtc()`.
@@ -680,7 +793,7 @@ has 41 rows — the `AnimeData` default constructor (line 1063) has no doc comme
 
 ### `AnimeData withExtraJson(Map<String, dynamic> extraJson)` (`AnimeData`) <a id="withextrajson-animedata"></a>
 - **Kind:** method of `AnimeData`
-- **Source:** `lib/features/anime/models/anime.dart` (line 1070)
+- **Source:** `lib/features/anime/models/anime.dart` (line 1344)
 - **Purpose:** Return a copy of this container with only `extraJson` replaced.
 - **Inputs:** `extraJson`.
 - **Returns:** A new `AnimeData` with the same `animes` list.
@@ -698,7 +811,7 @@ has 41 rows — the `AnimeData` default constructor (line 1063) has no doc comme
 
 ### `AnimeData withPreservedUnknownJson(Iterable<AnimeData?> fallbackSources)` <a id="withpreservedunknownjson-animedata"></a>
 - **Kind:** method of `AnimeData`
-- **Source:** `lib/features/anime/models/anime.dart` (line 1078)
+- **Source:** `lib/features/anime/models/anime.dart` (line 1352)
 - **Purpose:** Merge this container's top-level `extraJson` with that of one or more fallback candidates (e.g. the remote `AnimeData` during a sync merge).
 - **Inputs:** `fallbackSources`.
 - **Returns:** A new `AnimeData` via [`withExtraJson`](#withextrajson-animedata).
@@ -713,7 +826,7 @@ has 41 rows — the `AnimeData` default constructor (line 1063) has no doc comme
 
 ### `Map<String, dynamic> toJson()` (`AnimeData`) <a id="tojson-animedata"></a>
 - **Kind:** method of `AnimeData`
-- **Source:** `lib/features/anime/models/anime.dart` (line 1092)
+- **Source:** `lib/features/anime/models/anime.dart` (line 1366)
 - **Purpose:** Serialize the whole container to the JSON shape written to `anime_data.json`.
 - **Inputs:** None.
 - **Returns:** `Map<String, dynamic>` — `{...extraJson, 'animes': [...]}`.
@@ -730,7 +843,7 @@ has 41 rows — the `AnimeData` default constructor (line 1063) has no doc comme
 
 ### `factory AnimeData.fromJson(Map<String, dynamic> json)` <a id="animedata-fromjson"></a>
 - **Kind:** factory constructor of `AnimeData`
-- **Source:** `lib/features/anime/models/anime.dart` (line 1102)
+- **Source:** `lib/features/anime/models/anime.dart` (line 1376)
 - **Purpose:** Parse the top-level `{animes: [...]}` container from JSON.
 - **Inputs:** `json` — a decoded `anime_data.json` (or backup/import bundle) map.
 - **Returns:** A new `AnimeData`.

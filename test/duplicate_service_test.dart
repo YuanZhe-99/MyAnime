@@ -24,6 +24,7 @@ void main() {
     Map<int, EpisodeStatus> episodeStatuses = const {},
     String? notes,
     AnimeRating? rating,
+    AnimeLocalArchive? localArchive,
   }) {
     return Anime.fromJson({
       'id': id,
@@ -41,6 +42,7 @@ void main() {
       },
       if (notes != null) 'notes': notes,
       if (rating != null) 'rating': rating.toJson(),
+      if (localArchive != null) 'localArchive': localArchive.toJson(),
       'createdAt': createdAt,
       'modifiedAt': modifiedAt,
     });
@@ -234,6 +236,56 @@ void main() {
       final other = makeAnime(id: 'discard-this-id', title: 'Show');
       final merged = DuplicateService.merge(primary, [other]);
       expect(merged.id, 'keep-this-id');
+    });
+
+    test('fills local archive from a fallback when primary has none', () {
+      final primary = makeAnime(id: 'p1', title: 'Show');
+      final other = makeAnime(
+        id: 'o1',
+        title: 'Show',
+        localArchive: const AnimeLocalArchive(
+          archived: true,
+          source: ArchiveSource.bd,
+          resolution: ArchiveResolution.fhd1080p,
+          copies: 2,
+          location: 'NAS-01',
+        ),
+      );
+
+      final merged = DuplicateService.merge(primary, [other]);
+
+      expect(merged.localArchive?.archived, isTrue);
+      expect(merged.localArchive?.source, ArchiveSource.bd);
+      expect(merged.localArchive?.resolution, ArchiveResolution.fhd1080p);
+      expect(merged.localArchive?.copies, 2);
+      expect(merged.localArchive?.location, 'NAS-01');
+    });
+
+    test('keeps the primary local archive whole when it has data', () {
+      final primary = makeAnime(
+        id: 'p1',
+        title: 'Show',
+        localArchive: const AnimeLocalArchive(
+          archived: true,
+          source: ArchiveSource.web,
+        ),
+      );
+      final other = makeAnime(
+        id: 'o1',
+        title: 'Show',
+        localArchive: const AnimeLocalArchive(
+          archived: true,
+          source: ArchiveSource.bd,
+          copies: 5,
+          location: 'ignored',
+        ),
+      );
+
+      final merged = DuplicateService.merge(primary, [other]);
+
+      expect(merged.localArchive?.source, ArchiveSource.web);
+      expect(merged.localArchive?.copies, isNull);
+      expect(merged.localArchive?.location, isNull);
     });
   });
 }

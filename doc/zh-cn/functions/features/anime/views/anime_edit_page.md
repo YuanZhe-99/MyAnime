@@ -1,6 +1,6 @@
 # lib/features/anime/views/anime_edit_page.dart
 
-`AnimeEditPage` 是单条 `Anime` 记录的创建/编辑表单：标题/季/集数范围/URL/备注的文本字段、类型覆盖和播出日的下拉框、`firstAirDate` 的日期选择器、评分子分字段，以及（仅 full 风味构建）在线元数据搜索和观看 URL 搜索集成。它通过 `AnimeStorage`（[`../services/anime_storage.md`](../services/anime_storage.md)）持久化，并构建/解析 `Anime`/`AnimeRating` 模型（[`../models/anime.md`](../models/anime.md)）。它还定义了一个仅供自己的观看 URL 搜索操作使用的私有 `_WatchUrlSearchDialog`。这里编辑的字段（`manualType`、`airDayOfWeek`、`airTime`、`firstAirDate`）如何驱动季度归属和剧集播出日期计算见 [`../../../../features/anime-tracking.md`](../../../../features/anime-tracking.md)。
+`AnimeEditPage` 是单条 `Anime` 记录的创建/编辑表单：标题/季/集数范围/URL/备注的文本字段、类型覆盖和播出日的下拉框、`firstAirDate` 的日期选择器、评分子分字段、记录本地下载存档的本地存档小节，以及（仅 full 风味构建）在线元数据搜索和观看 URL 搜索集成。它通过 `AnimeStorage`（[`../services/anime_storage.md`](../services/anime_storage.md)）持久化，并构建/解析 `Anime`/`AnimeRating`/`AnimeLocalArchive` 模型（[`../models/anime.md`](../models/anime.md)）；存档枚举标签来自 [`archive_labels.md`](archive_labels.md)。它还定义了一个仅供自己的观看 URL 搜索操作使用的私有 `_WatchUrlSearchDialog`。这里编辑的字段（`manualType`、`airDayOfWeek`、`airTime`、`firstAirDate`）如何驱动季度归属和剧集播出日期计算见 [`../../../../features/anime-tracking.md`](../../../../features/anime-tracking.md)。
 
 ## 声明
 
@@ -10,13 +10,14 @@
 | `AnimeEditPage.createState` | 方法（`AnimeEditPage`） | B | 为此组件创建可变状态对象。 |
 | `_AnimeEditPageState.initState` | 方法（`_AnimeEditPageState`） | B | 设置默认季文本，编辑时触发加载既有记录。 |
 | [`_loadExisting`](#_loadexisting) | 方法（`_AnimeEditPageState`） | A | 加载既有动画并从它填充每个表单字段/控制器。 |
-| `_AnimeEditPageState.dispose` | 方法（`_AnimeEditPageState`） | B | 释放全部 15 个自有的 `TextEditingController`。 |
+| `_AnimeEditPageState.dispose` | 方法（`_AnimeEditPageState`） | B | 释放全部 17 个自有的 `TextEditingController`。 |
 | [`_pickCoverImage`](#_pickcoverimage) | 方法（`_AnimeEditPageState`） | A | 让用户选择封面图像文件并暂存其路径。 |
 | [`_searchWatchUrl`](#_searchwatchurl) | 方法（`_AnimeEditPageState`） | A | 打开观看 URL 搜索对话框并应用所选 URL。 |
 | [`_showSearchDialog`](#_showsearchdialog) | 方法（`_AnimeEditPageState`） | A | 打开在线元数据搜索对话框并把其结果合并进表单。 |
 | [`_pickFirstAirDate`](#_pickfirstairdate) | 方法（`_AnimeEditPageState`） | A | 显示日期选择器并暂存所选 `firstAirDate`。 |
 | [`_save`](#_save) | 方法（`_AnimeEditPageState`） | A | 校验表单并创建或更新动画记录。 |
 | [`_buildRating`](#_buildrating) | 方法（`_AnimeEditPageState`） | A | 从评分文本字段组装 `AnimeRating`，为空则 `null`。 |
+| [`_buildLocalArchive`](#_buildlocalarchive) | 方法（`_AnimeEditPageState`） | A | 从存档控件组装 `AnimeLocalArchive`，未填写则 `null`。 |
 | `_parseScore` | 方法（`_AnimeEditPageState`） | B | 把评分控制器的文本解析为 `double?`。 |
 | `_formatScore` | 方法（`_AnimeEditPageState`） | B | 分数为整数时格式化为整数，否则保留一位小数。 |
 | `_AnimeEditPageState.build` | 方法（`_AnimeEditPageState`，组件构建） | B | 构建编辑/创建表单脚手架。 |
@@ -42,8 +43,9 @@
 - **副作用：** 调用 `AnimeStorage.load()`；`setState` `_isEdit`、`_existing` 和每个控制器/暂存字段（`_titleController`、……、`_coverImage`）。
 - **算法：**
   1. Await `AnimeStorage.load()`；找 `id == widget.animeId` 的记录。
-  2. 找到时，设 `_isEdit = true`、`_existing = found`，把每个可编辑字段复制进匹配的控制器（未设置的可选文本字段为空字符串）或暂存变量（`_airDayOfWeek`、`_firstAirDate`、`_manualType`、`_coverImage`）。
+  2. 找到时，设 `_isEdit = true`、`_existing = found`，把每个可编辑字段复制进匹配的控制器（未设置的可选文本字段为空字符串）或暂存变量（`_airDayOfWeek`、`_firstAirDate`、`_manualType`、`_coverImage`、`_archived`、`_archiveSource`、`_archiveResolution`）。
   3. 评分子分在放进控制器之前经 `_formatScore`（Tier B，同一文件）格式化。
+  4. 本地存档控件以空安全默认值从 `found.localArchive` 填充，因此没有存档记录的动画打开时开关关闭、各字段为空。
 - **用法：**
   ```dart
   if (widget.animeId != null) {
@@ -146,9 +148,9 @@
 - **算法：**
   1. 运行 `Form` 的字段校验器（`_formKey.currentState!.validate()`）；无效则中止。
   2. 创建时（`!_isEdit`），要求标题/日文标题至少一个非空；否则显示列出缺失字段的阻塞对话框并返回。
-  3. 从控制器解析 `startEp`/`endEp`（默认为 `1`/`12`）并经 [`_buildRating`](#_buildrating) 构建评分。
+  3. 从控制器解析 `startEp`/`endEp`（默认为 `1`/`12`）并经 [`_buildRating`](#_buildrating) 构建评分，并经 [`_buildLocalArchive`](#_buildlocalarchive) 构建本地存档记录。
   4. `startEp > endEp` 时，上移 `endEp`，使集数相对原始 `endEpisode`（编辑时）或原始解析的 `endEp`（创建时）保持不变——`endEp = originalEnd - 1 + startEp`。
-  5. 编辑时：用每个表单字段（空的可选字符串变 `null`）、`rating`、`clearRating: rating == null` 和新 `modifiedAt` `copyWith` 既有动画；经 `AnimeStorage.addOrUpdate` 保存；无结果地弹出。
+  5. 编辑时：用每个表单字段（空的可选字符串变 `null`）、`rating`、`clearRating: rating == null`、`localArchive`、`clearLocalArchive: localArchive == null` 和新 `modifiedAt` `copyWith` 既有动画；经 `AnimeStorage.addOrUpdate` 保存；无结果地弹出。
   6. 创建时：标题字段为空时从日文标题自动填充 `title`，经 [`Anime.create`](../models/anime.md#anime-create) 构建新 `Anime`，保存它，并带新动画的 `id` 作为结果弹出路由。
 - **用法：**
   ```dart
@@ -175,6 +177,28 @@
   （`_save`，同一文件）
 - **备注：** 以 `_build` 前缀命名但**不**返回 `Widget`——它是供 [`_save`](#_save) 使用的数据组装辅助，不是 UI 构建器。
 
+### `AnimeLocalArchive? _buildLocalArchive()` <a id="_buildlocalarchive"></a>
+- **种类：** `_AnimeEditPageState` 的方法
+- **来源：** `lib/features/anime/views/anime_edit_page.dart`（约第 416 行）
+- **用途：** 从本地存档小节的控件组装 `AnimeLocalArchive`，该小节未被触碰时收缩为 `null`。
+- **输入：** 无（读取 `_archived`、`_archiveSource`、`_archiveResolution`、两个存档控制器，以及
+  `_existing?.localArchive?.extraJson`）。
+- **返回：** `AnimeLocalArchive?`。
+- **副作用：** 无。
+- **算法：** 裁剪位置文本（空 → `null`），对份数文本做 `int.tryParse`，构建一个带上 `_existing` 存档
+  `extraJson`（若有）的 `AnimeLocalArchive`，仅当
+  [`hasAnyData`](../models/anime.md#animelocalarchive-hasanydata) 为真时返回它，否则 `null`。
+- **用法：**
+  ```dart
+  final localArchive = _buildLocalArchive();
+  ...
+  localArchive: localArchive,
+  clearLocalArchive: localArchive == null,
+  ```
+  （同文件 `_save`）
+- **备注：** 与 [`_buildRating`](#_buildrating) 完全平行，包括不返回 `Widget` 的 `_build` 前缀。这个
+  `null` 收缩正是让 `anime_data.json` 中不出现空 `localArchive` 对象（针对从未使用该功能的动画）的原因。
+  即使 `archived` 开关关闭，子字段仍可编辑——没有跨字段联动，因此"尚未下载，但已预定放 NAS-01"是可表达的。
 ### `Future<void> _search()` <a id="_search-watchurl"></a>
 - **种类：** `_WatchUrlSearchDialogState` 的方法
 - **来源：** `lib/features/anime/views/anime_edit_page.dart`（约第 867 行）

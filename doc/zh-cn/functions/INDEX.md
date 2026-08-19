@@ -2,13 +2,13 @@
 
 这是 MyAnime 仓库中 `lib/` 手写函数解释层文档的顶层索引。每行链接到 `doc/en-us/functions/` 下镜像 `lib/` 树的逐源文件页面（`.dart` 换成 `.md`）。
 
-**总计：** 仓库的 `/// Purpose:` 注释数为 **667**（按 `AGENTS.md` 中的函数解释层约定，排除生成的 `lib/l10n/` 代码——见 [l10n/INDEX.md](l10n/INDEX.md)）。本索引记录 **670** 个声明——比 667 多 3 个——因为三个真实声明（`anime.dart` 中 `AnimeData` 的默认构造函数；`anime_search_service.dart` 中的 `_searchAnime1Single`；以及那些页面上的一个另行说明的情况）在源码中完全没有 `///` 文档注释，但仍是真实、已记录的声明。每个这种情况都在其文件页面和下方的 `features/` 小节中明确说明；没有任何东西被静默编造来凑整。
+**总计：** 仓库的 `/// Purpose:` 注释数为 **682**（按 `AGENTS.md` 中的函数解释层约定，排除生成的 `lib/l10n/` 代码——见 [l10n/INDEX.md](l10n/INDEX.md)）。本索引记录 **685** 个声明——比 682 多 3 个——因为三个真实声明（`anime.dart` 中 `AnimeData` 的默认构造函数；`anime_search_service.dart` 中的 `_searchAnime1Single`；以及那些页面上的一个另行说明的情况）在源码中完全没有 `///` 文档注释，但仍是真实、已记录的声明。每个这种情况都在其文件页面和下方的 `features/` 小节中明确说明；没有任何东西被静默编造来凑整。
 
 | Tier | 计数 |
 |---|---|
-| Tier A（完整条目：Purpose/Inputs/Returns/Side effects/Algorithm/Usage/Notes） | 441 |
-| Tier B（仅索引行） | 229 |
-| **总计** | **670** |
+| Tier A（完整条目：Purpose/Inputs/Returns/Side effects/Algorithm/Usage/Notes） | 452 |
+| Tier B（仅索引行） | 233 |
+| **总计** | **685** |
 
 ## 根（`lib/`）
 
@@ -32,14 +32,15 @@
 
 | 源文件 | 页面 | 声明数 | Tier A 计数 |
 |---|---|---|---|
-| `lib/features/anime/models/anime.dart` | [features/anime/models/anime.md](features/anime/models/anime.md) | 41 | 36 |
+| `lib/features/anime/models/anime.dart` | [features/anime/models/anime.md](features/anime/models/anime.md) | 49 | 42 |
 | `lib/features/anime/services/anime_storage.dart` | [features/anime/services/anime_storage.md](features/anime/services/anime_storage.md) | 27 | 27 |
 | `lib/features/anime/services/anime_search_service.dart` | [features/anime/services/anime_search_service.md](features/anime/services/anime_search_service.md) | 16 | 16 |
-| `lib/features/anime/views/anime_detail_page.dart` | [features/anime/views/anime_detail_page.md](features/anime/views/anime_detail_page.md) | 20 | 8 |
-| `lib/features/anime/views/anime_edit_page.dart` | [features/anime/views/anime_edit_page.md](features/anime/views/anime_edit_page.md) | 24 | 8 |
+| `lib/features/anime/views/anime_detail_page.dart` | [features/anime/views/anime_detail_page.md](features/anime/views/anime_detail_page.md) | 21 | 8 |
+| `lib/features/anime/views/anime_edit_page.dart` | [features/anime/views/anime_edit_page.md](features/anime/views/anime_edit_page.md) | 25 | 9 |
 | `lib/features/anime/views/anime_search_dialog.dart` | [features/anime/views/anime_search_dialog.md](features/anime/views/anime_search_dialog.md) | 19 | 5 |
+| `lib/features/anime/views/archive_labels.dart` | [features/anime/views/archive_labels.md](features/anime/views/archive_labels.md) | 3 | 3 |
 | `lib/features/anime/views/home_page.dart` | [features/anime/views/home_page.md](features/anime/views/home_page.md) | 22 | 9 |
-| `lib/features/anime/views/management_page.dart` | [features/anime/views/management_page.md](features/anime/views/management_page.md) | 20 | 9 |
+| `lib/features/anime/views/management_page.dart` | [features/anime/views/management_page.md](features/anime/views/management_page.md) | 22 | 10 |
 | `lib/features/anime/views/quarter_picker_dialog.dart` | [features/anime/views/quarter_picker_dialog.md](features/anime/views/quarter_picker_dialog.md) | 5 | 1 |
 | `lib/features/anime/views/statistics_page.dart` | [features/anime/views/statistics_page.md](features/anime/views/statistics_page.md) | 66 | 27 |
 
@@ -62,7 +63,7 @@
 
 ## l10n/
 
-`lib/l10n/` 已在 [l10n/INDEX.md](l10n/INDEX.md) 中记录（生成代码，不属于上面 660/663 个手写声明）。
+`lib/l10n/` 已在 [l10n/INDEX.md](l10n/INDEX.md) 中记录（生成代码，不属于上面 675/678 个手写声明）。
 
 ## shared/
 
@@ -98,10 +99,10 @@
 |---|---|---|---|---|
 | 根（`lib/`） | 1 | 1 | 1 | 0 |
 | `app/` | 4 | 7 | 2 | 5 |
-| `features/anime/` | 10 | 257 | 144 | 113 |
+| `features/anime/` | 11 | 272 | 155 | 117 |
 | `features/kana/` | 1 | 19 | 3 | 16 |
 | `features/settings/` | 4 | 45 | 24 | 21 |
 | `shared/`（utils/widgets/providers） | 8 | 42 | 27 | 15 |
 | `shared/services/` | 14 | 270 | 222 | 48 |
 | `shared/views/` | 1 | 22 | 12 | 10 |
-| **总计** | **43** | **663** | **435** | **228** |
+| **总计** | **44** | **678** | **446** | **232** |

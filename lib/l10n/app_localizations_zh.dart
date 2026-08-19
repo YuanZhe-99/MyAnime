@@ -154,6 +154,44 @@ class AppLocalizationsZh extends AppLocalizations {
   String get animeRatingAutoOverall => '综合评分由子项平均计算';
 
   @override
+  String get animeLocalArchive => '本地存档';
+
+  @override
+  String get animeLocalArchiveHint => '选填。是否保留了本地下载资源。';
+
+  @override
+  String get animeLocalArchiveArchived => '已下载到本地';
+
+  @override
+  String get animeLocalArchiveNone => '未下载';
+
+  @override
+  String get animeArchiveSource => '片源';
+
+  @override
+  String get animeArchiveResolution => '分辨率';
+
+  @override
+  String get animeArchiveOther => '其他';
+
+  @override
+  String get animeArchiveCopies => '存档份数';
+
+  @override
+  String get animeArchiveCopiesInvalid => '请输入正整数';
+
+  @override
+  String animeArchiveCopiesValue(int count) {
+    return '×$count';
+  }
+
+  @override
+  String get animeArchiveLocation => '资料仓库代码或位置';
+
+  @override
+  String get animeArchiveLocationHint => '例如 NAS-01、HDD-C3';
+
+  @override
   String get searchAnimeInfo => '搜索番剧信息';
 
   @override
@@ -739,6 +777,18 @@ class AppLocalizationsZh extends AppLocalizations {
   String get manageNoSearchResults => '没有匹配的番剧';
 
   @override
+  String get manageFilterArchive => '本地存档';
+
+  @override
+  String get manageFilterAll => '全部';
+
+  @override
+  String get manageFilterArchived => '已存档';
+
+  @override
+  String get manageFilterNotArchived => '未存档';
+
+  @override
   String get manageOther => '其他';
 
   @override
@@ -1279,6 +1329,44 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
 
   @override
   String get animeRatingAutoOverall => '綜合評分由子項平均計算';
+
+  @override
+  String get animeLocalArchive => '本機存檔';
+
+  @override
+  String get animeLocalArchiveHint => '選填。是否保留了本機下載資源。';
+
+  @override
+  String get animeLocalArchiveArchived => '已下載到本機';
+
+  @override
+  String get animeLocalArchiveNone => '未下載';
+
+  @override
+  String get animeArchiveSource => '片源';
+
+  @override
+  String get animeArchiveResolution => '解析度';
+
+  @override
+  String get animeArchiveOther => '其他';
+
+  @override
+  String get animeArchiveCopies => '存檔份數';
+
+  @override
+  String get animeArchiveCopiesInvalid => '請輸入正整數';
+
+  @override
+  String animeArchiveCopiesValue(int count) {
+    return '×$count';
+  }
+
+  @override
+  String get animeArchiveLocation => '資料倉庫代碼或位置';
+
+  @override
+  String get animeArchiveLocationHint => '例如 NAS-01、HDD-C3';
 
   @override
   String get searchAnimeInfo => '搜尋番劇資訊';
@@ -1864,6 +1952,18 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
 
   @override
   String get manageNoSearchResults => '沒有匹配的番劇';
+
+  @override
+  String get manageFilterArchive => '本機存檔';
+
+  @override
+  String get manageFilterAll => '全部';
+
+  @override
+  String get manageFilterArchived => '已存檔';
+
+  @override
+  String get manageFilterNotArchived => '未存檔';
 
   @override
   String get manageOther => '其他';

@@ -44,6 +44,7 @@ server the app runs for other local/LAN tools to call, e.g. the desktop web dash
 | [`_airedEpisodeCount`](#airedepisodecount) | static method | A | Count aired episodes (JST-aware). |
 | [`_airedUnwatchedEpisodeCount`](#airedunwatchedepisodecount) | static method | A | Count aired-but-unwatched episodes (JST-aware). |
 | [`_ratingToJson`](#ratingtojson) | static method | A | Serialize an `AnimeRating` for API responses. |
+| [`_localArchiveToJson`](#localarchivetojson) | static method | A | Serialize an `AnimeLocalArchive` for API responses. |
 | [`_computeCounts`](#computecounts) | static method | A | Derive per-status counts, with legacy key aliases. |
 | `_json` | static method | B | Wrap a value as a `200 application/json` `Response`. |
 | [`_jstToUtcString`](#jsttoutcstring) | static method | A | Convert a JST-naive `DateTime` to a UTC ISO string. |
@@ -452,7 +453,8 @@ server the app runs for other local/LAN tools to call, e.g. the desktop web dash
   `status` (`viewingStatus.name`), `nextUnwatchedEpisode`/`nextEpisodeAirDate` (UTC string via
   `_jstToUtcString`), `type`/`manualType`, `watchedEpisodes`/`skippedEpisodes`
   (`_episodeStatusCount`), `airedEpisodes`/`airedUnwatchedEpisodes`, `rating`
-  (`_ratingToJson`), and `createdAt`/`modifiedAt` as ISO 8601 strings.
+  (`_ratingToJson`), `localArchive` (`_localArchiveToJson`), and `createdAt`/`modifiedAt` as
+  ISO 8601 strings.
 - **Side effects:** None (reads only).
 - **Algorithm:** Direct field mapping plus calls to the small helper functions listed above for
   every derived field; see this repo's `AGENTS.md` "Desktop API" section for the documented field
@@ -465,7 +467,7 @@ server the app runs for other local/LAN tools to call, e.g. the desktop web dash
 
 ### `static int _episodeStatusCount(Anime anime, EpisodeStatus status)` <a id="episodestatuscount"></a>
 - **Kind:** static method of `LocalApiServer`.
-- **Source:** `lib/shared/services/local_api_server.dart` (line 729).
+- **Source:** `lib/shared/services/local_api_server.dart` (line 730).
 - **Purpose:** Count how many recorded episode statuses equal a given `EpisodeStatus`.
 - **Inputs:** `anime`, `status`.
 - **Returns:** `int`.
@@ -478,7 +480,7 @@ server the app runs for other local/LAN tools to call, e.g. the desktop web dash
 
 ### `static int _episodeScanEnd(Anime anime)` <a id="episodescanend"></a>
 - **Kind:** static method of `LocalApiServer`.
-- **Source:** `lib/shared/services/local_api_server.dart` (line 740).
+- **Source:** `lib/shared/services/local_api_server.dart` (line 741).
 - **Purpose:** Determine the last episode number worth scanning for progress/air-date
   calculations when `anime.endEpisode` is unknown (ongoing series).
 - **Inputs:** `anime`.
@@ -494,7 +496,7 @@ server the app runs for other local/LAN tools to call, e.g. the desktop web dash
 
 ### `static int? _airedEpisodeCount(Anime anime)` <a id="airedepisodecount"></a>
 - **Kind:** static method of `LocalApiServer`.
-- **Source:** `lib/shared/services/local_api_server.dart` (line 756).
+- **Source:** `lib/shared/services/local_api_server.dart` (line 757).
 - **Purpose:** Count how many episodes have aired as of now, JST-aware.
 - **Inputs:** `anime`.
 - **Returns:** `int?` — `null` when schedule data is incomplete (an episode air date could not be
@@ -510,7 +512,7 @@ server the app runs for other local/LAN tools to call, e.g. the desktop web dash
 
 ### `static int? _airedUnwatchedEpisodeCount(Anime anime)` <a id="airedunwatchedepisodecount"></a>
 - **Kind:** static method of `LocalApiServer`.
-- **Source:** `lib/shared/services/local_api_server.dart` (line 774).
+- **Source:** `lib/shared/services/local_api_server.dart` (line 775).
 - **Purpose:** Count aired episodes that are still unwatched, JST-aware.
 - **Inputs:** `anime`.
 - **Returns:** `int?` — `null` under the same incomplete-schedule condition as
@@ -524,7 +526,7 @@ server the app runs for other local/LAN tools to call, e.g. the desktop web dash
 
 ### `static Map<String, dynamic>? _ratingToJson(AnimeRating? rating)` <a id="ratingtojson"></a>
 - **Kind:** static method of `LocalApiServer`.
-- **Source:** `lib/shared/services/local_api_server.dart` (line 793).
+- **Source:** `lib/shared/services/local_api_server.dart` (line 794).
 - **Purpose:** Serialize an anime's rating for API responses, or omit it entirely if there is
   nothing to report.
 - **Inputs:** `rating` — nullable `AnimeRating`.
@@ -538,9 +540,28 @@ server the app runs for other local/LAN tools to call, e.g. the desktop web dash
   through the API" — this is a fixed, curated field set, not a passthrough of the full rating
   model (unlike `_animeToJson`'s "additive" contract for top-level anime fields).
 
+### `static Map<String, dynamic>? _localArchiveToJson(AnimeLocalArchive? archive)` <a id="localarchivetojson"></a>
+- **Kind:** static method of `LocalApiServer`.
+- **Source:** `lib/shared/services/local_api_server.dart` (line 815).
+- **Purpose:** Serialize an anime's local-archive record for API responses, or omit it entirely when
+  there is nothing recorded.
+- **Inputs:** `archive` — nullable `AnimeLocalArchive`.
+- **Returns:** `Map<String, dynamic>?` — `null` when `archive` is null or `!archive.hasAnyData`;
+  otherwise `{archived, source, resolution, copies, location}`.
+- **Side effects:** None.
+- **Algorithm:** Null/empty check, then direct field mapping. The two enums are exposed by their
+  persisted `.name` (`"bd"`, `"fhd1080p"`, …) rather than their display labels, so an API consumer
+  matches the values it would find in `anime_data.json`.
+- **Usage:** Called by `_animeToJson` for the `localArchive` field.
+- **Notes:** Same curated-field-set contract as `_ratingToJson`: unknown future archive fields held
+  in the record's `extraJson` are intentionally not exposed. `localArchive` is an **additive** key
+  under the API's forward-compatibility contract, so existing consumers are unaffected. Note the
+  asymmetry with `.myanimeitem` sharing, which *strips* this field: the local API is loopback-bound
+  and Basic-Auth protected on the user's own machine, whereas a share file is handed to someone else
+  — see [`../../../features/share-and-import.md`](../../../features/share-and-import.md).
 ### `static Map<String, int> _computeCounts(List<Anime> animes)` <a id="computecounts"></a>
 - **Kind:** static method of `LocalApiServer`.
-- **Source:** `lib/shared/services/local_api_server.dart` (line 812).
+- **Source:** `lib/shared/services/local_api_server.dart` (line 831).
 - **Purpose:** Derive per-derived-status counts (completed/watching/dropped/not-started) for a
   list of anime, including legacy key aliases for existing API consumers.
 - **Inputs:** `animes`.
@@ -557,7 +578,7 @@ server the app runs for other local/LAN tools to call, e.g. the desktop web dash
 
 ### `static String? _jstToUtcString(DateTime? jst)` <a id="jsttoutcstring"></a>
 - **Kind:** static method of `LocalApiServer`.
-- **Source:** `lib/shared/services/local_api_server.dart` (line 854).
+- **Source:** `lib/shared/services/local_api_server.dart` (line 873).
 - **Purpose:** Convert a JST-naive `DateTime` (as produced by the anime schedule model) into a
   UTC ISO-8601 string with a trailing `Z`, for API serialization.
 - **Inputs:** `jst` — nullable JST-based `DateTime`.
@@ -573,7 +594,7 @@ server the app runs for other local/LAN tools to call, e.g. the desktop web dash
 
 ### `static Future<Map<String, dynamic>?> _parseBody(Request request)` <a id="parsebody"></a>
 - **Kind:** static method of `LocalApiServer`.
-- **Source:** `lib/shared/services/local_api_server.dart` (line 883).
+- **Source:** `lib/shared/services/local_api_server.dart` (line 902).
 - **Purpose:** Read and JSON-decode a request body, tolerating malformed or non-JSON input.
 - **Inputs:** `request`.
 - **Returns:** `Future<Map<String, dynamic>?>` — `null` if the body is missing, not valid JSON, or
@@ -588,7 +609,7 @@ server the app runs for other local/LAN tools to call, e.g. the desktop web dash
 
 ### `static Middleware _corsMiddleware()` <a id="corsmiddleware"></a>
 - **Kind:** static method of `LocalApiServer`.
-- **Source:** `lib/shared/services/local_api_server.dart` (line 900).
+- **Source:** `lib/shared/services/local_api_server.dart` (line 919).
 - **Purpose:** Attach permissive CORS headers to every response so browser-based local tools can
   call the API cross-origin.
 - **Inputs:** None.
@@ -604,7 +625,7 @@ server the app runs for other local/LAN tools to call, e.g. the desktop web dash
 
 ### `static Middleware _authMiddleware()` <a id="authmiddleware"></a>
 - **Kind:** static method of `LocalApiServer`.
-- **Source:** `lib/shared/services/local_api_server.dart` (line 926).
+- **Source:** `lib/shared/services/local_api_server.dart` (line 945).
 - **Purpose:** Enforce the API's access-control rule: loopback is trusted by default, but once
   credentials are configured, every request (including loopback) must present valid HTTP Basic
   Auth.
@@ -629,7 +650,7 @@ server the app runs for other local/LAN tools to call, e.g. the desktop web dash
 
 ### `static bool _validateBasicAuth(String header)` <a id="validatebasicauth"></a>
 - **Kind:** static method of `LocalApiServer`.
-- **Source:** `lib/shared/services/local_api_server.dart` (line 968).
+- **Source:** `lib/shared/services/local_api_server.dart` (line 987).
 - **Purpose:** Validate an `Authorization: Basic <base64>` header against the configured
   `_username`/`_password`.
 - **Inputs:** `header` — the raw `Authorization` header value.
@@ -644,7 +665,7 @@ server the app runs for other local/LAN tools to call, e.g. the desktop web dash
 
 ### `static Middleware _errorMiddleware()` <a id="errormiddleware"></a>
 - **Kind:** static method of `LocalApiServer`.
-- **Source:** `lib/shared/services/local_api_server.dart` (line 985).
+- **Source:** `lib/shared/services/local_api_server.dart` (line 1004).
 - **Purpose:** Catch any unhandled exception thrown by a route handler and turn it into a clean
   JSON `500` response instead of an unhandled-error crash or a bare stack trace leaking to the
   client.

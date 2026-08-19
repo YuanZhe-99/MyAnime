@@ -95,13 +95,26 @@ void main() {
       final anime = makeAnime(
         title: 'Private Show',
         episodeStatuses: {1: EpisodeStatus.watched, 2: EpisodeStatus.skippedThisWeek},
+      ).copyWith(
+        localArchive: const AnimeLocalArchive(
+          archived: true,
+          source: ArchiveSource.bd,
+          copies: 2,
+          location: 'NAS-01',
+        ),
       );
+      // The archive record is only worth stripping if it was written at all.
+      expect(anime.toJson().containsKey('localArchive'), isTrue);
+
       // Simulate the strip logic used in exportAnimeItem/exportAnimeBundle.
       final json = anime.toJson();
       json.remove('episodeStatuses');
       json.remove('episodeWeekOffsets');
+      json.remove('localArchive');
       expect(json.containsKey('episodeStatuses'), isFalse);
       expect(json.containsKey('episodeWeekOffsets'), isFalse);
+      // Repository codes and copy counts never leave the user's devices.
+      expect(json.containsKey('localArchive'), isFalse);
       // But other fields remain.
       expect(json['title'], 'Private Show');
       expect(json['endEpisode'], 12);

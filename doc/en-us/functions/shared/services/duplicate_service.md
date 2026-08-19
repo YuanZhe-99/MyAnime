@@ -238,11 +238,16 @@ grouping/merge algorithm write-up and how it differs from WebDAV sync's per-reco
      `withExtraJson`.
   4. **Notes:** every non-empty, distinct (by trimmed text) note from `primary` and `others`, in
      order, joined with newlines (concatenated, not deduplicated against differently-worded notes).
-  5. **Cover image:** primary wins; falls back to the first non-null cover among `others`.
-  6. Builds the final `Anime` via `primary.copyWith(...)` for `endEpisode`, `manualType`,
+  5. **Local archive:** taken **whole**, not field-by-field — `primary`'s record wins if it
+     `hasAnyData`, otherwise the first record among `others` that does. Unlike the rating, an archive
+     is a coherent description of one physical copy, so mixing a `source` from one record with a
+     `location` from another would describe a copy that does not exist.
+  6. **Cover image:** primary wins; falls back to the first non-null cover among `others`.
+  7. Builds the final `Anime` via `primary.copyWith(...)` for `endEpisode`, `manualType`,
      `airDayOfWeek`, `airTime`, `firstAirDate` (primary-wins-else-first-non-null pattern),
      `episodeStatuses`, `episodeWeekOffsets`, `coverImage`, `infoUrl`, `watchUrl`, `notes`,
-     `rating`, and a fresh UTC `modifiedAt`; then calls `withPreservedUnknownJson([primary,
+     `rating`, `localArchive`, and a fresh UTC `modifiedAt`; then calls
+     `withPreservedUnknownJson([primary,
      ...others])` so unknown top-level JSON fields survive the merge (the `extraJson` pattern — see
      [`../../../data-formats.md`](../../../data-formats.md)).
 - **Usage:**

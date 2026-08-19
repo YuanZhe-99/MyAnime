@@ -20,6 +20,7 @@
 - 主记录上缺失的字段从后备（非主）记录补全。
 - 剧集状态逐集合并，优先级 **watched > skipped > unwatched**——即任何重复条目把某集标记为已看，合并结果就保持它已看，即使另一个重复条目把它标为未看。
 - 主记录缺失值的地方，评分子分从后备记录补全（见 [`../data-formats.md`](../data-formats.md) 中的 `AnimeRating`）。
+- 本地存档记录**整体**取自第一条拥有它的记录——主记录有就取主记录，否则取第一条有的后备记录。与评分不同，它不逐字段合并：一份存档描述的是同一份实体拷贝，把一条记录的 `source` 和另一条的 `location` 组合起来会描述出一份并不存在的拷贝（见 [`../data-formats.md`](../data-formats.md) 中的 `AnimeLocalArchive`）。
 - 备注拼接（互相不去重）。
 - 未知 JSON 字段通过 `extraJson` 模式保留（见 [`../data-formats.md`](../data-formats.md)），与应用中每个其他合并路径相同。
 

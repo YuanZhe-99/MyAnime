@@ -105,6 +105,11 @@
 | episode | 集 | |
 | air date / air time | 播出日期 / 播出时间 | |
 | JST (Japan Standard Time) | 日本标准时间（JST） | 番组播出时间基准时区 |
+| local archive | 本地存档 | 是否下载并保管了本地资源的记录；zh-TW 用「本機存檔」，ja 用「ローカル保存」 |
+| archive source | 片源 | BD/DVD/WEB/TV 等来源介质；BD、DVD、WEB、TV 本身不翻译 |
+| resolution | 分辨率 | zh-TW 用「解析度」；2160p/1080p/720p/480p 本身不翻译 |
+| archive copies | 存档份数 | 保存了几份拷贝 |
+| repository / location | 资料仓库代码或位置 | 存放本地资源的仓库代码或物理位置，自由文本 |
 
 ## 6. 复查清单（提交中文页面之前运行）
 

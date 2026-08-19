@@ -19,7 +19,7 @@
 | [`importFromPicker`](#importfrompicker) | 方法（`FileOpenService`） | A | 让用户选择并直接导入 `.myanimeitem` 文件。 |
 | [`exportAnimeItem`](#exportanimeitem) | 方法（`FileOpenService`） | A | 把一部动画导出为 v1 `.myanimeitem` JSON 文件。 |
 | [`exportAnimeBundle`](#exportanimebundle) | 方法（`FileOpenService`） | A | 把动画集合导出为 v2 多动画 `.myanimeitem` 文件。 |
-| `_stripPersonalData` | 方法（`FileOpenService`） | B | 从导出 JSON 中移除 `episodeStatuses`/`episodeWeekOffsets`。 |
+| `_stripPersonalData` | 方法（`FileOpenService`） | B | 从导出 JSON 中移除 `episodeStatuses`/`episodeWeekOffsets`/`localArchive`。 |
 | [`_readCoverBase64`](#_readcoverbase64) | 方法（`FileOpenService`） | A | 读取动画的封面图像文件并 base64 编码。 |
 | [`_writeBundleFile`](#_writebundlefile) | 方法（`FileOpenService`） | A | 把 JSON 捆绑写入临时 `.myanimeitem` 文件。 |
 | [`_sanitizeFileName`](#_sanitizefilename) | 方法（`FileOpenService`） | A | 净化显示名用作跨平台文件名。 |
@@ -88,7 +88,7 @@
   1. `itemJson['coverImage']` 存在时，解码并以新 UUID 文件名写入（用 `coverImageExt` 或 `.jpg` 作扩展名）。
   2. 构造新 `Anime`，从 `parsed` 复制每个字段，唯独 `id`（新 UUID）、`coverImage`（刚写的本地路径，或没有嵌入图像时的 `parsed.coverImage`）和 `createdAt`/`modifiedAt`（都设为现在）不同。
 - **用法：** 从 [`handleFile`](#handlefile) 和 [`parseBundle`](#parsebundle) 内部调用。
-- **备注：** 个人观看字段（`episodeStatuses`、`episodeWeekOffsets`）从 `parsed` 原样带过——剥离只在导出时发生（见 `_stripPersonalData`），不在导入时。
+- **备注：** 个人字段（`episodeStatuses`、`episodeWeekOffsets`、`localArchive`）从 `parsed` 原样带过——剥离只在导出时发生（见 `_stripPersonalData`），不在导入时。由于导出会剥离它们，它们通常不会出现在传入文件中；仍然带过是为了让这里保持一份完整的字段拷贝清单，这样手写文件的值不会被静默丢弃，将来给 `Anime` 新增字段时也不会在此处遗漏。
 
 ### `static Future<ImportBundle?> parseBundle(String path)` <a id="parsebundle"></a>
 - **种类：** `FileOpenService` 的静态方法

@@ -1,6 +1,6 @@
 # lib/features/anime/views/management_page.dart
 
-`ManagementPage` 是季浏览器：一个可滑动的季度 `PageView`（2000–2040）外加一个为没有 `firstAirDate` 的动画准备的末尾"其他"页、跳转季度选择器（[`quarter_picker_dialog.md`](quarter_picker_dialog.md)）和全局标题搜索。它通过 `AnimeStorage`（[`../services/anime_storage.md`](../services/anime_storage.md)）读写，并用 [`Anime.airsInQuarter`](../models/anime.md#airsinquarter) 把动画放进季度。功能概览见 [`../../../../features/home-management-statistics.md`](../../../../features/home-management-statistics.md)，本页分组依赖的季度归属规则见 [`../../../../features/anime-tracking.md`](../../../../features/anime-tracking.md#quarter-placement)。
+`ManagementPage` 是季浏览器：一个可滑动的季度 `PageView`（2000–2040）外加一个为没有 `firstAirDate` 的动画准备的末尾"其他"页、跳转季度选择器（[`quarter_picker_dialog.md`](quarter_picker_dialog.md)）、全局标题搜索，以及一个收窄本页每个列表的 AppBar 本地存档筛选器（全部 / 已存档 / 未存档）。它通过 `AnimeStorage`（[`../services/anime_storage.md`](../services/anime_storage.md)）读写，并用 [`Anime.airsInQuarter`](../models/anime.md#airsinquarter) 把动画放进季度。功能概览见 [`../../../../features/home-management-statistics.md`](../../../../features/home-management-statistics.md)，本页分组依赖的季度归属规则见 [`../../../../features/anime-tracking.md`](../../../../features/anime-tracking.md#quarter-placement)。
 
 ## 声明
 
@@ -15,6 +15,8 @@
 | [`_animeForQuarter`](#_animeforquarter) | 方法（`_ManagementPageState`） | A | 过滤并排序在给定季度播出的动画。 |
 | [`_otherAnime`](#_otheranime) | getter（`_ManagementPageState`） | A | 没有 `firstAirDate` 的动画，按标题排序。 |
 | [`_searchResults`](#_searchresults) | 方法（`_ManagementPageState`） | A | 按不区分大小写的标题子串匹配过滤并排序动画。 |
+| [`_applyArchiveFilter`](#_applyarchivefilter) | 方法（`_ManagementPageState`） | A | 把列表收窄到所选的本地存档筛选。 |
+| `_archiveFilterLabel` | 方法（`_ManagementPageState`） | B | 为筛选菜单本地化 `_ArchiveFilter` 值。 |
 | `_quarterLabel` | 方法（`_ManagementPageState`） | B | 把季度格式化为"`year` `season name`"。 |
 | `_dayLabel` | 方法（`_ManagementPageState`） | B | 本地化星期几数字供动画块副标题使用。 |
 | [`_deleteAnime`](#_deleteanime) | 方法（`_ManagementPageState`） | A | 确认并删除一条动画记录。 |
@@ -78,7 +80,7 @@
 - **返回：** `List<Anime>`。
 - **副作用：** 无。
 - **算法：**
-  1. 把 `_allAnime` 过滤为 `a.airsInQuarter(quarter.year, quarter.q)` 为 `true` 的那些。
+  1. 把 `_allAnime` 过一遍 [`_applyArchiveFilter`](#_applyarchivefilter)，再保留 `a.airsInQuarter(quarter.year, quarter.q)` 为 `true` 的那些。
   2. 按 `airDayOfWeek` 排序（缺失值排最后，用 `8` 作哨兵），然后相同播出日的动画按 `displayTitle` 排序。
 - **用法：**
   ```dart
@@ -95,7 +97,7 @@
 - **输入：** 无。
 - **返回：** `List<Anime>`。
 - **副作用：** 无。
-- **算法：** 把 `_allAnime` 过滤为 `firstAirDate == null`，按 `displayTitle` 排序。
+- **算法：** 把 `_allAnime` 过一遍 [`_applyArchiveFilter`](#_applyarchivefilter)，过滤为 `firstAirDate == null`，按 `displayTitle` 排序。
 - **用法：**
   ```dart
   otherCount: _otherAnime.length,
@@ -110,7 +112,7 @@
 - **输入：** 无（读取 `_searchQuery`）。
 - **返回：** `List<Anime>`。
 - **副作用：** 无。
-- **算法：** 小写化 `_searchQuery`；把 `_allAnime` 过滤为 `title` 或 `titleJa`（小写后）包含它的那些；按 `displayTitle` 排序匹配项。
+- **算法：** 小写化 `_searchQuery`；把 `_allAnime` 过一遍 [`_applyArchiveFilter`](#_applyarchivefilter)；再过滤为 `title` 或 `titleJa`（小写后）包含它的那些；按 `displayTitle` 排序匹配项。
 - **用法：**
   ```dart
   Widget _buildSearchResults(ThemeData theme, AppLocalizations l10n) {
@@ -120,6 +122,25 @@
   （`_buildSearchResults`，同一文件）
 - **备注：** 独立匹配主标题和日文标题——*任一*字段包含查询即匹配，不只是当前显示的那个。
 
+### `List<Anime> _applyArchiveFilter(List<Anime> animes)` <a id="_applyarchivefilter"></a>
+- **种类：** `_ManagementPageState` 的方法
+- **来源：** `lib/features/anime/views/management_page.dart`（约第 130 行）
+- **用途：** 把候选列表收窄到 AppBar 中当前选择的本地存档筛选，使一条规则服务本页全部三个列表构建器。
+- **输入：** `animes` — 未筛选的候选（目前总是 `_allAnime`）。
+- **返回：** `List<Anime>`。
+- **副作用：** 无（读取 `_archiveFilter`）。
+- **算法：** 对私有 `_ArchiveFilter` 枚举做 `switch`——`all` 原样返回输入，`archived` 保留
+  `a.localArchive?.archived == true`，`notArchived` 保留其补集（`!= true`）。
+- **用法：**
+  ```dart
+  return _applyArchiveFilter(_allAnime).where((a) {
+    return a.airsInQuarter(quarter.year, quarter.q);
+  }).toList()
+  ```
+  （同文件 `_animeForQuarter`；另有 `_otherAnime` 和 `_searchResults`）
+- **备注：** `notArchived` 刻意把"从未记录"（`localArchive == null`）和"明确记录为未保留"
+  （`archived: false`）合为一类，因为该筛选回答的问题是"还有什么需要下载"。该筛选仅是视图状态——不持久化
+  到 `storage_config.json`，外壳每次重建本页时都会重置为 `all`。
 ### `Future<void> _deleteAnime(Anime anime)` <a id="_deleteanime"></a>
 - **种类：** `_ManagementPageState` 的方法
 - **来源：** `lib/features/anime/views/management_page.dart`（约第 176 行）

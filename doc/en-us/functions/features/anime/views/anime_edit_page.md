@@ -2,10 +2,12 @@
 
 `AnimeEditPage` is the create/edit form for a single `Anime` record: text fields for
 title/season/episode range/URLs/notes, dropdowns for type override and air day, a date picker for
-`firstAirDate`, rating sub-score fields, and (full-flavor builds only) online metadata search and
-watch-URL search integrations. It persists through `AnimeStorage`
+`firstAirDate`, rating sub-score fields, a Local Archive section recording a downloaded local copy,
+and (full-flavor builds only) online metadata search and watch-URL search integrations. It persists
+through `AnimeStorage`
 ([`../services/anime_storage.md`](../services/anime_storage.md)) and builds/parses the `Anime`/
-`AnimeRating` model ([`../models/anime.md`](../models/anime.md)). It also defines a private
+`AnimeRating`/`AnimeLocalArchive` model ([`../models/anime.md`](../models/anime.md)); the archive
+enum labels come from [`archive_labels.md`](archive_labels.md). It also defines a private
 `_WatchUrlSearchDialog` used only by its own watch-URL search action. See
 [`../../../../features/anime-tracking.md`](../../../../features/anime-tracking.md) for how the
 fields edited here (`manualType`, `airDayOfWeek`, `airTime`, `firstAirDate`) drive quarter placement
@@ -19,13 +21,14 @@ and episode air-date computation.
 | `AnimeEditPage.createState` | method (`AnimeEditPage`) | B | Create the mutable state object for this widget. |
 | `_AnimeEditPageState.initState` | method (`_AnimeEditPageState`) | B | Set the default season text and trigger loading an existing record if editing. |
 | [`_loadExisting`](#_loadexisting) | method (`_AnimeEditPageState`) | A | Load an existing anime and populate every form field/controller from it. |
-| `_AnimeEditPageState.dispose` | method (`_AnimeEditPageState`) | B | Dispose all 15 owned `TextEditingController`s. |
+| `_AnimeEditPageState.dispose` | method (`_AnimeEditPageState`) | B | Dispose all 17 owned `TextEditingController`s. |
 | [`_pickCoverImage`](#_pickcoverimage) | method (`_AnimeEditPageState`) | A | Let the user pick a cover image file and stage its path. |
 | [`_searchWatchUrl`](#_searchwatchurl) | method (`_AnimeEditPageState`) | A | Open the watch-URL search dialog and apply the chosen URL. |
 | [`_showSearchDialog`](#_showsearchdialog) | method (`_AnimeEditPageState`) | A | Open the online metadata search dialog and merge its result into the form. |
 | [`_pickFirstAirDate`](#_pickfirstairdate) | method (`_AnimeEditPageState`) | A | Show a date picker and stage the chosen `firstAirDate`. |
 | [`_save`](#_save) | method (`_AnimeEditPageState`) | A | Validate the form and create or update the anime record. |
 | [`_buildRating`](#_buildrating) | method (`_AnimeEditPageState`) | A | Assemble an `AnimeRating` from the rating text fields, or `null` if empty. |
+| [`_buildLocalArchive`](#_buildlocalarchive) | method (`_AnimeEditPageState`) | A | Assemble an `AnimeLocalArchive` from the archive controls, or `null` if untouched. |
 | `_parseScore` | method (`_AnimeEditPageState`) | B | Parse a rating controller's text into a `double?`. |
 | `_formatScore` | method (`_AnimeEditPageState`) | B | Format a score as an integer when whole, else one decimal place. |
 | `_AnimeEditPageState.build` | method (`_AnimeEditPageState`, widget build) | B | Build the edit/create form scaffold. |
@@ -55,9 +58,11 @@ and episode air-date computation.
   1. Await `AnimeStorage.load()`; find the record whose `id == widget.animeId`.
   2. If found, set `_isEdit = true`, `_existing = found`, and copy every editable field into its
      matching controller (empty string for unset optional text fields) or staged variable
-     (`_airDayOfWeek`, `_firstAirDate`, `_manualType`, `_coverImage`).
+     (`_airDayOfWeek`, `_firstAirDate`, `_manualType`, `_coverImage`, `_archived`, `_archiveSource`, `_archiveResolution`).
   3. Rating sub-scores are formatted through `_formatScore` (Tier B, same file) before being placed
      into their controllers.
+  4. The Local Archive controls are seeded from `found.localArchive` with null-safe defaults, so an
+     anime that has no archive record opens with the switch off and every field blank.
 - **Usage:**
   ```dart
   if (widget.animeId != null) {
@@ -190,12 +195,14 @@ and episode air-date computation.
   2. When creating (`!_isEdit`), require at least one of title/Japanese title to be non-empty;
      otherwise show a blocking dialog listing the missing field and return.
   3. Parse `startEp`/`endEp` from their controllers (defaulting to `1`/`12`) and build the rating via
-     [`_buildRating`](#_buildrating).
+     [`_buildRating`](#_buildrating), plus the local-archive record via
+     [`_buildLocalArchive`](#_buildlocalarchive).
   4. If `startEp > endEp`, shift `endEp` up so the episode count is preserved relative to the
      original `endEpisode` (when editing) or the raw parsed `endEp` (when creating) —
      `endEp = originalEnd - 1 + startEp`.
   5. When editing: `copyWith` the existing anime with every form field (empty optional strings
-     become `null`), `rating`, `clearRating: rating == null`, and a fresh `modifiedAt`; save via
+     become `null`), `rating`, `clearRating: rating == null`, `localArchive`,
+     `clearLocalArchive: localArchive == null`, and a fresh `modifiedAt`; save via
      `AnimeStorage.addOrUpdate`; pop with no result.
   6. When creating: auto-fill `title` from the Japanese title if the title field is empty, build a
      new `Anime` via [`Anime.create`](../models/anime.md#anime-create), save it, and pop the route
@@ -231,6 +238,31 @@ and episode air-date computation.
 - **Notes:** Named with a `_build` prefix but does **not** return a `Widget` — it is a data-assembly
   helper for [`_save`](#_save), not a UI builder.
 
+### `AnimeLocalArchive? _buildLocalArchive()` <a id="_buildlocalarchive"></a>
+- **Kind:** method of `_AnimeEditPageState`
+- **Source:** `lib/features/anime/views/anime_edit_page.dart` (approx. line 416)
+- **Purpose:** Assemble an `AnimeLocalArchive` from the Local Archive section's controls, collapsing
+  to `null` when the section was left untouched.
+- **Inputs:** None (reads `_archived`, `_archiveSource`, `_archiveResolution`, the two archive
+  controllers, and `_existing?.localArchive?.extraJson`).
+- **Returns:** `AnimeLocalArchive?`.
+- **Side effects:** None.
+- **Algorithm:** Trim the location text (empty → `null`), `int.tryParse` the copies text, build an
+  `AnimeLocalArchive` carrying over `_existing`'s archive `extraJson` (if any), then return it only
+  if [`hasAnyData`](../models/anime.md#animelocalarchive-hasanydata) is true, else `null`.
+- **Usage:**
+  ```dart
+  final localArchive = _buildLocalArchive();
+  ...
+  localArchive: localArchive,
+  clearLocalArchive: localArchive == null,
+  ```
+  (`_save`, same file)
+- **Notes:** Exactly parallel to [`_buildRating`](#_buildrating), including the `_build` prefix that
+  does not return a `Widget`. The `null` collapse is what keeps `anime_data.json` free of empty
+  `localArchive` objects for anime that never used the feature. The sub-fields stay editable even
+  when the `archived` switch is off — there is no cross-field gating, so "not downloaded yet, but
+  earmarked for NAS-01" is expressible.
 ### `Future<void> _search()` <a id="_search-watchurl"></a>
 - **Kind:** method of `_WatchUrlSearchDialogState`
 - **Source:** `lib/features/anime/views/anime_edit_page.dart` (approx. line 867)
