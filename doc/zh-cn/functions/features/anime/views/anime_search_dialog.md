@@ -1,143 +1,192 @@
 # lib/features/anime/views/anime_search_dialog.dart
 
-`showAnimeSearchDialog` 及其背后的 `_SearchDialog` 实现从编辑页使用的"在线搜索动画元数据"流程：经 `AnimeSearchService`（[`../services/anime_search_service.md`](../services/anime_search_service.md)）搜索多个来源，用一个带逐字段复选框的预览决定导入什么，可选地获取其封面图像（经 `ImageService`，[`../../../shared/services/image_service.md`](../../../shared/services/image_service.md)），并返回用户选择应用的字段的稀疏 `Map<String, dynamic>`。调用方（`AnimeEditPage._showSearchDialog`，[`anime_edit_page.md`](anime_edit_page.md#_showsearchdialog)）把该映射合并进它自己的表单字段——本文件对 `AnimeStorage` 或 `Anime` 模型本身没有直接依赖。
+在线元数据搜索对话框。`showAnimeSearchDialog` 打开一个两阶段模态框：**搜索阶段**列出
+[`../services/anime_search_service.md`](../services/anime_search_service.md) 中各来源的命中，
+**预览阶段**让用户勾选选中结果中要应用哪些字段。它返回一个字段名 → 值的
+`Map<String, dynamic>`，由 `anime_edit_page.dart` 写入其表单控制器。
+
+该对话框只能从 `anime_edit_page.dart` 进入，而后者把它放在 `AppFlavor.isFull` 门禁之后——flavor
+门禁规则见
+[`../../../../features/multi-source-search.md`](../../../../features/multi-source-search.md)。
 
 ## 声明
 
 | 声明 | 种类 | Tier | 用途 |
 |---|---|---|---|
-| [`showAnimeSearchDialog`](#showanimesearchdialog) | 顶层函数 | A | 显示动画元数据搜索对话框并返回所选字段值。 |
-| `_SearchDialog.new` | 构造函数（`_SearchDialog`） | B | 用当前表单的值创建搜索对话框供比较。 |
-| `_SearchDialog.createState` | 方法（`_SearchDialog`） | B | 为此组件创建可变状态对象。 |
-| `_SearchDialogState.initState` | 方法（`_SearchDialogState`） | B | 从 `initialQuery` 播种查询控制器。 |
-| `_SearchDialogState.dispose` | 方法（`_SearchDialogState`） | B | 释放查询控制器。 |
-| [`_search`](#_search) | 方法（`_SearchDialogState`） | A | 对当前查询文本搜索所有已配置来源。 |
-| [`_selectResult`](#_selectresult) | 方法（`_SearchDialogState`） | A | 为所选结果进入预览阶段，预选要应用的字段。 |
-| [`_fetchCover`](#_fetchcover) | 方法（`_SearchDialogState`） | A | 下载并暂存所选结果的封面图像。 |
-| [`_apply`](#_apply) | 方法（`_SearchDialogState`） | A | 从切换的字段构建结果映射并关闭对话框。 |
-| `_SearchDialogState.build` | 方法（`_SearchDialogState`，组件构建） | B | 构建对话框，在搜索和预览视图之间切换。 |
-| `_buildSearchView` | 方法（组件辅助） | B | 渲染搜索阶段：页头、查询字段和结果列表。 |
-| `_buildSearchResults` | 方法（组件辅助） | B | 渲染搜索结果列表（加载/错误/空/列表状态）。 |
-| `_buildPreviewView` | 方法（组件辅助） | B | 渲染预览阶段：来源徽章、字段列表和应用/取消按钮。 |
-| `_buildFieldList` | 方法（组件辅助） | B | 渲染逐字段比较复选框和封面图像小节。 |
-| `_coverColumn` | 方法（组件辅助） | B | 渲染一个带标签的封面图像缩略图列。 |
-| `_fieldTile` | 方法（组件辅助） | B | 渲染一个比较当前 vs 获取值的复选框字段块。 |
-| `_buildHeader` | 方法（组件辅助） | B | 渲染对话框页头（图标、标题、可选返回/关闭按钮）。 |
-| `_dayName` | 方法（`_SearchDialogState`） | B | 本地化星期几数字供显示。 |
-| `_truncate` | 方法（`_SearchDialogState`） | B | 把字符串缩短到最大长度，追加 `...`。 |
+| [`showAnimeSearchDialog`](#showanimesearchdialog) | 顶层函数 | A | 打开搜索对话框并返回要应用的字段。 |
+| `_SearchDialog(...)` | 构造函数（`_SearchDialog`） | B | 保存预览中作为「当前」显示的现有字段值。 |
+| `createState` | 方法（`_SearchDialog`） | B | Flutter 生命周期覆写。 |
+| `initState` | 方法（`_SearchDialogState`） | B | 用 `initialQuery` 初始化查询控制器。 |
+| `dispose` | 方法（`_SearchDialogState`） | B | 释放查询控制器。 |
+| [`_search`](#search) | 方法（`_SearchDialogState`） | A | 执行搜索并重置结果列表控件。 |
+| [`_visibleResults`](#visibleresults) | getter（`_SearchDialogState`） | A | 对原始结果列表应用当前过滤条件与排序。 |
+| [`_availableSources`](#availablesources) | getter（`_SearchDialogState`） | A | 列出当前原始结果中出现过的来源名。 |
+| [`_selectResult`](#selectresult) | 方法（`_SearchDialogState`） | A | 进入预览阶段并预设各字段复选框。 |
+| [`_externalMetaFieldCount`](#externalmetafieldcount) | 方法（`_SearchDialogState`） | A | 统计一条结果实际携带多少个外部元数据字段。 |
+| `_fetchCover` | 方法（`_SearchDialogState`） | B | 下载封面图并显示前后对比预览。 |
+| [`_apply`](#apply) | 方法（`_SearchDialogState`） | A | 用已勾选的字段值关闭对话框。 |
+| `build` | 方法（`_SearchDialogState`） | B | 渲染搜索阶段或预览阶段。 |
+| `_buildSearchView` | 方法（`_SearchDialogState`） | B | 查询框、搜索按钮、工具栏与结果列表。 |
+| [`_buildResultToolbar`](#buildresulttoolbar) | 方法（`_SearchDialogState`） | A | 构建结果列表上方的排序/过滤/分组工具栏。 |
+| `_sortLabel` | 方法（`_SearchDialogState`） | B | 单个 `_SearchSort` 值的本地化标签。 |
+| [`_showFilterSheet`](#showfiltersheet) | 方法（`_SearchDialogState`） | A | 在底部面板中展示来源与字段过滤条件。 |
+| `_buildSearchResults` | 方法（`_SearchDialogState`） | B | 在加载圈、错误、空、分组或平铺列表之间选择。 |
+| [`_buildGroupedResults`](#buildgroupedresults) | 方法（`_SearchDialogState`） | A | 把结果列表渲染成每个来源一个可折叠分区。 |
+| [`_resultTile`](#resulttile) | 方法（`_SearchDialogState`） | A | 构建搜索结果列表的一行。 |
+| [`_secondaryLine`](#secondaryline) | 方法（`_SearchDialogState`） | A | 组合结果下方的次要元数据行。 |
+| [`_showResultDetails`](#showresultdetails) | 方法（`_SearchDialogState`） | A | 不截断地展示一条结果的全部名称与字段。 |
+| [`_detailRows`](#detailrows) | 方法（`_SearchDialogState`） | A | 构建结果详情面板中带标签的元数据行。 |
+| `_copyToClipboard` | 方法（`_SearchDialogState`） | B | 复制一个值并用 SnackBar 确认。 |
+| `_buildPreviewView` | 方法（`_SearchDialogState`） | B | 来源标识、字段列表与取消/应用按钮。 |
+| [`_buildFieldList`](#buildfieldlist) | 方法（`_SearchDialogState`） | A | 构建预览阶段的逐字段复选框列表。 |
+| [`_buildExternalMetaSummary`](#buildexternalmetasummary) | 方法（`_SearchDialogState`） | A | 展示外部元数据复选框将要应用的内容。 |
+| `_coverColumn` | 方法（`_SearchDialogState`） | B | 标签在上、缩略图在下的列。 |
+| `_fieldTile` | 方法（`_SearchDialogState`） | B | 一行「当前 → 已获取」复选框。 |
+| `_buildHeader` | 方法（`_SearchDialogState`） | B | 带可选返回按钮与关闭按钮的标题栏。 |
+| `_dayName` | 方法（`_SearchDialogState`） | B | `1..7` 的本地化星期名。 |
+| `_truncate` | 方法（`_SearchDialogState`） | B | 按最大长度省略字符串。 |
+
+本文件还声明了两个没有文档注释的私有枚举：`_Phase`（`search`、`preview`）与 `_SearchSort`
+（`relevance`、`firstAirDate`、`episodes`、`source`）。它们的成员带 `///` 注释；枚举本身在此计为类型
+而非声明。
 
 ## 文档
 
-### `Future<Map<String, dynamic>?> showAnimeSearchDialog(BuildContext context, {String? initialQuery, String? currentTitle, String? currentTitleJa, int? currentEndEp, DateTime? currentFirstAirDate, int? currentAirDay, String? currentAirTime, String? currentCoverImage, String? currentNotes})` <a id="showanimesearchdialog"></a>
+### `Future<Map<String, dynamic>?> showAnimeSearchDialog(BuildContext context, {initialQuery, currentTitle, currentTitleJa, currentEndEp, currentFirstAirDate, currentAirDay, currentAirTime, currentCoverImage, currentNotes, currentExternalMeta})` <a id="showanimesearchdialog"></a>
 - **种类：** 顶层函数
-- **来源：** `lib/features/anime/views/anime_search_dialog.dart`（约第 15 行）
-- **用途：** 在线元数据搜索流程的公共入口：显示用调用方当前字段值播种的 `_SearchDialog`，返回用户选择应用的任何字段映射。
-- **输入：** `context`；`initialQuery` — 预填的搜索文本；`currentXxx` 参数纯直通给 `_SearchDialog`，只为让它能显示"当前 vs 获取"比较——它们不影响搜索什么。
-- **返回：** `Future<Map<String, dynamic>?>` — 只含用户选择应用的字段的稀疏映射（可能键：`title`、`titleJa`、`endEpisode`、`firstAirDate`、`airDayOfWeek`、`airTime`、`notes`、`coverImage`、`infoUrl`），对话框被取消时为 `null`。
-- **副作用：** 显示执行网络请求的模态对话框。
-- **算法：** 薄的转发包装：用给定参数构建的 `_SearchDialog` 调用 `showDialog<Map<String, dynamic>>`。
-- **用法：**
-  ```dart
-  final result = await showAnimeSearchDialog(
-    context,
-    initialQuery: query,
-    currentTitle: _titleController.text.isEmpty ? null : _titleController.text,
-    ...
-  );
-  if (result != null && mounted) {
-    setState(() {
-      if (result.containsKey('title')) {
-        _titleController.text = result['title'] as String;
-      }
-      ...
-  ```
-  （`AnimeEditPage._showSearchDialog`，[`anime_edit_page.md`](anime_edit_page.md#_showsearchdialog)）
-- **备注：** 返回映射中能出现的键的精确集合、以及每个键出现的条件，完全由下方的 [`_apply`](#_apply) 决定——调用方应把任何键都视为可选。
+- **来源：** `lib/features/anime/views/anime_search_dialog.dart`（第 17 行）
+- **用途：** 打开番剧搜索对话框，返回用户选择应用的字段。
+- **输入：** `initialQuery` 用于初始化查询框；每个 `current*` 参数是编辑表单的现有值，会显示在对应抓取值旁边作为「当前」，让用户看清某个复选框会覆盖什么。
+- **返回：** `Future<Map<String, dynamic>?>` —— 字段名 → 值，取消时为 `null`。
+- **副作用：** 显示一个模态对话框；对话框自身会执行网络 I/O。
+- **备注：** `currentExternalMeta` 不只用于显示——[`_apply`](#apply) 会把新抓取的元数据*折叠进*它，因此从另一个来源应用第二条结果时，第一条贡献的内容会被保留而不是被替换。
 
-### `Future<void> _search()` <a id="_search"></a>
+### `Future<void> _search()` <a id="search"></a>
 - **种类：** `_SearchDialogState` 的方法
-- **来源：** `lib/features/anime/views/anime_search_dialog.dart`（约第 126 行）
-- **用途：** 对当前查询文本查询每个已配置的元数据来源（经 [`AnimeSearchService.searchAll`](../services/anime_search_service.md#searchall)）。
-- **输入：** 无（读取 `_queryController.text`）。
-- **返回：** `Future<void>`。
-- **副作用：** 执行网络请求；`setState` `_searching`、`_results`、`_error`。
-- **算法：**
-  1. 修剪查询；为空则提前返回。
-  2. `setState` 进入加载状态，清除先前的结果/错误。
-  3. Await `AnimeSearchService.searchAll(query)`；成功时存储结果，列表为空时设置"无结果"错误消息。
-  4. 任何抛出的异常时，把 `e.toString()` 存为 `_error`。
-- **用法：**
-  ```dart
-  FilledButton(
-    onPressed: _searching ? null : _search,
-    child: Text(l10n.searchButton),
-  ),
-  ```
-  （`_buildSearchView`，同一文件；查询字段的 `onSubmitted` 也触发）
-- **备注：** 与 `anime_edit_page.dart` 中的 `_WatchUrlSearchDialogState._search`（[`anime_edit_page.md`](anime_edit_page.md#_search-watchurl)）不同——后者只搜索 `anime1.me` 找观看页链接，而不是跨 `AnimeSearchService.searchAll` 的来源搜索元数据。
-
-### `void _selectResult(AnimeSearchResult result)` <a id="_selectresult"></a>
-- **种类：** `_SearchDialogState` 的方法
-- **来源：** `lib/features/anime/views/anime_search_dialog.dart`（约第 160 行）
-- **用途：** 从搜索阶段切换到所选结果的预览阶段，并根据结果实际提供的数据预选默认"应用"的字段。
-- **输入：** `result` — 被点击的 `AnimeSearchResult`。
+- **来源：** `lib/features/anime/views/anime_search_dialog.dart`（第 156 行）
+- **用途：** 执行搜索并重置结果列表控件。
 - **返回：** 无。
-- **副作用：** `setState` `_selected`、`_phase`、`_toggles`，并清除任何先前获取的封面。
-- **算法：**
-  1. 设 `_selected = result`、`_phase = _Phase.preview`，清除 `_fetchedCoverPath`/`_coverPreview` 和 `_toggles`。
-  2. 对 `title`/`titleJa`/`episodes`（→`endEpisode` 切换键）/`firstAirDate`/`airDayOfWeek`/`airTime`/`notes`（来自 `summary`）各一：只在结果确实为其提供非空值时才把该切换设为 `true`。
-  3. 结果有 `coverImageUrl` 时，把 `'cover'` 切换设为 `false`（默认关——应用封面需要先显式 [`_fetchCover`](#_fetchcover)）。
-- **用法：**
-  ```dart
-  onTap: () => _selectResult(r),
-  ```
-  （`_buildSearchResults`，同一文件，每个结果 `ListTile` 上）
-- **备注：** 结果中没有数据的字段（如无 `airTime`）干脆没有切换条目——[`_apply`](#_apply) 的 `_toggles['airTime'] == true` 检查把缺失键与 `false` 同等对待。
+- **副作用：** 经 `AnimeSearchService.searchAll` 执行网络 I/O；重建状态。
+- **算法：** 读取 `Localizations.localeOf(context).toLanguageTag()` 作为 `preferredLanguage`，清空结果与全部过滤条件，await `searchAll`，随后同时保存结果与 `AnimeSearchService.queryVariants(query)`。列表为空时把 `_error` 设为「无结果」文案，失败时设为异常文本。
+- **备注：** 变体缓存在 state 中是刻意的——每次按相关度排序的重建都要用它们打分，逐帧重新推导既浪费又可能与服务实际检索时使用的集合产生偏差。每次新搜索都重置过滤条件，是因为上一次查询的某个来源 chip 在新结果中可能根本不存在。
 
-### `Future<void> _fetchCover()` <a id="_fetchcover"></a>
-- **种类：** `_SearchDialogState` 的方法
-- **来源：** `lib/features/anime/views/anime_search_dialog.dart`（约第 184 行）
-- **用途：** 下载所选结果的封面图像并本地暂存，使它可被预览，且如果用户保持切换开启就被应用。
-- **输入：** 无（读取 `_selected?.coverImageUrl`）。
-- **返回：** `Future<void>`。
-- **副作用：** 经 `ImageService.saveImageFromUrl` 执行网络请求；经 `ImageService.resolve` 读取保存的文件；`setState` `_fetchingCover`、`_fetchedCoverPath`、`_coverPreview`、`_toggles['cover']`；失败时显示 `SnackBar`。
-- **算法：**
-  1. 没有 `coverImageUrl` 时提前返回。
-  2. `setState(() => _fetchingCover = true)`。
-  3. Await `ImageService.saveImageFromUrl(url)`；返回路径且组件仍 mounted 时，经 `ImageService.resolve` 解析为 `File`，然后 `setState` 暂存路径、`FileImage` 预览、`_toggles['cover'] = true` 和 `_fetchingCover = false`。
-  4. 保存返回 `null` 时，只清除加载标志。
-  5. 任何抛出的异常时，清除加载标志并显示带错误消息的 `SnackBar`。
-- **用法：**
-  ```dart
-  TextButton.icon(
-    onPressed: _fetchCover,
-    icon: const Icon(Icons.download, size: 16),
-    label: Text(l10n.searchFetchCover),
-  ),
-  ```
-  （`_buildFieldList`，只在尚未获取封面时显示）
-- **备注：** 成功获取封面也会强制启用 `'cover'` 切换——没有办法只获取预览而不默认"应用"它；用户之后必须手动取消勾选才能丢弃它。
+### `List<AnimeSearchResult> get _visibleResults` <a id="visibleresults"></a>
+- **种类：** `_SearchDialogState` 的 getter
+- **来源：** `lib/features/anime/views/anime_search_dialog.dart`（第 200 行）
+- **用途：** 对原始结果列表应用当前过滤条件与排序。
+- **返回：** `List<AnimeSearchResult>`。
+- **副作用：** 无。
+- **算法：** 过滤掉被隐藏的来源，以及（开关打开时）没有封面或没有首播日期的结果。随后按当前 `_SearchSort` 排序：`relevance` 按 `AnimeSearchService.relevance` 降序；`firstAirDate` 最新在前；`episodes` 最多在前；`source` 按字母序、以相关度作为同分判据。
+- **备注：** 对 `firstAirDate` 与 `episodes`，**缺少**该值的结果无论排序方向都沉到底部，而不是按 0 参与排序——未知集数绝不能压过已知集数。
 
-### `void _apply()` <a id="_apply"></a>
+### `List<String> get _availableSources` <a id="availablesources"></a>
+- **种类：** `_SearchDialogState` 的 getter
+- **来源：** `lib/features/anime/views/anime_search_dialog.dart`（第 249 行）
+- **用途：** 列出当前原始结果中出现过的来源名。
+- **返回：** 按 `AnimeSearchSource.all` 顺序排列的 `List<String>`。
+- **副作用：** 无。
+- **备注：** 驱动过滤 chip，因此没有返回结果的来源绝不会作为过滤项出现。按固定顺序而非首次出现顺序排列，可让 chip 行在多次搜索之间保持稳定。
+
+### `void _selectResult(AnimeSearchResult result)` <a id="selectresult"></a>
 - **种类：** `_SearchDialogState` 的方法
-- **来源：** `lib/features/anime/views/anime_search_dialog.dart`（约第 221 行）
-- **用途：** 从当前切换开启的任何字段构建稀疏结果映射，并带它关闭对话框。
-- **输入：** 无（读取 `_selected` 和 `_toggles`）。
-- **返回：** 无。
-- **副作用：** `Navigator.of(context).pop(result)`。
-- **算法：**
-  1. 没有选中任何东西时提前返回。
-  2. 对 `title`/`titleJa`/`episodes`→`endEpisode`/`firstAirDate`/`airDayOfWeek`/`airTime` 各一：只在切换为 `true` **且**结果确实有非 null 值时才把它包含进结果映射。
-  3. 特例：`firstAirDate` 切换开启但来源没有直接提供 `airDayOfWeek` 时，从 `firstAirDate.weekday` 派生它（`1=周一..7=周日`），即使它自己的切换未必设置，也加入结果。
-  4. 同样包含 `notes`（来自 `summary`），`'cover'` 切换开启时包含 `coverImage`（来自 `_fetchedCoverPath`）。
-  5. `infoUrl`（来自 `sourceUrl`）非空时总是包含，无论任何切换。
-  6. `Navigator.of(context).pop(result)`。
-- **用法：**
-  ```dart
-  FilledButton(
-    onPressed: _toggles.values.any((v) => v) ? _apply : null,
-    child: Text(l10n.searchApply),
-  ),
-  ```
-  （`_buildPreviewView`，同一文件——至少一个切换开启前禁用）
-- **备注：** 来源提供 `infoUrl` 时无条件应用它——它没有复选框，与其他每个字段都不同；因此返回映射即使其他每个切换都关着也可能含 `infoUrl`，所以"应用"按钮启用（只要求*某个*切换开启）并不意味着最终映射只限于切换过的字段。
+- **来源：** `lib/features/anime/views/anime_search_dialog.dart`（第 259 行）
+- **用途：** 进入预览阶段并预设各字段复选框。
+- **副作用：** 重建状态；清除此前已抓取的封面。
+- **算法：** 把 `_phase` 切到 `preview`，并预先勾选该结果实际提供的每个字段——标题、日文标题、集数、首播日期、播出星期、播出时间、备注，以及（当 [`_externalMetaFieldCount`](#externalmetafieldcount) 非零时）外部元数据。
+- **备注：** 封面复选框刻意保持**未勾选**：它需要显式抓取，因为应用它会下载并写入一个图片文件。
+
+### `int _externalMetaFieldCount(AnimeSearchResult r)` <a id="externalmetafieldcount"></a>
+- **种类：** `_SearchDialogState` 的方法
+- **来源：** `lib/features/anime/views/anime_search_dialog.dart`（第 285 行）
+- **用途：** 统计一条结果实际携带多少个外部元数据字段。
+- **返回：** `int`。
+- **副作用：** 无。
+- **算法：** 对每个非空的 `synonyms`、`titleRomaji`、`titleEn`、`format`、`status`、`durationMinutes`、`genres`、`studios`、`endDate` 各加一，评分块整体再加一。
+- **备注：** 为零表示该来源除基础字段外什么都没提供，此时根本不显示外部元数据复选框。该计数同时显示在复选框标签中，因此「资料库信息：来自 AniList 的 6 项信息」无需展开就能告诉用户他们正在接受什么。
+
+### `void _apply()` <a id="apply"></a>
+- **种类：** `_SearchDialogState` 的方法
+- **来源：** `lib/features/anime/views/anime_search_dialog.dart`（第 342 行）
+- **用途：** 用已勾选的字段值关闭对话框。
+- **副作用：** 携带结果 map 弹出对话框。
+- **算法：** 把每个已勾选字段复制进 map。当勾选了 `firstAirDate` 但来源没有报告 `airDayOfWeek` 时，从日期推导星期。勾选外部元数据时，构建 `AnimeSearchService.toExternalMeta(r)` 并经 `mergedWith` 折叠进 `widget.currentExternalMeta`。只要存在 `sourceUrl`，`infoUrl` 就无条件设置。
+- **备注：** `infoUrl` 不做成复选框，因为它记录的是*这些元数据从哪里来*，而后续的刷新流程需要它——见 [`../services/anime_search_service.md`](../services/anime_search_service.md)。
+
+### `Widget _buildResultToolbar(AppLocalizations l10n)` <a id="buildresulttoolbar"></a>
+- **种类：** `_SearchDialogState` 的方法
+- **来源：** `lib/features/anime/views/anime_search_dialog.dart`（第 462 行）
+- **用途：** 构建结果列表上方的排序/过滤/分组工具栏。
+- **返回：** `Widget`。
+- **副作用：** 无。
+- **算法：** 一行内包含「共 M 条，显示 N 条」计数、按来源分组开关、一个 `PopupMenuButton<_SearchSort>`，以及一个过滤按钮——其图标在有过滤条件生效时从 `filter_alt_outlined` 切换为 `filter_alt`。
+- **备注：** 只有搜索产生结果后才渲染，因此空对话框保持简洁。「弹出菜单 + 随状态变化的图标」这一模式沿用了 `management_page.dart` 中的归档过滤器。
+
+### `Future<void> _showFilterSheet(AppLocalizations l10n)` <a id="showfiltersheet"></a>
+- **种类：** `_SearchDialogState` 的方法
+- **来源：** `lib/features/anime/views/anime_search_dialog.dart`（第 537 行）
+- **用途：** 在底部面板中展示来源与字段过滤条件。
+- **副作用：** 打开模态面板，并在用户切换时修改过滤状态。
+- **算法：** 一个 `StatefulBuilder` 面板，包含 [`_availableSources`](#availablesources) 每一项对应的 `FilterChip`、两个 `SwitchListTile` 与一个重置按钮。局部 `toggle()` 辅助函数**同时**调用父级的 `setState` 与面板自身的 `setState`，使面板背后的列表实时更新。
+- **备注：** 过滤条件存为 `_hiddenSources`（排除集合）而非包含集合，因此后续搜索中新出现的来源默认可见，而「重置」只需清空该集合。
+
+### `Widget _buildGroupedResults(AppLocalizations l10n, List<AnimeSearchResult> visible)` <a id="buildgroupedresults"></a>
+- **种类：** `_SearchDialogState` 的方法
+- **来源：** `lib/features/anime/views/anime_search_dialog.dart`（第 671 行）
+- **用途：** 把结果列表渲染成每个来源一个可折叠分区。
+- **返回：** `Widget`。
+- **副作用：** 无。
+- **算法：** 按 `source` 把 `visible` 分桶，再为每个来源渲染一个初始展开的 `ExpansionTile`，尾部槽位显示该组条数。
+- **备注：** 分区保持固定的 `AnimeSearchSource.all` 顺序而非当前排序顺序，因此切换排序只会重排分区*内部*的行，而不会打乱分区本身。
+
+### `Widget _resultTile(AppLocalizations l10n, AnimeSearchResult r)` <a id="resulttile"></a>
+- **种类：** `_SearchDialogState` 的方法
+- **来源：** `lib/features/anime/views/anime_search_dialog.dart`（第 713 行）
+- **用途：** 构建搜索结果列表的一行。
+- **返回：** `Widget`。
+- **副作用：** 无。
+- **算法：** 一个 `ListTile`，含网络封面缩略图、被列出全部已知名称的 `Tooltip` 包裹的 `r.displayTitle`、第一行「来源 · 日文标题 · 集数」副标题，以及其下的 [`_secondaryLine`](#secondaryline)。`onTap` 选中该结果；`onLongPress` 打开 [`_showResultDetails`](#showresultdetails)。
+- **备注：** 标题刻意截断为一行——番剧标题经常超出对话框宽度。长按（触摸）与悬停提示（桌面）是通向完整名称的两条出口，而完整名称正是详情面板存在的理由。
+
+### `String? _secondaryLine(AppLocalizations l10n, AnimeSearchResult r)` <a id="secondaryline"></a>
+- **种类：** `_SearchDialogState` 的方法
+- **来源：** `lib/features/anime/views/anime_search_dialog.dart`（第 773 行）
+- **用途：** 组合结果下方的次要元数据行。
+- **返回：** `String?` —— 来源未提供任何这些字段时返回 `null`。
+- **副作用：** 无。
+- **算法：** 用 ` · ` 连接存在的项：形如 `★ 9.2/10` 的评分、作品形式、播出星期加时间、首播日期（仅在没有播出星期时）、第一个制作公司。
+- **备注：** 返回 `null` 而非空串，可以让调用方去掉 `isThreeLine`，因此来自 filmarks.com 这类信息稀薄来源的行会保持紧凑，而不是预留一行空白。
+
+### `Future<void> _showResultDetails(AppLocalizations l10n, AnimeSearchResult r)` <a id="showresultdetails"></a>
+- **种类：** `_SearchDialogState` 的方法
+- **来源：** `lib/features/anime/views/anime_search_dialog.dart`（第 794 行）
+- **用途：** 不截断地展示一条结果的全部名称与字段。
+- **副作用：** 打开模态面板；复制会写入系统剪贴板。
+- **算法：** 一个 `DraggableScrollableSheet`，列出来源 chip、`r.allTitles` 每一项（作为带复制按钮的 `SelectableText`）、[`_detailRows`](#detailrows) 生成的各行，以及完整简介。
+- **备注：** 名称使用 `SelectableText`，因此即使某个名称远超触发本面板的那一行的宽度，也能被复制出来。这正是对「列表把名称截断了，我看不全」的回答——这里没有任何内容被省略。
+
+### `List<Widget> _detailRows(AppLocalizations l10n, AnimeSearchResult r, ThemeData theme)` <a id="detailrows"></a>
+- **种类：** `_SearchDialogState` 的方法
+- **来源：** `lib/features/anime/views/anime_search_dialog.dart`（第 870 行）
+- **用途：** 构建结果详情面板中带标签的元数据行。
+- **返回：** `List<Widget>`。
+- **副作用：** 无。
+- **算法：** 从该结果提供的每个字段构建 `(标签, 值)` 列表——集数、首播/完结日期、播出星期与时间、作品形式、播出状态、时长、制作公司、类型标签、含票数与排名的评分、来源 URL——再把每项渲染为定宽标签加 `SelectableText` 值。
+- **备注：** 来源未提供的字段被整行省略而非留空，因此面板长度诚实地反映了该来源掌握多少信息。
+
+### `Widget _buildFieldList(AppLocalizations l10n, AnimeSearchResult r)` <a id="buildfieldlist"></a>
+- **种类：** `_SearchDialogState` 的方法
+- **来源：** `lib/features/anime/views/anime_search_dialog.dart`（第 1007 行）
+- **用途：** 构建预览阶段的逐字段复选框列表。
+- **返回：** `Widget`。
+- **副作用：** 无。
+- **算法：** 为每个已提供字段渲染一个 `_fieldTile`（标题、日文标题、集数、首播日期、播出星期、播出时间、备注），随后是外部元数据复选框及其只读 chip 摘要，最后是封面图区块及其显式抓取按钮与前后对比预览。
+- **备注：** 外部元数据是覆盖制作公司/类型标签/作品形式/播出状态/时长/别名/评分全部内容的*单个*复选框。逐字段拆分会让列表无法使用，而这些字段本来就总是从同一个来源一起到达。
+
+### `Widget _buildExternalMetaSummary(AppLocalizations l10n, AnimeSearchResult r)` <a id="buildexternalmetasummary"></a>
+- **种类：** `_SearchDialogState` 的方法
+- **来源：** `lib/features/anime/views/anime_search_dialog.dart`（第 1161 行）
+- **用途：** 展示外部元数据复选框将要应用的内容。
+- **返回：** `Widget` —— 无内容可展示时返回 `SizedBox.shrink()`。
+- **副作用：** 无。
+- **算法：** 一个紧凑的 chip `Wrap`：作品形式、播出状态、时长、每个制作公司、每个类型标签，以及评分。
+- **备注：** 设计上是只读的——上方那个复选框决定其中是否有任何内容被写入。它存在的意义是让用户在接受之前看清「来自 AniList 的 6 项信息」究竟指什么。

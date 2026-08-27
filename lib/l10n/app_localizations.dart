@@ -539,6 +539,234 @@ abstract class AppLocalizations {
   /// **'No matching watch URL found'**
   String get searchWatchUrlEmpty;
 
+  /// No description provided for @searchSort.
+  ///
+  /// In en, this message translates to:
+  /// **'Sort'**
+  String get searchSort;
+
+  /// No description provided for @searchSortRelevance.
+  ///
+  /// In en, this message translates to:
+  /// **'Relevance'**
+  String get searchSortRelevance;
+
+  /// No description provided for @searchSortAirDate.
+  ///
+  /// In en, this message translates to:
+  /// **'First air date'**
+  String get searchSortAirDate;
+
+  /// No description provided for @searchSortEpisodes.
+  ///
+  /// In en, this message translates to:
+  /// **'Episodes'**
+  String get searchSortEpisodes;
+
+  /// No description provided for @searchSortSource.
+  ///
+  /// In en, this message translates to:
+  /// **'Source'**
+  String get searchSortSource;
+
+  /// No description provided for @searchFilter.
+  ///
+  /// In en, this message translates to:
+  /// **'Filter'**
+  String get searchFilter;
+
+  /// No description provided for @searchFilterSources.
+  ///
+  /// In en, this message translates to:
+  /// **'Sources'**
+  String get searchFilterSources;
+
+  /// No description provided for @searchFilterWithCover.
+  ///
+  /// In en, this message translates to:
+  /// **'Only with cover image'**
+  String get searchFilterWithCover;
+
+  /// No description provided for @searchFilterWithAirDate.
+  ///
+  /// In en, this message translates to:
+  /// **'Only with air date'**
+  String get searchFilterWithAirDate;
+
+  /// No description provided for @searchFilterReset.
+  ///
+  /// In en, this message translates to:
+  /// **'Reset filters'**
+  String get searchFilterReset;
+
+  /// No description provided for @searchGroupBySource.
+  ///
+  /// In en, this message translates to:
+  /// **'Group by source'**
+  String get searchGroupBySource;
+
+  /// No description provided for @searchResultCount.
+  ///
+  /// In en, this message translates to:
+  /// **'{shown} of {total} results'**
+  String searchResultCount(int shown, int total);
+
+  /// No description provided for @searchNoMatchingResults.
+  ///
+  /// In en, this message translates to:
+  /// **'No result matches the current filters'**
+  String get searchNoMatchingResults;
+
+  /// No description provided for @searchDetailsTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Result details'**
+  String get searchDetailsTitle;
+
+  /// No description provided for @searchAllTitles.
+  ///
+  /// In en, this message translates to:
+  /// **'All titles'**
+  String get searchAllTitles;
+
+  /// No description provided for @searchDetailsHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Long-press a result for full titles and details'**
+  String get searchDetailsHint;
+
+  /// No description provided for @searchExternalMeta.
+  ///
+  /// In en, this message translates to:
+  /// **'Database info'**
+  String get searchExternalMeta;
+
+  /// No description provided for @searchExternalMetaValue.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} field(s) from {source}'**
+  String searchExternalMetaValue(int count, String source);
+
+  /// No description provided for @animeStudios.
+  ///
+  /// In en, this message translates to:
+  /// **'Studios'**
+  String get animeStudios;
+
+  /// No description provided for @animeGenres.
+  ///
+  /// In en, this message translates to:
+  /// **'Genres'**
+  String get animeGenres;
+
+  /// No description provided for @animeFormat.
+  ///
+  /// In en, this message translates to:
+  /// **'Format'**
+  String get animeFormat;
+
+  /// No description provided for @animeStatus.
+  ///
+  /// In en, this message translates to:
+  /// **'Status'**
+  String get animeStatus;
+
+  /// No description provided for @animeDuration.
+  ///
+  /// In en, this message translates to:
+  /// **'Duration'**
+  String get animeDuration;
+
+  /// No description provided for @animeDurationValue.
+  ///
+  /// In en, this message translates to:
+  /// **'{minutes} min/ep'**
+  String animeDurationValue(int minutes);
+
+  /// No description provided for @animeEndDate.
+  ///
+  /// In en, this message translates to:
+  /// **'Last air date'**
+  String get animeEndDate;
+
+  /// No description provided for @animeAlternateTitles.
+  ///
+  /// In en, this message translates to:
+  /// **'Alternate titles'**
+  String get animeAlternateTitles;
+
+  /// No description provided for @animeExternalMeta.
+  ///
+  /// In en, this message translates to:
+  /// **'Database Info'**
+  String get animeExternalMeta;
+
+  /// No description provided for @animeExternalRatings.
+  ///
+  /// In en, this message translates to:
+  /// **'External Ratings'**
+  String get animeExternalRatings;
+
+  /// No description provided for @animeExternalVotes.
+  ///
+  /// In en, this message translates to:
+  /// **'{votes} votes'**
+  String animeExternalVotes(int votes);
+
+  /// No description provided for @animeExternalRank.
+  ///
+  /// In en, this message translates to:
+  /// **'Rank #{rank}'**
+  String animeExternalRank(int rank);
+
+  /// No description provided for @animeExternalRatingNote.
+  ///
+  /// In en, this message translates to:
+  /// **'From external databases — separate from your own rating'**
+  String get animeExternalRatingNote;
+
+  /// No description provided for @animeRefreshMeta.
+  ///
+  /// In en, this message translates to:
+  /// **'Refresh database info'**
+  String get animeRefreshMeta;
+
+  /// No description provided for @animeRefreshMetaDone.
+  ///
+  /// In en, this message translates to:
+  /// **'Database info updated'**
+  String get animeRefreshMetaDone;
+
+  /// No description provided for @animeRefreshMetaFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Refresh failed: {error}'**
+  String animeRefreshMetaFailed(String error);
+
+  /// No description provided for @animeRefreshMetaNone.
+  ///
+  /// In en, this message translates to:
+  /// **'No refreshable source page saved'**
+  String get animeRefreshMetaNone;
+
+  /// No description provided for @animeRefreshedAt.
+  ///
+  /// In en, this message translates to:
+  /// **'Updated {date}'**
+  String animeRefreshedAt(String date);
+
+  /// No description provided for @copyAction.
+  ///
+  /// In en, this message translates to:
+  /// **'Copy'**
+  String get copyAction;
+
+  /// No description provided for @copiedToClipboard.
+  ///
+  /// In en, this message translates to:
+  /// **'Copied to clipboard'**
+  String get copiedToClipboard;
+
   /// No description provided for @animeEpisodes.
   ///
   /// In en, this message translates to:

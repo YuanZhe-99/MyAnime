@@ -118,11 +118,12 @@
 ### `static Future<Response> _handleSearch(Request request)` <a id="handlesearch"></a>
 - **种类：** `LocalApiServer` 的静态方法（路由处理器）。
 - **来源：** `lib/shared/services/local_api_server.dart`（第 206 行）。
-- **用途：** 实现 `POST /anime/search`：通过多源搜索引擎运行查询并返回最多 5 条结果。
-- **输入：** `request` — JSON 正文必须含非空 `query` 字符串。
+- **用途：** 实现 `POST /anime/search`：通过多源搜索引擎运行查询并返回最多 `limit` 条结果（默认 10）。
+- **输入：** `request` — JSON 正文必须含非空 `query` 字符串；可选 `language`（界面语言标签，如 `zh_TW`，作为 `preferredLanguage` 透传）与 `limit`（正整数，默认 10）。
 - **返回：** `Future<Response>` — 正文缺失/无效或 `query` 为空/空白时 `400`；否则 `200` 带 JSON 结果对象数组。
 - **副作用：** 经 `AnimeSearchService.searchAll()` 执行出站 HTTP 请求（见 [../../features/multi-source-search.md](../../../features/multi-source-search.md)）。
-- **算法：** 解析并校验正文，调用 `AnimeSearchService.searchAll(query.trim())`，取前 5 条结果，把每条映射为平铺 JSON 对象（`source`、`sourceUrl`、`title`、`titleJa`、`episodes`、`firstAirDate`、`airDayOfWeek`、`airTime`、`coverImageUrl`、`summary`）。
+- **算法：** 解析并校验正文，调用 `AnimeSearchService.searchAll(query.trim(), preferredLanguage: ...)`，取前 `limit` 条结果，把每条映射为平铺 JSON 对象：`source`、`sourceUrl`、`title`、`titleJa`、`titleRomaji`、`titleEn`、`synonyms`、`episodes`、`firstAirDate`、`airDayOfWeek`、`airTime`、`endDate`、`format`、`status`、`durationMinutes`、`genres`、`studios`、`score`、`scoreMax`、`scoreVotes`、`scoreRank`、`coverImageUrl`、`summary`。
+- **兼容性：** 1.4.0 新增了外部元数据相关的键，并把默认上限从 5 提高到 10。此前已有的每个键都保持了名称与含义，因此旧的消费方不受影响；若某个消费方假定恰好返回 5 条，应显式传 `limit: 5`。
 - **用法：** 任何命中 `POST /anime/search` 的本地/局域网 HTTP 客户端调用；这是桌面 API 表面唯一的搜索入口（与应用内搜索对话框不同，后者直接调用 `AnimeSearchService`）。
 - **备注：** 因为 `AnimeSearchService` 本身不做风味门控，这里是纯桌面服务意味着在线搜索的 store 风味限制不适用——API 服务器是 `full` 风味桌面功能，按本仓库的 `AGENTS.md`。
 

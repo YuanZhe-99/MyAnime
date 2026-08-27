@@ -236,6 +236,134 @@ class AppLocalizationsJa extends AppLocalizations {
   String get searchWatchUrlEmpty => '一致する視聴URLが見つかりません';
 
   @override
+  String get searchSort => '並び替え';
+
+  @override
+  String get searchSortRelevance => '関連度';
+
+  @override
+  String get searchSortAirDate => '放送開始日';
+
+  @override
+  String get searchSortEpisodes => '話数';
+
+  @override
+  String get searchSortSource => 'ソース';
+
+  @override
+  String get searchFilter => '絞り込み';
+
+  @override
+  String get searchFilterSources => 'ソース';
+
+  @override
+  String get searchFilterWithCover => 'カバー画像がある結果のみ';
+
+  @override
+  String get searchFilterWithAirDate => '放送日がある結果のみ';
+
+  @override
+  String get searchFilterReset => '絞り込みをリセット';
+
+  @override
+  String get searchGroupBySource => 'ソースごとにグループ化';
+
+  @override
+  String searchResultCount(int shown, int total) {
+    return '全 $total 件中 $shown 件を表示';
+  }
+
+  @override
+  String get searchNoMatchingResults => '現在の絞り込み条件に一致する結果はありません';
+
+  @override
+  String get searchDetailsTitle => '結果の詳細';
+
+  @override
+  String get searchAllTitles => 'すべてのタイトル';
+
+  @override
+  String get searchDetailsHint => '結果を長押しすると全タイトルと詳細を表示します';
+
+  @override
+  String get searchExternalMeta => 'データベース情報';
+
+  @override
+  String searchExternalMetaValue(int count, String source) {
+    return '$source からの $count 項目';
+  }
+
+  @override
+  String get animeStudios => '制作会社';
+
+  @override
+  String get animeGenres => 'ジャンル';
+
+  @override
+  String get animeFormat => '作品形式';
+
+  @override
+  String get animeStatus => '放送状況';
+
+  @override
+  String get animeDuration => '1話あたりの長さ';
+
+  @override
+  String animeDurationValue(int minutes) {
+    return '$minutes 分/話';
+  }
+
+  @override
+  String get animeEndDate => '放送終了日';
+
+  @override
+  String get animeAlternateTitles => '別名';
+
+  @override
+  String get animeExternalMeta => 'データベース情報';
+
+  @override
+  String get animeExternalRatings => '外部評価';
+
+  @override
+  String animeExternalVotes(int votes) {
+    return '$votes 件の評価';
+  }
+
+  @override
+  String animeExternalRank(int rank) {
+    return 'ランキング #$rank';
+  }
+
+  @override
+  String get animeExternalRatingNote => '外部データベースの評価で、自分の評価とは別に保存されます';
+
+  @override
+  String get animeRefreshMeta => 'データベース情報を更新';
+
+  @override
+  String get animeRefreshMetaDone => 'データベース情報を更新しました';
+
+  @override
+  String animeRefreshMetaFailed(String error) {
+    return '更新に失敗しました: $error';
+  }
+
+  @override
+  String get animeRefreshMetaNone => '更新できるソースページが保存されていません';
+
+  @override
+  String animeRefreshedAt(String date) {
+    return '$date に更新';
+  }
+
+  @override
+  String get copyAction => 'コピー';
+
+  @override
+  String get copiedToClipboard => 'クリップボードにコピーしました';
+
+  @override
   String get animeEpisodes => '話';
 
   @override

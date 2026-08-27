@@ -103,11 +103,11 @@
 - **用途：** 打开预填表单当前值的在线元数据搜索对话框（[`showAnimeSearchDialog`](anime_search_dialog.md#showanimesearchdialog)），然后应用用户选择导入回表单的任何字段。
 - **输入：** 无（读取当前控制器/暂存字段值作为 `currentXxx` 参数传入）。
 - **返回：** `Future<void>`。
-- **副作用：** 显示执行网络请求的对话框；`setState` `_titleController`、`_titleJaController`、`_endEpController`、`_firstAirDate`、`_airDayOfWeek`、`_airTimeController`、`_notesController`、`_coverImage`、`_infoUrlController` 中的任意。
+- **副作用：** 显示执行网络请求的对话框；`setState` `_titleController`、`_titleJaController`、`_endEpController`、`_firstAirDate`、`_airDayOfWeek`、`_airTimeController`、`_notesController`、`_coverImage`、`_infoUrlController`、`_externalMeta` 中的任意。
 - **算法：**
   1. 标题控制器的文本非空则用作初始查询，否则用日文标题。
   2. Await `showAnimeSearchDialog(...)`，把每个当前表单值作为 `currentXxx` 参数传入（使对话框能显示"当前 vs 获取"比较）。
-  3. 返回非 null 结果映射时，把映射中存在的每个键应用到匹配的控制器/字段——九个可能键（`title`、`titleJa`、`endEpisode`、`firstAirDate`、`airDayOfWeek`、`airTime`、`notes`、`coverImage`、`infoUrl`）各自经 `result.containsKey(...)` 独立检查和应用。
+  3. 返回非 null 结果映射时，把映射中存在的每个键应用到匹配的控制器/字段——十个可能键（`title`、`titleJa`、`endEpisode`、`firstAirDate`、`airDayOfWeek`、`airTime`、`notes`、`coverImage`、`infoUrl`、`externalMeta`）各自经 `result.containsKey(...)` 独立检查和应用。`externalMeta` 保存在 `_externalMeta` 中（不是表单控制器，因为它从不手工输入），并在 `_save()` 时随记录一并写入。
 - **用法：**
   ```dart
   if (AppFlavor.isFull)

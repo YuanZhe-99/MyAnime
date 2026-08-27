@@ -59,6 +59,74 @@ enum AnimeType {
 
 `effectiveOverall` 在 `overall` 已设置时返回它；否则对非 null 的子分求平均（`scores.fold(...) / scores.length`），只在每个子分也都是 null 时返回 `null`。简言之：**手动总分优先；为空时，有效总分为已填子分的平均。**
 
+### `AnimeExternalMeta` 与 `AnimeExternalRating`
+
+可选的每部番剧记录，保存**由在线搜索从外部番剧资料库拉取的公开元数据**（见
+[`features/multi-source-search.md`](features/multi-source-search.md)）。存放在 `externalMeta` 键下：
+
+```json
+"externalMeta": {
+  "synonyms": ["Frieren at the Funeral"],
+  "titleRomaji": "Sousou no Frieren",
+  "titleEn": "Frieren: Beyond Journey's End",
+  "format": "TV",
+  "status": "FINISHED",
+  "durationMinutes": 24,
+  "genres": ["Adventure", "Drama"],
+  "studios": ["Madhouse"],
+  "endDate": "2024-03-22T00:00:00.000Z",
+  "ratings": [
+    {
+      "source": "AniList",
+      "sourceUrl": "https://anilist.co/anime/154587",
+      "score": 9.2,
+      "scoreMax": 10.0,
+      "votes": 300000,
+      "rank": 1,
+      "fetchedAt": "2026-08-26T12:00:00.000Z"
+    }
+  ],
+  "refreshedAt": "2026-08-26T12:00:00.000Z"
+}
+```
+
+- `synonyms` — 各语言的别名，按各来源的报告原样保存。
+- `titleRomaji` / `titleEn` — 罗马音标题与英文标题。它们**不会**替换 `title` / `titleJa`，只是额外的
+  名称，用于展示、搜索对话框的「全部名称」面板，以及两阶段搜索的跨语言补搜查询。
+- `format` — 作品形式（`TV`、`MOVIE`、`OVA`、`ONA`、`SPECIAL`），按来源报告原样保存。它**不是**
+  `AnimeType`：`AnimeType` 描述的是季度长度并驱动排期，而 `format` 只是描述性元数据。
+- `status` — 各来源报告的播出状态（`FINISHED`、`RELEASING`、`Finished Airing` 等）。刻意不做归一化：
+  观看状态仍由 `episodeStatuses` 推导，此字段绝不参与其中。
+- `durationMinutes` — 单集时长。
+- `genres`、`studios` — 类型标签与制作公司。
+- `endDate` — 已知时的完结日期。
+- `refreshedAt` — 上次刷新的 UTC 时间戳。
+
+**`ratings` 与 `AnimeRating` 刻意分离。** `AnimeRating` 保存的是*用户自己*的评分，任何抓取都不会写入它；
+`externalMeta.ratings` 保存的是各外部资料库的评分，统一归一化到 10 分制（`scoreMax`，默认 `10`）。每条
+记录都保留它的来源 `sourceUrl`，这正是后续刷新时重新查询的对象——刷新流程见
+[`features/multi-source-search.md`](features/multi-source-search.md)。记录以 `source` 为键：刷新某个
+来源只会替换该来源的记录，其余保持不变。
+
+`AnimeExternalMeta.mergedWith(other)` 实现这一合并。标量与列表字段只在 `other` 确实提供时才取用，因此
+对 AniList 刷新（部分作品它不报告制作公司）绝不会抹掉 bangumi.tv 贡献的制作公司。
+
+**整个对象为空时会被省略**，规则与 `AnimeLocalArchive` 相同：全空记录的 `hasAnyData` 为 false，此时
+`Anime.toJson()` 不写 `externalMeta` 键，`Anime.fromJson()` 也会丢弃解析出的全空记录。从未应用过搜索
+结果的番剧，其序列化结果与该字段存在之前完全一致。
+
+**它会与不会去到哪里。** 与 `AnimeLocalArchive` 不同，这是关于作品本身的公开信息而非个人基础设施信息，
+因此**不会**从分享文件中剥离：
+
+| 场景 | 是否包含？ |
+|---|---|
+| 磁盘上的 `anime_data.json` | **是** |
+| WebDAV 同步 | **是** —— 走普通的整记录合并，无需改动同步层 |
+| 备份包 | **是** |
+| 本地 HTTP API | **是** |
+| 分享图片卡片 | **否** —— 从不绘制 |
+| `.myanimeitem` 分享文件 | **是** —— 公开元数据，不是个人数据 |
+
 ### `AnimeLocalArchive`
 
 可选的逐动画**本地下载存档**记录——是否保留了本地资源、什么画质、几份、放在哪里。存放在 `localArchive` 键下：
@@ -103,7 +171,7 @@ enum AnimeType {
 
 ### 兼容性：未知 JSON 字段保留（`extraJson`）
 
-`Anime`、`AnimeRating`、`AnimeLocalArchive` 和 `AnimeData`（顶层 `{animes: [...]}` 容器）各携带一个 `extraJson` 映射，保存当前应用版本不认识的任何 JSON 键。模式：
+`Anime`、`AnimeRating`、`AnimeLocalArchive`、`AnimeExternalMeta`、`AnimeExternalRating` 和 `AnimeData`（顶层 `{animes: [...]}` 容器）各携带一个 `extraJson` 映射，保存当前应用版本不认识的任何 JSON 键。模式：
 
 - `fromJson()` 把 `extraJson` 计算为"原始 JSON 中每个键减去该类型的已知键"（经由内部 `_unknownJson` 辅助），并且把任何无法按预期类型解析的值（如不是 `num` 的评分子分）也路由回 `extraJson`，而不是丢弃。
 - `toJson()` 从 `extraJson` 的副本开始，再把已知字段覆盖在上层，因此未知键原样随行。

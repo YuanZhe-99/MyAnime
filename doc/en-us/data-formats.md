@@ -86,6 +86,81 @@ non-null (`scores.fold(...) / scores.length`), returning `null` only when every 
 null. In short: **manual overall wins; if empty, the effective overall is the average of filled
 sub-scores.**
 
+### `AnimeExternalMeta` and `AnimeExternalRating`
+
+Optional per-anime record of **public metadata pulled from external anime databases** by the online
+search (see [`features/multi-source-search.md`](features/multi-source-search.md)). Stored under the
+`externalMeta` key:
+
+```json
+"externalMeta": {
+  "synonyms": ["Frieren at the Funeral"],
+  "titleRomaji": "Sousou no Frieren",
+  "titleEn": "Frieren: Beyond Journey's End",
+  "format": "TV",
+  "status": "FINISHED",
+  "durationMinutes": 24,
+  "genres": ["Adventure", "Drama"],
+  "studios": ["Madhouse"],
+  "endDate": "2024-03-22T00:00:00.000Z",
+  "ratings": [
+    {
+      "source": "AniList",
+      "sourceUrl": "https://anilist.co/anime/154587",
+      "score": 9.2,
+      "scoreMax": 10.0,
+      "votes": 300000,
+      "rank": 1,
+      "fetchedAt": "2026-08-26T12:00:00.000Z"
+    }
+  ],
+  "refreshedAt": "2026-08-26T12:00:00.000Z"
+}
+```
+
+- `synonyms` — alternate titles in any language, as reported by the sources.
+- `titleRomaji` / `titleEn` — romanized and English titles. These do **not** replace `title` /
+  `titleJa`; they are extra names, used for display, for the search dialog's "all titles" sheet, and
+  as cross-language backfill queries.
+- `format` — release format (`TV`, `MOVIE`, `OVA`, `ONA`, `SPECIAL`), stored as the source reports
+  it. This is **not** `AnimeType`: `AnimeType` describes cour length and drives scheduling, while
+  `format` is descriptive metadata only.
+- `status` — broadcast status as the source reports it (`FINISHED`, `RELEASING`, `Finished Airing`,
+  …). Deliberately unnormalized: viewing status stays derived from `episodeStatuses`, and this
+  field never feeds it.
+- `durationMinutes` — per-episode runtime.
+- `genres`, `studios` — tags and animation studios.
+- `endDate` — date the final episode aired, when known.
+- `refreshedAt` — UTC timestamp of the last refresh.
+
+**`ratings` is separate from `AnimeRating` on purpose.** `AnimeRating` holds the *user's own* scores
+and is never written by a fetch; `externalMeta.ratings` holds each external database's score,
+normalized onto a 10-point scale (`scoreMax`, default `10`). Every entry keeps the `sourceUrl` it
+was read from, which is exactly what a later refresh re-queries — see the refresh flow in
+[`features/multi-source-search.md`](features/multi-source-search.md). Entries are keyed by `source`:
+refreshing one source replaces that source's entry and leaves the others alone.
+
+`AnimeExternalMeta.mergedWith(other)` implements that fold. Scalar and list fields are taken from
+`other` only when it actually supplies them, so refreshing against AniList — which reports no
+studios for some titles — never erases the studios bangumi.tv contributed.
+
+**The whole object is omitted when empty**, following the same rule as `AnimeLocalArchive`:
+`hasAnyData` is false for an all-empty record, `Anime.toJson()` then writes no `externalMeta` key,
+and `Anime.fromJson()` discards an all-empty parsed record. An anime that never had a search result
+applied serializes exactly as it did before this field existed.
+
+**Where it does and does not travel.** Unlike `AnimeLocalArchive`, this is public information about
+the work rather than personal infrastructure, so it is **not** stripped from share files:
+
+| Surface | Included? |
+|---|---|
+| `anime_data.json` on disk | **Yes** |
+| WebDAV sync | **Yes** — rides the ordinary whole-record merge, no sync-layer change |
+| Backup bundles | **Yes** |
+| Local HTTP API | **Yes** |
+| Shared image cards | **No** — never drawn |
+| `.myanimeitem` share files | **Yes** — public metadata, not personal data |
+
 ### `AnimeLocalArchive`
 
 Optional per-anime record of a **downloaded local copy** — whether one is kept, at what quality, in
@@ -136,8 +211,8 @@ table.
 
 ### Compatibility: unknown-JSON-field preservation (`extraJson`)
 
-`Anime`, `AnimeRating`, `AnimeLocalArchive`, and `AnimeData` (the top-level `{animes: [...]}`
-container) each carry an `extraJson` map holding any JSON keys the current app version doesn't
+`Anime`, `AnimeRating`, `AnimeLocalArchive`, `AnimeExternalMeta`, `AnimeExternalRating`, and
+`AnimeData` (the top-level `{animes: [...]}` container) each carry an `extraJson` map holding any JSON keys the current app version doesn't
 recognize. The pattern:
 
 - `fromJson()` computes `extraJson` as "every key in the raw JSON minus the known keys for this

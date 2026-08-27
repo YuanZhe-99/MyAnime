@@ -68,7 +68,7 @@ Network Access
 
 MyAnime!!!!! accesses the internet only in the following situations:
 
-• Searching for anime information (full version only): When you actively search for anime, the app sends requests to bangumi.tv, MyAnimeList (Jikan API), acgsecrets.hk, anime1.me and filmarks.com to retrieve publicly available anime information such as titles, summaries, cover art, and episode counts. This feature is not included in versions distributed through the App Store or Google Play.
+• Searching for and refreshing anime information (full version only): When you actively search for anime, or refresh the database info on an anime you have already saved, the app sends requests to bangumi.tv, MyAnimeList (Jikan API), AniList (anilist.co), acgsecrets.hk, anime1.me and filmarks.com to retrieve publicly available anime information such as titles and alternate titles, summaries, cover art, episode counts, broadcast schedules, studios, genres, and those sites' public ratings. Only the search text or the saved source-page address is sent; none of your personal viewing data is included. This feature is not included in versions distributed through the App Store or Google Play.
 
 • WebDAV sync: If you enable WebDAV cloud sync, the app sends your data to a WebDAV server that you configure yourself. The app does not send data to any other server.
 
@@ -112,7 +112,7 @@ MyAnime!!!!! 不收集、上传或共享任何个人信息。应用不包含任�
 
 MyAnime!!!!! 仅在以下情况下访问互联网：
 
-• 搜索番剧信息（完整版专有）：当您主动搜索番剧时，应用会向 bangumi.tv、MyAnimeList（Jikan API）、acgsecrets.hk、anime1.me 和 filmarks.com 发送请求，以获取公开的番剧信息，如标题、简介、封面和集数。通过 App Store 或 Google Play 分发的版本不包含此功能。
+• 搜索与刷新番剧信息（完整版专有）：当您主动搜索番剧，或刷新已保存番剧的资料库信息时，应用会向 bangumi.tv、MyAnimeList（Jikan API）、AniList（anilist.co）、acgsecrets.hk、anime1.me 和 filmarks.com 发送请求，以获取公开的番剧信息，如标题与别名、简介、封面、集数、放送排期、制作公司、类型标签，以及这些站点的公开评分。发送的只有搜索文本或已保存的来源页面地址，不包含您的任何个人观看数据。通过 App Store 或 Google Play 分发的版本不包含此功能。
 
 • WebDAV 同步：如果您启用了 WebDAV 云同步，应用会将您的数据发送到您自行配置的 WebDAV 服务器。应用不会向其他任何服务器发送数据。
 
@@ -200,7 +200,7 @@ MyAnime!!!!! は個人情報の収集、アップロード、共有を一切行�
 
 MyAnime!!!!! は以下の場合にのみインターネットにアクセスします：
 
-• アニメ情報の検索（完全版のみ）：お客様がアニメを検索した際、アプリは bangumi.tv、MyAnimeList（Jikan API）、acgsecrets.hk、anime1.me、filmarks.com にリクエストを送信し、タイトル、あらすじ、カバー画像、話数などの公開情報を取得します。App Store または Google Play で配信されるバージョンにはこの機能は含まれていません。
+• アニメ情報の検索と更新（完全版のみ）：お客様がアニメを検索した際、または保存済みアニメのデータベース情報を更新した際、アプリは bangumi.tv、MyAnimeList（Jikan API）、AniList（anilist.co）、acgsecrets.hk、anime1.me、filmarks.com にリクエストを送信し、タイトルおよび別名、あらすじ、カバー画像、話数、放送スケジュール、制作会社、ジャンル、各サイトの公開評価などの公開情報を取得します。送信されるのは検索文字列または保存済みのソースページのアドレスのみで、お客様の視聴データは一切含まれません。App Store または Google Play で配信されるバージョンにはこの機能は含まれていません。
 
 • WebDAV同期：WebDAVクラウド同期を有効にした場合、アプリはお客様が設定したWebDAVサーバーにデータを送信します。それ以外のサーバーにデータを送信することはありません。
 

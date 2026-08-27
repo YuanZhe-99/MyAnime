@@ -236,6 +236,134 @@ class AppLocalizationsZh extends AppLocalizations {
   String get searchWatchUrlEmpty => '未找到匹配的观看链接';
 
   @override
+  String get searchSort => '排序';
+
+  @override
+  String get searchSortRelevance => '相关度';
+
+  @override
+  String get searchSortAirDate => '首播日期';
+
+  @override
+  String get searchSortEpisodes => '集数';
+
+  @override
+  String get searchSortSource => '来源';
+
+  @override
+  String get searchFilter => '过滤';
+
+  @override
+  String get searchFilterSources => '来源';
+
+  @override
+  String get searchFilterWithCover => '仅显示有封面的结果';
+
+  @override
+  String get searchFilterWithAirDate => '仅显示有播出日期的结果';
+
+  @override
+  String get searchFilterReset => '重置过滤条件';
+
+  @override
+  String get searchGroupBySource => '按来源分组';
+
+  @override
+  String searchResultCount(int shown, int total) {
+    return '共 $total 条，显示 $shown 条';
+  }
+
+  @override
+  String get searchNoMatchingResults => '没有符合当前过滤条件的结果';
+
+  @override
+  String get searchDetailsTitle => '结果详情';
+
+  @override
+  String get searchAllTitles => '全部名称';
+
+  @override
+  String get searchDetailsHint => '长按结果可查看完整名称与详细信息';
+
+  @override
+  String get searchExternalMeta => '资料库信息';
+
+  @override
+  String searchExternalMetaValue(int count, String source) {
+    return '来自 $source 的 $count 项信息';
+  }
+
+  @override
+  String get animeStudios => '制作公司';
+
+  @override
+  String get animeGenres => '类型标签';
+
+  @override
+  String get animeFormat => '作品形式';
+
+  @override
+  String get animeStatus => '播出状态';
+
+  @override
+  String get animeDuration => '单集时长';
+
+  @override
+  String animeDurationValue(int minutes) {
+    return '$minutes 分钟/集';
+  }
+
+  @override
+  String get animeEndDate => '完结日期';
+
+  @override
+  String get animeAlternateTitles => '别名';
+
+  @override
+  String get animeExternalMeta => '资料库信息';
+
+  @override
+  String get animeExternalRatings => '外部评分';
+
+  @override
+  String animeExternalVotes(int votes) {
+    return '$votes 人评分';
+  }
+
+  @override
+  String animeExternalRank(int rank) {
+    return '排名 #$rank';
+  }
+
+  @override
+  String get animeExternalRatingNote => '来自外部资料库，与你自己的评分相互独立';
+
+  @override
+  String get animeRefreshMeta => '刷新资料库信息';
+
+  @override
+  String get animeRefreshMetaDone => '资料库信息已更新';
+
+  @override
+  String animeRefreshMetaFailed(String error) {
+    return '刷新失败：$error';
+  }
+
+  @override
+  String get animeRefreshMetaNone => '没有可用于刷新的来源页面';
+
+  @override
+  String animeRefreshedAt(String date) {
+    return '更新于 $date';
+  }
+
+  @override
+  String get copyAction => '复制';
+
+  @override
+  String get copiedToClipboard => '已复制到剪贴板';
+
+  @override
   String get animeEpisodes => '集';
 
   @override
@@ -1411,6 +1539,134 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
 
   @override
   String get searchWatchUrlEmpty => '未找到匹配的觀看連結';
+
+  @override
+  String get searchSort => '排序';
+
+  @override
+  String get searchSortRelevance => '相關度';
+
+  @override
+  String get searchSortAirDate => '首播日期';
+
+  @override
+  String get searchSortEpisodes => '集數';
+
+  @override
+  String get searchSortSource => '來源';
+
+  @override
+  String get searchFilter => '過濾';
+
+  @override
+  String get searchFilterSources => '來源';
+
+  @override
+  String get searchFilterWithCover => '僅顯示有封面的結果';
+
+  @override
+  String get searchFilterWithAirDate => '僅顯示有播出日期的結果';
+
+  @override
+  String get searchFilterReset => '重設過濾條件';
+
+  @override
+  String get searchGroupBySource => '依來源分組';
+
+  @override
+  String searchResultCount(int shown, int total) {
+    return '共 $total 筆，顯示 $shown 筆';
+  }
+
+  @override
+  String get searchNoMatchingResults => '沒有符合目前過濾條件的結果';
+
+  @override
+  String get searchDetailsTitle => '結果詳情';
+
+  @override
+  String get searchAllTitles => '全部名稱';
+
+  @override
+  String get searchDetailsHint => '長按結果可檢視完整名稱與詳細資訊';
+
+  @override
+  String get searchExternalMeta => '資料庫資訊';
+
+  @override
+  String searchExternalMetaValue(int count, String source) {
+    return '來自 $source 的 $count 項資訊';
+  }
+
+  @override
+  String get animeStudios => '製作公司';
+
+  @override
+  String get animeGenres => '類型標籤';
+
+  @override
+  String get animeFormat => '作品形式';
+
+  @override
+  String get animeStatus => '播出狀態';
+
+  @override
+  String get animeDuration => '單集時長';
+
+  @override
+  String animeDurationValue(int minutes) {
+    return '$minutes 分鐘/集';
+  }
+
+  @override
+  String get animeEndDate => '完結日期';
+
+  @override
+  String get animeAlternateTitles => '別名';
+
+  @override
+  String get animeExternalMeta => '資料庫資訊';
+
+  @override
+  String get animeExternalRatings => '外部評分';
+
+  @override
+  String animeExternalVotes(int votes) {
+    return '$votes 人評分';
+  }
+
+  @override
+  String animeExternalRank(int rank) {
+    return '排名 #$rank';
+  }
+
+  @override
+  String get animeExternalRatingNote => '來自外部資料庫，與你自己的評分相互獨立';
+
+  @override
+  String get animeRefreshMeta => '重新整理資料庫資訊';
+
+  @override
+  String get animeRefreshMetaDone => '資料庫資訊已更新';
+
+  @override
+  String animeRefreshMetaFailed(String error) {
+    return '重新整理失敗：$error';
+  }
+
+  @override
+  String get animeRefreshMetaNone => '沒有可用於重新整理的來源頁面';
+
+  @override
+  String animeRefreshedAt(String date) {
+    return '更新於 $date';
+  }
+
+  @override
+  String get copyAction => '複製';
+
+  @override
+  String get copiedToClipboard => '已複製到剪貼簿';
 
   @override
   String get animeEpisodes => '集';

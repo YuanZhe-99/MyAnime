@@ -239,6 +239,136 @@ class AppLocalizationsEn extends AppLocalizations {
   String get searchWatchUrlEmpty => 'No matching watch URL found';
 
   @override
+  String get searchSort => 'Sort';
+
+  @override
+  String get searchSortRelevance => 'Relevance';
+
+  @override
+  String get searchSortAirDate => 'First air date';
+
+  @override
+  String get searchSortEpisodes => 'Episodes';
+
+  @override
+  String get searchSortSource => 'Source';
+
+  @override
+  String get searchFilter => 'Filter';
+
+  @override
+  String get searchFilterSources => 'Sources';
+
+  @override
+  String get searchFilterWithCover => 'Only with cover image';
+
+  @override
+  String get searchFilterWithAirDate => 'Only with air date';
+
+  @override
+  String get searchFilterReset => 'Reset filters';
+
+  @override
+  String get searchGroupBySource => 'Group by source';
+
+  @override
+  String searchResultCount(int shown, int total) {
+    return '$shown of $total results';
+  }
+
+  @override
+  String get searchNoMatchingResults => 'No result matches the current filters';
+
+  @override
+  String get searchDetailsTitle => 'Result details';
+
+  @override
+  String get searchAllTitles => 'All titles';
+
+  @override
+  String get searchDetailsHint =>
+      'Long-press a result for full titles and details';
+
+  @override
+  String get searchExternalMeta => 'Database info';
+
+  @override
+  String searchExternalMetaValue(int count, String source) {
+    return '$count field(s) from $source';
+  }
+
+  @override
+  String get animeStudios => 'Studios';
+
+  @override
+  String get animeGenres => 'Genres';
+
+  @override
+  String get animeFormat => 'Format';
+
+  @override
+  String get animeStatus => 'Status';
+
+  @override
+  String get animeDuration => 'Duration';
+
+  @override
+  String animeDurationValue(int minutes) {
+    return '$minutes min/ep';
+  }
+
+  @override
+  String get animeEndDate => 'Last air date';
+
+  @override
+  String get animeAlternateTitles => 'Alternate titles';
+
+  @override
+  String get animeExternalMeta => 'Database Info';
+
+  @override
+  String get animeExternalRatings => 'External Ratings';
+
+  @override
+  String animeExternalVotes(int votes) {
+    return '$votes votes';
+  }
+
+  @override
+  String animeExternalRank(int rank) {
+    return 'Rank #$rank';
+  }
+
+  @override
+  String get animeExternalRatingNote =>
+      'From external databases — separate from your own rating';
+
+  @override
+  String get animeRefreshMeta => 'Refresh database info';
+
+  @override
+  String get animeRefreshMetaDone => 'Database info updated';
+
+  @override
+  String animeRefreshMetaFailed(String error) {
+    return 'Refresh failed: $error';
+  }
+
+  @override
+  String get animeRefreshMetaNone => 'No refreshable source page saved';
+
+  @override
+  String animeRefreshedAt(String date) {
+    return 'Updated $date';
+  }
+
+  @override
+  String get copyAction => 'Copy';
+
+  @override
+  String get copiedToClipboard => 'Copied to clipboard';
+
+  @override
   String get animeEpisodes => 'episodes';
 
   @override

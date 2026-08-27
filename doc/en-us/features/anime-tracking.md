@@ -57,6 +57,24 @@ Viewing status (completed / watching / dropped / not-started) is computed from
 and [`../features/home-management-statistics.md`](home-management-statistics.md) for where it's
 displayed.
 
+## Ratings: yours vs. the databases'
+
+Two rating concepts coexist and must not be conflated:
+
+- **`AnimeRating`** is the *user's own* score — a manual overall plus five sub-scores, edited on the
+  edit page and shown in the rating card on the detail page. It is the only rating that feeds
+  statistics and the local API's ranking endpoint.
+- **`externalMeta.ratings`** holds what external databases say, one entry per source, each
+  normalized onto a 10-point scale and each remembering the page URL it came from. It is shown in
+  a separate "Database Info" card *above* the personal rating card, with an explanatory line, and
+  it never feeds statistics.
+
+Nothing writes an external score into `AnimeRating`. Applying a search result, or refreshing an
+anime's database info, touches only `externalMeta` — the user's own scores, episode progress, and
+manual edits are left exactly as they are. See
+[`../data-formats.md`](../data-formats.md#animeexternalmeta-and-animeexternalrating) for the stored
+shape and [`multi-source-search.md`](multi-source-search.md) for the refresh flow.
+
 ## Local archive
 
 Independent of watching progress, each anime can carry an optional record of a **downloaded local

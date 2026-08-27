@@ -5,11 +5,13 @@ import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import 'package:url_launcher/url_launcher.dart';
 
+import '../../../app/flavor.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../../shared/services/image_service.dart';
 import '../../../shared/services/share_service.dart';
 import '../../../shared/widgets/delete_confirm.dart';
 import '../models/anime.dart';
+import '../services/anime_search_service.dart';
 import '../services/anime_storage.dart';
 import 'archive_labels.dart';
 
@@ -36,6 +38,7 @@ class _AnimeDetailPageState extends State<AnimeDetailPage> {
   Anime? _anime;
   String? _prevSeasonId;
   String? _nextSeasonId;
+  bool _refreshingMeta = false;
 
   /// Purpose: Initialize listeners, controllers, and first-load work for this state object.
   /// Inputs: None.
@@ -292,6 +295,24 @@ class _AnimeDetailPageState extends State<AnimeDetailPage> {
                           mode: LaunchMode.externalApplication,
                         ),
                       ),
+                    // Online lookups are a full-build feature; store builds
+                    // must never reach AnimeSearchService.
+                    if (AppFlavor.isFull && _refreshableUrls(anime).isNotEmpty)
+                      ActionChip(
+                        avatar: _refreshingMeta
+                            ? const SizedBox(
+                                width: 14,
+                                height: 14,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                ),
+                              )
+                            : const Icon(Icons.sync, size: 16),
+                        label: Text(l10n.animeRefreshMeta),
+                        onPressed: _refreshingMeta
+                            ? null
+                            : () => _refreshExternalMeta(anime),
+                      ),
                     if (anime.watchUrl != null)
                       ActionChip(
                         avatar: const Icon(Icons.open_in_browser, size: 16),
@@ -315,6 +336,10 @@ class _AnimeDetailPageState extends State<AnimeDetailPage> {
                 if (anime.rating?.effectiveOverall != null) ...[
                   const SizedBox(height: 12),
                   _buildRatingCard(anime.rating!, theme, l10n),
+                ],
+                if (anime.externalMeta?.hasAnyData == true) ...[
+                  const SizedBox(height: 12),
+                  _buildExternalMetaCard(anime.externalMeta!, theme, l10n),
                 ],
                 if (anime.localArchive?.hasAnyData == true) ...[
                   const SizedBox(height: 12),
@@ -576,11 +601,203 @@ class _AnimeDetailPageState extends State<AnimeDetailPage> {
     );
   }
 
+  /// Purpose: List the source pages this anime can be refreshed from.
+  /// Inputs: `anime`.
+  /// Returns: `List<String>`.
+  /// Side effects: None.
+  /// Notes: Internal helper used within this file only. Combines `infoUrl` with
+  /// the URL each stored external rating remembers, so a record built from
+  /// several sources refreshes all of them.
+  List<String> _refreshableUrls(Anime anime) {
+    final urls = <String>{
+      if (anime.infoUrl != null && anime.infoUrl!.isNotEmpty) anime.infoUrl!,
+      for (final rating in anime.externalMeta?.ratings ?? const [])
+        if (rating.sourceUrl != null && rating.sourceUrl!.isNotEmpty)
+          rating.sourceUrl!,
+    };
+    return urls.toList();
+  }
+
+  /// Purpose: Re-fetch external metadata from every remembered source page.
+  /// Inputs: `anime`.
+  /// Returns: None.
+  /// Side effects: Issues HTTP requests, writes the updated anime to storage,
+  /// and shows a snack bar with the outcome.
+  /// Notes: Internal helper used within this file only. Only the external
+  /// metadata is touched — the user's own rating, episode progress, and manual
+  /// edits are left exactly as they are. Callers must gate on
+  /// `AppFlavor.isFull`, since store builds do not ship online lookups.
+  Future<void> _refreshExternalMeta(Anime anime) async {
+    final l10n = AppLocalizations.of(context)!;
+    final urls = _refreshableUrls(anime);
+    if (urls.isEmpty) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(l10n.animeRefreshMetaNone)));
+      return;
+    }
+
+    setState(() => _refreshingMeta = true);
+    try {
+      final results = await AnimeSearchService.refreshAll(urls);
+      if (!mounted) return;
+      if (results.isEmpty) {
+        setState(() => _refreshingMeta = false);
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(l10n.animeRefreshMetaNone)));
+        return;
+      }
+
+      final now = DateTime.now().toUtc();
+      var merged = anime.externalMeta ?? const AnimeExternalMeta();
+      for (final result in results) {
+        merged = merged.mergedWith(
+          AnimeSearchService.toExternalMeta(result, fetchedAt: now),
+          refreshedAt: now,
+        );
+      }
+      await AnimeStorage.addOrUpdate(
+        anime.copyWith(externalMeta: merged, modifiedAt: now),
+      );
+      if (!mounted) return;
+      setState(() => _refreshingMeta = false);
+      await _load();
+      if (!mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(l10n.animeRefreshMetaDone)));
+    } catch (e) {
+      if (!mounted) return;
+      setState(() => _refreshingMeta = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(l10n.animeRefreshMetaFailed('$e'))),
+      );
+    }
+  }
+
+  /// Purpose: Render the public metadata pulled from external databases.
+  /// Inputs: `meta`, `theme`, `l10n`.
+  /// Returns: `Widget`.
+  /// Side effects: None.
+  /// Notes: Internal helper used within this file only. Kept visually distinct
+  /// from the personal rating card above it — external scores never merge into
+  /// the user's own rating.
+  Widget _buildExternalMetaCard(
+    AnimeExternalMeta meta,
+    ThemeData theme,
+    AppLocalizations l10n,
+  ) {
+    final rows = <(String, String)>[
+      if (meta.format != null) (l10n.animeFormat, meta.format!),
+      if (meta.status != null) (l10n.animeStatus, meta.status!),
+      if (meta.durationMinutes != null)
+        (l10n.animeDuration, l10n.animeDurationValue(meta.durationMinutes!)),
+      if (meta.endDate != null)
+        (l10n.animeEndDate, DateFormat.yMd().format(meta.endDate!)),
+      if (meta.studios.isNotEmpty)
+        (l10n.animeStudios, meta.studios.join(', ')),
+      if (meta.genres.isNotEmpty) (l10n.animeGenres, meta.genres.join(', ')),
+      if (meta.synonyms.isNotEmpty)
+        (l10n.animeAlternateTitles, meta.synonyms.join(' / ')),
+    ];
+    final scored = meta.ratings.where((r) => r.score != null).toList();
+
+    return Card(
+      margin: EdgeInsets.zero,
+      child: Padding(
+        padding: const EdgeInsets.all(12),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Icon(
+                  Icons.travel_explore,
+                  color: theme.colorScheme.primary,
+                  size: 20,
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    l10n.animeExternalMeta,
+                    style: theme.textTheme.titleSmall,
+                  ),
+                ),
+                if (meta.refreshedAt != null)
+                  Text(
+                    l10n.animeRefreshedAt(
+                      DateFormat.yMd().format(meta.refreshedAt!.toLocal()),
+                    ),
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: theme.colorScheme.onSurfaceVariant,
+                    ),
+                  ),
+              ],
+            ),
+            for (final (label, value) in rows) ...[
+              const SizedBox(height: 6),
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  SizedBox(
+                    width: 96,
+                    child: Text(
+                      label,
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: theme.colorScheme.onSurfaceVariant,
+                      ),
+                    ),
+                  ),
+                  Expanded(
+                    child: Text(value, style: theme.textTheme.bodyMedium),
+                  ),
+                ],
+              ),
+            ],
+            if (scored.isNotEmpty) ...[
+              const Divider(height: 20),
+              Text(
+                l10n.animeExternalRatings,
+                style: theme.textTheme.titleSmall,
+              ),
+              const SizedBox(height: 2),
+              Text(
+                l10n.animeExternalRatingNote,
+                style: theme.textTheme.bodySmall?.copyWith(
+                  color: theme.colorScheme.onSurfaceVariant,
+                ),
+              ),
+              const SizedBox(height: 8),
+              Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: [
+                  for (final rating in scored)
+                    Chip(
+                      avatar: const Icon(Icons.star_outline, size: 16),
+                      label: Text(
+                        '${rating.source} '
+                        '${rating.score!.toStringAsFixed(1)}'
+                        '/${rating.scoreMax.toStringAsFixed(0)}'
+                        '${rating.votes != null ? ' · ${l10n.animeExternalVotes(rating.votes!)}' : ''}',
+                      ),
+                    ),
+                ],
+              ),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+
   /// Purpose: Provide the internal build rating card helper for this file.
   /// Inputs: `rating`, `theme`, `l10n`.
   /// Returns: `Widget`.
   /// Side effects: None.
-  /// Notes: Internal helper used within this file only.
+  /// Notes: Internal helper used within this file only. Shows only the user's
+  /// own scores; external database scores live in the card above.
   Widget _buildRatingCard(
     AnimeRating rating,
     ThemeData theme,

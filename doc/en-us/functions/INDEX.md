@@ -4,20 +4,30 @@ This is the top-level index of the hand-written Function Explanation Layer docum
 `lib/` in the MyAnime repo. Each row links to a per-source-file page under `doc/en-us/functions/`
 mirroring the `lib/` tree (with `.dart` replaced by `.md`).
 
-**Totals:** the repo's `/// Purpose:` comment count is **682** (per the Function Explanation Layer
+**Totals:** the repo's `/// Purpose:` comment count is **688** (per the Function Explanation Layer
 convention in `AGENTS.md`, excluding generated `lib/l10n/` code — see [l10n/INDEX.md](l10n/INDEX.md)).
-This index documents **685** declarations — 3 more than 682 — because three real declarations
-(`AnimeData`'s default constructor in `anime.dart`; `_searchAnime1Single` in
-`anime_search_service.dart`; and one further case noted on those pages) have no `///` doc comment
-in source at all but are still real, documented declarations. Every such case is called out
-explicitly on its file page and in the `features/` section below; nothing is silently invented to
-force a round number.
+The rows below sum to **678** documented declarations.
 
 | Tier | Count |
 |---|---|
-| Tier A (full entry: Purpose/Inputs/Returns/Side effects/Algorithm/Usage/Notes) | 452 |
-| Tier B (index row only) | 233 |
-| **Total** | **685** |
+| Tier A (full entry: Purpose/Inputs/Returns/Side effects/Algorithm/Usage/Notes) | 437 |
+| Tier B (index row only) | 241 |
+| **Total** | **678** |
+
+**Known gap.** These two numbers do not match: 10 declarations carry a `/// Purpose:` comment in
+source but have no row here, so the index under-covers `lib/` by that much. The gap is not evenly
+distributed and has not been audited file by file. Two individual files go the *other* way and
+carry one more row than their source's `Purpose:` count — see the note under the `features/`
+section below.
+
+These totals were recomputed against the actual source tree in 1.4.0. The previous figures (682
+`Purpose:` comments and 685 documented declarations) had drifted far from both the source and this
+file's own per-file rows, which summed to 615 at the time. If you change these numbers, measure
+them rather than adjusting them by hand:
+
+```bash
+find lib -name "*.dart" -not -path "lib/l10n/*" | xargs grep -h '/// Purpose:' | wc -l
+```
 
 ## Root (`lib/`)
 
@@ -43,12 +53,12 @@ convention (function/method/constructor/getter/setter); see that page for detail
 
 | Source file | Page | Declarations | Tier A count |
 |---|---|---|---|
-| `lib/features/anime/models/anime.dart` | [features/anime/models/anime.md](features/anime/models/anime.md) | 49 | 42 |
+| `lib/features/anime/models/anime.dart` | [features/anime/models/anime.md](features/anime/models/anime.md) | 63 | 52 |
 | `lib/features/anime/services/anime_storage.dart` | [features/anime/services/anime_storage.md](features/anime/services/anime_storage.md) | 27 | 27 |
-| `lib/features/anime/services/anime_search_service.dart` | [features/anime/services/anime_search_service.md](features/anime/services/anime_search_service.md) | 16 | 16 |
-| `lib/features/anime/views/anime_detail_page.dart` | [features/anime/views/anime_detail_page.md](features/anime/views/anime_detail_page.md) | 21 | 8 |
+| `lib/features/anime/services/anime_search_service.dart` | [features/anime/services/anime_search_service.md](features/anime/services/anime_search_service.md) | 49 | 33 |
+| `lib/features/anime/views/anime_detail_page.dart` | [features/anime/views/anime_detail_page.md](features/anime/views/anime_detail_page.md) | 24 | 11 |
 | `lib/features/anime/views/anime_edit_page.dart` | [features/anime/views/anime_edit_page.md](features/anime/views/anime_edit_page.md) | 25 | 9 |
-| `lib/features/anime/views/anime_search_dialog.dart` | [features/anime/views/anime_search_dialog.md](features/anime/views/anime_search_dialog.md) | 19 | 5 |
+| `lib/features/anime/views/anime_search_dialog.dart` | [features/anime/views/anime_search_dialog.md](features/anime/views/anime_search_dialog.md) | 32 | 16 |
 | `lib/features/anime/views/archive_labels.dart` | [features/anime/views/archive_labels.md](features/anime/views/archive_labels.md) | 3 | 3 |
 | `lib/features/anime/views/home_page.dart` | [features/anime/views/home_page.md](features/anime/views/home_page.md) | 22 | 9 |
 | `lib/features/anime/views/management_page.dart` | [features/anime/views/management_page.md](features/anime/views/management_page.md) | 22 | 10 |
@@ -56,9 +66,10 @@ convention (function/method/constructor/getter/setter); see that page for detail
 | `lib/features/anime/views/statistics_page.dart` | [features/anime/views/statistics_page.md](features/anime/views/statistics_page.md) | 66 | 27 |
 
 Note: `anime.dart` and `anime_search_service.dart` each have one more row than their source's
-`Purpose:` comment count — the `AnimeData` default constructor and `_searchAnime1Single`
-respectively have no doc comment at all in source, but are still real, documented declarations
-(see each page's own note).
+`Purpose:` comment count — the `AnimeData` default constructor has no doc comment at all in
+source, and `searchAnime1` carries a plain (non-`Purpose:`) one. Both are real, documented
+declarations (see each page's own note). As of 1.4.0 `_searchAnime1Single` does have a
+`Purpose:` comment, so it is no longer one of these cases.
 
 ## features/kana/
 
@@ -78,7 +89,7 @@ respectively have no doc comment at all in source, but are still real, documente
 ## l10n/
 
 `lib/l10n/` is already documented at [l10n/INDEX.md](l10n/INDEX.md) (generated code, not part of
-the 675/678 hand-documented declarations above).
+the 678 hand-documented declarations above).
 
 ## shared/
 
@@ -113,11 +124,11 @@ the 675/678 hand-documented declarations above).
 | Area | Files | Declarations | Tier A | Tier B |
 |---|---|---|---|---|
 | Root (`lib/`) | 1 | 1 | 1 | 0 |
-| `app/` | 4 | 7 | 2 | 5 |
-| `features/anime/` | 11 | 272 | 155 | 117 |
+| `app/` | 5 | 18 | 13 | 5 |
+| `features/anime/` | 11 | 338 | 198 | 140 |
 | `features/kana/` | 1 | 19 | 3 | 16 |
 | `features/settings/` | 4 | 45 | 24 | 21 |
-| `shared/` (utils/widgets/providers) | 8 | 42 | 27 | 15 |
-| `shared/services/` | 14 | 270 | 222 | 48 |
+| `shared/` (utils/widgets/providers) | 8 | 46 | 31 | 15 |
+| `shared/services/` | 14 | 189 | 155 | 34 |
 | `shared/views/` | 1 | 22 | 12 | 10 |
-| **Total** | **44** | **678** | **446** | **232** |
+| **Total** | **45** | **678** | **437** | **241** |

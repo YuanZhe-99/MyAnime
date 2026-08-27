@@ -199,10 +199,13 @@ class LocalApiServer {
   }
 
   /// Purpose: Provide the internal handle search helper for this file.
-  /// Inputs: `request`.
+  /// Inputs: `request` — JSON body with `query`, and optionally `language`
+  /// (a UI language tag such as `zh_TW`) and `limit`.
   /// Returns: `Future<Response>`.
   /// Side effects: May perform network or file-system operations.
-  /// Notes: Internal helper used within this file only.
+  /// Notes: Internal helper used within this file only. The response objects
+  /// gained the external-metadata fields in 1.4.0; the previously present keys
+  /// kept their names and meanings, so older consumers stay unaffected.
   static Future<Response> _handleSearch(Request request) async {
     final body = await _parseBody(request);
     if (body == null) return _error(400, 'invalid JSON body');
@@ -210,19 +213,37 @@ class LocalApiServer {
     if (query == null || query.trim().isEmpty) {
       return _error(400, 'query is required');
     }
-    final results = await AnimeSearchService.searchAll(query.trim());
+    final rawLimit = body['limit'];
+    final limit = rawLimit is int && rawLimit > 0 ? rawLimit : 10;
+    final results = await AnimeSearchService.searchAll(
+      query.trim(),
+      preferredLanguage: body['language'] as String?,
+    );
     final list = results
-        .take(5)
+        .take(limit)
         .map(
           (r) => {
             'source': r.source,
             'sourceUrl': r.sourceUrl,
             'title': r.title,
             'titleJa': r.titleJa,
+            'titleRomaji': r.titleRomaji,
+            'titleEn': r.titleEn,
+            'synonyms': r.synonyms,
             'episodes': r.episodes,
             'firstAirDate': r.firstAirDate?.toIso8601String(),
             'airDayOfWeek': r.airDayOfWeek,
             'airTime': r.airTime,
+            'endDate': r.endDate?.toIso8601String(),
+            'format': r.format,
+            'status': r.status,
+            'durationMinutes': r.durationMinutes,
+            'genres': r.genres,
+            'studios': r.studios,
+            'score': r.score,
+            'scoreMax': r.scoreMax,
+            'scoreVotes': r.scoreVotes,
+            'scoreRank': r.scoreRank,
             'coverImageUrl': r.coverImageUrl,
             'summary': r.summary,
           },

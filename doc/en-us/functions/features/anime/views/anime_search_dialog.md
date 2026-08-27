@@ -1,188 +1,193 @@
 # lib/features/anime/views/anime_search_dialog.dart
 
-`showAnimeSearchDialog` and its backing `_SearchDialog` implement the "search online for anime
-metadata" flow used from the edit page: search several sources via `AnimeSearchService`
-([`../services/anime_search_service.md`](../services/anime_search_service.md)), preview one result
-with per-field checkboxes deciding what to import, optionally fetch its cover image (via
-`ImageService`, [`../../../shared/services/image_service.md`](../../../shared/services/image_service.md)),
-and return a sparse `Map<String, dynamic>` of the fields the user chose to apply. The caller
-(`AnimeEditPage._showSearchDialog`, [`anime_edit_page.md`](anime_edit_page.md#_showsearchdialog))
-merges that map into its own form fields — this file has no direct dependency on `AnimeStorage` or
-the `Anime` model itself.
+The online metadata search dialog. `showAnimeSearchDialog` opens a two-phase modal: a **search
+phase** listing hits from every source in
+[`../services/anime_search_service.md`](../services/anime_search_service.md), and a **preview phase**
+where the user checks which fields of one chosen result to apply. It returns a `Map<String, dynamic>`
+of field names → values, which `anime_edit_page.dart` writes into its form controllers.
+
+The dialog is only reachable from `anime_edit_page.dart`, which gates it behind `AppFlavor.isFull` —
+see the flavor-gating rule in
+[`../../../../features/multi-source-search.md`](../../../../features/multi-source-search.md).
 
 ## Declarations
 
 | Declaration | Kind | Tier | Purpose |
 |---|---|---|---|
-| [`showAnimeSearchDialog`](#showanimesearchdialog) | top-level function | A | Show the anime metadata search dialog and return the chosen field values. |
-| `_SearchDialog.new` | constructor (`_SearchDialog`) | B | Create the search dialog with the current form's values for comparison. |
-| `_SearchDialog.createState` | method (`_SearchDialog`) | B | Create the mutable state object for this widget. |
-| `_SearchDialogState.initState` | method (`_SearchDialogState`) | B | Seed the query controller from `initialQuery`. |
-| `_SearchDialogState.dispose` | method (`_SearchDialogState`) | B | Dispose the query controller. |
-| [`_search`](#_search) | method (`_SearchDialogState`) | A | Search all configured sources for the current query text. |
-| [`_selectResult`](#_selectresult) | method (`_SearchDialogState`) | A | Enter preview phase for a chosen result, pre-selecting which fields to apply. |
-| [`_fetchCover`](#_fetchcover) | method (`_SearchDialogState`) | A | Download and stage the selected result's cover image. |
-| [`_apply`](#_apply) | method (`_SearchDialogState`) | A | Build the result map from the toggled fields and close the dialog. |
-| `_SearchDialogState.build` | method (`_SearchDialogState`, widget build) | B | Build the dialog, switching between the search and preview views. |
-| `_buildSearchView` | method (widget helper) | B | Render the search phase: header, query field, and results list. |
-| `_buildSearchResults` | method (widget helper) | B | Render the search results list (loading/error/empty/list states). |
-| `_buildPreviewView` | method (widget helper) | B | Render the preview phase: source badge, field list, and apply/cancel buttons. |
-| `_buildFieldList` | method (widget helper) | B | Render the per-field comparison checkboxes and cover-image section. |
-| `_coverColumn` | method (widget helper) | B | Render one labeled cover-image thumbnail column. |
-| `_fieldTile` | method (widget helper) | B | Render one checkbox field tile comparing current vs. fetched values. |
-| `_buildHeader` | method (widget helper) | B | Render the dialog header (icon, title, optional back/close buttons). |
-| `_dayName` | method (`_SearchDialogState`) | B | Localize a day-of-week number for display. |
-| `_truncate` | method (`_SearchDialogState`) | B | Shorten a string to a maximum length, appending `...`. |
+| [`showAnimeSearchDialog`](#showanimesearchdialog) | top-level function | A | Open the search dialog and return the fields to apply. |
+| `_SearchDialog(...)` | constructor (`_SearchDialog`) | B | Hold the current field values shown as "Current" in the preview. |
+| `createState` | method (`_SearchDialog`) | B | Flutter lifecycle override. |
+| `initState` | method (`_SearchDialogState`) | B | Seed the query controller from `initialQuery`. |
+| `dispose` | method (`_SearchDialogState`) | B | Dispose the query controller. |
+| [`_search`](#search) | method (`_SearchDialogState`) | A | Run the search and reset the result-list controls. |
+| [`_visibleResults`](#visibleresults) | getter (`_SearchDialogState`) | A | Apply the active filters and sort order to the raw result list. |
+| [`_availableSources`](#availablesources) | getter (`_SearchDialogState`) | A | List the source names present in the current raw results. |
+| [`_selectResult`](#selectresult) | method (`_SearchDialogState`) | A | Enter the preview phase with per-field checkboxes pre-set. |
+| [`_externalMetaFieldCount`](#externalmetafieldcount) | method (`_SearchDialogState`) | A | Count how many external-metadata fields a result actually carries. |
+| `_fetchCover` | method (`_SearchDialogState`) | B | Download the cover image and show a before/after preview. |
+| [`_apply`](#apply) | method (`_SearchDialogState`) | A | Close the dialog with the checked field values. |
+| `build` | method (`_SearchDialogState`) | B | Render the search or preview phase. |
+| `_buildSearchView` | method (`_SearchDialogState`) | B | Query field, search button, toolbar, and result list. |
+| [`_buildResultToolbar`](#buildresulttoolbar) | method (`_SearchDialogState`) | A | Build the sort/filter/group toolbar shown above the result list. |
+| `_sortLabel` | method (`_SearchDialogState`) | B | Localized label for one `_SearchSort` value. |
+| [`_showFilterSheet`](#showfiltersheet) | method (`_SearchDialogState`) | A | Show the source and field filters in a bottom sheet. |
+| `_buildSearchResults` | method (`_SearchDialogState`) | B | Choose between spinner, error, empty, grouped, or flat list. |
+| [`_buildGroupedResults`](#buildgroupedresults) | method (`_SearchDialogState`) | A | Render the result list as one collapsible section per source. |
+| [`_resultTile`](#resulttile) | method (`_SearchDialogState`) | A | Build one row of the search result list. |
+| [`_secondaryLine`](#secondaryline) | method (`_SearchDialogState`) | A | Compose the secondary metadata line shown under a result. |
+| [`_showResultDetails`](#showresultdetails) | method (`_SearchDialogState`) | A | Show every title and field a result carries, untruncated. |
+| [`_detailRows`](#detailrows) | method (`_SearchDialogState`) | A | Build the labelled metadata rows for the result detail sheet. |
+| `_copyToClipboard` | method (`_SearchDialogState`) | B | Copy one value and confirm with a snack bar. |
+| `_buildPreviewView` | method (`_SearchDialogState`) | B | Source badge, field list, and Cancel/Apply buttons. |
+| [`_buildFieldList`](#buildfieldlist) | method (`_SearchDialogState`) | A | Build the per-field checkbox list for the preview phase. |
+| [`_buildExternalMetaSummary`](#buildexternalmetasummary) | method (`_SearchDialogState`) | A | Show the metadata that the external-metadata checkbox would apply. |
+| `_coverColumn` | method (`_SearchDialogState`) | B | Label-over-thumbnail column. |
+| `_fieldTile` | method (`_SearchDialogState`) | B | One "Current → Fetched" checkbox row. |
+| `_buildHeader` | method (`_SearchDialogState`) | B | Title bar with optional back button and close button. |
+| `_dayName` | method (`_SearchDialogState`) | B | Localized weekday name for `1..7`. |
+| `_truncate` | method (`_SearchDialogState`) | B | Ellipsize a string at a maximum length. |
+
+The file also declares two private enums with no doc comments: `_Phase` (`search`, `preview`) and
+`_SearchSort` (`relevance`, `firstAirDate`, `episodes`, `source`). Their members carry `///`
+comments; the enums themselves are counted as types rather than declarations here.
 
 ## Documentation
 
-### `Future<Map<String, dynamic>?> showAnimeSearchDialog(BuildContext context, {String? initialQuery, String? currentTitle, String? currentTitleJa, int? currentEndEp, DateTime? currentFirstAirDate, int? currentAirDay, String? currentAirTime, String? currentCoverImage, String? currentNotes})` <a id="showanimesearchdialog"></a>
+### `Future<Map<String, dynamic>?> showAnimeSearchDialog(BuildContext context, {initialQuery, currentTitle, currentTitleJa, currentEndEp, currentFirstAirDate, currentAirDay, currentAirTime, currentCoverImage, currentNotes, currentExternalMeta})` <a id="showanimesearchdialog"></a>
 - **Kind:** top-level function
-- **Source:** `lib/features/anime/views/anime_search_dialog.dart` (approx. line 15)
-- **Purpose:** Public entry point for the online metadata search flow: show `_SearchDialog` seeded
-  with the caller's current field values, and return whatever field map the user chose to apply.
-- **Inputs:** `context`; `initialQuery` — pre-filled search text; the `currentXxx` parameters are
-  passed straight through to `_SearchDialog` purely so it can display "current vs. fetched"
-  comparisons — they do not affect what is searched.
-- **Returns:** `Future<Map<String, dynamic>?>` — a sparse map of only the fields the user chose to
-  apply (possible keys: `title`, `titleJa`, `endEpisode`, `firstAirDate`, `airDayOfWeek`, `airTime`,
-  `notes`, `coverImage`, `infoUrl`), or `null` if the dialog was cancelled.
-- **Side effects:** Shows a modal dialog that performs network requests.
-- **Algorithm:** Thin forwarding wrapper: calls `showDialog<Map<String, dynamic>>` with a
-  `_SearchDialog` built from the given parameters.
-- **Usage:**
-  ```dart
-  final result = await showAnimeSearchDialog(
-    context,
-    initialQuery: query,
-    currentTitle: _titleController.text.isEmpty ? null : _titleController.text,
-    ...
-  );
-  if (result != null && mounted) {
-    setState(() {
-      if (result.containsKey('title')) {
-        _titleController.text = result['title'] as String;
-      }
-      ...
-  ```
-  (`AnimeEditPage._showSearchDialog`, [`anime_edit_page.md`](anime_edit_page.md#_showsearchdialog))
-- **Notes:** The exact set of keys that can appear in the returned map, and the conditions under
-  which each appears, is entirely determined by [`_apply`](#_apply) below — callers should treat any
-  key as optional.
+- **Source:** `lib/features/anime/views/anime_search_dialog.dart` (line 17)
+- **Purpose:** Open the anime search dialog and return the fields the user chose to apply.
+- **Inputs:** `initialQuery` seeds the query field; every `current*` argument is the edit form's present value, shown as "Current" beside each fetched value so the user can see what a checkbox would overwrite.
+- **Returns:** `Future<Map<String, dynamic>?>` — field name → value, or `null` if cancelled.
+- **Side effects:** Shows a modal dialog; the dialog itself performs network I/O.
+- **Notes:** `currentExternalMeta` is not just for display — [`_apply`](#apply) folds the newly fetched metadata *into* it, so applying a second result from another source keeps what the first one contributed instead of replacing it.
 
-### `Future<void> _search()` <a id="_search"></a>
+### `Future<void> _search()` <a id="search"></a>
 - **Kind:** method of `_SearchDialogState`
-- **Source:** `lib/features/anime/views/anime_search_dialog.dart` (approx. line 126)
-- **Purpose:** Query every configured metadata source (via
-  [`AnimeSearchService.searchAll`](../services/anime_search_service.md#searchall)) for the current
-  query text.
-- **Inputs:** None (reads `_queryController.text`).
-- **Returns:** `Future<void>`.
-- **Side effects:** Performs network requests; `setState`s `_searching`, `_results`, `_error`.
-- **Algorithm:**
-  1. Trim the query; return early if empty.
-  2. `setState` into a loading state, clearing prior results/error.
-  3. Await `AnimeSearchService.searchAll(query)`; on success, store the results and set a
-     "no results" error message when the list is empty.
-  4. On any thrown exception, store `e.toString()` as `_error`.
-- **Usage:**
-  ```dart
-  FilledButton(
-    onPressed: _searching ? null : _search,
-    child: Text(l10n.searchButton),
-  ),
-  ```
-  (`_buildSearchView`, same file; also triggered by the query field's `onSubmitted`)
-- **Notes:** Distinct from `_WatchUrlSearchDialogState._search` in `anime_edit_page.dart`
-  ([`anime_edit_page.md`](anime_edit_page.md#_search-watchurl)), which searches only `anime1.me` for
-  watch-page links rather than metadata across `AnimeSearchService.searchAll`'s sources.
+- **Source:** `lib/features/anime/views/anime_search_dialog.dart` (line 156)
+- **Purpose:** Run the search and reset the result-list controls.
+- **Returns:** None.
+- **Side effects:** Network I/O via `AnimeSearchService.searchAll`; rebuilds state.
+- **Algorithm:** Reads `Localizations.localeOf(context).toLanguageTag()` as `preferredLanguage`, clears results and all filters, awaits `searchAll`, then stores both the results and `AnimeSearchService.queryVariants(query)`. Sets `_error` to the "no results" message when the list comes back empty, and to the exception text on failure.
+- **Notes:** The variants are cached in state deliberately — every relevance-sorted rebuild scores against them, and re-deriving them per frame would be wasteful and could drift from what the service actually searched with. Filters are reset on each new search because a source chip from the previous query may not exist in the new results.
 
-### `void _selectResult(AnimeSearchResult result)` <a id="_selectresult"></a>
-- **Kind:** method of `_SearchDialogState`
-- **Source:** `lib/features/anime/views/anime_search_dialog.dart` (approx. line 160)
-- **Purpose:** Switch from the search phase to the preview phase for a chosen result, and
-  pre-select which fields default to "apply" based on which data the result actually provides.
-- **Inputs:** `result` — the tapped `AnimeSearchResult`.
-- **Returns:** `None`.
-- **Side effects:** `setState`s `_selected`, `_phase`, `_toggles`, and clears any previously fetched
-  cover.
-- **Algorithm:**
-  1. Set `_selected = result`, `_phase = _Phase.preview`, clear `_fetchedCoverPath`/`_coverPreview`,
-     and clear `_toggles`.
-  2. For each of `title`/`titleJa`/`episodes`(→`endEpisode` toggle key)/`firstAirDate`/
-     `airDayOfWeek`/`airTime`/`notes`(from `summary`): set that toggle to `true` only if the result
-     actually provides a non-empty value for it.
-  3. If the result has a `coverImageUrl`, set the `'cover'` toggle to `false` (off by default —
-     applying a cover requires an explicit [`_fetchCover`](#_fetchcover) first).
-- **Usage:**
-  ```dart
-  onTap: () => _selectResult(r),
-  ```
-  (`_buildSearchResults`, same file, on each result `ListTile`)
-- **Notes:** A field with no data in the result (e.g. no `airTime`) simply has no toggle entry at
-  all — [`_apply`](#_apply)'s `_toggles['airTime'] == true` check treats a missing key the same as
-  `false`.
+### `List<AnimeSearchResult> get _visibleResults` <a id="visibleresults"></a>
+- **Kind:** getter of `_SearchDialogState`
+- **Source:** `lib/features/anime/views/anime_search_dialog.dart` (line 200)
+- **Purpose:** Apply the active filters and sort order to the raw result list.
+- **Returns:** `List<AnimeSearchResult>`.
+- **Side effects:** None.
+- **Algorithm:** Filters out hidden sources, and (when the switches are on) results with no cover or no first air date. Then sorts by the active `_SearchSort`: `relevance` by descending `AnimeSearchService.relevance`; `firstAirDate` newest first; `episodes` highest first; `source` alphabetically with relevance as the tiebreak.
+- **Notes:** For `firstAirDate` and `episodes`, results **missing** the value always sink to the bottom regardless of direction, rather than sorting as zero — an unknown episode count must never outrank a known one.
 
-### `Future<void> _fetchCover()` <a id="_fetchcover"></a>
-- **Kind:** method of `_SearchDialogState`
-- **Source:** `lib/features/anime/views/anime_search_dialog.dart` (approx. line 184)
-- **Purpose:** Download the selected result's cover image and stage it locally so it can be
-  previewed and, if the user leaves the toggle on, applied.
-- **Inputs:** None (reads `_selected?.coverImageUrl`).
-- **Returns:** `Future<void>`.
-- **Side effects:** Performs a network request via `ImageService.saveImageFromUrl`; reads the saved
-  file via `ImageService.resolve`; `setState`s `_fetchingCover`, `_fetchedCoverPath`,
-  `_coverPreview`, `_toggles['cover']`; shows a `SnackBar` on failure.
-- **Algorithm:**
-  1. Return early if there's no `coverImageUrl`.
-  2. `setState(() => _fetchingCover = true)`.
-  3. Await `ImageService.saveImageFromUrl(url)`; if it returns a path and the widget is still
-     mounted, resolve it to a `File` via `ImageService.resolve`, then `setState` the staged path,
-     a `FileImage` preview, `_toggles['cover'] = true`, and `_fetchingCover = false`.
-  4. If the save returned `null`, just clear the loading flag.
-  5. On any thrown exception, clear the loading flag and show a `SnackBar` with the error message.
-- **Usage:**
-  ```dart
-  TextButton.icon(
-    onPressed: _fetchCover,
-    icon: const Icon(Icons.download, size: 16),
-    label: Text(l10n.searchFetchCover),
-  ),
-  ```
-  (`_buildFieldList`, shown only while no cover has been fetched yet)
-- **Notes:** Successfully fetching the cover also force-enables the `'cover'` toggle — there is no
-  way to fetch a preview without also defaulting it to "apply"; the user must manually uncheck it
-  afterward to discard it.
+### `List<String> get _availableSources` <a id="availablesources"></a>
+- **Kind:** getter of `_SearchDialogState`
+- **Source:** `lib/features/anime/views/anime_search_dialog.dart` (line 249)
+- **Purpose:** List the source names present in the current raw results.
+- **Returns:** `List<String>` in `AnimeSearchSource.all` order.
+- **Side effects:** None.
+- **Notes:** Drives the filter chips, so a source that returned nothing is never offered as a filter. Ordering by the canonical list rather than by first appearance keeps the chip row stable across searches.
 
-### `void _apply()` <a id="_apply"></a>
+### `void _selectResult(AnimeSearchResult result)` <a id="selectresult"></a>
 - **Kind:** method of `_SearchDialogState`
-- **Source:** `lib/features/anime/views/anime_search_dialog.dart` (approx. line 221)
-- **Purpose:** Build the sparse result map from whichever fields are currently toggled on, and close
-  the dialog with it.
-- **Inputs:** None (reads `_selected` and `_toggles`).
-- **Returns:** `None`.
-- **Side effects:** `Navigator.of(context).pop(result)`.
-- **Algorithm:**
-  1. Return early if nothing is selected.
-  2. For each of `title`/`titleJa`/`episodes`→`endEpisode`/`firstAirDate`/`airDayOfWeek`/`airTime`:
-     include it in the result map only when its toggle is `true` **and** the result actually has a
-     non-null value for it.
-  3. Special case: if `firstAirDate` is toggled on but the source didn't supply `airDayOfWeek`
-     directly, derive it from `firstAirDate.weekday` (`1=Mon..7=Sun`) and add it to the result even
-     though its own toggle wasn't necessarily set.
-  4. Include `notes` (from `summary`) similarly, and `coverImage` (from `_fetchedCoverPath`) when the
-     `'cover'` toggle is on.
-  5. Always include `infoUrl` (from `sourceUrl`) when non-empty, regardless of any toggle.
-  6. `Navigator.of(context).pop(result)`.
-- **Usage:**
-  ```dart
-  FilledButton(
-    onPressed: _toggles.values.any((v) => v) ? _apply : null,
-    child: Text(l10n.searchApply),
-  ),
-  ```
-  (`_buildPreviewView`, same file — disabled unless at least one toggle is on)
-- **Notes:** `infoUrl` is applied unconditionally whenever the source provides one — there is no
-  checkbox for it, unlike every other field; the returned map can therefore contain `infoUrl` even
-  when every other toggle is off, so the "Apply" button being enabled (which only requires *some*
-  toggle to be on) does not mean the final map is limited to toggled fields alone.
+- **Source:** `lib/features/anime/views/anime_search_dialog.dart` (line 259)
+- **Purpose:** Enter the preview phase with per-field checkboxes pre-set.
+- **Side effects:** Rebuilds state; clears any previously fetched cover.
+- **Algorithm:** Switches `_phase` to `preview` and pre-checks every field the result actually supplies — title, Japanese title, episodes, first air date, air day, air time, notes, and (when [`_externalMetaFieldCount`](#externalmetafieldcount) is non-zero) external metadata.
+- **Notes:** The cover checkbox is deliberately left **off**: it requires an explicit fetch, because applying it downloads and writes an image file.
+
+### `int _externalMetaFieldCount(AnimeSearchResult r)` <a id="externalmetafieldcount"></a>
+- **Kind:** method of `_SearchDialogState`
+- **Source:** `lib/features/anime/views/anime_search_dialog.dart` (line 285)
+- **Purpose:** Count how many external-metadata fields a result actually carries.
+- **Returns:** `int`.
+- **Side effects:** None.
+- **Algorithm:** Adds one for each non-empty `synonyms`, `titleRomaji`, `titleEn`, `format`, `status`, `durationMinutes`, `genres`, `studios`, `endDate`, and for the score block as a whole.
+- **Notes:** Zero means the source supplied nothing beyond the basic fields, so no external-metadata checkbox is offered at all. The count is also shown in the checkbox label, so "Database info: 6 field(s) from AniList" tells the user what they are accepting without expanding anything.
+
+### `void _apply()` <a id="apply"></a>
+- **Kind:** method of `_SearchDialogState`
+- **Source:** `lib/features/anime/views/anime_search_dialog.dart` (line 342)
+- **Purpose:** Close the dialog with the checked field values.
+- **Side effects:** Pops the dialog with the result map.
+- **Algorithm:** Copies each checked field into the map. When `firstAirDate` is checked but the source reported no `airDayOfWeek`, derives the weekday from the date. When the external-metadata box is checked, builds `AnimeSearchService.toExternalMeta(r)` and folds it into `widget.currentExternalMeta` via `mergedWith`. `infoUrl` is set from `sourceUrl` unconditionally whenever one exists.
+- **Notes:** `infoUrl` is not a checkbox because it records *where this metadata came from*, and the refresh flow later needs it — see [`../services/anime_search_service.md`](../services/anime_search_service.md).
+
+### `Widget _buildResultToolbar(AppLocalizations l10n)` <a id="buildresulttoolbar"></a>
+- **Kind:** method of `_SearchDialogState`
+- **Source:** `lib/features/anime/views/anime_search_dialog.dart` (line 462)
+- **Purpose:** Build the sort/filter/group toolbar shown above the result list.
+- **Returns:** `Widget`.
+- **Side effects:** None.
+- **Algorithm:** A row with the "N of M results" count, a group-by-source toggle, a `PopupMenuButton<_SearchSort>`, and a filter button whose icon switches between `filter_alt_outlined` and `filter_alt` when any filter is active.
+- **Notes:** Only rendered once a search has produced results, so an empty dialog stays uncluttered. The popup-menu-plus-state-dependent-icon pattern mirrors the archive filter in `management_page.dart`.
+
+### `Future<void> _showFilterSheet(AppLocalizations l10n)` <a id="showfiltersheet"></a>
+- **Kind:** method of `_SearchDialogState`
+- **Source:** `lib/features/anime/views/anime_search_dialog.dart` (line 537)
+- **Purpose:** Show the source and field filters in a bottom sheet.
+- **Side effects:** Opens a modal sheet and mutates filter state as the user toggles.
+- **Algorithm:** A `StatefulBuilder` sheet holding a `FilterChip` per entry of [`_availableSources`](#availablesources), two `SwitchListTile`s, and a reset button. A local `toggle()` helper calls **both** the parent's `setState` and the sheet's own, so the list behind the sheet updates live.
+- **Notes:** Filters are stored as `_hiddenSources` (an exclusion set) rather than an inclusion set, so a source appearing in a later search is visible by default and "reset" is simply clearing the set.
+
+### `Widget _buildGroupedResults(AppLocalizations l10n, List<AnimeSearchResult> visible)` <a id="buildgroupedresults"></a>
+- **Kind:** method of `_SearchDialogState`
+- **Source:** `lib/features/anime/views/anime_search_dialog.dart` (line 671)
+- **Purpose:** Render the result list as one collapsible section per source.
+- **Returns:** `Widget`.
+- **Side effects:** None.
+- **Algorithm:** Buckets `visible` by `source`, then renders an initially-expanded `ExpansionTile` per source with a per-group count in the trailing slot.
+- **Notes:** Sections keep the canonical `AnimeSearchSource.all` order rather than the current sort order, so switching the sort reorders rows *within* sections without reshuffling the sections themselves.
+
+### `Widget _resultTile(AppLocalizations l10n, AnimeSearchResult r)` <a id="resulttile"></a>
+- **Kind:** method of `_SearchDialogState`
+- **Source:** `lib/features/anime/views/anime_search_dialog.dart` (line 713)
+- **Purpose:** Build one row of the search result list.
+- **Returns:** `Widget`.
+- **Side effects:** None.
+- **Algorithm:** A `ListTile` with the network cover thumbnail, `r.displayTitle` wrapped in a `Tooltip` listing every known title, a first subtitle line of source · Japanese title · episode count, and [`_secondaryLine`](#secondaryline) beneath it. `onTap` selects the result; `onLongPress` opens [`_showResultDetails`](#showresultdetails).
+- **Notes:** The title is deliberately clipped to one line — anime titles routinely exceed the dialog width. Long-press (touch) and hover tooltip (desktop) are the two escape hatches to the full name, which is what the detail sheet exists for.
+
+### `String? _secondaryLine(AppLocalizations l10n, AnimeSearchResult r)` <a id="secondaryline"></a>
+- **Kind:** method of `_SearchDialogState`
+- **Source:** `lib/features/anime/views/anime_search_dialog.dart` (line 773)
+- **Purpose:** Compose the secondary metadata line shown under a result.
+- **Returns:** `String?` — `null` when the source supplied none of these fields.
+- **Side effects:** None.
+- **Algorithm:** Joins, with ` · `, whichever of these exist: the score as `★ 9.2/10`, the format, the air day plus time, the first air date (only when there is no air day), and the first studio.
+- **Notes:** Returning `null` rather than an empty string lets the caller drop `isThreeLine`, so rows from a thin source like filmarks.com stay compact instead of reserving a blank line.
+
+### `Future<void> _showResultDetails(AppLocalizations l10n, AnimeSearchResult r)` <a id="showresultdetails"></a>
+- **Kind:** method of `_SearchDialogState`
+- **Source:** `lib/features/anime/views/anime_search_dialog.dart` (line 794)
+- **Purpose:** Show every title and field a result carries, untruncated.
+- **Side effects:** Opens a modal sheet; copying writes to the system clipboard.
+- **Algorithm:** A `DraggableScrollableSheet` listing the source chip, every entry of `r.allTitles` as a `SelectableText` with a copy button, the rows from [`_detailRows`](#detailrows), and the full summary.
+- **Notes:** Titles are `SelectableText` so a name can be copied out even when it is far too long for the list row that triggered this sheet. This is the answer to "the list truncates the name and I can't read it" — nothing here is ellipsized.
+
+### `List<Widget> _detailRows(AppLocalizations l10n, AnimeSearchResult r, ThemeData theme)` <a id="detailrows"></a>
+- **Kind:** method of `_SearchDialogState`
+- **Source:** `lib/features/anime/views/anime_search_dialog.dart` (line 870)
+- **Purpose:** Build the labelled metadata rows for the result detail sheet.
+- **Returns:** `List<Widget>`.
+- **Side effects:** None.
+- **Algorithm:** Builds a `(label, value)` list from every field the result supplies — episodes, first/last air date, air day and time, format, status, duration, studios, genres, the score with votes and rank, and the source URL — then renders each as a fixed-width label beside a `SelectableText` value.
+- **Notes:** Fields the source did not supply are omitted entirely rather than shown blank, so the sheet's length is an honest signal of how much that source knows.
+
+### `Widget _buildFieldList(AppLocalizations l10n, AnimeSearchResult r)` <a id="buildfieldlist"></a>
+- **Kind:** method of `_SearchDialogState`
+- **Source:** `lib/features/anime/views/anime_search_dialog.dart` (line 1007)
+- **Purpose:** Build the per-field checkbox list for the preview phase.
+- **Returns:** `Widget`.
+- **Side effects:** None.
+- **Algorithm:** One `_fieldTile` per supplied field (title, Japanese title, episodes, first air date, air day, air time, notes), then the external-metadata checkbox plus its read-only chip summary, then the cover-image section with its explicit fetch button and before/after preview.
+- **Notes:** External metadata is a *single* checkbox covering all of studios/genres/format/status/duration/alternate titles/score. Splitting it per field would make the list unusable, and the fields always arrive together from one source anyway.
+
+### `Widget _buildExternalMetaSummary(AppLocalizations l10n, AnimeSearchResult r)` <a id="buildexternalmetasummary"></a>
+- **Kind:** method of `_SearchDialogState`
+- **Source:** `lib/features/anime/views/anime_search_dialog.dart` (line 1161)
+- **Purpose:** Show the metadata that the external-metadata checkbox would apply.
+- **Returns:** `Widget` — `SizedBox.shrink()` when there is nothing to show.
+- **Side effects:** None.
+- **Algorithm:** A compact `Wrap` of chips: format, status, duration, each studio, each genre, and the score.
+- **Notes:** Read-only by design — the single checkbox above governs whether any of it is written. It exists so the user can see what "6 fields from AniList" actually means before accepting it.

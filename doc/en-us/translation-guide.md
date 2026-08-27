@@ -134,6 +134,17 @@ Not copied to the other repos — no other app has these.
 | resolution | 分辨率 | zh-TW 用「解析度」；2160p/1080p/720p/480p 本身不翻译 |
 | archive copies | 存档份数 | 保存了几份拷贝 |
 | repository / location | 资料仓库代码或位置 | 存放本地资源的仓库代码或物理位置，自由文本 |
+| external metadata / database info | 外部元数据 / 资料库信息 | 从外部番剧资料库拉取的公开信息；zh-TW 用「資料庫資訊」，ja 用「データベース情報」 |
+| external rating | 外部评分 | 外部资料库的评分，与用户自己的「评分」严格区分，绝不混写 |
+| alternate title / synonym | 别名 | 各语言的其他标题；zh-TW 用「別名」，ja 用「別名」 |
+| romaji title | 罗马音标题 | `titleRomaji`；罗马音本身不翻译 |
+| studio | 制作公司 | zh-TW 用「製作公司」，ja 用「制作会社」 |
+| genre | 类型标签 | 作品的题材标签，不要译成「流派」 |
+| broadcast schedule | 放送排期 | 来自数据源的实际放送时段表 |
+| two-round / cross-language search | 两阶段跨语言检索 | 先按源定向、再用命中标题补搜零结果来源 |
+| backfill | 补搜 | 第二轮针对零结果来源的补充查询 |
+| relevance | 相关度 | 结果与查询的模糊匹配得分，用作默认排序 |
+| refresh (metadata) | 刷新（资料库信息） | 按已保存的来源 URL 回源重新抓取；zh-TW 用「重新整理」 |
 
 ## 6. Review checklist (run before committing a Chinese page)
 

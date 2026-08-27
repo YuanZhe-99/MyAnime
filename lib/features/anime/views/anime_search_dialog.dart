@@ -1,14 +1,16 @@
 import 'dart:io';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
 
 import '../../../l10n/app_localizations.dart';
 import '../../../shared/services/image_service.dart';
+import '../models/anime.dart';
 import '../services/anime_search_service.dart';
 
 /// Purpose: Shows the anime search dialog.
-/// Inputs: `context`, `initialQuery`, `currentTitle`, `currentTitleJa`, `currentEndEp`, `currentFirstAirDate`, `currentAirDay`, `currentAirTime`, `currentCoverImage`, `currentNotes`.
+/// Inputs: `context`, `initialQuery`, `currentTitle`, `currentTitleJa`, `currentEndEp`, `currentFirstAirDate`, `currentAirDay`, `currentAirTime`, `currentCoverImage`, `currentNotes`, `currentExternalMeta`.
 /// Returns: `Future<Map<String, dynamic>?>`.
 /// Side effects: May perform network or file-system operations.
 /// Notes: Shows the anime search dialog. Returns a map of field names → values to apply, or null if cancelled.
@@ -23,6 +25,7 @@ Future<Map<String, dynamic>?> showAnimeSearchDialog(
   String? currentAirTime,
   String? currentCoverImage,
   String? currentNotes,
+  AnimeExternalMeta? currentExternalMeta,
 }) {
   return showDialog<Map<String, dynamic>>(
     context: context,
@@ -36,11 +39,27 @@ Future<Map<String, dynamic>?> showAnimeSearchDialog(
       currentAirTime: currentAirTime,
       currentCoverImage: currentCoverImage,
       currentNotes: currentNotes,
+      currentExternalMeta: currentExternalMeta,
     ),
   );
 }
 
 enum _Phase { search, preview }
+
+/// Ordering applied to the search result list.
+enum _SearchSort {
+  /// Fuzzy match quality against the query, best first.
+  relevance,
+
+  /// Newest first air date first; results without one sink to the bottom.
+  firstAirDate,
+
+  /// Highest episode count first; results without one sink to the bottom.
+  episodes,
+
+  /// Grouped alphabetically by source name.
+  source,
+}
 
 class _SearchDialog extends StatefulWidget {
   final String? initialQuery;
@@ -52,9 +71,10 @@ class _SearchDialog extends StatefulWidget {
   final String? currentAirTime;
   final String? currentCoverImage;
   final String? currentNotes;
+  final AnimeExternalMeta? currentExternalMeta;
 
   /// Purpose: Create a search dialog instance.
-  /// Inputs: `initialQuery`, `currentTitle`, `currentTitleJa`, `currentEndEp`, `currentFirstAirDate`, `currentAirDay`, `currentAirTime`, `currentCoverImage`, `currentNotes`.
+  /// Inputs: `initialQuery`, `currentTitle`, `currentTitleJa`, `currentEndEp`, `currentFirstAirDate`, `currentAirDay`, `currentAirTime`, `currentCoverImage`, `currentNotes`, `currentExternalMeta`.
   /// Returns: A new `_SearchDialog` instance.
   /// Side effects: None.
   /// Notes: Internal helper used within this file only.
@@ -68,6 +88,7 @@ class _SearchDialog extends StatefulWidget {
     this.currentAirTime,
     this.currentCoverImage,
     this.currentNotes,
+    this.currentExternalMeta,
   });
 
   /// Purpose: Create the mutable state object for this widget.
@@ -86,8 +107,17 @@ class _SearchDialogState extends State<_SearchDialog> {
 
   // Search phase
   List<AnimeSearchResult> _results = [];
+  List<String> _queryVariants = const [];
+  String? _searchLanguage;
   bool _searching = false;
   String? _error;
+
+  // Result list controls
+  _SearchSort _sort = _SearchSort.relevance;
+  final Set<String> _hiddenSources = {};
+  bool _onlyWithCover = false;
+  bool _onlyWithAirDate = false;
+  bool _groupBySource = false;
 
   // Preview phase
   AnimeSearchResult? _selected;
@@ -122,22 +152,32 @@ class _SearchDialogState extends State<_SearchDialog> {
   /// Inputs: None.
   /// Returns: None.
   /// Side effects: May perform network or file-system operations.
-  /// Notes: Internal helper used within this file only.
+  /// Notes: Internal helper used within this file only. Passes the active UI
+  /// locale so the service can favour titles in the user's own language.
   Future<void> _search() async {
     final query = _queryController.text.trim();
     if (query.isEmpty) return;
+    final language = Localizations.localeOf(context).toLanguageTag();
 
     setState(() {
       _searching = true;
       _error = null;
       _results = [];
+      _hiddenSources.clear();
+      _onlyWithCover = false;
+      _onlyWithAirDate = false;
     });
 
     try {
-      final results = await AnimeSearchService.searchAll(query);
+      final results = await AnimeSearchService.searchAll(
+        query,
+        preferredLanguage: language,
+      );
       if (!mounted) return;
       setState(() {
         _results = results;
+        _queryVariants = AnimeSearchService.queryVariants(query);
+        _searchLanguage = language;
         _searching = false;
         if (results.isEmpty) {
           _error = AppLocalizations.of(context)!.searchNoResults;
@@ -150,6 +190,74 @@ class _SearchDialogState extends State<_SearchDialog> {
         _error = e.toString();
       });
     }
+  }
+
+  /// Purpose: Apply the active filters and sort order to the raw result list.
+  /// Inputs: None.
+  /// Returns: `List<AnimeSearchResult>`.
+  /// Side effects: None.
+  /// Notes: Internal helper used within this file only. Results missing the
+  /// value being sorted on always sink to the bottom instead of sorting as
+  /// zero, so an unknown episode count never outranks a known one.
+  List<AnimeSearchResult> get _visibleResults {
+    final filtered = _results.where((r) {
+      if (_hiddenSources.contains(r.source)) return false;
+      if (_onlyWithCover && r.coverImageUrl == null) return false;
+      if (_onlyWithAirDate && r.firstAirDate == null) return false;
+      return true;
+    }).toList();
+
+    switch (_sort) {
+      case _SearchSort.relevance:
+        filtered.sort(
+          (a, b) => _relevance(b).compareTo(_relevance(a)),
+        );
+      case _SearchSort.firstAirDate:
+        filtered.sort((a, b) {
+          if (a.firstAirDate == null && b.firstAirDate == null) return 0;
+          if (a.firstAirDate == null) return 1;
+          if (b.firstAirDate == null) return -1;
+          return b.firstAirDate!.compareTo(a.firstAirDate!);
+        });
+      case _SearchSort.episodes:
+        filtered.sort((a, b) {
+          if (a.episodes == null && b.episodes == null) return 0;
+          if (a.episodes == null) return 1;
+          if (b.episodes == null) return -1;
+          return b.episodes!.compareTo(a.episodes!);
+        });
+      case _SearchSort.source:
+        filtered.sort((a, b) {
+          final cmp = a.source.compareTo(b.source);
+          if (cmp != 0) return cmp;
+          return _relevance(b).compareTo(_relevance(a));
+        });
+    }
+    return filtered;
+  }
+
+  /// Purpose: Score one result the same way the service ranked the raw list.
+  /// Inputs: `r`.
+  /// Returns: `double`.
+  /// Side effects: None.
+  /// Notes: Internal helper used within this file only. Passes the cached query
+  /// variants and search language so re-sorting here reproduces exactly the
+  /// order `searchAll` returned, instead of drifting on near-ties.
+  double _relevance(AnimeSearchResult r) => AnimeSearchService.relevance(
+    r,
+    _queryVariants,
+    preferredLanguage: _searchLanguage,
+  );
+
+  /// Purpose: List the source names present in the current raw results.
+  /// Inputs: None.
+  /// Returns: `List<String>`.
+  /// Side effects: None.
+  /// Notes: Internal helper used within this file only. Drives the source
+  /// filter chips, so a source that returned nothing is not offered.
+  List<String> get _availableSources {
+    final names = <String>{for (final r in _results) r.source};
+    return AnimeSearchSource.all.where(names.contains).toList();
   }
 
   /// Purpose: Provide the internal select result helper for this file.
@@ -171,15 +279,37 @@ class _SearchDialogState extends State<_SearchDialog> {
       if (result.airDayOfWeek != null) _toggles['airDayOfWeek'] = true;
       if (result.airTime != null) _toggles['airTime'] = true;
       if (result.summary?.isNotEmpty == true) _toggles['notes'] = true;
+      if (_externalMetaFieldCount(result) > 0) _toggles['externalMeta'] = true;
       // Cover is off by default — requires explicit fetch
       if (result.coverImageUrl != null) _toggles['cover'] = false;
     });
   }
 
+  /// Purpose: Count how many external-metadata fields a result actually carries.
+  /// Inputs: `r`.
+  /// Returns: `int`.
+  /// Side effects: None.
+  /// Notes: Internal helper used within this file only. Zero means the source
+  /// supplied nothing beyond the basic fields, so no checkbox is offered.
+  int _externalMetaFieldCount(AnimeSearchResult r) {
+    var count = 0;
+    if (r.synonyms.isNotEmpty) count++;
+    if (r.titleRomaji != null) count++;
+    if (r.titleEn != null) count++;
+    if (r.format != null) count++;
+    if (r.status != null) count++;
+    if (r.durationMinutes != null) count++;
+    if (r.genres.isNotEmpty) count++;
+    if (r.studios.isNotEmpty) count++;
+    if (r.endDate != null) count++;
+    if (r.score != null || r.scoreVotes != null || r.scoreRank != null) count++;
+    return count;
+  }
+
   /// Purpose: Provide the internal fetch cover helper for this file.
   /// Inputs: None.
   /// Returns: None.
-  /// Side effects: None.
+  /// Side effects: Downloads the cover image and writes it into app storage.
   /// Notes: Internal helper used within this file only.
   Future<void> _fetchCover() async {
     if (_selected?.coverImageUrl == null) return;
@@ -216,7 +346,7 @@ class _SearchDialogState extends State<_SearchDialog> {
   /// Purpose: Provide the internal apply helper for this file.
   /// Inputs: None.
   /// Returns: None.
-  /// Side effects: None.
+  /// Side effects: Closes the dialog with the selected field values.
   /// Notes: Internal helper used within this file only.
   void _apply() {
     if (_selected == null) return;
@@ -249,6 +379,13 @@ class _SearchDialogState extends State<_SearchDialog> {
     }
     if (_toggles['notes'] == true && r.summary != null) {
       result['notes'] = r.summary;
+    }
+    if (_toggles['externalMeta'] == true) {
+      final fetched = AnimeSearchService.toExternalMeta(r);
+      // Fold into whatever another source already contributed instead of
+      // replacing it, so applying a second result keeps the first one's fields.
+      result['externalMeta'] =
+          widget.currentExternalMeta?.mergedWith(fetched) ?? fetched;
     }
     if (_toggles['cover'] == true && _fetchedCoverPath != null) {
       result['coverImage'] = _fetchedCoverPath;
@@ -285,7 +422,7 @@ class _SearchDialogState extends State<_SearchDialog> {
   /// Purpose: Provide the internal build search view helper for this file.
   /// Inputs: `l10n`.
   /// Returns: `Widget`.
-  /// Side effects: May perform network or file-system operations.
+  /// Side effects: None.
   /// Notes: Internal helper used within this file only.
   Widget _buildSearchView(AppLocalizations l10n) {
     return Column(
@@ -319,15 +456,177 @@ class _SearchDialogState extends State<_SearchDialog> {
             ],
           ),
         ),
+        if (_results.isNotEmpty) _buildResultToolbar(l10n),
         Expanded(child: _buildSearchResults(l10n)),
       ],
+    );
+  }
+
+  /// Purpose: Build the sort/filter/group toolbar shown above the result list.
+  /// Inputs: `l10n`.
+  /// Returns: `Widget`.
+  /// Side effects: None.
+  /// Notes: Internal helper used within this file only. Only rendered once a
+  /// search has produced results, so an empty dialog stays uncluttered.
+  Widget _buildResultToolbar(AppLocalizations l10n) {
+    final theme = Theme.of(context);
+    final visible = _visibleResults.length;
+    final filtersActive =
+        _hiddenSources.isNotEmpty || _onlyWithCover || _onlyWithAirDate;
+
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(12, 0, 4, 4),
+      child: Row(
+        children: [
+          Expanded(
+            child: Text(
+              l10n.searchResultCount(visible, _results.length),
+              style: theme.textTheme.bodySmall,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
+          ),
+          IconButton(
+            icon: Icon(
+              _groupBySource ? Icons.segment : Icons.view_list_outlined,
+              size: 20,
+            ),
+            tooltip: l10n.searchGroupBySource,
+            visualDensity: VisualDensity.compact,
+            onPressed: () => setState(() => _groupBySource = !_groupBySource),
+          ),
+          PopupMenuButton<_SearchSort>(
+            icon: const Icon(Icons.sort, size: 20),
+            tooltip: l10n.searchSort,
+            initialValue: _sort,
+            onSelected: (v) => setState(() => _sort = v),
+            itemBuilder: (context) => [
+              for (final sort in _SearchSort.values)
+                PopupMenuItem(value: sort, child: Text(_sortLabel(sort, l10n))),
+            ],
+          ),
+          IconButton(
+            icon: Icon(
+              filtersActive ? Icons.filter_alt : Icons.filter_alt_outlined,
+              size: 20,
+            ),
+            tooltip: l10n.searchFilter,
+            visualDensity: VisualDensity.compact,
+            onPressed: () => _showFilterSheet(l10n),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// Purpose: Provide the internal sort label helper for this file.
+  /// Inputs: `sort`, `l10n`.
+  /// Returns: `String`.
+  /// Side effects: None.
+  /// Notes: Internal helper used within this file only.
+  String _sortLabel(_SearchSort sort, AppLocalizations l10n) {
+    switch (sort) {
+      case _SearchSort.relevance:
+        return l10n.searchSortRelevance;
+      case _SearchSort.firstAirDate:
+        return l10n.searchSortAirDate;
+      case _SearchSort.episodes:
+        return l10n.searchSortEpisodes;
+      case _SearchSort.source:
+        return l10n.searchSortSource;
+    }
+  }
+
+  /// Purpose: Show the source and field filters in a bottom sheet.
+  /// Inputs: `l10n`.
+  /// Returns: None.
+  /// Side effects: Opens a modal sheet and mutates filter state as the user toggles.
+  /// Notes: Internal helper used within this file only. The sheet drives the
+  /// parent's state directly through `setState` so the list updates live.
+  Future<void> _showFilterSheet(AppLocalizations l10n) async {
+    await showModalBottomSheet<void>(
+      context: context,
+      showDragHandle: true,
+      builder: (sheetContext) {
+        return StatefulBuilder(
+          builder: (sheetContext, setSheetState) {
+            void toggle(void Function() mutate) {
+              setState(mutate);
+              setSheetState(() {});
+            }
+
+            return SafeArea(
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Row(
+                      children: [
+                        Expanded(
+                          child: Text(
+                            l10n.searchFilterSources,
+                            style: Theme.of(sheetContext).textTheme.titleSmall,
+                          ),
+                        ),
+                        TextButton(
+                          onPressed: () => toggle(() {
+                            _hiddenSources.clear();
+                            _onlyWithCover = false;
+                            _onlyWithAirDate = false;
+                          }),
+                          child: Text(l10n.searchFilterReset),
+                        ),
+                      ],
+                    ),
+                    Wrap(
+                      spacing: 8,
+                      runSpacing: 4,
+                      children: [
+                        for (final source in _availableSources)
+                          FilterChip(
+                            label: Text(source),
+                            selected: !_hiddenSources.contains(source),
+                            onSelected: (selected) => toggle(() {
+                              if (selected) {
+                                _hiddenSources.remove(source);
+                              } else {
+                                _hiddenSources.add(source);
+                              }
+                            }),
+                          ),
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+                    SwitchListTile(
+                      contentPadding: EdgeInsets.zero,
+                      dense: true,
+                      value: _onlyWithCover,
+                      title: Text(l10n.searchFilterWithCover),
+                      onChanged: (v) => toggle(() => _onlyWithCover = v),
+                    ),
+                    SwitchListTile(
+                      contentPadding: EdgeInsets.zero,
+                      dense: true,
+                      value: _onlyWithAirDate,
+                      title: Text(l10n.searchFilterWithAirDate),
+                      onChanged: (v) => toggle(() => _onlyWithAirDate = v),
+                    ),
+                  ],
+                ),
+              ),
+            );
+          },
+        );
+      },
     );
   }
 
   /// Purpose: Provide the internal build search results helper for this file.
   /// Inputs: `l10n`.
   /// Returns: `Widget`.
-  /// Side effects: May perform network or file-system operations.
+  /// Side effects: None.
   /// Notes: Internal helper used within this file only.
   Widget _buildSearchResults(AppLocalizations l10n) {
     if (_searching) {
@@ -348,45 +647,304 @@ class _SearchDialogState extends State<_SearchDialog> {
     if (_results.isEmpty) {
       return const SizedBox.shrink();
     }
-    return ListView.builder(
-      itemCount: _results.length,
-      padding: const EdgeInsets.only(bottom: 8),
-      itemBuilder: (_, i) {
-        final r = _results[i];
-        return ListTile(
-          leading: r.coverImageUrl != null
-              ? SizedBox(
-                  width: 36,
-                  height: 50,
-                  child: Image.network(
-                    r.coverImageUrl!,
-                    fit: BoxFit.cover,
-                    errorBuilder: (_, e, s) =>
-                        const Icon(Icons.image_not_supported, size: 20),
-                  ),
-                )
-              : const SizedBox(width: 36, child: Icon(Icons.movie_outlined)),
-          title: Text(
-            r.title ?? r.titleJa ?? '?',
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-          ),
-          subtitle: Text(
-            [
-              r.source,
-              if (r.titleJa != null && r.title != null) r.titleJa,
-              if (r.episodes != null)
-                AppLocalizations.of(context)!.searchEpisodesCount(r.episodes!),
-            ].join(' · '),
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
+    final visible = _visibleResults;
+    if (visible.isEmpty) {
+      return Center(
+        child: Padding(
+          padding: const EdgeInsets.all(24),
+          child: Text(
+            l10n.searchNoMatchingResults,
+            textAlign: TextAlign.center,
             style: Theme.of(context).textTheme.bodySmall,
           ),
+        ),
+      );
+    }
+    if (_groupBySource) {
+      return _buildGroupedResults(l10n, visible);
+    }
+    return ListView.builder(
+      itemCount: visible.length,
+      padding: const EdgeInsets.only(bottom: 8),
+      itemBuilder: (_, i) => _resultTile(l10n, visible[i]),
+    );
+  }
+
+  /// Purpose: Render the result list as one collapsible section per source.
+  /// Inputs: `l10n`, `visible`.
+  /// Returns: `Widget`.
+  /// Side effects: None.
+  /// Notes: Internal helper used within this file only. Sections keep the
+  /// canonical source order rather than the current sort order, so the list
+  /// does not reshuffle when the sort changes.
+  Widget _buildGroupedResults(
+    AppLocalizations l10n,
+    List<AnimeSearchResult> visible,
+  ) {
+    final grouped = <String, List<AnimeSearchResult>>{};
+    for (final r in visible) {
+      grouped.putIfAbsent(r.source, () => []).add(r);
+    }
+    final sources = AnimeSearchSource.all
+        .where(grouped.containsKey)
+        .toList();
+    return ListView.builder(
+      itemCount: sources.length,
+      padding: const EdgeInsets.only(bottom: 8),
+      itemBuilder: (_, i) {
+        final source = sources[i];
+        final items = grouped[source]!;
+        return ExpansionTile(
+          initiallyExpanded: true,
           dense: true,
-          onTap: () => _selectResult(r),
+          tilePadding: const EdgeInsets.symmetric(horizontal: 12),
+          title: Text(
+            source,
+            style: Theme.of(context).textTheme.titleSmall,
+          ),
+          trailing: Text(
+            '${items.length}',
+            style: Theme.of(context).textTheme.bodySmall,
+          ),
+          children: [for (final r in items) _resultTile(l10n, r)],
         );
       },
     );
+  }
+
+  /// Purpose: Build one row of the search result list.
+  /// Inputs: `l10n`, `r`.
+  /// Returns: `Widget`.
+  /// Side effects: None.
+  /// Notes: Internal helper used within this file only. The title is clipped to
+  /// one line; a long-press (or a hover tooltip on desktop) opens the full
+  /// detail sheet, which is where untruncated titles live.
+  Widget _resultTile(AppLocalizations l10n, AnimeSearchResult r) {
+    final theme = Theme.of(context);
+    final secondLine = _secondaryLine(l10n, r);
+    return ListTile(
+      leading: r.coverImageUrl != null
+          ? SizedBox(
+              width: 36,
+              height: 50,
+              child: Image.network(
+                r.coverImageUrl!,
+                fit: BoxFit.cover,
+                errorBuilder: (_, e, s) =>
+                    const Icon(Icons.image_not_supported, size: 20),
+              ),
+            )
+          : const SizedBox(width: 36, child: Icon(Icons.movie_outlined)),
+      title: Tooltip(
+        message: r.allTitles.join('\n'),
+        child: Text(
+          r.displayTitle,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+        ),
+      ),
+      subtitle: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            [
+              r.source,
+              if (r.titleJa != null && r.title != null) r.titleJa,
+              if (r.episodes != null) l10n.searchEpisodesCount(r.episodes!),
+            ].join(' · '),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: theme.textTheme.bodySmall,
+          ),
+          if (secondLine != null)
+            Text(
+              secondLine,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: theme.colorScheme.onSurfaceVariant,
+              ),
+            ),
+        ],
+      ),
+      isThreeLine: secondLine != null,
+      dense: true,
+      onTap: () => _selectResult(r),
+      onLongPress: () => _showResultDetails(l10n, r),
+    );
+  }
+
+  /// Purpose: Compose the secondary metadata line shown under a result.
+  /// Inputs: `l10n`, `r`.
+  /// Returns: `String?` — `null` when the source supplied none of these fields.
+  /// Side effects: None.
+  /// Notes: Internal helper used within this file only.
+  String? _secondaryLine(AppLocalizations l10n, AnimeSearchResult r) {
+    final parts = <String>[
+      if (r.score != null)
+        '★ ${r.score!.toStringAsFixed(1)}/${r.scoreMax.toStringAsFixed(0)}',
+      if (r.format != null) r.format!,
+      if (r.airDayOfWeek != null)
+        [_dayName(r.airDayOfWeek!), if (r.airTime != null) r.airTime!].join(' '),
+      if (r.airDayOfWeek == null && r.firstAirDate != null)
+        DateFormat.yMd().format(r.firstAirDate!),
+      if (r.studios.isNotEmpty) r.studios.first,
+    ];
+    return parts.isEmpty ? null : parts.join(' · ');
+  }
+
+  /// Purpose: Show every title and field a result carries, untruncated.
+  /// Inputs: `l10n`, `r`.
+  /// Returns: None.
+  /// Side effects: Opens a modal sheet; copying writes to the system clipboard.
+  /// Notes: Internal helper used within this file only. Titles are rendered as
+  /// `SelectableText` so a name can be copied out even when it is too long to
+  /// fit the list row that triggered this sheet.
+  Future<void> _showResultDetails(
+    AppLocalizations l10n,
+    AnimeSearchResult r,
+  ) async {
+    final theme = Theme.of(context);
+    await showModalBottomSheet<void>(
+      context: context,
+      showDragHandle: true,
+      isScrollControlled: true,
+      builder: (sheetContext) {
+        return SafeArea(
+          child: DraggableScrollableSheet(
+            expand: false,
+            initialChildSize: 0.6,
+            maxChildSize: 0.9,
+            builder: (context, scrollController) => ListView(
+              controller: scrollController,
+              padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
+              children: [
+                Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        l10n.searchDetailsTitle,
+                        style: theme.textTheme.titleMedium,
+                      ),
+                    ),
+                    Chip(
+                      label: Text(r.source),
+                      visualDensity: VisualDensity.compact,
+                      materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 12),
+                Text(l10n.searchAllTitles, style: theme.textTheme.titleSmall),
+                const SizedBox(height: 4),
+                for (final title in r.allTitles)
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 6),
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Expanded(child: SelectableText(title)),
+                        IconButton(
+                          icon: const Icon(Icons.copy, size: 16),
+                          tooltip: l10n.copyAction,
+                          visualDensity: VisualDensity.compact,
+                          onPressed: () => _copyToClipboard(l10n, title),
+                        ),
+                      ],
+                    ),
+                  ),
+                const Divider(height: 24),
+                ..._detailRows(l10n, r, theme),
+                if (r.summary?.isNotEmpty == true) ...[
+                  const Divider(height: 24),
+                  SelectableText(
+                    r.summary!,
+                    style: theme.textTheme.bodySmall,
+                  ),
+                ],
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  /// Purpose: Build the labelled metadata rows for the result detail sheet.
+  /// Inputs: `l10n`, `r`, `theme`.
+  /// Returns: `List<Widget>`.
+  /// Side effects: None.
+  /// Notes: Internal helper used within this file only. Fields the source did
+  /// not supply are omitted rather than shown blank.
+  List<Widget> _detailRows(
+    AppLocalizations l10n,
+    AnimeSearchResult r,
+    ThemeData theme,
+  ) {
+    final rows = <(String, String)>[
+      if (r.episodes != null) (l10n.animeEndEp, '${r.episodes}'),
+      if (r.firstAirDate != null)
+        (l10n.animeFirstAirDate, DateFormat.yMd().format(r.firstAirDate!)),
+      if (r.endDate != null)
+        (l10n.animeEndDate, DateFormat.yMd().format(r.endDate!)),
+      if (r.airDayOfWeek != null)
+        (l10n.animeAirDay, _dayName(r.airDayOfWeek!)),
+      if (r.airTime != null) (l10n.animeAirTime, r.airTime!),
+      if (r.format != null) (l10n.animeFormat, r.format!),
+      if (r.status != null) (l10n.animeStatus, r.status!),
+      if (r.durationMinutes != null)
+        (l10n.animeDuration, l10n.animeDurationValue(r.durationMinutes!)),
+      if (r.studios.isNotEmpty) (l10n.animeStudios, r.studios.join(', ')),
+      if (r.genres.isNotEmpty) (l10n.animeGenres, r.genres.join(', ')),
+      if (r.score != null)
+        (
+          l10n.animeExternalRatings,
+          '${r.score!.toStringAsFixed(1)} / ${r.scoreMax.toStringAsFixed(0)}'
+              '${r.scoreVotes != null ? ' · ${l10n.animeExternalVotes(r.scoreVotes!)}' : ''}'
+              '${r.scoreRank != null ? ' · ${l10n.animeExternalRank(r.scoreRank!)}' : ''}',
+        ),
+      if (r.sourceUrl != null) (l10n.animeInfoUrl, r.sourceUrl!),
+    ];
+
+    return [
+      for (final (label, value) in rows)
+        Padding(
+          padding: const EdgeInsets.only(bottom: 8),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              SizedBox(
+                width: 110,
+                child: Text(
+                  label,
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: theme.colorScheme.onSurfaceVariant,
+                  ),
+                ),
+              ),
+              Expanded(
+                child: SelectableText(
+                  value,
+                  style: theme.textTheme.bodyMedium,
+                ),
+              ),
+            ],
+          ),
+        ),
+    ];
+  }
+
+  /// Purpose: Copy one value to the clipboard and confirm it to the user.
+  /// Inputs: `l10n`, `value`.
+  /// Returns: None.
+  /// Side effects: Writes to the system clipboard and shows a snack bar.
+  /// Notes: Internal helper used within this file only.
+  Future<void> _copyToClipboard(AppLocalizations l10n, String value) async {
+    await Clipboard.setData(ClipboardData(text: value));
+    if (!mounted) return;
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text(l10n.copiedToClipboard)));
   }
 
   // ──── Preview view ────
@@ -414,6 +972,13 @@ class _SearchDialogState extends State<_SearchDialog> {
                 avatar: const Icon(Icons.public, size: 16),
                 materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
                 visualDensity: VisualDensity.compact,
+              ),
+              const Spacer(),
+              IconButton(
+                icon: const Icon(Icons.info_outline, size: 20),
+                tooltip: l10n.searchDetailsTitle,
+                visualDensity: VisualDensity.compact,
+                onPressed: () => _showResultDetails(l10n, r),
               ),
             ],
           ),
@@ -449,6 +1014,7 @@ class _SearchDialogState extends State<_SearchDialog> {
   /// Side effects: None.
   /// Notes: Internal helper used within this file only.
   Widget _buildFieldList(AppLocalizations l10n, AnimeSearchResult r) {
+    final externalCount = _externalMetaFieldCount(r);
     return ListView(
       padding: const EdgeInsets.symmetric(vertical: 4),
       children: [
@@ -500,6 +1066,16 @@ class _SearchDialogState extends State<_SearchDialog> {
             _truncate(widget.currentNotes, 50),
             _truncate(r.summary, 100)!,
           ),
+        if (externalCount > 0)
+          _fieldTile(
+            'externalMeta',
+            l10n.searchExternalMeta,
+            widget.currentExternalMeta?.hasAnyData == true
+                ? l10n.animeExternalMeta
+                : null,
+            l10n.searchExternalMetaValue(externalCount, r.source),
+          ),
+        if (externalCount > 0) _buildExternalMetaSummary(l10n, r),
         // Cover image section
         if (r.coverImageUrl != null) ...[
           const Divider(),
@@ -585,6 +1161,43 @@ class _SearchDialogState extends State<_SearchDialog> {
     );
   }
 
+  /// Purpose: Show the metadata that the external-metadata checkbox would apply.
+  /// Inputs: `l10n`, `r`.
+  /// Returns: `Widget`.
+  /// Side effects: None.
+  /// Notes: Internal helper used within this file only. Read-only — the single
+  /// checkbox above it governs whether any of it is written.
+  Widget _buildExternalMetaSummary(AppLocalizations l10n, AnimeSearchResult r) {
+    final theme = Theme.of(context);
+    final chips = <String>[
+      if (r.format != null) r.format!,
+      if (r.status != null) r.status!,
+      if (r.durationMinutes != null)
+        l10n.animeDurationValue(r.durationMinutes!),
+      ...r.studios,
+      ...r.genres,
+      if (r.score != null)
+        '★ ${r.score!.toStringAsFixed(1)}/${r.scoreMax.toStringAsFixed(0)}',
+    ];
+    if (chips.isEmpty) return const SizedBox.shrink();
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(56, 0, 16, 8),
+      child: Wrap(
+        spacing: 6,
+        runSpacing: -6,
+        children: [
+          for (final chip in chips)
+            Chip(
+              label: Text(chip, style: theme.textTheme.labelSmall),
+              visualDensity: VisualDensity.compact,
+              materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+              padding: EdgeInsets.zero,
+            ),
+        ],
+      ),
+    );
+  }
+
   /// Purpose: Provide the internal cover column helper for this file.
   /// Inputs: `label`, `image`.
   /// Returns: `Widget`.
@@ -646,7 +1259,7 @@ class _SearchDialogState extends State<_SearchDialog> {
   // ──── Header ────
 
   /// Purpose: Provide the internal build header helper for this file.
-  /// Inputs: `l10n`.
+  /// Inputs: `l10n`, `showBack`.
   /// Returns: `Widget`.
   /// Side effects: None.
   /// Notes: Internal helper used within this file only.

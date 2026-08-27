@@ -13,6 +13,8 @@
 | [`_parseArchiveSource`](#parsearchivesource) | 顶层函数 | A | 把 JSON 字符串解析为 `ArchiveSource`，不认识则 `null`。 |
 | [`_parseArchiveResolution`](#parsearchiveresolution) | 顶层函数 | A | 把 JSON 字符串解析为 `ArchiveResolution`，不认识则 `null`。 |
 | [`_parseEpisodeStatus`](#parseepisodestatus) | 顶层函数 | A | 把 JSON 字符串解析为 `EpisodeStatus`，不认识则 `null`。 |
+| [`_parseStringList`](#parsestringlist) | 顶层函数 | A | 把 JSON 值解析为 `List<String>`，不是则 `null`。 |
+| [`_parseUtcDateTime`](#parseutcdatetime) | 顶层函数 | A | 把 JSON 字符串解析为 UTC `DateTime`，否则 `null`。 |
 | [`AnimeRating(...)`](#animerating-new) | 构造函数（`AnimeRating`） | A | 创建个人评分值（手动总分 + 五个子分）。 |
 | `hasManualOverall` | getter（`AnimeRating`） | B | `overall` 是否已设置。 |
 | `hasAnyScore` | getter（`AnimeRating`） | B | `overall`/`visual`/`story`/`character`/`music`/`enjoyment` 中是否有任一设置。 |
@@ -30,6 +32,18 @@
 | [`withExtraJson`](#withextrajson-animelocalarchive) | 方法（`AnimeLocalArchive`） | A | 复制并替换 `extraJson`。 |
 | [`toJson`](#tojson-animelocalarchive) | 方法（`AnimeLocalArchive`） | A | 序列化为存放在 `Anime.localArchive` 下的 JSON 形状。 |
 | [`AnimeLocalArchive.fromJson`](#animelocalarchive-fromjson) | 工厂构造函数 | A | 从 JSON 解析存档记录，无法解析的值转入 `extraJson`。 |
+| [`AnimeExternalRating(...)`](#animeexternalrating-new) | 构造函数（`AnimeExternalRating`） | A | 创建某个外部资料库的评分，并记住其来源 URL。 |
+| `hasAnyData` | getter（`AnimeExternalRating`） | B | 是否有评分、票数、排名或保留的 `extraJson`。 |
+| [`withExtraJson`](#withextrajson-animeexternalrating) | 方法（`AnimeExternalRating`） | B | 替换 `extraJson` 的副本。 |
+| [`toJson`](#tojson-animeexternalrating) | 方法（`AnimeExternalRating`） | A | 序列化为 `externalMeta.ratings` 的一条记录。 |
+| [`AnimeExternalRating.fromJson`](#animeexternalrating-fromjson) | 工厂构造函数 | A | 解析一条评分记录，无法解析的值转入 `extraJson`。 |
+| [`AnimeExternalMeta(...)`](#animeexternalmeta-new) | 构造函数（`AnimeExternalMeta`） | A | 创建从外部资料库拉取的公开元数据记录。 |
+| `hasAnyData` | getter（`AnimeExternalMeta`） | B | 是否有任何值得持久化的内容。 |
+| [`ratingFor`](#ratingfor) | 方法（`AnimeExternalMeta`） | A | 查找本记录中某个来源的评分。 |
+| [`mergedWith`](#mergedwith) | 方法（`AnimeExternalMeta`） | A | 把新抓取的元数据折叠进本记录。 |
+| [`withExtraJson`](#withextrajson-animeexternalmeta) | 方法（`AnimeExternalMeta`） | B | 替换 `extraJson` 的副本。 |
+| [`toJson`](#tojson-animeexternalmeta) | 方法（`AnimeExternalMeta`） | A | 序列化为 `Anime.externalMeta` 下存储的 JSON 形态。 |
+| [`AnimeExternalMeta.fromJson`](#animeexternalmeta-fromjson) | 工厂构造函数 | A | 解析外部元数据记录，无法解析的值转入 `extraJson`。 |
 | [`Anime(...)`](#anime-new) | 构造函数（`Anime`） | A | 用全部持久化字段创建动画记录。 |
 | [`displayTitle`](#displaytitle) | getter（`Anime`） | A | 最佳可用标题：`title`，否则 `titleJa`，否则空字符串。 |
 | [`totalEpisodes`](#totalepisodes) | getter（`Anime`） | A | `endEpisode - startEpisode + 1`，开放结局时为 `null`。 |
@@ -56,7 +70,7 @@
 | [`toJson`](#tojson-animedata) | 方法（`AnimeData`） | A | 序列化为 `{...extraJson, animes: [...]}`。 |
 | [`AnimeData.fromJson`](#animedata-fromjson) | 工厂构造函数 | A | 从 JSON 解析 `{animes: [...]}` 容器。 |
 
-关于校验计数的说明：源文件有 48 个 `/// Purpose:` 文档注释，但本表有 49 行——`AnimeData` 默认构造函数（第 1337 行）在源码中完全没有文档注释（与本文件其他构造函数不同），但它仍是真实声明，被索引在上（Tier B：无逻辑的平凡默认值构造函数）。
+关于校验计数的说明：源文件有 62 个 `/// Purpose:` 文档注释，但本表有 63 行——`AnimeData` 默认构造函数在源码中完全没有文档注释（与本文件其他构造函数不同），但它仍是真实声明，被索引在上（Tier B：无逻辑的平凡默认值构造函数）。
 
 ## 文档
 
@@ -162,6 +176,24 @@
   ```
   （同文件 `AnimeLocalArchive.fromJson`）
 - **备注：** 枚举名是存储标识符而非展示文本——`uhd2160p`/`fhd1080p`/`hd720p`/`sd480p` 通过 [`../views/archive_labels.md`](../views/archive_labels.md) 中的 `archiveResolutionLabel` 渲染为 `2160p`/`1080p`/`720p`/`480p`。
+
+### `List<String>? _parseStringList(Object? value)` <a id="parsestringlist"></a>
+- **种类：** 顶层函数
+- **来源：** `lib/features/anime/models/anime.dart`（第 176 行）
+- **用途：** 把 JSON 值解析为 `List<String>`。
+- **输入：** `value`。
+- **返回：** `List<String>?` —— 值不是列表、或含有非字符串元素时返回 `null`。
+- **副作用：** 无。
+- **备注：** 返回 `null` 而非尽力而为的部分列表是刻意的：调用方以 `null` 作为信号，把原值原样保留进 `extraJson` 而不是丢弃。只保留其中的字符串元素会造成数据丢失。
+
+### `DateTime? _parseUtcDateTime(Object? value)` <a id="parseutcdatetime"></a>
+- **种类：** 顶层函数
+- **来源：** `lib/features/anime/models/anime.dart`（第 192 行）
+- **用途：** 把 JSON 字符串解析为 UTC `DateTime`。
+- **输入：** `value`。
+- **返回：** `DateTime?` —— 非字符串或无法解析时返回 `null`。
+- **副作用：** 无。
+- **备注：** 经 `.toUtc()` 归一化到 UTC，符合仓库通行的规则：任何跨设备比较的值都以 UTC 存储。
 
 ### `EpisodeStatus? _parseEpisodeStatus(Object? value)` <a id="parseepisodestatus"></a>
 - **种类：** 顶层函数
@@ -393,7 +425,98 @@
 - **备注：** 与 `AnimeRating.fromJson` 的前向兼容契约相同：旧版本编辑由新版本写入的记录时，新版本的值原样往返。
   由 `test/anime_json_test.dart`（"local archive preserves unknown and unparseable fields"）覆盖。
 
-### `const Anime({required id, title, titleJa, season = 'Season 1', startEpisode = 1, endEpisode = 13, manualType, airDayOfWeek, airTime, firstAirDate, episodeStatuses = const {}, coverImage, infoUrl, watchUrl, episodeWeekOffsets = const {}, notes, rating, localArchive, required createdAt, required modifiedAt, extraJson = const {}})` <a id="anime-new"></a>
+### `const AnimeExternalRating({required source, sourceUrl, score, scoreMax = 10, votes, rank, fetchedAt, extraJson = const {}})` <a id="animeexternalrating-new"></a>
+- **种类：** `AnimeExternalRating` 的构造函数
+- **来源：** `lib/features/anime/models/anime.dart`（第 637 行）
+- **用途：** 创建某个外部资料库对一部番剧的评分，并附带它所读取的页面 URL。
+- **输入：** `source` 必填（资料库显示名，如 `AniList`）；`sourceUrl` 是刷新键；`scoreMax` 默认为 `10`。
+- **返回：** 新的 `AnimeExternalRating`。
+- **副作用：** 无。
+- **备注：** 刻意与 [`AnimeRating`](#animerating-new) 分离。`AnimeRating` 保存*用户自己*的评分、任何抓取都不会写入；本类型保存的是各外部资料库的说法。`fetchedAt` 可空而非带默认值，这样没有时间戳的记录能诚实地往返，而不会凭空获得一个伪造的时间。
+
+### `AnimeExternalRating withExtraJson(Map<String, dynamic> extraJson)` <a id="withextrajson-animeexternalrating"></a>
+- **种类：** `AnimeExternalRating` 的方法
+- **来源：** `lib/features/anime/models/anime.dart`（第 661 行）
+- **用途：** 复制本评分并替换 `extraJson`。
+- **返回：** `AnimeExternalRating`。
+- **副作用：** 无。
+
+### `Map<String, dynamic> toJson()`（`AnimeExternalRating`） <a id="tojson-animeexternalrating"></a>
+- **种类：** `AnimeExternalRating` 的方法
+- **来源：** `lib/features/anime/models/anime.dart`（第 678 行）
+- **用途：** 序列化为 `externalMeta.ratings` 的一条记录。
+- **返回：** `Map<String, dynamic>`。
+- **副作用：** 无。
+- **算法：** 从 `extraJson` 的副本出发，覆盖 `source`，以及有值时的 `sourceUrl`/`score`/`votes`/`rank`/`fetchedAt`——只有在 `extraJson` 未携带该键时才移除它，因此保留下来的未知值绝不会被空字段覆盖。`scoreMax` 总是写入。`fetchedAt` 写为 UTC ISO-8601 字符串。
+
+### `factory AnimeExternalRating.fromJson(Map<String, dynamic> json)` <a id="animeexternalrating-fromjson"></a>
+- **种类：** `AnimeExternalRating` 的工厂构造函数
+- **来源：** `lib/features/anime/models/anime.dart`（第 716 行）
+- **用途：** 从 JSON 解析一条评分记录。
+- **返回：** 新的 `AnimeExternalRating`。
+- **副作用：** 无。
+- **算法：** 经 `_unknownJson` 计算 `extraJson`，随后逐个带类型检查地读取已知键；存在但类型不对的值会被写回 `extraJson` 而非丢弃。缺失或非数值的 `scoreMax` 回退为 `10`。
+- **备注：** 与 [`AnimeLocalArchive.fromJson`](#animelocalarchive-fromjson) 同一套纪律——较新版本的数据必须能在较旧版本的编辑中存活。
+
+### `const AnimeExternalMeta({synonyms = const [], titleRomaji, titleEn, format, status, durationMinutes, genres = const [], studios = const [], endDate, ratings = const [], refreshedAt, extraJson = const {}})` <a id="animeexternalmeta-new"></a>
+- **种类：** `AnimeExternalMeta` 的构造函数
+- **来源：** `lib/features/anime/models/anime.dart`（第 826 行）
+- **用途：** 创建一条从外部番剧资料库拉取的公开元数据记录。
+- **返回：** 新的 `AnimeExternalMeta`。
+- **副作用：** 无。
+- **备注：** 与 [`AnimeLocalArchive`](#animelocalarchive-new) 不同，这是关于作品本身的公开信息而非个人基础设施信息，因此**不会**从 `.myanimeitem` 分享文件中剥离——见 [`../../../../data-formats.md`](../../../../data-formats.md) 中的流转表。`format` 是描述性元数据，切勿与驱动排期的 `AnimeType` 混淆。
+
+### `AnimeExternalRating? ratingFor(String source)` <a id="ratingfor"></a>
+- **种类：** `AnimeExternalMeta` 的方法
+- **来源：** `lib/features/anime/models/anime.dart`（第 865 行）
+- **用途：** 查找本记录中某个来源的评分。
+- **返回：** `AnimeExternalRating?` —— 该来源从未被抓取过时返回 `null`。
+- **副作用：** 无。
+- **备注：** `ratings` 用列表而非映射，是因为 JSON 数组往返更可预测，且该列表绝不会长于所支持来源的数量。
+
+### `AnimeExternalMeta mergedWith(AnimeExternalMeta other, {DateTime? refreshedAt})` <a id="mergedwith"></a>
+- **种类：** `AnimeExternalMeta` 的方法
+- **来源：** `lib/features/anime/models/anime.dart`（第 879 行）
+- **用途：** 把新抓取的元数据折叠进本记录。
+- **输入：** `other` —— 新抓取的记录；`refreshedAt` —— 覆盖结果时间戳。
+- **返回：** `AnimeExternalMeta`。
+- **副作用：** 无。
+- **算法：** 评分以 `source` 为键放入映射，`other` 的记录覆盖本记录的，因此刷新某个来源只会替换该来源的记录。别名取并集。每个标量字段仅在 `other` 的值非 null 时采用；`genres`/`studios` 仅在 `other` 非空时采用。`extraJson` 经 `_mergeJsonMaps` 深度合并。
+- **用法：**
+  ```dart
+  merged = merged.mergedWith(
+    AnimeSearchService.toExternalMeta(result, fetchedAt: now),
+    refreshedAt: now,
+  );
+  ```
+  （`lib/features/anime/views/anime_detail_page.dart`，`_refreshExternalMeta`）
+- **备注：** 「仅在提供时才采用」的规则正是本方法存在的意义。AniList 对部分作品不报告制作公司；没有这条规则，对 AniList 刷新就会抹掉 bangumi.tv 贡献的制作公司。合并而非替换，同样使搜索对话框能够应用来自另一来源的第二条结果而不丢失第一条。
+
+### `AnimeExternalMeta withExtraJson(Map<String, dynamic> extraJson)` <a id="withextrajson-animeexternalmeta"></a>
+- **种类：** `AnimeExternalMeta` 的方法
+- **来源：** `lib/features/anime/models/anime.dart`（第 911 行）
+- **用途：** 复制本记录并替换 `extraJson`。
+- **返回：** `AnimeExternalMeta`。
+- **副作用：** 无。
+
+### `Map<String, dynamic> toJson()`（`AnimeExternalMeta`） <a id="tojson-animeexternalmeta"></a>
+- **种类：** `AnimeExternalMeta` 的方法
+- **来源：** `lib/features/anime/models/anime.dart`（第 932 行）
+- **用途：** 序列化为 `Anime.externalMeta` 下存储的 JSON 形态。
+- **返回：** `Map<String, dynamic>`。
+- **副作用：** 无。
+- **算法：** 从 `extraJson` 的副本出发；局部 `writeString`/`writeList` 辅助函数在键有值时覆盖它，只有在 `extraJson` 未携带该键时才移除。`endDate`/`refreshedAt` 写为 UTC ISO-8601 字符串，`ratings` 写为 [`AnimeExternalRating.toJson`](#tojson-animeexternalrating) 映射的数组。
+
+### `factory AnimeExternalMeta.fromJson(Map<String, dynamic> json)` <a id="animeexternalmeta-fromjson"></a>
+- **种类：** `AnimeExternalMeta` 的工厂构造函数
+- **来源：** `lib/features/anime/models/anime.dart`（第 987 行）
+- **用途：** 从 JSON 解析一条外部元数据记录。
+- **返回：** 新的 `AnimeExternalMeta`。
+- **副作用：** 无。
+- **算法：** 局部 `readString`/`readList` 辅助函数对每个键做类型检查，把形态不对的内容推入 `extraJson`。`ratings` 中是 map 的条目经 [`AnimeExternalRating.fromJson`](#animeexternalrating-fromjson) 解析，携带数据或来源名时保留；非 map 条目被收集回 `extraJson['ratings']`。
+- **备注：** 若 `genres` 的值是字符串而非列表，它会原样存活在 `extraJson` 中并原样重新序列化，因此较旧版本无法静默删除较新版本的形态变更。
+
+### `const Anime({required id, title, titleJa, season = 'Season 1', startEpisode = 1, endEpisode = 13, manualType, airDayOfWeek, airTime, firstAirDate, episodeStatuses = const {}, coverImage, infoUrl, watchUrl, episodeWeekOffsets = const {}, notes, rating, localArchive, externalMeta, required createdAt, required modifiedAt, extraJson = const {}})` <a id="anime-new"></a>
 - **种类：** `Anime` 的构造函数
 - **来源：** `lib/features/anime/models/anime.dart`（第 620 行）
 - **用途：** 直接从每个持久化字段构造 `Anime` 记录。
@@ -630,7 +753,7 @@
 - **种类：** `Anime` 的方法
 - **来源：** `lib/features/anime/models/anime.dart`（第 922 行）
 - **用途：** 用所选字段创建副本，用 `clearXxx` 布尔标志显式清空本来可空的字段（因为给参数传 `null` 与"未提供"无法区分）。
-- **输入：** 每个可变字段一个可选参数，外加 `clearEndEpisode`/`clearManualType`/`clearAirDayOfWeek`/`clearAirTime`/`clearFirstAirDate`/`clearCoverImage`/`clearInfoUrl`/`clearWatchUrl`/`clearNotes`/`clearRating`/`clearLocalArchive`（全部默认 `false`）；`modifiedAt` 可选（未提供时默认为 `DateTime.now().toUtc()`）。
+- **输入：** 每个可变字段一个可选参数，外加 `clearEndEpisode`/`clearManualType`/`clearAirDayOfWeek`/`clearAirTime`/`clearFirstAirDate`/`clearCoverImage`/`clearInfoUrl`/`clearWatchUrl`/`clearNotes`/`clearRating`/`clearLocalArchive`/`clearExternalMeta`（全部默认 `false`）；`modifiedAt` 可选（未提供时默认为 `DateTime.now().toUtc()`）。
 - **返回：** 新的 `Anime`；`id`、`createdAt` 和 `extraJson` 总是原样带过。
 - **副作用：** 无（但不带显式 `modifiedAt` 调用它会读取当前时间）。
 - **算法：** 对每个带 `clearXxx` 标志的可空字段：标志为 `true` 则字段变 `null`；否则提供值非 null 时用之，否则保留既有值（`value ?? this.value`）。不可空字段（`season`、`startEpisode`）和 `episodeStatuses`/`episodeWeekOffsets` 直接 `?? this.field`，无 clear 标志。

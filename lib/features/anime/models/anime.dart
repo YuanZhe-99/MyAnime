@@ -19,6 +19,7 @@ const _animeJsonKeys = {
   'notes',
   'rating',
   'localArchive',
+  'externalMeta',
   'createdAt',
   'modifiedAt',
 };
@@ -38,6 +39,30 @@ const _localArchiveJsonKeys = {
   'resolution',
   'copies',
   'location',
+};
+
+const _externalMetaJsonKeys = {
+  'synonyms',
+  'titleRomaji',
+  'titleEn',
+  'format',
+  'status',
+  'durationMinutes',
+  'genres',
+  'studios',
+  'endDate',
+  'ratings',
+  'refreshedAt',
+};
+
+const _externalRatingJsonKeys = {
+  'source',
+  'sourceUrl',
+  'score',
+  'scoreMax',
+  'votes',
+  'rank',
+  'fetchedAt',
 };
 
 const _animeDataJsonKeys = {'animes'};
@@ -139,6 +164,53 @@ EpisodeStatus? _parseEpisodeStatus(Object? value) {
     if (status.name == value) return status;
   }
   return null;
+}
+
+/// Purpose: Provide the internal parse string list helper for this file.
+/// Inputs: `value`.
+/// Returns: `List<String>?`.
+/// Side effects: None.
+/// Notes: Internal helper used within this file only. Returns `null` when the
+/// value is not a list of strings, so the caller can preserve it verbatim in
+/// `extraJson` instead of dropping it.
+List<String>? _parseStringList(Object? value) {
+  if (value is! List) return null;
+  final result = <String>[];
+  for (final entry in value) {
+    if (entry is! String) return null;
+    result.add(entry);
+  }
+  return result;
+}
+
+/// Purpose: Provide the internal parse UTC timestamp helper for this file.
+/// Inputs: `value`.
+/// Returns: `DateTime?`.
+/// Side effects: None.
+/// Notes: Internal helper used within this file only. Normalizes to UTC so
+/// values compared across devices stay timezone-stable. Use this only for real
+/// instants (`fetchedAt`, `refreshedAt`) — never for calendar dates, which
+/// `_parseCalendarDate` handles instead.
+DateTime? _parseUtcDateTime(Object? value) {
+  if (value is! String) return null;
+  final parsed = DateTime.tryParse(value);
+  return parsed?.toUtc();
+}
+
+/// Purpose: Provide the internal parse calendar-date helper for this file.
+/// Inputs: `value`.
+/// Returns: `DateTime?`.
+/// Side effects: None.
+/// Notes: Internal helper used within this file only. Deliberately does **not**
+/// normalize to UTC. A broadcast date is a calendar day, not an instant: it is
+/// written as local midnight, so converting it to UTC on read shifts it behind
+/// midnight for every timezone east of UTC and `DateFormat.yMd()` then renders
+/// the previous day. Japan is UTC+9, so that off-by-one would hit this app's
+/// core audience. `Anime.firstAirDate` has always parsed this way; `endDate`
+/// matches it.
+DateTime? _parseCalendarDate(Object? value) {
+  if (value is! String) return null;
+  return DateTime.tryParse(value);
 }
 
 /// Anime broadcast type based on episode count.
@@ -544,6 +616,465 @@ class AnimeLocalArchive {
   }
 }
 
+/// One external database's rating for an anime.
+///
+/// Deliberately separate from [AnimeRating]: that type holds the user's own
+/// scores and is never overwritten by a fetch. Each entry remembers the page
+/// [sourceUrl] it came from so the record can be refreshed later.
+class AnimeExternalRating {
+  /// Display name of the originating source, e.g. `AniList`.
+  final String source;
+
+  /// Canonical page URL this rating was read from; the refresh key.
+  final String? sourceUrl;
+
+  /// Score normalized onto [scoreMax].
+  final double? score;
+
+  /// Upper bound of [score]. Sources are normalized to a 10-point scale.
+  final double scoreMax;
+
+  /// Number of votes behind [score], when the source reports it.
+  final int? votes;
+
+  /// The source's popularity/score rank, when reported.
+  final int? rank;
+
+  /// When this rating was last fetched (UTC).
+  final DateTime? fetchedAt;
+
+  /// JSON fields this app version does not understand yet.
+  final Map<String, dynamic> extraJson;
+
+  /// Purpose: Create an external rating instance.
+  /// Inputs: `source`, `sourceUrl`, `score`, `scoreMax`, `votes`, `rank`, `fetchedAt`, `extraJson`.
+  /// Returns: A new `AnimeExternalRating` instance.
+  /// Side effects: None.
+  /// Notes: `scoreMax` defaults to 10 because every supported source is
+  /// normalized onto a 10-point scale before being stored.
+  const AnimeExternalRating({
+    required this.source,
+    this.sourceUrl,
+    this.score,
+    this.scoreMax = 10,
+    this.votes,
+    this.rank,
+    this.fetchedAt,
+    this.extraJson = const {},
+  });
+
+  /// Purpose: Report whether this rating carries anything worth persisting.
+  /// Inputs: None.
+  /// Returns: `bool`.
+  /// Side effects: None.
+  /// Notes: A bare source name with no numbers is dropped by the owning meta.
+  bool get hasAnyData =>
+      score != null || votes != null || rank != null || extraJson.isNotEmpty;
+
+  /// Purpose: Create a copy with extra json.
+  /// Inputs: `extraJson`.
+  /// Returns: `AnimeExternalRating`.
+  /// Side effects: None.
+  /// Notes: None.
+  AnimeExternalRating withExtraJson(Map<String, dynamic> extraJson) =>
+      AnimeExternalRating(
+        source: source,
+        sourceUrl: sourceUrl,
+        score: score,
+        scoreMax: scoreMax,
+        votes: votes,
+        rank: rank,
+        fetchedAt: fetchedAt,
+        extraJson: extraJson,
+      );
+
+  /// Purpose: Serialize this value into a JSON-compatible map.
+  /// Inputs: None.
+  /// Returns: `Map<String, dynamic>`.
+  /// Side effects: None.
+  /// Notes: None.
+  Map<String, dynamic> toJson() {
+    final json = Map<String, dynamic>.from(extraJson);
+    json['source'] = source;
+    if (sourceUrl != null) {
+      json['sourceUrl'] = sourceUrl;
+    } else if (!extraJson.containsKey('sourceUrl')) {
+      json.remove('sourceUrl');
+    }
+    if (score != null) {
+      json['score'] = score;
+    } else if (!extraJson.containsKey('score')) {
+      json.remove('score');
+    }
+    json['scoreMax'] = scoreMax;
+    if (votes != null) {
+      json['votes'] = votes;
+    } else if (!extraJson.containsKey('votes')) {
+      json.remove('votes');
+    }
+    if (rank != null) {
+      json['rank'] = rank;
+    } else if (!extraJson.containsKey('rank')) {
+      json.remove('rank');
+    }
+    if (fetchedAt != null) {
+      json['fetchedAt'] = fetchedAt!.toUtc().toIso8601String();
+    } else if (!extraJson.containsKey('fetchedAt')) {
+      json.remove('fetchedAt');
+    }
+    return json;
+  }
+
+  /// Purpose: Create an instance from a JSON-compatible map.
+  /// Inputs: `json`.
+  /// Returns: A new `AnimeExternalRating.fromJson` instance.
+  /// Side effects: None.
+  /// Notes: Values that fail to parse are kept in `extraJson` rather than
+  /// dropped, so a newer build's data survives an older build's edits.
+  factory AnimeExternalRating.fromJson(Map<String, dynamic> json) {
+    final extraJson = _unknownJson(json, _externalRatingJsonKeys);
+
+    final rawSource = json['source'];
+    var source = '';
+    if (rawSource is String) {
+      source = rawSource;
+    } else if (json.containsKey('source')) {
+      extraJson['source'] = rawSource;
+    }
+
+    final rawSourceUrl = json['sourceUrl'];
+    String? sourceUrl;
+    if (rawSourceUrl is String) {
+      sourceUrl = rawSourceUrl;
+    } else if (json.containsKey('sourceUrl')) {
+      extraJson['sourceUrl'] = rawSourceUrl;
+    }
+
+    final score = _parseScore(json['score']);
+    if (json.containsKey('score') && score == null) {
+      extraJson['score'] = json['score'];
+    }
+
+    final rawScoreMax = _parseScore(json['scoreMax']);
+    if (json.containsKey('scoreMax') && rawScoreMax == null) {
+      extraJson['scoreMax'] = json['scoreMax'];
+    }
+
+    final rawVotes = json['votes'];
+    int? votes;
+    if (rawVotes is int) {
+      votes = rawVotes;
+    } else if (json.containsKey('votes')) {
+      extraJson['votes'] = rawVotes;
+    }
+
+    final rawRank = json['rank'];
+    int? rank;
+    if (rawRank is int) {
+      rank = rawRank;
+    } else if (json.containsKey('rank')) {
+      extraJson['rank'] = rawRank;
+    }
+
+    final fetchedAt = _parseUtcDateTime(json['fetchedAt']);
+    if (json.containsKey('fetchedAt') && fetchedAt == null) {
+      extraJson['fetchedAt'] = json['fetchedAt'];
+    }
+
+    return AnimeExternalRating(
+      source: source,
+      sourceUrl: sourceUrl,
+      score: score,
+      scoreMax: rawScoreMax ?? 10,
+      votes: votes,
+      rank: rank,
+      fetchedAt: fetchedAt,
+      extraJson: extraJson,
+    );
+  }
+}
+
+/// Public metadata pulled from external anime databases.
+///
+/// Everything here is publicly available information about the work itself, not
+/// the user's personal tracking data, so it travels with `.myanimeitem` share
+/// files rather than being stripped like [AnimeLocalArchive].
+class AnimeExternalMeta {
+  /// Alternate titles across languages, as reported by the sources.
+  final List<String> synonyms;
+
+  /// Romanized Japanese title.
+  final String? titleRomaji;
+
+  /// English title, when it differs from the romanized one.
+  final String? titleEn;
+
+  /// Release format, e.g. `TV`, `MOVIE`, `OVA`, `ONA`, `SPECIAL`.
+  final String? format;
+
+  /// Broadcast status, e.g. `FINISHED`, `RELEASING`, `NOT_YET_RELEASED`.
+  final String? status;
+
+  /// Per-episode runtime in minutes.
+  final int? durationMinutes;
+
+  /// Genre tags.
+  final List<String> genres;
+
+  /// Animation studios.
+  final List<String> studios;
+
+  /// Date the final episode aired, when known.
+  final DateTime? endDate;
+
+  /// One entry per external source, keyed by its `source` name.
+  final List<AnimeExternalRating> ratings;
+
+  /// When this record was last refreshed from its sources (UTC).
+  final DateTime? refreshedAt;
+
+  /// JSON fields this app version does not understand yet.
+  final Map<String, dynamic> extraJson;
+
+  /// Purpose: Create an external metadata instance.
+  /// Inputs: `synonyms`, `titleRomaji`, `titleEn`, `format`, `status`, `durationMinutes`, `genres`, `studios`, `endDate`, `ratings`, `refreshedAt`, `extraJson`.
+  /// Returns: A new `AnimeExternalMeta` instance.
+  /// Side effects: None.
+  /// Notes: None.
+  const AnimeExternalMeta({
+    this.synonyms = const [],
+    this.titleRomaji,
+    this.titleEn,
+    this.format,
+    this.status,
+    this.durationMinutes,
+    this.genres = const [],
+    this.studios = const [],
+    this.endDate,
+    this.ratings = const [],
+    this.refreshedAt,
+    this.extraJson = const {},
+  });
+
+  /// Purpose: Report whether this record carries anything worth persisting.
+  /// Inputs: None.
+  /// Returns: `bool`.
+  /// Side effects: None.
+  /// Notes: When false the owning `Anime` drops the record entirely, so an
+  /// untouched anime never gains an `externalMeta` key.
+  bool get hasAnyData =>
+      synonyms.isNotEmpty ||
+      titleRomaji != null ||
+      titleEn != null ||
+      format != null ||
+      status != null ||
+      durationMinutes != null ||
+      genres.isNotEmpty ||
+      studios.isNotEmpty ||
+      endDate != null ||
+      ratings.isNotEmpty ||
+      extraJson.isNotEmpty;
+
+  /// Purpose: Look up this record's rating for one source.
+  /// Inputs: `source`.
+  /// Returns: `AnimeExternalRating?`.
+  /// Side effects: None.
+  /// Notes: Returns `null` when the source has never been fetched.
+  AnimeExternalRating? ratingFor(String source) {
+    for (final rating in ratings) {
+      if (rating.source == source) return rating;
+    }
+    return null;
+  }
+
+  /// Purpose: Fold freshly fetched metadata into this record.
+  /// Inputs: `other`, `refreshedAt`.
+  /// Returns: `AnimeExternalMeta`.
+  /// Side effects: None.
+  /// Notes: Scalar and list fields are taken from `other` only when it actually
+  /// supplies them, so refreshing against one source never erases what another
+  /// source contributed. Ratings are replaced per `source` name.
+  AnimeExternalMeta mergedWith(
+    AnimeExternalMeta other, {
+    DateTime? refreshedAt,
+  }) {
+    final mergedRatings = <String, AnimeExternalRating>{
+      for (final rating in ratings) rating.source: rating,
+    };
+    for (final rating in other.ratings) {
+      mergedRatings[rating.source] = rating;
+    }
+    final mergedSynonyms = <String>{...synonyms, ...other.synonyms}.toList();
+    return AnimeExternalMeta(
+      synonyms: mergedSynonyms,
+      titleRomaji: other.titleRomaji ?? titleRomaji,
+      titleEn: other.titleEn ?? titleEn,
+      format: other.format ?? format,
+      status: other.status ?? status,
+      durationMinutes: other.durationMinutes ?? durationMinutes,
+      genres: other.genres.isNotEmpty ? other.genres : genres,
+      studios: other.studios.isNotEmpty ? other.studios : studios,
+      endDate: other.endDate ?? endDate,
+      ratings: mergedRatings.values.toList(),
+      refreshedAt: refreshedAt ?? other.refreshedAt ?? this.refreshedAt,
+      extraJson: _mergeJsonMaps([extraJson, other.extraJson]),
+    );
+  }
+
+  /// Purpose: Create a copy with extra json.
+  /// Inputs: `extraJson`.
+  /// Returns: `AnimeExternalMeta`.
+  /// Side effects: None.
+  /// Notes: None.
+  AnimeExternalMeta withExtraJson(Map<String, dynamic> extraJson) =>
+      AnimeExternalMeta(
+        synonyms: synonyms,
+        titleRomaji: titleRomaji,
+        titleEn: titleEn,
+        format: format,
+        status: status,
+        durationMinutes: durationMinutes,
+        genres: genres,
+        studios: studios,
+        endDate: endDate,
+        ratings: ratings,
+        refreshedAt: refreshedAt,
+        extraJson: extraJson,
+      );
+
+  /// Purpose: Serialize this value into a JSON-compatible map.
+  /// Inputs: None.
+  /// Returns: `Map<String, dynamic>`.
+  /// Side effects: None.
+  /// Notes: None.
+  Map<String, dynamic> toJson() {
+    final json = Map<String, dynamic>.from(extraJson);
+
+    void writeString(String key, String? value) {
+      if (value != null) {
+        json[key] = value;
+      } else if (!extraJson.containsKey(key)) {
+        json.remove(key);
+      }
+    }
+
+    void writeList(String key, List<String> value) {
+      if (value.isNotEmpty) {
+        json[key] = List<String>.from(value);
+      } else if (!extraJson.containsKey(key)) {
+        json.remove(key);
+      }
+    }
+
+    writeList('synonyms', synonyms);
+    writeString('titleRomaji', titleRomaji);
+    writeString('titleEn', titleEn);
+    writeString('format', format);
+    writeString('status', status);
+    if (durationMinutes != null) {
+      json['durationMinutes'] = durationMinutes;
+    } else if (!extraJson.containsKey('durationMinutes')) {
+      json.remove('durationMinutes');
+    }
+    writeList('genres', genres);
+    writeList('studios', studios);
+    if (endDate != null) {
+      json['endDate'] = endDate!.toIso8601String();
+    } else if (!extraJson.containsKey('endDate')) {
+      json.remove('endDate');
+    }
+    if (ratings.isNotEmpty) {
+      json['ratings'] = ratings.map((r) => r.toJson()).toList();
+    } else if (!extraJson.containsKey('ratings')) {
+      json.remove('ratings');
+    }
+    if (refreshedAt != null) {
+      json['refreshedAt'] = refreshedAt!.toUtc().toIso8601String();
+    } else if (!extraJson.containsKey('refreshedAt')) {
+      json.remove('refreshedAt');
+    }
+    return json;
+  }
+
+  /// Purpose: Create an instance from a JSON-compatible map.
+  /// Inputs: `json`.
+  /// Returns: A new `AnimeExternalMeta.fromJson` instance.
+  /// Side effects: None.
+  /// Notes: Values that fail to parse are kept in `extraJson` rather than
+  /// dropped, so a newer build's data survives an older build's edits.
+  factory AnimeExternalMeta.fromJson(Map<String, dynamic> json) {
+    final extraJson = _unknownJson(json, _externalMetaJsonKeys);
+
+    String? readString(String key) {
+      final raw = json[key];
+      if (raw is String) return raw;
+      if (json.containsKey(key)) extraJson[key] = raw;
+      return null;
+    }
+
+    List<String> readList(String key) {
+      final parsed = _parseStringList(json[key]);
+      if (parsed == null) {
+        if (json.containsKey(key)) extraJson[key] = json[key];
+        return const [];
+      }
+      return parsed;
+    }
+
+    final rawDuration = json['durationMinutes'];
+    int? durationMinutes;
+    if (rawDuration is int) {
+      durationMinutes = rawDuration;
+    } else if (json.containsKey('durationMinutes')) {
+      extraJson['durationMinutes'] = rawDuration;
+    }
+
+    final endDate = _parseCalendarDate(json['endDate']);
+    if (json.containsKey('endDate') && endDate == null) {
+      extraJson['endDate'] = json['endDate'];
+    }
+
+    final ratings = <AnimeExternalRating>[];
+    final rawRatings = json['ratings'];
+    if (rawRatings is List) {
+      final unparsed = <dynamic>[];
+      for (final entry in rawRatings) {
+        if (entry is Map) {
+          final rating = AnimeExternalRating.fromJson(_stringKeyedMap(entry));
+          if (rating.hasAnyData || rating.source.isNotEmpty) {
+            ratings.add(rating);
+          }
+        } else {
+          unparsed.add(entry);
+        }
+      }
+      if (unparsed.isNotEmpty) extraJson['ratings'] = unparsed;
+    } else if (json.containsKey('ratings')) {
+      extraJson['ratings'] = rawRatings;
+    }
+
+    final refreshedAt = _parseUtcDateTime(json['refreshedAt']);
+    if (json.containsKey('refreshedAt') && refreshedAt == null) {
+      extraJson['refreshedAt'] = json['refreshedAt'];
+    }
+
+    return AnimeExternalMeta(
+      synonyms: readList('synonyms'),
+      titleRomaji: readString('titleRomaji'),
+      titleEn: readString('titleEn'),
+      format: readString('format'),
+      status: readString('status'),
+      durationMinutes: durationMinutes,
+      genres: readList('genres'),
+      studios: readList('studios'),
+      endDate: endDate,
+      ratings: ratings,
+      refreshedAt: refreshedAt,
+      extraJson: extraJson,
+    );
+  }
+}
+
 class Anime {
   final String id;
 
@@ -603,6 +1134,9 @@ class Anime {
   /// Optional record of a downloaded local copy.
   final AnimeLocalArchive? localArchive;
 
+  /// Optional public metadata pulled from external anime databases.
+  final AnimeExternalMeta? externalMeta;
+
   final DateTime createdAt;
   final DateTime modifiedAt;
 
@@ -613,7 +1147,7 @@ class Anime {
   final Map<String, dynamic> extraJson;
 
   /// Purpose: Create a anime instance.
-  /// Inputs: `id`, `title`, `titleJa`, `season`, `startEpisode`, `endEpisode`, `manualType`, `airDayOfWeek`, `airTime`, `firstAirDate`, `episodeStatuses`, `coverImage`, `infoUrl`, `watchUrl`, `episodeWeekOffsets`, `notes`, `rating`, `localArchive`, `createdAt`, `modifiedAt`, `extraJson`.
+  /// Inputs: `id`, `title`, `titleJa`, `season`, `startEpisode`, `endEpisode`, `manualType`, `airDayOfWeek`, `airTime`, `firstAirDate`, `episodeStatuses`, `coverImage`, `infoUrl`, `watchUrl`, `episodeWeekOffsets`, `notes`, `rating`, `localArchive`, `externalMeta`, `createdAt`, `modifiedAt`, `extraJson`.
   /// Returns: A new `Anime` instance.
   /// Side effects: None.
   /// Notes: None.
@@ -636,6 +1170,7 @@ class Anime {
     this.notes,
     this.rating,
     this.localArchive,
+    this.externalMeta,
     required this.createdAt,
     required this.modifiedAt,
     this.extraJson = const {},
@@ -915,7 +1450,7 @@ class Anime {
   }
 
   /// Purpose: Create a copy with selected fields replaced.
-  /// Inputs: `title`, `titleJa`, `season`, `startEpisode`, `endEpisode`, `clearEndEpisode`, `manualType`, `clearManualType`, `airDayOfWeek`, `clearAirDayOfWeek`, `airTime`, `clearAirTime`, `firstAirDate`, `clearFirstAirDate`, `episodeStatuses`, `coverImage`, `clearCoverImage`, `infoUrl`, `clearInfoUrl`, `watchUrl`, `clearWatchUrl`, `episodeWeekOffsets`, `notes`, `clearNotes`, `rating`, `clearRating`, `localArchive`, `clearLocalArchive`, `modifiedAt`.
+  /// Inputs: `title`, `titleJa`, `season`, `startEpisode`, `endEpisode`, `clearEndEpisode`, `manualType`, `clearManualType`, `airDayOfWeek`, `clearAirDayOfWeek`, `airTime`, `clearAirTime`, `firstAirDate`, `clearFirstAirDate`, `episodeStatuses`, `coverImage`, `clearCoverImage`, `infoUrl`, `clearInfoUrl`, `watchUrl`, `clearWatchUrl`, `episodeWeekOffsets`, `notes`, `clearNotes`, `rating`, `clearRating`, `localArchive`, `clearLocalArchive`, `externalMeta`, `clearExternalMeta`, `modifiedAt`.
   /// Returns: `Anime`.
   /// Side effects: None.
   /// Notes: None.
@@ -948,6 +1483,8 @@ class Anime {
     bool clearRating = false,
     AnimeLocalArchive? localArchive,
     bool clearLocalArchive = false,
+    AnimeExternalMeta? externalMeta,
+    bool clearExternalMeta = false,
     DateTime? modifiedAt,
   }) {
     return Anime(
@@ -975,6 +1512,9 @@ class Anime {
       localArchive: clearLocalArchive
           ? null
           : (localArchive ?? this.localArchive),
+      externalMeta: clearExternalMeta
+          ? null
+          : (externalMeta ?? this.externalMeta),
       createdAt: createdAt,
       modifiedAt: modifiedAt ?? DateTime.now().toUtc(),
       extraJson: extraJson,
@@ -1005,6 +1545,7 @@ class Anime {
     notes: notes,
     rating: rating,
     localArchive: localArchive,
+    externalMeta: externalMeta,
     createdAt: createdAt,
     modifiedAt: modifiedAt,
     extraJson: extraJson,
@@ -1039,6 +1580,17 @@ class Anime {
               ? AnimeLocalArchive(extraJson: mergedArchiveExtraJson)
               : null);
 
+    final mergedExternalMetaExtraJson = _mergeJsonMaps([
+      for (final source in sources)
+        if (source?.externalMeta != null) source!.externalMeta!.extraJson,
+      if (externalMeta != null) externalMeta!.extraJson,
+    ]);
+    final preservedExternalMeta = externalMeta != null
+        ? externalMeta!.withExtraJson(mergedExternalMetaExtraJson)
+        : (mergedExternalMetaExtraJson.isNotEmpty
+              ? AnimeExternalMeta(extraJson: mergedExternalMetaExtraJson)
+              : null);
+
     return Anime(
       id: id,
       title: title,
@@ -1058,6 +1610,7 @@ class Anime {
       notes: notes,
       rating: preservedRating,
       localArchive: preservedLocalArchive,
+      externalMeta: preservedExternalMeta,
       createdAt: createdAt,
       modifiedAt: modifiedAt,
       extraJson: _mergeJsonMaps([
@@ -1168,6 +1721,11 @@ class Anime {
     } else if (!extraJson.containsKey('localArchive')) {
       json.remove('localArchive');
     }
+    if (externalMeta != null && externalMeta!.hasAnyData) {
+      json['externalMeta'] = externalMeta!.toJson();
+    } else if (!extraJson.containsKey('externalMeta')) {
+      json.remove('externalMeta');
+    }
     json['createdAt'] = createdAt.toIso8601String();
     json['modifiedAt'] = modifiedAt.toIso8601String();
 
@@ -1249,6 +1807,17 @@ class Anime {
       extraJson['localArchive'] = rawArchiveValue;
     }
 
+    AnimeExternalMeta? externalMeta;
+    final rawExternalMetaValue = json['externalMeta'];
+    if (rawExternalMetaValue is Map) {
+      externalMeta = AnimeExternalMeta.fromJson(
+        _stringKeyedMap(rawExternalMetaValue),
+      );
+      if (!externalMeta.hasAnyData) externalMeta = null;
+    } else if (json.containsKey('externalMeta')) {
+      extraJson['externalMeta'] = rawExternalMetaValue;
+    }
+
     return Anime(
       id: json['id'] as String,
       title: json['title'] as String?,
@@ -1270,6 +1839,7 @@ class Anime {
       notes: json['notes'] as String?,
       rating: rating,
       localArchive: localArchive,
+      externalMeta: externalMeta,
       createdAt: DateTime.parse(json['createdAt'] as String),
       modifiedAt: DateTime.parse(json['modifiedAt'] as String),
       extraJson: extraJson,
@@ -1277,7 +1847,7 @@ class Anime {
   }
 
   /// Purpose: Create a new anime record with default values for manual entry.
-  /// Inputs: `title`, `titleJa`, `season`, `startEpisode`, `endEpisode`, `manualType`, `airDayOfWeek`, `airTime`, `firstAirDate`, `coverImage`, `infoUrl`, `watchUrl`, `notes`, `rating`, `localArchive`.
+  /// Inputs: `title`, `titleJa`, `season`, `startEpisode`, `endEpisode`, `manualType`, `airDayOfWeek`, `airTime`, `firstAirDate`, `coverImage`, `infoUrl`, `watchUrl`, `notes`, `rating`, `localArchive`, `externalMeta`.
   /// Returns: A new `Anime.create` instance.
   /// Side effects: None.
   /// Notes: Generates a new UUID and initializes UTC creation and modification timestamps.
@@ -1297,6 +1867,7 @@ class Anime {
     String? notes,
     AnimeRating? rating,
     AnimeLocalArchive? localArchive,
+    AnimeExternalMeta? externalMeta,
   }) {
     final now = DateTime.now().toUtc();
     return Anime(
@@ -1316,6 +1887,7 @@ class Anime {
       notes: notes,
       rating: rating,
       localArchive: localArchive,
+      externalMeta: externalMeta,
       createdAt: now,
       modifiedAt: now,
     );

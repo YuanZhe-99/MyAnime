@@ -61,6 +61,10 @@ class _AnimeEditPageState extends State<AnimeEditPage> {
   bool _isEdit = false;
   Anime? _existing;
 
+  /// Public metadata pulled from external databases. Edited only by applying a
+  /// search result, never typed by hand, so it has no form controller.
+  AnimeExternalMeta? _externalMeta;
+
   /// Purpose: Initialize listeners, controllers, and first-load work for this state object.
   /// Inputs: None.
   /// Returns: None.
@@ -116,6 +120,7 @@ class _AnimeEditPageState extends State<AnimeEditPage> {
         _archiveCopiesController.text =
             found.localArchive?.copies?.toString() ?? '';
         _archiveLocationController.text = found.localArchive?.location ?? '';
+        _externalMeta = found.externalMeta;
       });
     }
   }
@@ -217,6 +222,7 @@ class _AnimeEditPageState extends State<AnimeEditPage> {
       currentNotes: _notesController.text.isEmpty
           ? null
           : _notesController.text,
+      currentExternalMeta: _externalMeta,
     );
     if (result != null && mounted) {
       setState(() {
@@ -246,6 +252,9 @@ class _AnimeEditPageState extends State<AnimeEditPage> {
         }
         if (result.containsKey('infoUrl')) {
           _infoUrlController.text = result['infoUrl'] as String;
+        }
+        if (result.containsKey('externalMeta')) {
+          _externalMeta = result['externalMeta'] as AnimeExternalMeta;
         }
       });
     }
@@ -345,6 +354,8 @@ class _AnimeEditPageState extends State<AnimeEditPage> {
         clearRating: rating == null,
         localArchive: localArchive,
         clearLocalArchive: localArchive == null,
+        externalMeta: _externalMeta,
+        clearExternalMeta: _externalMeta == null,
         modifiedAt: DateTime.now().toUtc(),
       );
       await AnimeStorage.addOrUpdate(updated);
@@ -379,6 +390,7 @@ class _AnimeEditPageState extends State<AnimeEditPage> {
             : _notesController.text.trim(),
         rating: rating,
         localArchive: localArchive,
+        externalMeta: _externalMeta,
       );
       await AnimeStorage.addOrUpdate(anime);
       if (mounted) context.pop(anime.id);

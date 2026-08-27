@@ -1,332 +1,562 @@
 # lib/features/anime/services/anime_search_service.dart
 
-`AnimeSearchService` 并行查询或抓取六个外部动画数据库（`bangumi.tv`、经 Jikan v4 的 MyAnimeList、AniList、`acgsecrets.hk`、`filmarks.com` 和 `anime1.me`），返回规范化的 `AnimeSearchResult`。它是**仅在 full 构建**中可用的普通共享工具——它本身不强制执行该限制；调用方门控它（风味门控规则和各来源说明见 [`../../../../features/multi-source-search.md`](../../../../features/multi-source-search.md)）。它依赖 [`../../../shared/utils/chinese_convert.md`](../../../shared/utils/chinese_convert.md) 生成对中文来源使用的简体/繁体查询变体，其结果供给 `anime_edit_page.dart` 的"在线搜索"流程和桌面本地 API 服务器。`AnimeSearchResult` 字段映射到 [`../../../../data-formats.md`](../../../../data-formats.md) 中记录的 `Anime` 字段（如 `sourceUrl` 变成 `infoUrl`）。
+`AnimeSearchService` 查询或抓取六个外部番剧资料库（`bangumi.tv`、经 Jikan v4 的 MyAnimeList、AniList、
+`acgsecrets.hk`、`filmarks.com` 和 `anime1.me`），返回规范化的 `AnimeSearchResult`。它是**仅在完整版
+构建中可用**的普通共享工具——它本身不强制执行该限制；由调用方门禁（flavor 门禁规则、各来源字段矩阵与
+两阶段语言策略见
+[`../../../../features/multi-source-search.md`](../../../../features/multi-source-search.md)）。它依赖
+[`../../../shared/utils/chinese_convert.md`](../../../shared/utils/chinese_convert.md) 生成简体/繁体
+查询变体，并依赖 [`../models/anime.md`](../models/anime.md) 提供它所产出的 `AnimeExternalMeta` 记录。
+其结果供给 `anime_edit_page.dart` 的「在线搜索」流程、`anime_detail_page.dart` 的元数据刷新，以及桌面
+本地 API 服务器。
+
+`AnimeSearchResult` 字段映射到 [`../../../../data-formats.md`](../../../../data-formats.md) 中记录的
+`Anime` 字段（如 `sourceUrl` 变成 `infoUrl`，元数据块变成 `externalMeta`）。
 
 ## 声明
 
 | 声明 | 种类 | Tier | 用途 |
 |---|---|---|---|
 | [`AnimeSearchResult(...)`](#animesearchresult-new) | 构造函数（`AnimeSearchResult`） | A | 保存来自任何来源的一条规范化搜索命中。 |
-| [`searchAll`](#searchall) | 静态方法（`AnimeSearchService`） | A | 并行查询所有元数据来源、去重、返回合并结果。 |
-| [`_searchBangumi`](#searchbangumi) | 静态方法（`AnimeSearchService`） | A | 查询 bangumi.tv 的旧搜索 API。 |
+| [`allTitles`](#alltitles) | getter（`AnimeSearchResult`） | A | 收集该结果已知的每个标题，并去重。 |
+| [`displayTitle`](#displaytitle) | getter（`AnimeSearchResult`） | B | 返回第一个已知标题，或 `?`。 |
+| `AnimeSearchSource._()` | 构造函数（`AnimeSearchSource`） | B | 阻止实例化来源名常量持有类。 |
+| [`searchAll`](#searchall) | 静态方法（`AnimeSearchService`） | A | 执行两阶段跨语言检索并返回一个排好序的列表。 |
+| [`queryVariants`](#queryvariants) | 静态方法（`AnimeSearchService`） | A | 为查询构建简体/繁体变体集合。 |
+| [`relevance`](#relevance) | 静态方法（`AnimeSearchService`） | A | 用查询变体集合对结果的全部标题打分。 |
+| [`_languageAffinity`](#languageaffinity) | 静态方法（`AnimeSearchService`） | A | 报告结果是否带有用户界面语言的标题。 |
+| [`toExternalMeta`](#toexternalmeta) | 静态方法（`AnimeSearchService`） | A | 把搜索结果转换成持久化的 `AnimeExternalMeta` 记录。 |
+| [`fetchByUrl`](#fetchbyurl) | 静态方法（`AnimeSearchService`） | A | 按 id 从来源页面 URL 重新抓取一部番剧。 |
+| [`refreshAll`](#refreshall) | 静态方法（`AnimeSearchService`） | A | 并行重新抓取多个来源页面，跳过失败项。 |
+| [`_runRound`](#runround) | 静态方法（`AnimeSearchService`） | A | 并行查询指定来源一轮，并容忍单点失败。 |
+| [`_harvestBackfillTitles`](#harvestbackfilltitles) | 静态方法（`AnimeSearchService`） | A | 从第一轮结果中挑出用于第二轮的跨语言标题。 |
+| [`_searchBangumi`](#searchbangumi) | 静态方法（`AnimeSearchService`） | A | 查询 bangumi.tv 的 v0 搜索 API。 |
+| [`_fetchBangumiById`](#fetchbangumibyid) | 静态方法（`AnimeSearchService`） | B | 按数字 id 抓取一个 bangumi.tv 条目。 |
+| [`mapBangumiSubject`](#mapbangumisubject) | 静态方法（`AnimeSearchService`） | A | 把一个 bangumi.tv v0 条目对象映射为 `AnimeSearchResult`。 |
+| [`parseBangumiWeekday`](#parsebangumiweekday) | 静态方法（`AnimeSearchService`） | A | 把 bangumi.tv 的 `放送星期` 文本解析到周一=1..周日=7。 |
+| [`_bangumiInfoboxText`](#bangumiinfoboxtext) | 静态方法（`AnimeSearchService`） | B | 把一条 `infobox` 记录读为纯文本。 |
+| [`_bangumiInfoboxList`](#bangumiinfoboxlist) | 静态方法（`AnimeSearchService`） | B | 把一条 `infobox` 记录读为字符串列表。 |
+| [`_parseCjkDate`](#parsecjkdate) | 静态方法（`AnimeSearchService`） | B | 解析 `2023年9月29日` 这类中日文日期。 |
 | [`_searchMAL`](#searchmal) | 静态方法（`AnimeSearchService`） | A | 经 Jikan v4 API 查询 MyAnimeList。 |
-| [`_searchAcgsecrets`](#searchacgsecrets) | 静态方法（`AnimeSearchService`） | A | 抓取 acgsecrets.hk 季页面 JSON-LD 数据并对照查询模糊匹配。 |
-| [`_recentSeasons`](#recentseasons) | 静态方法（`AnimeSearchService`） | A | 计算当前和上一季代码（`YYYYMM`），供 `acgsecrets.hk` 抓取使用。 |
+| [`_fetchMalById`](#fetchmalbyid) | 静态方法（`AnimeSearchService`） | B | 经 Jikan 的 `/full` 按数字 id 抓取一个 MyAnimeList 条目。 |
+| [`mapJikanAnime`](#mapjikananime) | 静态方法（`AnimeSearchService`） | A | 把一个 Jikan 番剧对象映射为 `AnimeSearchResult`。 |
+| [`parseJikanDuration`](#parsejikanduration) | 静态方法（`AnimeSearchService`） | A | 把 Jikan 的自然语言时长字符串解析为分钟数。 |
+| [`_namedList`](#namedlist) | 静态方法（`AnimeSearchService`） | B | 把 Jikan 的 `[{name: ...}]` 数组读成字符串列表。 |
+| [`_searchAcgsecrets`](#searchacgsecrets) | 静态方法（`AnimeSearchService`） | A | 抓取 acgsecrets.hk 季度页面 JSON-LD 并对照查询做模糊匹配。 |
+| [`_recentSeasons`](#recentseasons) | 静态方法（`AnimeSearchService`） | B | 计算当前与上一季度的季度代码（`YYYYMM`）。 |
 | [`_containsJapanese`](#containsjapanese) | 静态方法（`AnimeSearchService`） | A | 检查字符串是否包含平假名/片假名字符。 |
+| [`_isLatinScript`](#islatinscript) | 静态方法（`AnimeSearchService`） | A | 检查字符串是否为拉丁字母书写。 |
+| [`_isLikelyChinese`](#islikelychinese) | 静态方法（`AnimeSearchService`） | A | 检查字符串读起来是中文而非日文。 |
 | [`_searchFilmarks`](#searchfilmarks) | 静态方法（`AnimeSearchService`） | A | 抓取 filmarks.com 的搜索结果 HTML。 |
 | [`_searchAniList`](#searchanilist) | 静态方法（`AnimeSearchService`） | A | 查询 AniList GraphQL API。 |
-| [`_parseDayOfWeek`](#parsedayofweek) | 静态方法（`AnimeSearchService`） | A | 把英文星期名前缀解析为 `1..7`（周一..周日）。 |
-| [`searchAnime1`](#searchanime1) | 静态方法（`AnimeSearchService`） | A | 搜索 anime1.me 找观看页 URL，带中文变体和子串回退及模糊排序。 |
-| [`_bestSimilarity`](#bestsimilarity) | 静态方法（`AnimeSearchService`） | A | 计算一个标题对几个查询变体中任一的最佳模糊相似度得分。 |
-| [`_similarity`](#similarity) | 静态方法（`AnimeSearchService`） | A | 组合 LCS、字符集 Dice 和包含关系的模糊相似度，经 S/T 规范化。 |
+| [`_fetchAniListById`](#fetchanilistbyid) | 静态方法（`AnimeSearchService`） | B | 按数字 id 抓取一个 AniList media 条目。 |
+| [`_postAniList`](#postanilist) | 静态方法（`AnimeSearchService`） | B | 向 AniList POST 一个 GraphQL 文档并返回其 `data` 对象。 |
+| [`mapAniListMedia`](#mapanilistmedia) | 静态方法（`AnimeSearchService`） | A | 把一个 AniList media 对象映射为 `AnimeSearchResult`。 |
+| [`_aniListDate`](#anilistdate) | 静态方法（`AnimeSearchService`） | B | 从 AniList 的 `{year, month, day}` 对象构建 `DateTime`。 |
+| [`_aniListFirstAiringAt`](#anilistfirstairingat) | 静态方法（`AnimeSearchService`） | A | 挑出最能代表放送时段的放送时间戳。 |
+| [`_jstBroadcastSlot`](#jstbroadcastslot) | 静态方法（`AnimeSearchService`） | A | 把日本时间的放送时刻映射到它所归属的编成时段。 |
+| [`_alignFirstAirDateToSlot`](#alignfirstairdatetoslot) | 静态方法（`AnimeSearchService`） | A | 把首播日期平移到深夜时段所属的日历日。 |
+| [`_toDouble`](#todouble) | 静态方法（`AnimeSearchService`） | B | 把 JSON 数字强制转换为 `double`。 |
+| [`parseDayOfWeek`](#parsedayofweek) | 静态方法（`AnimeSearchService`） | A | 把英文星期名前缀解析为 `1..7`（周一..周日）。 |
+| [`searchAnime1`](#searchanime1) | 静态方法（`AnimeSearchService`） | A | 搜索 anime1.me 找观看页 URL，带中文变体与子串回退及模糊排序。 |
+| [`_bestSimilarity`](#bestsimilarity) | 静态方法（`AnimeSearchService`） | A | 计算一个标题对若干查询变体中任一的最佳模糊相似度得分。 |
+| [`_similarity`](#similarity) | 静态方法（`AnimeSearchService`） | A | 组合 LCS、字符集 Dice 和包含关系的模糊相似度，经简繁归一化。 |
 | [`_lcsLength`](#lcslength) | 静态方法（`AnimeSearchService`） | A | 两个字符串之间的最长公共子序列长度。 |
 | [`_searchAnime1Single`](#searchanime1single) | 静态方法（`AnimeSearchService`） | A | 运行一次 anime1.me 搜索查询并从 HTML 提取系列标题/URL 对。 |
-| [`_decodeHtmlEntities`](#decodehtmlentities) | 静态方法（`AnimeSearchService`） | A | 解码抓取标题中出现的少量 HTML 实体。 |
+| [`_decodeHtmlEntities`](#decodehtmlentities) | 静态方法（`AnimeSearchService`） | B | 解码抓取标题中出现的少量 HTML 实体。 |
+| `_BackfillTitles(...)` | 构造函数（`_BackfillTitles`） | B | 每个语言家族保存一个补搜标题。 |
+| `hasAny` | getter（`_BackfillTitles`） | B | 报告是否收集到任何可用标题。 |
 
-关于校验计数的说明：源文件有 14 个 `/// Purpose:` 文档注释，但本表有 16 行——`searchAnime1`（第 482 行）只有普通（非 `Purpose:`）文档注释，`_searchAnime1Single`（第 620 行）完全没有文档注释。两者都是真实、非平凡的声明，被上面索引为 Tier A。
+关于校验计数的说明：源文件有 48 个 `/// Purpose:` 文档注释，但本表有 49 行——`searchAnime1` 带的是普通
+（非 `Purpose:`）文档注释。它仍是真实、非平凡的声明，在上表中索引为 Tier A。
+
+有六个声明（`mapBangumiSubject`、`parseBangumiWeekday`、`mapJikanAnime`、`parseJikanDuration`、
+`mapAniListMedia`、`parseDayOfWeek`）标注了 `@visibleForTesting`。它们公开的唯一原因是让
+`test/anime_search_test.dart` 能用固定 JSON 数据检验各来源的格式解析——HTTP 调用是静态的、无法注入
+client，因此这些映射函数是唯一可行的测试接缝。不要在本文件之外的生产代码中调用它们。
 
 ## 文档
 
-### `const AnimeSearchResult({required source, sourceUrl, title, titleJa, episodes, firstAirDate, airDayOfWeek, airTime, coverImageUrl, summary})` <a id="animesearchresult-new"></a>
+### `const AnimeSearchResult({required source, sourceUrl, title, titleJa, titleRomaji, titleEn, synonyms, episodes, firstAirDate, airDayOfWeek, airTime, endDate, format, status, durationMinutes, genres, studios, score, scoreMax, scoreVotes, scoreRank, coverImageUrl, summary})` <a id="animesearchresult-new"></a>
 - **种类：** `AnimeSearchResult` 的构造函数
-- **来源：** `lib/features/anime/services/anime_search_service.dart`（第 25 行）
-- **用途：** 保存一条规范化搜索结果，无论来源是哪个，形态都准备好预填动画编辑表单。
-- **输入：** `source` 必填（来源显示名，如 `'bangumi.tv'`）；其余全可选，因为没有单个来源提供每个字段。
+- **来源：** `lib/features/anime/services/anime_search_service.dart`（第 68 行）
+- **用途：** 保存一条规范化搜索结果，无论来源是哪个，形态都准备好预填番剧编辑表单。
+- **输入：** `source` 必填（来源显示名，如 `'bangumi.tv'`）；其余全可选，因为没有单个来源提供每个字段。`synonyms`、`genres`、`studios` 默认为空列表；`scoreMax` 默认为 `10`。
 - **返回：** 新的 `AnimeSearchResult`。
 - **副作用：** 无。
-- **算法：** 通过 `const` 构造函数平凡字段赋值。
-- **用法：**
-  ```dart
-  return AnimeSearchResult(
-    source: 'bangumi.tv',
-    sourceUrl: 'https://bgm.tv/subject/${m['id']}',
-    title: (m['name_cn'] as String?)?.isNotEmpty == true ? m['name_cn'] as String : null,
-    titleJa: m['name'] as String?,
-    episodes: m['eps'] as int? ?? m['eps_count'] as int?,
-    firstAirDate: airDate,
-    coverImageUrl: images?['large'] as String? ?? images?['common'] as String?,
-    summary: m['summary'] as String?,
-  );
-  ```
-  （`AnimeSearchService._searchBangumi`，同一文件——五个元数据来源方法每个结果都构建一个）
-- **备注：** `sourceUrl` 就是结果应用到编辑表单时后来变成 `Anime.infoUrl` 的东西——见 [`../../../../features/multi-source-search.md`](../../../../features/multi-source-search.md)。
+- **算法：** 通过 `const` 构造函数做平凡字段赋值。
+- **备注：** 结果被应用时 `sourceUrl` 会变成 `Anime.infoUrl`，同时也是后续刷新重新查询的键。每个来源的评分在进入 `score` 之前都会归一化到 10 分制，因此当前所有来源的 `scoreMax` 实际都是 `10`。哪个来源填哪个字段见 [`../../../../features/multi-source-search.md`](../../../../features/multi-source-search.md) 中的字段矩阵。
 
-### `static Future<List<AnimeSearchResult>> searchAll(String query)` <a id="searchall"></a>
-- **种类：** `AnimeSearchService` 的静态方法
-- **来源：** `lib/features/anime/services/anime_search_service.dart`（第 47 行）
-- **用途：** 并行查询 bangumi.tv、MyAnimeList、AniList、acgsecrets.hk 和 filmarks.com，返回一个去重后的结果列表。
-- **输入：** `query`。
-- **返回：** `Future<List<AnimeSearchResult>>`。
-- **副作用：** 并发向五个（或六个，见下）外部服务发起 HTTP 请求。
-- **算法：**
-  1. 计算 `simplified = ChineseConvert.toSimplified(query)`。
-  2. 并发启动 `_searchBangumi`、`_searchMAL`、`_searchAcgsecrets`、`_searchFilmarks`、`_searchAniList`，每个都包在 `.catchError((_) => [])` 中，使一个来源的失败不会让整个调用失败。
-  3. `simplified != query`（查询含繁体字符）时，额外加一次 `_searchBangumi(simplified)` 调用，因为 bangumi.tv 是大陆（简体）站点。
-  4. `Future.wait` 全部，扁平化，用已见键的 `Set<String>` 按 `sourceUrl` 去重（`sourceUrl` 为 null 时回退 `title`），保留首见顺序。
+### `List<String> get allTitles` <a id="alltitles"></a>
+- **种类：** `AnimeSearchResult` 的 getter
+- **来源：** `lib/features/anime/services/anime_search_service.dart`（第 100 行）
+- **用途：** 按展示顺序收集该结果已知的每个标题。
+- **返回：** `List<String>` —— 已去重、已过滤空白。
+- **副作用：** 无。
+- **算法：** 依次遍历 `title`、`titleJa`、`titleRomaji`、`titleEn`，再遍历每个 `synonym`；逐个 trim、跳过空串，并用 `Set<String>` 保持首次出现顺序。
 - **用法：**
   ```dart
-  final results = await AnimeSearchService.searchAll(query);
+  for (final title in r.allTitles) { /* 每个标题一个 SelectableText */ }
+  ```
+  （`lib/features/anime/views/anime_search_dialog.dart`，`_showResultDetails`）
+- **备注：** 有三处用途：相关度评分、长按详情面板，以及收集跨语言补搜查询。顺序有意义——`title` 在前意味着展示回退优先使用本地化标题。
+
+### `String get displayTitle` <a id="displaytitle"></a>
+- **种类：** `AnimeSearchResult` 的 getter
+- **来源：** `lib/features/anime/services/anime_search_service.dart`（第 116 行）
+- **用途：** 返回最适合作为结果标题行的名称。
+- **返回：** `String` —— `allTitles` 的第一项，全为空时返回 `'?'`。
+- **副作用：** 无。
+- **备注：** 取代了对话框中旧的内联写法 `r.title ?? r.titleJa ?? '?'`，后者看不到罗马音标题和英文标题。
+
+### `static Future<List<AnimeSearchResult>> searchAll(String query, {String? preferredLanguage})` <a id="searchall"></a>
+- **种类：** `AnimeSearchService` 的静态方法
+- **来源：** `lib/features/anime/services/anime_search_service.dart`（第 173 行）
+- **用途：** 查询每个元数据来源，返回一个去重且按相关度排序的列表。
+- **输入：** `query`；`preferredLanguage` —— 调用方传入的界面语言标签（如 `zh_TW`、`ja`）。
+- **返回：** `Future<List<AnimeSearchResult>>`。
+- **副作用：** 并发向五个外部服务发起 HTTP 请求；跨语言补搜触发时会对其中一部分再发一次。
+- **算法：**
+  1. 构建 `variants = queryVariants(query)`。
+  2. 经 [`_runRound`](#runround) 执行**第一轮**，按源做语言定向：bangumi.tv 收到简体形式，acgsecrets.hk 收到繁体形式，filmarks.com 收到原始查询（带 `Accept-Language: ja`），MyAnimeList/AniList 收到原始查询。
+  3. 计算零结果的来源集合。若为空，直接跳到第 6 步。
+  4. 经 [`_harvestBackfillTitles`](#harvestbackfilltitles) 最多收集三个跨语言标题。若什么都没收集到，跳到第 6 步。
+  5. 经 `_runRound` 执行**第二轮**，*仅*为零结果的来源传入查询，每个来源用它自己的语言。没有收集到拉丁标题时，MyAnimeList 与 AniList 回退到收集到的日文标题，因为两者同样索引原文标题。
+  6. 按 `sourceUrl`（回退到 `title`，再回退到 `titleJa`）去重，并按 `AnimeSearchSource.all` 顺序遍历来源，使输出稳定。
+  7. 按 [`relevance`](#relevance) 降序排序，同分时按来源名排序。
+- **用法：**
+  ```dart
+  final results = await AnimeSearchService.searchAll(query, preferredLanguage: language);
   ```
   （`lib/features/anime/views/anime_search_dialog.dart`，`_search`）
-- **备注：** `anime1.me`（经 [`searchAnime1`](#searchanime1)）刻意**不**属于 `searchAll`——它返回观看页标题/URL 对，不是完整元数据，由编辑页的"查找观看 URL"流程单独查询。见 [`../../../../features/multi-source-search.md`](../../../../features/multi-source-search.md)。
+- **备注：** 取代了 1.4.0 之前的单轮实现——旧实现把原始查询发给每个来源，只对 bangumi.tv 做了简繁特判。额外轮次恰好只有一轮、不递归，因此最坏情况下延迟约翻倍，而各来源仍通过 `.catchError` 各自独立失败。`anime1.me` 刻意不属于 `searchAll`，见 [`searchAnime1`](#searchanime1)。
+
+### `static List<String> queryVariants(String query)` <a id="queryvariants"></a>
+- **种类：** `AnimeSearchService` 的静态方法
+- **来源：** `lib/features/anime/services/anime_search_service.dart`（第 250 行）
+- **用途：** 构建各处通用的简体/繁体查询变体。
+- **输入：** `query`。
+- **返回：** `List<String>` —— trim 后的原始查询在前，随后是各不相同的变体；空串被丢弃。
+- **副作用：** 无。
+- **算法：** `{trimmed, toSimplified(trimmed), toTraditional(trimmed)}` 构成的 `Set<String>`，过滤掉空串。不含汉字的查询会塌缩成单个条目。
+- **备注：** 之所以公开，是为了让搜索对话框能用与服务实际检索时完全相同的变体集合评分，避免各自推导而产生偏差。
+
+### `static double relevance(AnimeSearchResult result, List<String> queries, {String? preferredLanguage})` <a id="relevance"></a>
+- **种类：** `AnimeSearchService` 的静态方法
+- **来源：** `lib/features/anime/services/anime_search_service.dart`（第 270 行）
+- **用途：** 评估一条结果与一组查询变体的匹配程度。
+- **输入：** `result`、`queries`（通常来自 [`queryVariants`](#queryvariants)）；`preferredLanguage` —— 在接近同分时应当胜出的界面语言标签。
+- **返回：** `0.0..1.05` 之间的 `double`。
+- **副作用：** 无。
+- **算法：** 对 `result.allTitles` 的每一项运行 [`_bestSimilarity`](#bestsimilarity) 取最大值，随后在 [`_languageAffinity`](#languageaffinity) 判定该结果带有 `preferredLanguage` 的标题时加上 `_languageBonus`（0.05）。
+- **用法：**
+  ```dart
+  double _relevance(AnimeSearchResult r) => AnimeSearchService.relevance(
+    r, _queryVariants, preferredLanguage: _searchLanguage,
+  );
+  ```
+  （`lib/features/anime/views/anime_search_dialog.dart`，`_relevance`）
+- **备注：** 对*每个*标题打分正是排序语言中立的原因：日文标题匹配日文查询的命中，与中文标题匹配中文查询的命中得分同样高。语言加成刻意远小于好匹配与差匹配之间的差距，因此它只会重排本就匹配得差不多的结果，绝不可能把更差的匹配抬到更好的匹配之上。对话框传入它检索时所用的同一语言，因此在那里重新排序会精确重现服务返回的顺序，而不会在同分处产生偏差。
+
+### `static double _languageAffinity(AnimeSearchResult result, String? languageTag)` <a id="languageaffinity"></a>
+- **种类：** `AnimeSearchService` 的静态方法
+- **来源：** `lib/features/anime/services/anime_search_service.dart`（第 290 行）
+- **用途：** 报告结果是否带有用户界面语言的标题。
+- **返回：** `double` —— 是则 `1`，否则 `0`（标签为 null 或空串时亦为 `0`）。
+- **副作用：** 无。
+- **算法：** `ja` 标签经 [`_containsJapanese`](#containsjapanese) 检查 `titleJa`；`zh` 标签经 [`_isLikelyChinese`](#islikelychinese) 检查 `title`；其他（拉丁字母）标签检查 `titleEn` 或 `titleRomaji` 是否非 null。
+- **备注：** 按标签的语言前缀匹配，因此 `zh`、`zh_CN`、`zh_TW` 行为一致——简繁之分已由查询变体处理，不在此处重复。
+
+### `static AnimeExternalMeta toExternalMeta(AnimeSearchResult result, {DateTime? fetchedAt})` <a id="toexternalmeta"></a>
+- **种类：** `AnimeSearchService` 的静态方法
+- **来源：** `lib/features/anime/services/anime_search_service.dart`（第 314 行）
+- **用途：** 把搜索结果转换成持久化的外部元数据记录。
+- **输入：** `result`；`fetchedAt` —— 覆盖时间戳，供测试使用。
+- **返回：** `AnimeExternalMeta`。
+- **副作用：** 无。
+- **算法：** 直接复制各元数据字段；当来源报告了 `score`/`scoreVotes`/`scoreRank` 中任一项时，追加一条 `AnimeExternalRating`，携带 `source`、`sourceUrl`、评分、`scoreMax`、票数、排名与 `fetchedAt`（UTC）。`refreshedAt` 设为同一时间戳。
+- **用法：**
+  ```dart
+  final fetched = AnimeSearchService.toExternalMeta(r);
+  result['externalMeta'] = widget.currentExternalMeta?.mergedWith(fetched) ?? fetched;
+  ```
+  （`lib/features/anime/views/anime_search_dialog.dart`，`_apply`）
+- **备注：** 用户自己的 `AnimeRating` 绝不参与其中——外部评分只存在于 `externalMeta.ratings`。在每条评分记录上保留 `sourceUrl` 正是后续 [`refreshAll`](#refreshall) 得以实现的前提；没有评分的来源只贡献元数据、不产生评分记录，因此除 `infoUrl` 外没有可刷新的对象。
+
+### `static Future<AnimeSearchResult?> fetchByUrl(String url)` <a id="fetchbyurl"></a>
+- **种类：** `AnimeSearchService` 的静态方法
+- **来源：** `lib/features/anime/services/anime_search_service.dart`（第 357 行）
+- **用途：** 从番剧的来源页面 URL 重新抓取其元数据。
+- **输入：** `url` —— AniList、MyAnimeList 或 bangumi.tv 的条目页 URL。
+- **返回：** `Future<AnimeSearchResult?>` —— 主机不属于这三个有 API 的来源时，或抓取失败时返回 `null`。
+- **副作用：** 向对应 API 发起一次 HTTP 请求。
+- **算法：** 依次用正则从 `anilist.co/anime/(\d+)`、`myanimelist.net/anime/(\d+)`、`(?:bgm\.tv|bangumi\.tv|chii\.in)/subject/(\d+)` 中提取数字 id 并分派到对应的按 id 抓取；都不匹配则落到 `null`。
+- **备注：** `acgsecrets.hk` 与 `filmarks.com` 是抓取而非按 id 查询，没有稳定的按 URL 端点，因此被跳过。每个按 id 抓取都复用与其搜索路径**完全相同**的映射函数，因此搜索与刷新不会产生偏差。
+
+### `static Future<List<AnimeSearchResult>> refreshAll(Iterable<String> urls)` <a id="refreshall"></a>
+- **种类：** `AnimeSearchService` 的静态方法
+- **来源：** `lib/features/anime/services/anime_search_service.dart`（第 382 行）
+- **用途：** 为一次元数据刷新同时重新抓取多个来源页面。
+- **输入：** `urls`。
+- **返回：** `Future<List<AnimeSearchResult>>` —— 只包含成功的抓取。
+- **副作用：** 每个可识别的 URL 一次 HTTP 请求，并行发出。
+- **算法：** 丢弃空串、去重，在 `Future.wait` 下对每个 URL 运行 `fetchByUrl` 并各自 `.catchError((_) => null)`，最后用 `whereType` 过滤掉 null。
+- **用法：**
+  ```dart
+  final results = await AnimeSearchService.refreshAll(urls);
+  ```
+  （`lib/features/anime/views/anime_detail_page.dart`，`_refreshExternalMeta`）
+- **备注：** 失败或无法识别的 URL 会被跳过而不是让整次刷新失败，与 `searchAll` 容忍失效来源的方式一致。
+
+### `static Future<Map<String, List<AnimeSearchResult>>> _runRound({required bangumiQuery, required acgsecretsQuery, required filmarksQuery, required globalQuery, malQuery, anilistQuery})` <a id="runround"></a>
+- **种类：** `AnimeSearchService` 的静态方法
+- **来源：** `lib/features/anime/services/anime_search_service.dart`（第 404 行）
+- **用途：** 并行查询指定来源一轮，并容忍单点失败。
+- **输入：** 每个来源一个查询；`globalQuery` 是 MyAnimeList 与 AniList 的默认值，在补搜轮中由 `malQuery`/`anilistQuery` 覆盖。
+- **返回：** `Future<Map<String, List<AnimeSearchResult>>>`，以来源名为键。
+- **副作用：** 每个非 null、非空白的查询一次 HTTP 请求。
+- **算法：** 局部函数 `run(query, fetch)` 在查询为 `null` 或空白时返回一个立即完成的空列表，否则调用 `fetch(query.trim()).catchError((_) => [])`。五个 future 一并 await，再按来源名 zip 回去。
+- **备注：** `null` 或空白查询表示「本轮跳过该来源」——第二轮正是靠这一点只针对零结果来源发起查询。返回值以来源为键，才使 `searchAll` 能区分「返回了空」与「本来就没问」。
+
+### `static _BackfillTitles _harvestBackfillTitles(Map<String, List<AnimeSearchResult>> round, List<String> queryVariants)` <a id="harvestbackfilltitles"></a>
+- **种类：** `AnimeSearchService` 的静态方法
+- **来源：** `lib/features/anime/services/anime_search_service.dart`（第 442 行）
+- **用途：** 从第一轮结果中挑出用于第二轮的跨语言标题。
+- **输入：** `round` —— 第一轮的按源结果；`queryVariants`。
+- **返回：** `_BackfillTitles`，最多包含一个日文、一个拉丁字母、一个中文标题。
+- **副作用：** 无。
+- **算法：**
+  1. 收集相关度不低于 `_backfillMinRelevance`（0.45）的结果，候选数达到 `_maxBackfillTitles * 2` 即停止。
+  2. 日文槽取第一个通过 [`_containsJapanese`](#containsjapanese) 的 `titleJa` 或别名；拉丁槽取第一个通过 [`_isLatinScript`](#islatinscript) 的 `titleRomaji`/`titleEn`/别名；中文槽取第一个通过 [`_isLikelyChinese`](#islikelychinese) 的 `title` 或别名。
+  3. 三个槽全部填满即提前结束。
+  4. 中文标题同时以简体与繁体两种形式返回。
+- **备注：** 相关度下限就是整个安全机制——没有它，某个模糊匹配来源的一条无关命中就会劫持第二轮，把完全另一部作品的结果拉进来。
 
 ### `static Future<List<AnimeSearchResult>> _searchBangumi(String query)` <a id="searchbangumi"></a>
 - **种类：** `AnimeSearchService` 的静态方法
-- **来源：** `lib/features/anime/services/anime_search_service.dart`（第 82 行）
-- **用途：** 查询 bangumi.tv 的旧条目搜索 API，把最多 5 条命中映射为 `AnimeSearchResult`。
-- **输入：** `query`。
-- **返回：** `Future<List<AnimeSearchResult>>` — 非 200 响应或 `list` 字段缺失时为 `[]`。
-- **副作用：** 对 `api.bgm.tv` 一次 HTTP GET（10 秒超时）。
-- **算法：**
-  1. GET `https://api.bgm.tv/search/subject/<urlencoded query>?type=2&responseGroup=large&max_results=5`。
-  2. 状态不是 200 或 `json['list']` 缺失时返回 `[]`。
-  3. 映射前 5 项：`title` 优先 `name_cn`（空则回退 `null`）、`titleJa` 用 `name`、集数用 `eps` 或 `eps_count`、`air_date` 经 `DateTime.tryParse` 解析、封面用 `images['large']`/`images['common']`。
-- **用法：**
-  ```dart
-  _searchBangumi(query).catchError((_) => <AnimeSearchResult>[]),
-  ```
-  （`AnimeSearchService.searchAll`，同一文件）
-- **备注：** `type=2` 把结果限制在 bangumi.tv API 的动画条目类型。
+- **来源：** `lib/features/anime/services/anime_search_service.dart`（第 498 行）
+- **用途：** 查询 bangumi.tv 的 **v0** 条目搜索 API，并映射最多 `_maxPerSource` 条命中。
+- **输入：** `query` —— 实践中是简体变体，因为 bangumi.tv 是中国大陆站点。
+- **返回：** `Future<List<AnimeSearchResult>>` —— 非 200 响应或缺少 `data` 字段时返回 `[]`。
+- **副作用：** 向 `api.bgm.tv` 发起一次 HTTP POST（15 秒超时）。
+- **算法：** 向 `https://api.bgm.tv/v0/search/subjects?limit=10` POST `{"keyword": query, "filter": {"type": [2]}}`，再把每一项交给 [`mapBangumiSubject`](#mapbangumisubject)。
+- **备注：** `filter.type: [2]` 把结果限定为番剧条目类型。**这在 1.4.0 中从旧版端点迁移而来。** 从首个版本一直用到 1.3.3 的 `GET /search/subject/<query>` 现在对每个请求都返回 Cloudflare 的 `502 Bad gateway`；而由于该方法把任何非 200 都当作「无结果」，bangumi.tv 实际上已经完全从搜索中消失，且任何地方都不会报错。v0 API 返回的内容也严格更多：`infobox` 携带放送星期、别名、制作公司与完结日期，这些在旧版搜索响应中一个都没有。
+
+### `static Future<AnimeSearchResult?> _fetchBangumiById(int id)` <a id="fetchbangumibyid"></a>
+- **种类：** `AnimeSearchService` 的静态方法
+- **来源：** `lib/features/anime/services/anime_search_service.dart`（第 538 行）
+- **用途：** 按数字 id 抓取一个 bangumi.tv 条目。
+- **返回：** `Future<AnimeSearchResult?>` —— 非 200 响应或响应体没有 `id` 时返回 `null`。
+- **副作用：** 向 `api.bgm.tv` 发起一次 HTTP GET（10 秒超时）。
+- **备注：** 路径是 `/v0/subjects/{id}` —— **复数**。单数形式 `/v0/subject/{id}` 返回 404，而旧版的 `/subject/{id}` 与该 API 的其余部分一样是 502。响应形态与 v0 搜索相同，因此一个映射函数即可服务两条路径。
+
+### `static AnimeSearchResult mapBangumiSubject(Map<String, dynamic> m)` <a id="mapbangumisubject"></a>
+- **种类：** `AnimeSearchService` 的静态方法，`@visibleForTesting`
+- **来源：** `lib/features/anime/services/anime_search_service.dart`（第 561 行）
+- **用途：** 把一个 bangumi.tv v0 条目对象映射为 `AnimeSearchResult`。
+- **输入：** `m` —— 一个 v0 条目 map，来自搜索或按 id 的端点。
+- **返回：** `AnimeSearchResult`。
+- **副作用：** 无。
+- **算法：** `title` 优先取 `name_cn`（空串时为 null），`titleJa` 取 `name`；读取 `eps`（回退到 `total_episodes`）、ISO 格式的 `date` 字段、`rating.score`/`rating.total`/`rating.rank`、`images.large`/`images.common`/`image`，以及使用最多的前五个 `tags` 作为类型标签。排期与其余名称来自 `infobox`：`别名` → `synonyms`，`动画制作` → `studios`，`放送星期` → 经 [`parseBangumiWeekday`](#parsebangumiweekday) 得到 `airDayOfWeek`，`播放结束` → 经 [`_parseCjkDate`](#parsecjkdate) 得到 `endDate`。
+- **备注：** `eps` 优先于 `total_episodes`，因为后者把特别篇也算进去了——《葬送的芙莉莲》分别是 28 与 36，而应用要排期的 TV 本篇是 28 集。bangumi.tv 的评分本身就是 10 分制，因此不做缩放直接保存。注意 `rank` 位置变了：在 v0 中它是 `rating.rank`，而非旧版形态中的顶层字段。
+
+### `static String? _bangumiInfoboxText(List<dynamic>? infobox, String key)` <a id="bangumiinfoboxtext"></a>
+- **种类：** `AnimeSearchService` 的静态方法
+- **来源：** `lib/features/anime/services/anime_search_service.dart`（第 612 行）
+- **用途：** 把一条 `infobox` 记录读为纯文本。
+- **返回：** `String?` —— 键不存在或其值不是纯字符串时返回 `null`。
+- **副作用：** 无。
+- **备注：** bangumi 的 `infobox` 是一个 `{key, value}` 列表，其中 `value` 视字段而定*要么*是字符串、要么是 `{v: ...}` map 的列表；本函数只读字符串形式，另一种由 [`_bangumiInfoboxList`](#bangumiinfoboxlist) 处理。
+
+### `static List<String> _bangumiInfoboxList(List<dynamic>? infobox, String key)` <a id="bangumiinfoboxlist"></a>
+- **种类：** `AnimeSearchService` 的静态方法
+- **来源：** `lib/features/anime/services/anime_search_service.dart`（第 630 行）
+- **用途：** 把一条 `infobox` 记录读为字符串列表。
+- **返回：** `List<String>` —— 键不存在时返回空列表。
+- **副作用：** 无。
+- **算法：** 纯字符串值变成单元素列表；列表值展平为其 `{v: ...}` 条目，并丢弃空白项。
+- **备注：** 同时接受两种形态很重要，因为同一个键会因条目而异——`动画制作` 通常是纯字符串而 `别名` 通常是列表，但编辑者可以随意填成任一种。
+
+### `static int? parseBangumiWeekday(String? value)` <a id="parsebangumiweekday"></a>
+- **种类：** `AnimeSearchService` 的静态方法，`@visibleForTesting`
+- **来源：** `lib/features/anime/services/anime_search_service.dart`（第 663 行）
+- **用途：** 把 bangumi.tv 的 `放送星期` 文本解析到周一=1..周日=7。
+- **输入：** `value` —— 如 `星期五`、`週六`、`金曜日`。
+- **返回：** `int?` —— 没有匹配到可识别形式时返回 `null`。
+- **副作用：** 无。
+- **算法：** 从周一到周日逐个检查，用该日的中文数字与日文词干去匹配 `星期X` / `週X` / `周X` / `X曜` 各种形式；周日额外接受 `日` 与 `天`。
+- **备注：** v0 API 把放送日表述为**自由文本**，而不是旧版 `air_weekday` 字段那样的数字，并且条目会因编辑者不同而呈简体、繁体或日文。无法识别的值（`不定期`、空白）会变成「无数据」而非猜测，因为错误的星期会静默地把每一集的排期都算错。
+
+### `static DateTime? _parseCjkDate(String? value)` <a id="parsecjkdate"></a>
+- **种类：** `AnimeSearchService` 的静态方法
+- **来源：** `lib/features/anime/services/anime_search_service.dart`（第 693 行）
+- **用途：** 解析 `2023年9月29日` 这类中日文日期。
+- **返回：** `DateTime?` —— 文本中没有此类日期时返回 `null`。
+- **副作用：** 无。
+- **备注：** 之所以需要它，是因为 `infobox` 中的日期是自然语言，不同于条目自身的 ISO `date` 字段。
 
 ### `static Future<List<AnimeSearchResult>> _searchMAL(String query)` <a id="searchmal"></a>
 - **种类：** `AnimeSearchService` 的静态方法
-- **来源：** `lib/features/anime/services/anime_search_service.dart`（第 127 行）
-- **用途：** 经公共 Jikan v4 API 查询 MyAnimeList，把最多 5 条命中映射为 `AnimeSearchResult`。
-- **输入：** `query`。
-- **返回：** `Future<List<AnimeSearchResult>>` — 非 200 响应或 `data` 缺失时为 `[]`。
-- **副作用：** 对 `api.jikan.moe` 一次 HTTP GET（10 秒超时）。
+- **来源：** `lib/features/anime/services/anime_search_service.dart`（第 712 行）
+- **用途：** 经公开的 Jikan v4 API 查询 MyAnimeList，并映射最多 `_maxPerSource` 条命中。
+- **返回：** `Future<List<AnimeSearchResult>>` —— 非 200 响应或缺少 `data` 时返回 `[]`。
+- **副作用：** 向 `api.jikan.moe` 发起一次 HTTP GET（10 秒超时）。
+- **算法：** GET `https://api.jikan.moe/v4/anime?q=<urlencoded query>&limit=10`，再把每一项交给 [`mapJikanAnime`](#mapjikananime)。
+- **备注：** Jikan 索引所有语言的标题，因此它收到的是原始查询而非某种字形专属的变体。
+
+### `static Future<AnimeSearchResult?> _fetchMalById(int id)` <a id="fetchmalbyid"></a>
+- **种类：** `AnimeSearchService` 的静态方法
+- **来源：** `lib/features/anime/services/anime_search_service.dart`（第 741 行）
+- **用途：** 经 Jikan 按数字 id 抓取一个 MyAnimeList 条目。
+- **返回：** `Future<AnimeSearchResult?>` —— 非 200 响应或 `data` 不是 map 时返回 `null`。
+- **副作用：** 向 `api.jikan.moe` 发起一次 HTTP GET（10 秒超时）。
+- **备注：** `/full` 变体返回与搜索相同的对象形态，只是多了本应用不使用的关联信息，因此 `mapJikanAnime` 无需改动即可处理两者。
+
+### `static AnimeSearchResult mapJikanAnime(Map<String, dynamic> m)` <a id="mapjikananime"></a>
+- **种类：** `AnimeSearchService` 的静态方法，`@visibleForTesting`
+- **来源：** `lib/features/anime/services/anime_search_service.dart`（第 764 行）
+- **用途：** 把一个 Jikan 番剧对象映射为 `AnimeSearchResult`。
+- **返回：** `AnimeSearchResult`。
+- **副作用：** 无。
 - **算法：**
-  1. GET `https://api.jikan.moe/v4/anime?q=<urlencoded query>&limit=5`。
-  2. 对每项：封面读 `images.jpg.large_image_url`/`image_url`；`aired.from` 经 `DateTime.tryParse` 解析；`broadcast` 存在时，经 [`_parseDayOfWeek`](#parsedayofweek) 解析其 `day` 字符串（如 `"Mondays"`），并直接把 `broadcast.time` 作为 `airTime`。
-  3. 构建 `AnimeSearchResult`：`source: 'MyAnimeList'`、`title` 来自 `title`、`titleJa` 来自 `title_japanese`、`episodes`、`summary` 来自 `synopsis`。
-- **用法：**
-  ```dart
-  _searchMAL(query).catchError((_) => <AnimeSearchResult>[]),
-  ```
-  （`AnimeSearchService.searchAll`，同一文件）
-- **备注：** Jikan 的 `broadcast.time` 已是 `HH:MM` 日本时间形式，因此不做重格式化直接透传为 `Anime.airTime`。
+  1. 从 `images.jpg` 读封面，经 `DateTime.tryParse` 读 `aired.from`/`aired.to`。
+  2. 从 `broadcast` 中经 [`parseDayOfWeek`](#parsedayofweek) 解析 `day`；**仅当** `timezone` 缺失或为 `Asia/Tokyo` 时才采用 `time`。
+  3. 遍历 `titles` 数组，把 `Default` → `titleRomaji`、`English` → `titleEn`、`Japanese` → `titleJa`，其余归入 `synonyms`；数组未填满的槽位再回退到扁平的 `title`/`title_english`/`title_japanese` 字段。
+  4. 读取 `episodes`、`type` → `format`、`status`、经 [`parseJikanDuration`](#parsejikanduration) 的 `duration`、经 [`_namedList`](#namedlist) 的 `studios`/`genres`，以及 `score`/`scored_by`/`rank`。
+- **备注：** 时区判断是关键。Jikan 按 `broadcast.timezone` 所指的时区报告 `broadcast.time`；把非东京时间存为 `Anime.airTime` 会把它标成日本时间，从而让每一集都发生偏移。丢弃它只是让该字段留空，界面能够处理。
+
+### `static int? parseJikanDuration(String? duration)` <a id="parsejikanduration"></a>
+- **种类：** `AnimeSearchService` 的静态方法，`@visibleForTesting`
+- **来源：** `lib/features/anime/services/anime_search_service.dart`（第 867 行）
+- **用途：** 把 Jikan 的自然语言时长字符串解析为分钟数。
+- **输入：** `duration` —— 如 `"24 min per ep"`、`"1 hr 35 min"`、`"Unknown"`。
+- **返回：** `int?` —— 没有可解析内容或总数为零时返回 `null`。
+- **副作用：** 无。
+- **算法：** 分别匹配 `(\d+)\s*hr` 与 `(\d+)\s*min`，求 `h * 60 + m`；两者都未匹配时返回 `null`。
+- **备注：** Jikan 把时长报告为自然语言而非数字，因此必须分别提取小时与分钟，而不能当成一个数值解析。
+
+### `static List<String> _namedList(Object? value)` <a id="namedlist"></a>
+- **种类：** `AnimeSearchService` 的静态方法
+- **来源：** `lib/features/anime/services/anime_search_service.dart`（第 883 行）
+- **用途：** 把 Jikan 的 `[{name: ...}]` 数组读成字符串列表。
+- **返回：** `List<String>` —— 非列表或条目没有字符串 `name` 时返回空列表。
+- **副作用：** 无。
+- **备注：** Jikan 对 `studios` 与 `genres` 采用相同包装，因此一个辅助函数即可覆盖两者。
 
 ### `static Future<List<AnimeSearchResult>> _searchAcgsecrets(String query)` <a id="searchacgsecrets"></a>
 - **种类：** `AnimeSearchService` 的静态方法
-- **来源：** `lib/features/anime/services/anime_search_service.dart`（第 183 行）
-- **用途：** 抓取 `acgsecrets.hk` 的每季动画列表（嵌入为 `application/ld+json` 脚本块）并对照查询模糊匹配条目，先试当前季、回退到上一季。
-- **输入：** `query`。
-- **返回：** `Future<List<AnimeSearchResult>>` — 最多 5 条，按模糊匹配得分降序。
-- **副作用：** 对 `acgsecrets.hk` 最多两次 HTTP GET（每次 15 秒超时），每试一季一次。
+- **来源：** `lib/features/anime/services/anime_search_service.dart`（第 901 行）
+- **用途：** 抓取 `acgsecrets.hk` 的季度番剧列表（内嵌为 `application/ld+json` 脚本块），对照查询做模糊匹配，先试当前季度、再回退到上一季度。
+- **输入：** `query` —— 实践中是繁体变体。
+- **返回：** `Future<List<AnimeSearchResult>>` —— 最多 `_maxPerSource` 条，按模糊匹配分降序。
+- **副作用：** 向 `acgsecrets.hk` 发起最多两次 HTTP GET（各 15 秒超时）。
 - **算法：**
-  1. 从 [`_recentSeasons`](#recentseasons) 取 `[currentSeason, previousSeason]`；计算 `query` 的繁体与简体变体。
-  2. 按顺序对每季：GET 季页面；非 200 跳过。用正则提取每个 `<script type="application/ld+json">` 块并 JSON 解码；对每个 `itemListElement` 条目，计算条目的 `name`/`alternateName`s 对 `query`/`queryTrad`/`querySimp` 的最佳 [`_similarity`](#similarity) 得分；跳过得分低于 `0.3` 的条目；跳过已见过的重复 `url`。
-  3. 对存活的条目，经 [`_containsJapanese`](#containsjapanese) 从 `alternateName` 挑一个日文 `titleJa`（第一个含假名的别名），构建 `AnimeSearchResult`，`startDate` 经 `DateTime.tryParse` 解析。
-  4. 当前季已产出任何结果时，在试上一季之前停下（`break`）。
-  5. 把所有收集的 `(result, score)` 对按得分降序排序，返回前 5 条结果。
-- **用法：**
-  ```dart
-  _searchAcgsecrets(query).catchError((_) => <AnimeSearchResult>[]),
-  ```
-  （`AnimeSearchService.searchAll`，同一文件）
-- **备注：** 任何单个 `<script>` 块的 JSON 解码失败按块捕获（`catch (_) {}`），使一个格式错误的块不会中止整季解析。
+  1. 从 [`_recentSeasons`](#recentseasons) 取 `[当前季度, 上一季度]`；计算繁体与简体变体。
+  2. 逐季度：GET 季度页面，非 200 则跳过。提取每个 `<script type="application/ld+json">` 块并 JSON 解码，对每个 `itemListElement` 计算其 `name`/`alternateName` 与各查询变体的最佳 [`_similarity`](#similarity)；低于 `0.3` 的跳过；已见过的 `url` 跳过。
+  3. 构建结果时，`startDate` 经 `DateTime.tryParse` 解析，有 `numberOfEpisodes` 则读入，第一个含假名的 `alternateName` 作为 `titleJa`，**其余全部别名进入 `synonyms`**。
+  4. 当前季度已有结果时，不再尝试上一季度。
+  5. 按分数降序排序并返回前 `_maxPerSource` 条。
+- **备注：** 任何单个 `<script>` 块的 JSON 解码失败都被逐块捕获，因此一个损坏的块不会中断整季度的解析。保留全部别名（而非 1.4.0 之前只保留日文那一个）正是让这个来源能贡献跨语言补搜标题的原因。
 
 ### `static List<String> _recentSeasons()` <a id="recentseasons"></a>
 - **种类：** `AnimeSearchService` 的静态方法
-- **来源：** `lib/features/anime/services/anime_search_service.dart`（第 267 行）
-- **用途：** 计算"本季"和"上一季"的 `acgsecrets.hk` 季代码（`YYYYMM`），最新优先。
-- **输入：** 无（用 `DateTime.now()`）。
-- **返回：** 恰好 2 个季代码的 `List<String>`。
+- **来源：** `lib/features/anime/services/anime_search_service.dart`（第 987 行）
+- **用途：** 计算 `acgsecrets.hk` 的「本季度」与「上一季度」代码（`YYYYMM`），最新在前。
+- **返回：** 恰好 2 个季度代码的 `List<String>`。
 - **副作用：** 无。
-- **算法：** 从 `[1, 4, 7, 10].lastWhere((s) => m >= s)` 找当前季起始月；格式化 `'$year$month'`（零填充）；减去 3 个月计算上一季，当前季是一月时回卷为 `year - 1, 10`。
-- **用法：**
-  ```dart
-  final seasons = _recentSeasons();
-  ```
-  （`AnimeSearchService._searchAcgsecrets`，同一文件）
-- **备注：** 无。
+- **算法：** 用 `[1, 4, 7, 10].lastWhere((s) => m >= s)` 求当前季度起始月；上一季度减三个月，1 月时回绕到 `year - 1, 10`。
 
 ### `static bool _containsJapanese(String s)` <a id="containsjapanese"></a>
 - **种类：** `AnimeSearchService` 的静态方法
-- **来源：** `lib/features/anime/services/anime_search_service.dart`（第 288 行）
-- **用途：** 检测字符串是否包含任何平假名或片假名字符，用于挑出日文假名替代标题。
-- **输入：** `s`。
+- **来源：** `lib/features/anime/services/anime_search_service.dart`（第 1009 行）
+- **用途：** 检测字符串是否包含任何平假名或片假名字符。
 - **返回：** `bool`。
 - **副作用：** 无。
-- **算法：** 遍历 `s.runes`，在 `0x3040..0x309F`（平假名）或 `0x30A0..0x30FF`（片假名）中的第一个码点返回 `true`；没有匹配返回 `false`。
-- **用法：**
-  ```dart
-  for (final n in altNames) {
-    if (_containsJapanese(n)) {
-      titleJa = n;
-      break;
-    }
-  }
-  ```
-  （`AnimeSearchService._searchAcgsecrets`，同一文件）
-- **备注：** 纯汉字替代名（与中文字符重叠）不被此检查判为日文——只有假名存在才算，因为单靠汉字无法区分日文标题和中文标题。
+- **算法：** 遍历 `s.runes`，遇到第一个落在 `0x3040..0x309F`（平假名）或 `0x30A0..0x30FF`（片假名）的码点即返回 `true`。
+- **备注：** 纯汉字字符串**不会**被判定为日文——单看汉字无法区分日文标题与中文标题。这一局限正是 [`_isLikelyChinese`](#islikelychinese) 作为其补集存在的原因。
+
+### `static bool _isLatinScript(String s)` <a id="islatinscript"></a>
+- **种类：** `AnimeSearchService` 的静态方法
+- **来源：** `lib/features/anime/services/anime_search_service.dart`（第 1026 行）
+- **用途：** 检查字符串是否为拉丁字母书写。
+- **返回：** `bool`。
+- **副作用：** 无。
+- **算法：** 当字符串至少含一个 ASCII 字母、且不含假名（`0x3040..0x30FF`）或 CJK 表意文字（`0x4E00..0x9FFF`）时为真。
+- **备注：** 之所以需要它，是因为 bangumi.tv 没有罗马音/英文*字段*——它把两者都归在 `别名` 下，因此用于补搜的拉丁标题必须按字形识别，而不能按它来自哪个字段。没有这一步，只有 bangumi 命中的中文查询就收集不到拉丁标题，第二轮也就无法触达 MyAnimeList 与 AniList。
+
+### `static bool _isLikelyChinese(String s)` <a id="islikelychinese"></a>
+- **种类：** `AnimeSearchService` 的静态方法
+- **来源：** `lib/features/anime/services/anime_search_service.dart`（第 1046 行）
+- **用途：** 检查字符串读起来是中文而非日文。
+- **返回：** `bool`。
+- **副作用：** 无。
+- **算法：** [`_containsJapanese`](#containsjapanese) 为真则返回 `false`；否则任一码点落在 CJK 统一表意文字区（`0x4E00..0x9FFF`）即返回 `true`。
+- **备注：** 这是「该标题可以安全发给中文来源」的实用判据。假名的存在是唯一可靠的否定信号，因此该检查刻意采用「有汉字、无假名」的形式，而不试图做真正的语言识别。
 
 ### `static Future<List<AnimeSearchResult>> _searchFilmarks(String query)` <a id="searchfilmarks"></a>
 - **种类：** `AnimeSearchService` 的静态方法
-- **来源：** `lib/features/anime/services/anime_search_service.dart`（第 303 行）
-- **用途：** 抓取 `filmarks.com` 的动画搜索结果页的标题/封面/URL，主模式一无所获时用更宽松的回退模式。
-- **输入：** `query`。
-- **返回：** `Future<List<AnimeSearchResult>>` — 最多 5 条。
-- **副作用：** 对 `filmarks.com` 一次 HTTP GET（10 秒超时，`Accept-Language: ja`）。
-- **算法：**
-  1. GET `https://filmarks.com/search/animes?q=<urlencoded query>`；非 200 返回 `[]`。
-  2. 主模式：匹配包含可选 `<img>` 和一个 `class="...title..."` 元素的 `<a href="/anime/...">` 块；取最多 5 个，经 [`_decodeHtmlEntities`](#decodehtmlentities) 解码标题中的 HTML 实体。
-  3. 主模式一无所获时，回退到匹配任何带可见文本（超过 1 个字符）的 `<a href="/anime/<digits>...">` 的宽松模式。
-- **用法：**
-  ```dart
-  _searchFilmarks(query).catchError((_) => <AnimeSearchResult>[]),
-  ```
-  （`AnimeSearchService.searchAll`，同一文件）
-- **备注：** 两种模式都不捕获集数、播出日期或星期几/播出时间——`filmarks.com` 结果只会填充 `title`/`titleJa`（按抓取原样）/`sourceUrl`/`coverImageUrl`。这种 HTML 结构抓取本质上对站点标记变更脆弱。
+- **来源：** `lib/features/anime/services/anime_search_service.dart`（第 1063 行）
+- **用途：** 抓取 `filmarks.com` 番剧搜索结果页的标题/封面/URL，主模式无果时使用更宽松的回退模式。
+- **输入：** `query` —— 在第二轮中是收集到的日文标题。
+- **返回：** `Future<List<AnimeSearchResult>>` —— 最多 `_maxPerSource` 条。
+- **副作用：** 向 `filmarks.com` 发起一次 HTTP GET（10 秒超时，`Accept-Language: ja`）。
+- **算法：** GET `https://filmarks.com/search/animes?q=<urlencoded query>`；通过被转义的点击处理器 `onClickDetailLink($event, &#39;/animes/<series>/<season>&#39;)` 匹配每个结果「内容卡片」，再从其后 3000 字符内的海报 `<img alt="…" src="…">` 中取标题与封面。结果按路径去重。若无所获，回退到匹配带邻近海报 `alt` 的普通 `<a href="/animes/<series>/<season>">` 锚点。
+- **备注：** **这些模式在 1.4.0 中被重写。** filmarks 把详情 URL 从 `/anime/<id>` 改成了 `/animes/<series>/<season>`，并改为通过客户端组件渲染结果，因此自 v0.1.0 沿用至今的旧 `/anime/` 模式什么都匹配不到，该来源一直在贡献零结果且任何地方都不会报错。标题现在取自海报的 `alt` 属性，因为可见标题已不再位于 `class="...title..."` 元素中。两种模式都抓不到集数、播出日期或排期——filmarks 结果只会填充 `titleJa`/`sourceUrl`/`coverImageUrl`。由于它只索引日文标题，这是从第二轮补搜中获益最大的来源：中文或英文查询只有在其他来源提供了日文标题之后才能触达它。基于 HTML 结构的抓取天然对站点标记变更脆弱，而这已是第二次因此出问题——filmarks 忽然返回零结果时，应先当作标记变更而非真的没匹配到。
 
 ### `static Future<List<AnimeSearchResult>> _searchAniList(String query)` <a id="searchanilist"></a>
 - **种类：** `AnimeSearchService` 的静态方法
-- **来源：** `lib/features/anime/services/anime_search_service.dart`（第 367 行）
-- **用途：** 查询 AniList GraphQL API，取最多 5 条匹配的媒体条目。
-- **输入：** `query`。
-- **返回：** `Future<List<AnimeSearchResult>>` — 非 200 响应或 `data.Page.media` 缺失时为 `[]`。
-- **副作用：** 对 `graphql.anilist.co` 一次 HTTP POST（10 秒超时）。
-- **算法：**
-  1. POST 一个固定 GraphQL 查询（请求 `title`、`episodes`、`startDate`、`airingSchedule`、`coverImage`、`description`、`siteUrl`），带 `variables: {search: query}`。
-  2. 对每个 `media` 条目：只在三者都出现时从 `startDate.{year,month,day}` 构建 `firstAirDate`；从该日期的 `.weekday` 派生 `airDayOfWeek`（因此它反映*首集*的星期几，而不是单独报告的播出日程）；从 `description` 剥离 HTML（把 `<br>` 变体替换为 `\n`、剥离剩余标签、反转义 `&amp;`/`&lt;`/`&gt;`/`&quot;`/`&#39;`）构建 `summary`。
-  3. `title` 优先 `title.english`，回退 `title.romaji`；`titleJa` 用 `title.native`。
-- **用法：**
-  ```dart
-  _searchAniList(query).catchError((_) => <AnimeSearchResult>[]),
-  ```
-  （`AnimeSearchService.searchAll`，同一文件）
-- **备注：** GraphQL 查询还请求 `airingSchedule(notYetAired: true, perPage: 1)`，但下方的解析代码目前不读该字段——`airDayOfWeek` 纯粹从 `startDate.weekday` 派生。
+- **来源：** `lib/features/anime/services/anime_search_service.dart`（第 1155 行）
+- **用途：** 查询 AniList GraphQL API，取最多 `_maxPerSource` 条匹配的 media 条目。
+- **返回：** `Future<List<AnimeSearchResult>>` —— 非 200 响应或缺少 `data.Page.media` 时返回 `[]`。
+- **副作用：** 向 `graphql.anilist.co` 发起一次 HTTP POST（10 秒超时）。
+- **算法：** 把 `_aniListMediaFields` 插入 `Page(perPage: 10) { media(search:, type: ANIME, sort: SEARCH_MATCH) }` 文档，经 [`_postAniList`](#postanilist) 发出，再把每个条目交给 [`mapAniListMedia`](#mapanilistmedia)。
+- **备注：** `_aniListMediaFields` 是唯一共享的 const 字段选择集，因此搜索路径与按 id 路径绝不会请求不同的字段。
 
-### `static int? _parseDayOfWeek(String day)` <a id="parsedayofweek"></a>
+### `static Future<AnimeSearchResult?> _fetchAniListById(int id)` <a id="fetchanilistbyid"></a>
 - **种类：** `AnimeSearchService` 的静态方法
-- **来源：** `lib/features/anime/services/anime_search_service.dart`（第 466 行）
-- **用途：** 把英文星期名（如 Jikan 的 `broadcast.day` 返回的 `"Mondays"`）解析为 `Anime.airDayOfWeek` 的 `1..7`（周一..周日）编号。
-- **输入：** `day`。
-- **返回：** `int?` — 无可识别的星期前缀匹配时为 `null`。
+- **来源：** `lib/features/anime/services/anime_search_service.dart`（第 1180 行）
+- **用途：** 按数字 id 抓取一个 AniList media 条目。
+- **返回：** `Future<AnimeSearchResult?>` —— id 未知或响应不是 map 时返回 `null`。
+- **副作用：** 向 `graphql.anilist.co` 发起一次 HTTP POST（10 秒超时）。
+
+### `static Future<Map<String, dynamic>?> _postAniList(String document, Map<String, dynamic> variables)` <a id="postanilist"></a>
+- **种类：** `AnimeSearchService` 的静态方法
+- **来源：** `lib/features/anime/services/anime_search_service.dart`（第 1199 行）
+- **用途：** 向 AniList POST 一个 GraphQL 文档并返回其 `data` 对象。
+- **返回：** `Future<Map<String, dynamic>?>` —— 非 200 响应时返回 `null`。
+- **副作用：** 向 `graphql.anilist.co` 发起一次 HTTP POST（10 秒超时）。
+- **备注：** 抽出来是为了让搜索查询与按 id 查询共享传输、请求头与错误处理。
+
+### `static AnimeSearchResult mapAniListMedia(Map<String, dynamic> m)` <a id="mapanilistmedia"></a>
+- **种类：** `AnimeSearchService` 的静态方法，`@visibleForTesting`
+- **来源：** `lib/features/anime/services/anime_search_service.dart`（第 1230 行）
+- **用途：** 把一个 AniList media 对象映射为 `AnimeSearchResult`。
+- **返回：** `AnimeSearchResult`。
 - **副作用：** 无。
-- **算法：** 小写化 `day`，按顺序检查三字母前缀（`mon`→1、`tue`→2、`wed`→3、`thu`→4、`fri`→5、`sat`→6、`sun`→7）。
-- **用法：**
-  ```dart
-  if (dayStr != null) airDayOfWeek = _parseDayOfWeek(dayStr);
-  ```
-  （`AnimeSearchService._searchMAL`，同一文件）
-- **备注：** 按前缀（`startsWith`）匹配，因此同时容忍 `"Monday"` 和 `"Mondays"` 两种形式。
+- **算法：**
+  1. 经 [`_aniListDate`](#anilistdate) 构建 `firstAirDate`/`endDate`（三部分缺一不可）。
+  2. 从 [`_aniListFirstAiringAt`](#anilistfirstairingat) 取放送时间戳。有值时把 Unix 秒转换为日本时间（`fromMillisecondsSinceEpoch(..., isUtc: true) + 9h`），取其 `.weekday` 与补零的 `HH:mm`。只有在没有时间戳时，`airDayOfWeek` 才回退到 `firstAirDate.weekday`。
+  3. 清理 `description` 中的 HTML（`<br>` → 换行，去掉其余标签，反转义 `&amp;`/`&lt;`/`&gt;`/`&quot;`/`&#39;`）。
+  4. 展平 `studios.nodes[].name`；读取 `synonyms`、`episodes`、`duration`、`format`、`status`、`genres`、`popularity` 与 `averageScore`。
+  5. `title` 优先 `title.english`、其次 `title.romaji`；`titleJa` 取 `title.native`；同时单独保留罗马音与英文标题。
+- **备注：** 有两个决定很重要。其一，基于排期表推导的星期取代了 1.4.0 之前一律用 `startDate.weekday` 猜测的做法——首播若不在常规时段，旧做法就是错的。其二，JST 时刻会经过 [`_jstBroadcastSlot`](#jstbroadcastslot)，因此深夜放送会以 `25:00` 形式归入前一天，并经 [`_alignFirstAirDateToSlot`](#alignfirstairdatetoslot) 把 `firstAirDate` 同步平移。只挪星期而不挪日期会让两者互相矛盾，`getEpisodeCalendarDate()` 的向前对齐反而会把第 1 集推迟一周。`averageScore` 是 0–100，进入时除以 10。
+
+### `static DateTime? _aniListDate(Object? value)` <a id="anilistdate"></a>
+- **种类：** `AnimeSearchService` 的静态方法
+- **来源：** `lib/features/anime/services/anime_search_service.dart`（第 1312 行）
+- **用途：** 从 AniList 的 `{year, month, day}` 对象构建 `DateTime`。
+- **返回：** `DateTime?` —— 三部分不全为 `int` 时返回 `null`。
+- **副作用：** 无。
+- **备注：** AniList 对未公布的日期会把部分字段留空，而残缺日期无法用于排期，因此半已知日期被当作完全没有日期，而不是默认成 1 月 1 日。
+
+### `static int? _aniListFirstAiringAt(Map<String, dynamic> m)` <a id="anilistfirstairingat"></a>
+- **种类：** `AnimeSearchService` 的静态方法
+- **来源：** `lib/features/anime/services/anime_search_service.dart`（第 1328 行）
+- **用途：** 挑出最能代表放送时段的放送时间戳。
+- **返回：** `int?` —— 以秒为单位的 Unix 时间戳，无排期时返回 `null`。
+- **副作用：** 无。
+- **算法：** 优先 `nextAiringEpisode.airingAt`；否则返回第一条 `airingAt` 为 `int` 的 `airingSchedule.nodes[]` 记录。
+- **备注：** 优先 `nextAiringEpisode` 意味着正在放送的作品报告的是其*实时*时段，而这正是排下一集时真正相关的那个。作为回退的 `airingSchedule` 查询**不带** `notYetAired`（与 1.4.0 之前的文档不同），因此已完结作品也能拿到真实时段，而不是一个空的节点列表。
+
+### `static ({int weekday, String time, int dayShift}) _jstBroadcastSlot(int weekday, int hour, int minute)` <a id="jstbroadcastslot"></a>
+- **种类：** `AnimeSearchService` 的静态方法
+- **来源：** `lib/features/anime/services/anime_search_service.dart`（第 1366 行）
+- **用途：** 把日本时间的放送时刻映射到它所归属的编成时段。
+- **输入：** `weekday`（1..7）、`hour`、`minute` —— 均为日本时间。
+- **返回：** 一个记录，含该时段的 `weekday`、`time`（`HH:mm`，深夜档小时数 ≥ 24），以及 `dayShift` —— 该时段的日历日比钟表日早几天。
+- **副作用：** 无。
+- **算法：** 小时数低于 `_lateNightBoundaryHour`（04:00）时，星期回退一天（周一回绕到周日），并把小时报告为 `hour + 24`。04:00 及之后原样返回，`dayShift: 0`。
+- **备注：** 日本编成惯例把 04:00 之前的一切都归入*前一晚*：周四 01:00 放送的作品就是「周三 25:00」，应当落在周三那一行。这一点之所以关键，是因为 [`Anime.getEpisodeCalendarDate`](../models/anime.md#getepisodecalendardate) **完全不读 `airTime`**，只用 `firstAirDate` + `airDayOfWeek` 定位某一集——若报告原始的钟表星期，每一集深夜番都会比它所属的编成日晚一天。调用方还必须把 `dayShift` 交给 [`_alignFirstAirDateToSlot`](#alignfirstairdatetoslot)；只挪星期会让两个字段互相矛盾，向前对齐反而把第 1 集整整推迟一周。
+
+### `static DateTime? _alignFirstAirDateToSlot(DateTime? airDate, ({int weekday, String time, int dayShift}) slot, int clockWeekday)` <a id="alignfirstairdatetoslot"></a>
+- **种类：** `AnimeSearchService` 的静态方法
+- **来源：** `lib/features/anime/services/anime_search_service.dart`（第 1393 行）
+- **用途：** 把首播日期平移到深夜时段所属的日历日。
+- **输入：** `airDate`；来自 [`_jstBroadcastSlot`](#jstbroadcastslot) 的 `slot`；`clockWeekday` —— 未平移的钟表星期。
+- **返回：** `DateTime?` —— 无需平移时原样返回。
+- **副作用：** 无。
+- **算法：** 当 `airDate` 为 null、`slot.dayShift` 为零，**或 `airDate.weekday` 与 `clockWeekday` 不一致**时原样返回；否则减去 `dayShift` 天。
+- **备注：** 那个星期判断正是本函数可以无条件调用的原因。它只在来源自身的首播日期落在钟表日时才平移——AniList（`startDate`）与 MyAnimeList（`aired.from`）都是这样记录的。已经按编成日记录的来源，其星期与*平移后*的时段一致，因此会被原样保留，不会被二次平移。
+
+### `static double? _toDouble(Object? value)` <a id="todouble"></a>
+- **种类：** `AnimeSearchService` 的静态方法
+- **来源：** `lib/features/anime/services/anime_search_service.dart`（第 1409 行）
+- **用途：** 把 JSON 数字强制转换为 `double`。
+- **返回：** `double?` —— 非 `num` 时返回 `null`。
+- **副作用：** 无。
+- **备注：** 各来源根据端点不同，会把评分报告为整数或小数。
+
+### `static int? parseDayOfWeek(String day)` <a id="parsedayofweek"></a>
+- **种类：** `AnimeSearchService` 的静态方法，`@visibleForTesting`
+- **来源：** `lib/features/anime/services/anime_search_service.dart`（第 1421 行）
+- **用途：** 把英文星期名（如 Jikan `broadcast.day` 返回的 `"Mondays"`）解析为 `Anime.airDayOfWeek` 的 `1..7`（周一..周日）编号。
+- **返回：** `int?` —— 没有匹配到已知星期前缀时返回 `null`。
+- **副作用：** 无。
+- **算法：** 把 `day` 转小写后依次检查三字母前缀（`mon`→1 … `sun`→7）。
+- **备注：** 用 `startsWith` 匹配，因此 `"Monday"` 与 `"Mondays"` 都能识别。
 
 ### `static Future<List<({String title, String url})>> searchAnime1(String query, {List<String> altQueries = const []})` <a id="searchanime1"></a>
 - **种类：** `AnimeSearchService` 的静态方法
-- **来源：** `lib/features/anime/services/anime_search_service.dart`（第 482 行）
-- **用途：** 为一个标题找候选 `anime1.me` 分类/观看页 URL，尝试简体/繁体变体和可选替代查询，什么都不匹配时用双字子串回退，按模糊相似度排序。
-- **输入：** `query`；`altQueries` — 也要尝试的额外标题变体（如搜索结果中的副标题）。
-- **返回：** `Future<List<({String title, String url})>>` — 最多 10 条，最佳匹配在前。
-- **副作用：** 对 `anime1.me` 一次或多次 HTTP GET（经 [`_searchAnime1Single`](#searchanime1single)），每个尝试的查询变体一次。
+- **来源：** `lib/features/anime/services/anime_search_service.dart`（第 1437 行）
+- **用途：** 为某个标题查找候选的 `anime1.me` 分类/观看页 URL，尝试简繁变体与可选的备用查询，全无结果时用双字子串回退，并按模糊相似度排序。
+- **输入：** `query`；`altQueries` —— 一并尝试的其他标题变体。
+- **返回：** `Future<List<({String title, String url})>>` —— 最多 10 条，最佳匹配在前。
+- **副作用：** 向 `anime1.me` 发起一次或多次 HTTP GET，每个查询变体一次。
 - **算法：**
-  1. 构建 `Set<String>` 查询变体：`query`、它的繁体与简体形式，外加每个非空 `altQueries` 条目及其繁体/简体形式。
-  2. 对每个变体运行 [`_searchAnime1Single`](#searchanime1single)，合并结果并按 `url` 去重。
-  3. 没有匹配时，派生 `query` 的繁体、纯字母/数字形式；至少 4 个字符时，经 `_searchAnime1Single` 尝试最多 3 个尾部双字（2 字符子串，从尾部向前扫描），一旦某个子串产出结果就停止——这能捕捉繁体查询与实际系列标题共享短子串、但完整标题不同的情况。
-  4. 把所有收集的结果按每个结果的 `title` 对每个查询变体的 [`_bestSimilarity`](#bestsimilarity) 降序排序。
-  5. 返回前 10 条。
+  1. 构建变体 `Set<String>`：`query` 及其繁体、简体形式，以及每个非空 `altQueries` 条目的同样三种形式。
+  2. 对每个变体运行 [`_searchAnime1Single`](#searchanime1single)，合并并按 `url` 去重。
+  3. 若无所获，取繁体、仅保留字母数字的形式；长度不少于 4 时，从尾部向前最多尝试 3 个双字子串，一旦有结果即停止。
+  4. 按 [`_bestSimilarity`](#bestsimilarity) 降序排序，返回前 10 条。
 - **用法：**
   ```dart
-  final results = await AnimeSearchService.searchAnime1(
-    q,
-    altQueries: widget.altQueries,
-  );
+  final results = await AnimeSearchService.searchAnime1(q, altQueries: widget.altQueries);
   ```
-  （`lib/features/anime/views/anime_edit_page.dart`，"查找观看 URL"对话框中的 `_search`）
-- **备注：** 此方法（与 `searchAll` 不同）不属于通用元数据搜索——它专门存在是为了给 `Anime.watchUrl` 找系列的 `anime1.me` 观看页 URL；见 [`../../../../features/multi-source-search.md`](../../../../features/multi-source-search.md)。
+  （`lib/features/anime/views/anime_edit_page.dart`，「查找观看链接」对话框）
+- **备注：** 与 `searchAll` 不同，它不属于通用元数据搜索——它专门用于为 `Anime.watchUrl` 找到某作品的 `anime1.me` 观看页 URL，返回的是标题/URL 对而非元数据。
 
 ### `static double _bestSimilarity(String title, List<String> queries)` <a id="bestsimilarity"></a>
 - **种类：** `AnimeSearchService` 的静态方法
-- **来源：** `lib/features/anime/services/anime_search_service.dart`（第 551 行）
-- **用途：** 计算一个候选标题对查询变体列表的最佳模糊相似度得分。
-- **输入：** `title`、`queries`。
-- **返回：** `0.0..1.0` 的 `double`。
+- **来源：** `lib/features/anime/services/anime_search_service.dart`（第 1506 行）
+- **用途：** 计算一个候选标题对若干查询变体中任一的最佳模糊相似度得分。
+- **返回：** `0.0..1.0` 之间的 `double`。
 - **副作用：** 无。
-- **算法：** 对 `queries` 中的每个条目运行 [`_similarity`](#similarity)，保留最大值。
-- **用法：**
-  ```dart
-  allResults.sort((a, b) {
-    final sa = _bestSimilarity(a.title, queryVariants);
-    final sb = _bestSimilarity(b.title, queryVariants);
-    return sb.compareTo(sa); // descending
-  });
-  ```
-  （`AnimeSearchService.searchAnime1`，同一文件）
-- **备注：** 无。
+- **算法：** 对 `queries` 每一项运行 [`_similarity`](#similarity)，取最大值。
+- **备注：** 这是 `anime1.me` 排序与公开的 [`relevance`](#relevance) 共同依赖的唯一原语。
 
 ### `static double _similarity(String a, String b)` <a id="similarity"></a>
 - **种类：** `AnimeSearchService` 的静态方法
-- **来源：** `lib/features/anime/services/anime_search_service.dart`（第 565 行）
-- **用途：** 给两个字符串的相似程度打分，组合三种度量并取最佳，使重排过的标题和同一标题的简体/繁体变体都能得高分。
-- **输入：** `a`、`b`。
-- **返回：** `0.0..1.0` 的 `double`；任一输入为空时 `0`。
+- **来源：** `lib/features/anime/services/anime_search_service.dart`（第 1520 行）
+- **用途：** 组合三种度量并取最优，评估两个字符串的相似度，使重排后的标题与同一标题的简繁变体都能得高分。
+- **返回：** `0.0..1.0` 之间的 `double`；任一输入为空时返回 `0`。
 - **副作用：** 无。
 - **算法：**
-  1. 计算 `a` 和 `b` 的繁体规范化形式（`aNorm`、`bNorm`）。
-  2. 对 `(a, b)` 和 `(aNorm, bNorm)` 各做：
-     - 基于 LCS 的 Dice：经 [`_lcsLength`](#lcslength) 得 `2 * lcsLength / (len(s1) + len(s2))`。
-     - 字符集 Dice（与顺序无关）：在 `.runes.toSet()` 上 `2 * |set1 ∩ set2| / (|set1| + |set2|)`。
-     - 包含关系：一个字符串包含另一个时，得分 `0.7 + 0.3 * (shorter.length / longer.length)`（保证至少 `0.7`）。
-  3. 返回两遍规范化和全部三种度量中见过的最高分。
-- **用法：**
-  ```dart
-  final s = _similarity(n, q);
-  if (s > bestScore) bestScore = s;
-  ```
-  （`AnimeSearchService._searchAcgsecrets`，同一文件——`_bestSimilarity` 也用它做 `anime1.me` 排序）
-- **备注：** 同时比较原始和繁体规范化形式意味着简体查询仍能对纯繁体标题得高分（反之亦然），两侧都不需要调用方预先规范化。
+  1. 计算两个输入的繁体归一化形式。
+  2. 对 `(a, b)` 与 `(aNorm, bNorm)` 各做一遍：经 [`_lcsLength`](#lcslength) 的 LCS-Dice；基于 `.runes.toSet()` 的顺序无关字符集 Dice；以及包含关系，得分为 `0.7 + 0.3 * (较短 / 较长)`。
+  3. 返回两遍、三种度量中的最大值。
+- **备注：** 同时比较原始形式与繁体归一化形式，意味着简体查询对纯繁体标题依然能得高分，且双方都无需调用方预先归一化。
 
 ### `static int _lcsLength(String a, String b)` <a id="lcslength"></a>
 - **种类：** `AnimeSearchService` 的静态方法
-- **来源：** `lib/features/anime/services/anime_search_service.dart`（第 599 行）
-- **用途：** 计算两个字符串之间的最长公共子序列（LCS）长度，是 `_similarity` 的 LCS-Dice 得分背后的核心原语。
-- **输入：** `a`、`b`。
+- **来源：** `lib/features/anime/services/anime_search_service.dart`（第 1554 行）
+- **用途：** 计算两个字符串之间的最长公共子序列长度。
 - **返回：** `int`。
 - **副作用：** 无。
-- **算法：** 标准 O(n·m) 动态规划 LCS，用两个滚动行（`prev`/`curr`）而不是完整 2D 表省内存；字符匹配时 `curr[j] = prev[j-1] + 1`，否则 `curr[j] = max(prev[j], curr[j-1])`；每次外层迭代后交换并清空两行。
-- **用法：**
-  ```dart
-  final lcs = 2.0 * _lcsLength(s1, s2) / (s1.length + s2.length);
-  ```
-  （`AnimeSearchService._similarity`，同一文件）
-- **备注：** 这里 O(n·m) 可接受，正是因为两个输入都是短的动画标题，不是任意长度的文本，按源码注释。
+- **算法：** 标准 O(n·m) 动态规划，使用两行滚动数组而非完整二维表。
+- **备注：** O(n·m) 之所以可接受，正是因为两个输入都是短的番剧标题，而不是任意长度的文本。
 
 ### `static Future<List<({String title, String url})>> _searchAnime1Single(String query)` <a id="searchanime1single"></a>
 - **种类：** `AnimeSearchService` 的静态方法
-- **来源：** `lib/features/anime/services/anime_search_service.dart`（第 620 行）
-- **用途：** 运行一次 `anime1.me` 搜索查询，从结果 HTML 提取系列（不是剧集）标题/URL 对，按优先级顺序尝试三个回退正则模式。
-- **输入：** `query`。
-- **返回：** `Future<List<({String title, String url})>>` — 非 200 响应时为 `[]`。
-- **副作用：** 对 `anime1.me` 一次 HTTP GET（10 秒超时）。
-- **算法：**
-  1. GET `https://anime1.me/?s=<urlencoded query>`；非 200 返回 `[]`。
-  2. 优先级 1：匹配带 `rel="...category..."` 标签的 `<a href="https://anime1.me/category/...">` 链接——这些是系列/合集页。
-  3. 优先级 2（只在优先级 1 一无所获时）：匹配 `<a href="https://anime1.me/?cat=<id>">` 链接。
-  4. 优先级 3（只在上面两个都一无所获时）：匹配 `<h2 class="...entry-title...">` 剧集帖链接，从标题剥离尾部 `" [<episode number>]"` 后缀，使同一系列的重复剧集坍缩为一个条目。
-  5. 每个模式按标题去重（`Set<String> seen`）并经 [`_decodeHtmlEntities`](#decodehtmlentities) 解码 HTML 实体。
-- **用法：**
-  ```dart
-  final partial = await _searchAnime1Single(q);
-  for (final r in partial) {
-    if (seenUrls.add(r.url)) {
-      allResults.add(r);
-    }
-  }
-  ```
-  （`AnimeSearchService.searchAnime1`，同一文件——每个查询变体调用一次）
-- **备注：** 三个优先级层存在是因为 `anime1.me` 的搜索结果页混着分类链接（干净的系列级结果）和单个剧集帖链接（优先级 3 的回退）——只在更干净的模式一无所获时下探，可避免在分类链接可用时浮出几十条重复的逐剧集条目。
+- **来源：** `lib/features/anime/services/anime_search_service.dart`（第 1581 行）
+- **用途：** 运行一次 `anime1.me` 搜索查询，从结果 HTML 中提取系列（而非单集）的标题/URL 对。
+- **返回：** `Future<List<({String title, String url})>>` —— 非 200 响应时返回 `[]`。
+- **副作用：** 向 `anime1.me` 发起一次 HTTP GET（10 秒超时）。
+- **算法：** 三种模式按优先级依次尝试——带 `rel="...category..."` 的分类链接；然后是 `?cat=<id>` 链接；最后是 `<h2 class="...entry-title...">` 单集文章链接，并剥掉结尾的 `" [<n>]"` 后缀。后一级只在前一级毫无所获时才运行；每一级都按标题去重并解码 HTML 实体。
+- **备注：** 分级存在是因为搜索页把干净的系列级分类链接与单集文章混在一起；只有在结果为空时才下沉，可以避免冒出几十条同系列的单集重复项。
 
 ### `static String _decodeHtmlEntities(String text)` <a id="decodehtmlentities"></a>
 - **种类：** `AnimeSearchService` 的静态方法
-- **来源：** `lib/features/anime/services/anime_search_service.dart`（第 695 行）
-- **用途：** 解码从 `filmarks.com` 和 `anime1.me` 抓取的标题中出现的小型固定 HTML 实体集。
-- **输入：** `text`。
+- **来源：** `lib/features/anime/services/anime_search_service.dart`（第 1656 行）
+- **用途：** 解码从 `filmarks.com` 与 `anime1.me` 抓取的标题中出现的少量固定 HTML 实体。
 - **返回：** `String`。
 - **副作用：** 无。
-- **算法：** 按固定顺序对 `&amp;`、`&lt;`、`&gt;`、`&quot;`、`&#39;`、`&apos;` 链式 `replaceAll`。
-- **用法：**
-  ```dart
-  titleJa: _decodeHtmlEntities(title),
-  ```
-  （`AnimeSearchService._searchFilmarks`，同一文件）
-- **备注：** 只处理这七个实体——`&#39;` 之外的数字字符引用（如 `&#8217;`）或此列表之外的命名实体原样通过、不转义。
+- **备注：** 只处理六个实体——`&#39;` 之外的数字字符引用（如 `&#8217;`）会原样透传而不被反转义。

@@ -399,4 +399,240 @@ void main() {
     expect(animeJson['rating'], {'futureCategory': 10});
     expect(animeJson['episodeStatuses'], {'1': 'watched', '2': 'futureStatus'});
   });
+
+  test('external metadata round-trips through JSON', () {
+    final anime = Anime.fromJson({
+      'id': 'anime-1',
+      'title': 'Frieren',
+      'season': 'Season 1',
+      'startEpisode': 1,
+      'endEpisode': 28,
+      'externalMeta': {
+        'synonyms': ['Frieren at the Funeral'],
+        'titleRomaji': 'Sousou no Frieren',
+        'titleEn': 'Frieren: Beyond Journey\'s End',
+        'format': 'TV',
+        'status': 'FINISHED',
+        'durationMinutes': 24,
+        'genres': ['Adventure', 'Drama'],
+        'studios': ['Madhouse'],
+        'endDate': '2024-03-22T00:00:00.000Z',
+        'ratings': [
+          {
+            'source': 'AniList',
+            'sourceUrl': 'https://anilist.co/anime/154587',
+            'score': 9.2,
+            'scoreMax': 10.0,
+            'votes': 300000,
+            'rank': 1,
+            'fetchedAt': '2026-08-26T12:00:00.000Z',
+          },
+        ],
+        'refreshedAt': '2026-08-26T12:00:00.000Z',
+      },
+      'createdAt': createdAt,
+      'modifiedAt': modifiedAt,
+    });
+
+    final meta = anime.externalMeta;
+    expect(meta?.titleRomaji, 'Sousou no Frieren');
+    expect(meta?.studios, ['Madhouse']);
+    expect(meta?.durationMinutes, 24);
+    expect(meta?.ratings.single.source, 'AniList');
+    expect(meta?.ratings.single.sourceUrl, 'https://anilist.co/anime/154587');
+    expect(meta?.ratings.single.score, 9.2);
+
+    final json = anime.toJson()['externalMeta'] as Map<String, dynamic>;
+    expect(json['synonyms'], ['Frieren at the Funeral']);
+    expect(json['genres'], ['Adventure', 'Drama']);
+    expect(json['refreshedAt'], '2026-08-26T12:00:00.000Z');
+    expect((json['ratings'] as List).single, {
+      'source': 'AniList',
+      'sourceUrl': 'https://anilist.co/anime/154587',
+      'score': 9.2,
+      'scoreMax': 10.0,
+      'votes': 300000,
+      'rank': 1,
+      'fetchedAt': '2026-08-26T12:00:00.000Z',
+    });
+  });
+
+  test('endDate keeps its calendar day instead of being shifted to UTC', () {
+    // `endDate` is a broadcast date, not an instant. It is written as local
+    // midnight, so normalizing it to UTC on read would push it behind midnight
+    // for every timezone east of UTC — Japan is UTC+9 — and `DateFormat.yMd()`
+    // would then render the previous day.
+    final meta = AnimeExternalMeta.fromJson({
+      'endDate': '2024-03-22T00:00:00.000',
+    });
+
+    expect(meta.endDate!.isUtc, isFalse);
+    expect(meta.endDate!.year, 2024);
+    expect(meta.endDate!.month, 3);
+    expect(meta.endDate!.day, 22);
+
+    // And the value must survive a save/load round-trip unchanged.
+    final reparsed = AnimeExternalMeta.fromJson(meta.toJson());
+    expect(reparsed.toJson()['endDate'], meta.toJson()['endDate']);
+    expect(reparsed.endDate, meta.endDate);
+  });
+
+  test('fetchedAt and refreshedAt are still normalized to UTC', () {
+    // These two are real instants compared across devices, so unlike endDate
+    // they must keep the repo-wide UTC rule.
+    final meta = AnimeExternalMeta.fromJson({
+      'refreshedAt': '2026-08-26T12:00:00.000Z',
+      'ratings': [
+        {'source': 'AniList', 'score': 9.2, 'fetchedAt': '2026-08-26T12:00:00.000Z'},
+      ],
+    });
+    expect(meta.refreshedAt!.isUtc, isTrue);
+    expect(meta.ratings.single.fetchedAt!.isUtc, isTrue);
+  });
+
+  test('an anime without external metadata omits the externalMeta key', () {
+    final anime = Anime.fromJson({
+      'id': 'anime-1',
+      'title': 'Plain',
+      'season': 'Season 1',
+      'startEpisode': 1,
+      'endEpisode': 12,
+      'createdAt': createdAt,
+      'modifiedAt': modifiedAt,
+    });
+
+    expect(anime.externalMeta, isNull);
+    expect(anime.toJson().containsKey('externalMeta'), isFalse);
+  });
+
+  test('external metadata preserves unknown and unparseable fields', () {
+    final anime = Anime.fromJson({
+      'id': 'anime-1',
+      'title': 'Future data',
+      'season': 'Season 1',
+      'startEpisode': 1,
+      'endEpisode': 12,
+      'externalMeta': {
+        'format': 'TV',
+        // Written by a newer build this version does not understand.
+        'futureField': {'source': 'newer-app'},
+        // Wrong shapes must survive verbatim rather than being dropped.
+        'genres': 'not-a-list',
+        'durationMinutes': 'twenty-four',
+        'ratings': [
+          {
+            'source': 'AniList',
+            'score': 9.2,
+            'fetchedAt': '2026-08-26T12:00:00.000Z',
+            'futureMetric': 7,
+          },
+        ],
+      },
+      'createdAt': createdAt,
+      'modifiedAt': modifiedAt,
+    });
+
+    expect(anime.externalMeta?.format, 'TV');
+    expect(anime.externalMeta?.genres, isEmpty);
+    expect(anime.externalMeta?.durationMinutes, isNull);
+
+    final json = anime.toJson()['externalMeta'] as Map<String, dynamic>;
+    expect(json['futureField'], {'source': 'newer-app'});
+    expect(json['genres'], 'not-a-list');
+    expect(json['durationMinutes'], 'twenty-four');
+    expect((json['ratings'] as List).single, containsPair('futureMetric', 7));
+  });
+
+  test('refreshing one source keeps what another source contributed', () {
+    final fetchedAt = DateTime.utc(2026, 8, 26, 12);
+    const existing = AnimeExternalMeta(
+      studios: ['Madhouse'],
+      format: 'TV',
+      ratings: [
+        AnimeExternalRating(
+          source: 'bangumi.tv',
+          sourceUrl: 'https://bgm.tv/subject/400602',
+          score: 8.6,
+        ),
+      ],
+    );
+    final refreshed = existing.mergedWith(
+      AnimeExternalMeta(
+        status: 'FINISHED',
+        ratings: [
+          AnimeExternalRating(
+            source: 'AniList',
+            sourceUrl: 'https://anilist.co/anime/154587',
+            score: 9.2,
+            fetchedAt: fetchedAt,
+          ),
+        ],
+      ),
+      refreshedAt: fetchedAt,
+    );
+
+    // The AniList fetch did not report studios, so Madhouse survives.
+    expect(refreshed.studios, ['Madhouse']);
+    expect(refreshed.format, 'TV');
+    expect(refreshed.status, 'FINISHED');
+    expect(refreshed.ratings, hasLength(2));
+    expect(refreshed.ratingFor('bangumi.tv')?.score, 8.6);
+    expect(refreshed.ratingFor('AniList')?.score, 9.2);
+    expect(refreshed.refreshedAt, fetchedAt);
+  });
+
+  test('refreshing the same source replaces its previous rating', () {
+    const existing = AnimeExternalMeta(
+      ratings: [AnimeExternalRating(source: 'AniList', score: 8.0, votes: 100)],
+    );
+    final refreshed = existing.mergedWith(
+      const AnimeExternalMeta(
+        ratings: [
+          AnimeExternalRating(source: 'AniList', score: 9.2, votes: 500),
+        ],
+      ),
+    );
+    expect(refreshed.ratings, hasLength(1));
+    expect(refreshed.ratingFor('AniList')?.score, 9.2);
+    expect(refreshed.ratingFor('AniList')?.votes, 500);
+  });
+
+  test('sync keeps unknown external metadata fields from the non-winning side', () {
+    final local = jsonEncode({
+      'animes': [
+        {
+          'id': 'anime-1',
+          'title': 'Local wins',
+          'season': 'Season 1',
+          'startEpisode': 1,
+          'endEpisode': 12,
+          'externalMeta': {'format': 'TV'},
+          'createdAt': createdAt,
+          'modifiedAt': '2026-01-03T00:00:00.000Z',
+        },
+      ],
+    });
+    final remote = jsonEncode({
+      'animes': [
+        {
+          'id': 'anime-1',
+          'title': 'Remote loses',
+          'season': 'Season 1',
+          'startEpisode': 1,
+          'endEpisode': 12,
+          'externalMeta': {'format': 'TV', 'futureMetric': 42},
+          'createdAt': createdAt,
+          'modifiedAt': '2026-01-02T00:00:00.000Z',
+        },
+      ],
+    });
+
+    final result = mergeAnimeData(local, remote, null, autoResolve: true);
+    final animeJson = result.merged.single.toJson();
+    final metaJson = animeJson['externalMeta'] as Map<String, dynamic>;
+
+    expect(animeJson['title'], 'Local wins');
+    expect(metaJson['format'], 'TV');
+    expect(metaJson['futureMetric'], 42);
+  });
 }

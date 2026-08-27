@@ -30,6 +30,21 @@
 
 观看状态（completed / watching / dropped / not-started）从 `episodeStatuses` 计算，不存储——派生规则见 [`../data-formats.md`](../data-formats.md)，在哪里显示见 [`../features/home-management-statistics.md`](home-management-statistics.md)。
 
+## 评分：你的与资料库的
+
+有两个评分概念并存，切不可混为一谈：
+
+- **`AnimeRating`** 是*用户自己*的评分——一个手动总分加五个分项分，在编辑页编辑，在详情页的评分卡片中
+  展示。它是唯一参与统计与本地 API 排行端点的评分。
+- **`externalMeta.ratings`** 保存各外部资料库的说法，每个来源一条，统一归一化到 10 分制，且每条都记住
+  自己的来源页面 URL。它展示在个人评分卡片*上方*的独立「资料库信息」卡片中，并附有说明文字，绝不参与
+  统计。
+
+没有任何路径会把外部评分写进 `AnimeRating`。应用搜索结果、或刷新某部番剧的资料库信息，都只改动
+`externalMeta` —— 用户自己的评分、观看进度与手动编辑保持原样。存储形态见
+[`../data-formats.md`](../data-formats.md#animeexternalmeta-与-animeexternalrating)，刷新流程见
+[`multi-source-search.md`](multi-source-search.md)。
+
 ## 本地存档
 
 与观看进度无关，每部动画可以携带一条可选的**本地下载存档**记录：是否保留了本地资源、其片源与分辨率、

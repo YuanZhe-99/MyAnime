@@ -155,15 +155,23 @@ server the app runs for other local/LAN tools to call, e.g. the desktop web dash
 - **Kind:** static method (route handler) of `LocalApiServer`.
 - **Source:** `lib/shared/services/local_api_server.dart` (line 206).
 - **Purpose:** Implement `POST /anime/search`: run a query through the multi-source search engine
-  and return up to 5 results.
-- **Inputs:** `request` — JSON body must contain a non-empty `query` string.
+  and return up to `limit` results (default 10).
+- **Inputs:** `request` — JSON body must contain a non-empty `query` string; optionally `language`
+  (a UI language tag such as `zh_TW`, forwarded as `preferredLanguage`) and `limit` (a positive
+  integer, default 10).
 - **Returns:** `Future<Response>` — `400` if the body is missing/invalid or `query` is empty/blank;
   otherwise `200` with a JSON array of result objects.
 - **Side effects:** Performs outbound HTTP requests via `AnimeSearchService.searchAll()` (see
   [../../features/multi-source-search.md](../../../features/multi-source-search.md)).
-- **Algorithm:** Parse and validate the body, call `AnimeSearchService.searchAll(query.trim())`,
-  take the first 5 results, and map each to a flat JSON object (`source`, `sourceUrl`, `title`,
-  `titleJa`, `episodes`, `firstAirDate`, `airDayOfWeek`, `airTime`, `coverImageUrl`, `summary`).
+- **Algorithm:** Parse and validate the body, call
+  `AnimeSearchService.searchAll(query.trim(), preferredLanguage: ...)`, take the first `limit`
+  results, and map each to a flat JSON object: `source`, `sourceUrl`, `title`, `titleJa`,
+  `titleRomaji`, `titleEn`, `synonyms`, `episodes`, `firstAirDate`, `airDayOfWeek`, `airTime`,
+  `endDate`, `format`, `status`, `durationMinutes`, `genres`, `studios`, `score`, `scoreMax`,
+  `scoreVotes`, `scoreRank`, `coverImageUrl`, `summary`.
+- **Compatibility:** 1.4.0 added the external-metadata keys and raised the default cap from 5 to
+  10. Every previously present key kept its name and meaning, so an older consumer is unaffected;
+  one that assumed exactly 5 results should pass `limit: 5`.
 - **Usage:** Called by any local/LAN HTTP client hitting `POST /anime/search`; this is the desktop
   API surface's only search entry point (distinct from the in-app search dialog, which calls
   `AnimeSearchService` directly).

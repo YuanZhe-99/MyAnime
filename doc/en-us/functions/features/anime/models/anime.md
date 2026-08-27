@@ -27,6 +27,8 @@ every view under `lib/features/anime/views/`.
 | [`_parseArchiveSource`](#parsearchivesource) | top-level function | A | Parse a JSON string into an `ArchiveSource`, or `null` if unrecognized. |
 | [`_parseArchiveResolution`](#parsearchiveresolution) | top-level function | A | Parse a JSON string into an `ArchiveResolution`, or `null` if unrecognized. |
 | [`_parseEpisodeStatus`](#parseepisodestatus) | top-level function | A | Parse a JSON string into an `EpisodeStatus`, or `null` if unrecognized. |
+| [`_parseStringList`](#parsestringlist) | top-level function | A | Parse a JSON value into a `List<String>`, or `null` if it isn't one. |
+| [`_parseUtcDateTime`](#parseutcdatetime) | top-level function | A | Parse a JSON string into a UTC `DateTime`, or `null`. |
 | [`AnimeRating(...)`](#animerating-new) | constructor (`AnimeRating`) | A | Create a personal rating value (manual overall + five sub-scores). |
 | `hasManualOverall` | getter (`AnimeRating`) | B | Whether `overall` is set. |
 | `hasAnyScore` | getter (`AnimeRating`) | B | Whether any of `overall`/`visual`/`story`/`character`/`music`/`enjoyment` is set. |
@@ -44,6 +46,18 @@ every view under `lib/features/anime/views/`.
 | [`withExtraJson`](#withextrajson-animelocalarchive) | method (`AnimeLocalArchive`) | A | Copy with `extraJson` replaced. |
 | [`toJson`](#tojson-animelocalarchive) | method (`AnimeLocalArchive`) | A | Serialize to the JSON shape stored under `Anime.localArchive`. |
 | [`AnimeLocalArchive.fromJson`](#animelocalarchive-fromjson) | factory constructor | A | Parse an archive record from JSON, routing unparseable values into `extraJson`. |
+| [`AnimeExternalRating(...)`](#animeexternalrating-new) | constructor (`AnimeExternalRating`) | A | Create one external database's score, with the URL it came from. |
+| `hasAnyData` | getter (`AnimeExternalRating`) | B | Whether there's a score, votes, rank, or preserved `extraJson`. |
+| [`withExtraJson`](#withextrajson-animeexternalrating) | method (`AnimeExternalRating`) | B | Copy with `extraJson` replaced. |
+| [`toJson`](#tojson-animeexternalrating) | method (`AnimeExternalRating`) | A | Serialize to one entry of `externalMeta.ratings`. |
+| [`AnimeExternalRating.fromJson`](#animeexternalrating-fromjson) | factory constructor | A | Parse one rating entry, routing unparseable values into `extraJson`. |
+| [`AnimeExternalMeta(...)`](#animeexternalmeta-new) | constructor (`AnimeExternalMeta`) | A | Create a public-metadata record pulled from external databases. |
+| `hasAnyData` | getter (`AnimeExternalMeta`) | B | Whether there's anything worth persisting. |
+| [`ratingFor`](#ratingfor) | method (`AnimeExternalMeta`) | A | Look up this record's rating for one source. |
+| [`mergedWith`](#mergedwith) | method (`AnimeExternalMeta`) | A | Fold freshly fetched metadata into this record. |
+| [`withExtraJson`](#withextrajson-animeexternalmeta) | method (`AnimeExternalMeta`) | B | Copy with `extraJson` replaced. |
+| [`toJson`](#tojson-animeexternalmeta) | method (`AnimeExternalMeta`) | A | Serialize to the JSON shape stored under `Anime.externalMeta`. |
+| [`AnimeExternalMeta.fromJson`](#animeexternalmeta-fromjson) | factory constructor | A | Parse an external-metadata record, routing unparseable values into `extraJson`. |
 | [`Anime(...)`](#anime-new) | constructor (`Anime`) | A | Create an anime record with all persisted fields. |
 | [`displayTitle`](#displaytitle) | getter (`Anime`) | A | Best available title: `title`, else `titleJa`, else empty string. |
 | [`totalEpisodes`](#totalepisodes) | getter (`Anime`) | A | `endEpisode - startEpisode + 1`, or `null` if open-ended. |
@@ -70,8 +84,8 @@ every view under `lib/features/anime/views/`.
 | [`toJson`](#tojson-animedata) | method (`AnimeData`) | A | Serialize to `{...extraJson, animes: [...]}`. |
 | [`AnimeData.fromJson`](#animedata-fromjson) | factory constructor | A | Parse the `{animes: [...]}` container from JSON. |
 
-Note on the verification count: the source file has 48 `/// Purpose:` doc comments, but this table
-has 49 rows — the `AnimeData` default constructor (line 1337) has no doc comment at all in source
+Note on the verification count: the source file has 62 `/// Purpose:` doc comments, but this table
+has 63 rows — the `AnimeData` default constructor has no doc comment at all in source
 (unlike every other constructor in this file), yet is still a real declaration and is indexed above
 (Tier B: a plain default-value constructor with no logic).
 
@@ -182,6 +196,24 @@ has 49 rows — the `AnimeData` default constructor (line 1337) has no doc comme
   ```
   (`AnimeLocalArchive.fromJson`, same file)
 - **Notes:** Enum names are storage identifiers, not display text — `uhd2160p`/`fhd1080p`/`hd720p`/`sd480p` render as `2160p`/`1080p`/`720p`/`480p` via `archiveResolutionLabel` in [`../views/archive_labels.md`](../views/archive_labels.md).
+
+### `List<String>? _parseStringList(Object? value)` <a id="parsestringlist"></a>
+- **Kind:** top-level function
+- **Source:** `lib/features/anime/models/anime.dart` (line 176)
+- **Purpose:** Parse a JSON value into a `List<String>`.
+- **Inputs:** `value`.
+- **Returns:** `List<String>?` — `null` when the value is not a list, or contains a non-string element.
+- **Side effects:** None.
+- **Notes:** Returning `null` rather than a best-effort partial list is deliberate: the caller uses `null` as the signal to preserve the original value verbatim in `extraJson` instead of dropping it. Silently keeping only the string elements would lose data.
+
+### `DateTime? _parseUtcDateTime(Object? value)` <a id="parseutcdatetime"></a>
+- **Kind:** top-level function
+- **Source:** `lib/features/anime/models/anime.dart` (line 192)
+- **Purpose:** Parse a JSON string into a UTC `DateTime`.
+- **Inputs:** `value`.
+- **Returns:** `DateTime?` — `null` for a non-string or an unparseable string.
+- **Side effects:** None.
+- **Notes:** Normalizes to UTC via `.toUtc()`, matching the repo-wide rule that anything compared across devices is stored in UTC.
 
 ### `EpisodeStatus? _parseEpisodeStatus(Object? value)` <a id="parseepisodestatus"></a>
 - **Kind:** top-level function
@@ -416,7 +448,98 @@ has 49 rows — the `AnimeData` default constructor (line 1337) has no doc comme
   record written by a newer build round-trips the newer build's values untouched. Covered by
   `test/anime_json_test.dart` ("local archive preserves unknown and unparseable fields").
 
-### `const Anime({required id, title, titleJa, season = 'Season 1', startEpisode = 1, endEpisode = 13, manualType, airDayOfWeek, airTime, firstAirDate, episodeStatuses = const {}, coverImage, infoUrl, watchUrl, episodeWeekOffsets = const {}, notes, rating, localArchive, required createdAt, required modifiedAt, extraJson = const {}})` <a id="anime-new"></a>
+### `const AnimeExternalRating({required source, sourceUrl, score, scoreMax = 10, votes, rank, fetchedAt, extraJson = const {}})` <a id="animeexternalrating-new"></a>
+- **Kind:** constructor of `AnimeExternalRating`
+- **Source:** `lib/features/anime/models/anime.dart` (line 637)
+- **Purpose:** Create one external database's score for an anime, together with the page URL it was read from.
+- **Inputs:** `source` required (the database's display name, e.g. `AniList`); `sourceUrl` is the refresh key; `scoreMax` defaults to `10`.
+- **Returns:** A new `AnimeExternalRating`.
+- **Side effects:** None.
+- **Notes:** Deliberately separate from [`AnimeRating`](#animerating-new). `AnimeRating` holds the *user's own* scores and is never written by a fetch; this type holds what external databases say. `fetchedAt` is nullable rather than defaulted so a record with no timestamp round-trips honestly instead of gaining a fabricated one.
+
+### `AnimeExternalRating withExtraJson(Map<String, dynamic> extraJson)` <a id="withextrajson-animeexternalrating"></a>
+- **Kind:** method of `AnimeExternalRating`
+- **Source:** `lib/features/anime/models/anime.dart` (line 661)
+- **Purpose:** Copy this rating with `extraJson` replaced.
+- **Returns:** `AnimeExternalRating`.
+- **Side effects:** None.
+
+### `Map<String, dynamic> toJson()` (`AnimeExternalRating`) <a id="tojson-animeexternalrating"></a>
+- **Kind:** method of `AnimeExternalRating`
+- **Source:** `lib/features/anime/models/anime.dart` (line 678)
+- **Purpose:** Serialize to one entry of `externalMeta.ratings`.
+- **Returns:** `Map<String, dynamic>`.
+- **Side effects:** None.
+- **Algorithm:** Starts from a copy of `extraJson`, then overlays `source`, and each of `sourceUrl`/`score`/`votes`/`rank`/`fetchedAt` when set — removing the key only when `extraJson` does not already carry it, so a preserved unknown value is never clobbered by a null field. `scoreMax` is always written. `fetchedAt` is written as a UTC ISO-8601 string.
+
+### `factory AnimeExternalRating.fromJson(Map<String, dynamic> json)` <a id="animeexternalrating-fromjson"></a>
+- **Kind:** factory constructor of `AnimeExternalRating`
+- **Source:** `lib/features/anime/models/anime.dart` (line 716)
+- **Purpose:** Parse one rating entry from JSON.
+- **Returns:** A new `AnimeExternalRating`.
+- **Side effects:** None.
+- **Algorithm:** Computes `extraJson` via `_unknownJson`, then reads each known key with a type check; any value present but of the wrong type is written back into `extraJson` rather than dropped. A missing or non-numeric `scoreMax` falls back to `10`.
+- **Notes:** Same discipline as [`AnimeLocalArchive.fromJson`](#animelocalarchive-fromjson) — a newer build's data must survive an older build's edits.
+
+### `const AnimeExternalMeta({synonyms = const [], titleRomaji, titleEn, format, status, durationMinutes, genres = const [], studios = const [], endDate, ratings = const [], refreshedAt, extraJson = const {}})` <a id="animeexternalmeta-new"></a>
+- **Kind:** constructor of `AnimeExternalMeta`
+- **Source:** `lib/features/anime/models/anime.dart` (line 826)
+- **Purpose:** Create a record of public metadata pulled from external anime databases.
+- **Returns:** A new `AnimeExternalMeta`.
+- **Side effects:** None.
+- **Notes:** Unlike [`AnimeLocalArchive`](#animelocalarchive-new), this is public information about the work rather than personal infrastructure, so it is **not** stripped from `.myanimeitem` share files — see the travel table in [`../../../../data-formats.md`](../../../../data-formats.md). `format` is descriptive metadata and must not be confused with `AnimeType`, which drives scheduling.
+
+### `AnimeExternalRating? ratingFor(String source)` <a id="ratingfor"></a>
+- **Kind:** method of `AnimeExternalMeta`
+- **Source:** `lib/features/anime/models/anime.dart` (line 865)
+- **Purpose:** Look up this record's rating for one source.
+- **Returns:** `AnimeExternalRating?` — `null` when the source has never been fetched.
+- **Side effects:** None.
+- **Notes:** `ratings` is a list rather than a map because JSON arrays round-trip more predictably and the list is never longer than the number of supported sources.
+
+### `AnimeExternalMeta mergedWith(AnimeExternalMeta other, {DateTime? refreshedAt})` <a id="mergedwith"></a>
+- **Kind:** method of `AnimeExternalMeta`
+- **Source:** `lib/features/anime/models/anime.dart` (line 879)
+- **Purpose:** Fold freshly fetched metadata into this record.
+- **Inputs:** `other` — the newly fetched record; `refreshedAt` — override for the resulting timestamp.
+- **Returns:** `AnimeExternalMeta`.
+- **Side effects:** None.
+- **Algorithm:** Ratings are keyed by `source` into a map, `other`'s entries overwriting this record's, so refreshing one source replaces only that source's entry. Synonyms are unioned. Every scalar field takes `other`'s value only when it is non-null; `genres`/`studios` take `other`'s only when non-empty. `extraJson` is deep-merged via `_mergeJsonMaps`.
+- **Usage:**
+  ```dart
+  merged = merged.mergedWith(
+    AnimeSearchService.toExternalMeta(result, fetchedAt: now),
+    refreshedAt: now,
+  );
+  ```
+  (`lib/features/anime/views/anime_detail_page.dart`, `_refreshExternalMeta`)
+- **Notes:** The "only when supplied" rule is the point of this method. AniList reports no studios for some titles; without it, refreshing against AniList would erase the studios bangumi.tv had contributed. Merging rather than replacing is also what lets the search dialog apply a second result from a different source without losing the first.
+
+### `AnimeExternalMeta withExtraJson(Map<String, dynamic> extraJson)` <a id="withextrajson-animeexternalmeta"></a>
+- **Kind:** method of `AnimeExternalMeta`
+- **Source:** `lib/features/anime/models/anime.dart` (line 911)
+- **Purpose:** Copy this record with `extraJson` replaced.
+- **Returns:** `AnimeExternalMeta`.
+- **Side effects:** None.
+
+### `Map<String, dynamic> toJson()` (`AnimeExternalMeta`) <a id="tojson-animeexternalmeta"></a>
+- **Kind:** method of `AnimeExternalMeta`
+- **Source:** `lib/features/anime/models/anime.dart` (line 932)
+- **Purpose:** Serialize to the JSON shape stored under `Anime.externalMeta`.
+- **Returns:** `Map<String, dynamic>`.
+- **Side effects:** None.
+- **Algorithm:** Starts from a copy of `extraJson`; local `writeString`/`writeList` helpers overlay each known key when it has a value, and remove it only when `extraJson` does not already carry that key. `endDate`/`refreshedAt` are written as UTC ISO-8601 strings, and `ratings` as an array of [`AnimeExternalRating.toJson`](#tojson-animeexternalrating) maps.
+
+### `factory AnimeExternalMeta.fromJson(Map<String, dynamic> json)` <a id="animeexternalmeta-fromjson"></a>
+- **Kind:** factory constructor of `AnimeExternalMeta`
+- **Source:** `lib/features/anime/models/anime.dart` (line 987)
+- **Purpose:** Parse an external-metadata record from JSON.
+- **Returns:** A new `AnimeExternalMeta`.
+- **Side effects:** None.
+- **Algorithm:** Local `readString`/`readList` helpers type-check each key and push anything of the wrong shape into `extraJson`. `ratings` entries that are maps are parsed through [`AnimeExternalRating.fromJson`](#animeexternalrating-fromjson) and kept when they carry data or a source name; non-map entries are collected back into `extraJson['ratings']`.
+- **Notes:** A `genres` value that is a string rather than a list survives verbatim in `extraJson` and re-serializes unchanged, so an older build cannot silently delete a newer build's shape change.
+
+### `const Anime({required id, title, titleJa, season = 'Season 1', startEpisode = 1, endEpisode = 13, manualType, airDayOfWeek, airTime, firstAirDate, episodeStatuses = const {}, coverImage, infoUrl, watchUrl, episodeWeekOffsets = const {}, notes, rating, localArchive, externalMeta, required createdAt, required modifiedAt, extraJson = const {}})` <a id="anime-new"></a>
 - **Kind:** constructor of `Anime`
 - **Source:** `lib/features/anime/models/anime.dart` (line 620)
 - **Purpose:** Construct an `Anime` record from every persisted field directly.
@@ -666,7 +789,7 @@ has 49 rows — the `AnimeData` default constructor (line 1337) has no doc comme
 - **Kind:** method of `Anime`
 - **Source:** `lib/features/anime/models/anime.dart` (line 922)
 - **Purpose:** Create a copy with selected fields replaced, using `clearXxx` boolean flags to explicitly null out an otherwise-nullable field (since passing `null` for a parameter is indistinguishable from "not supplied").
-- **Inputs:** One optional parameter per mutable field, plus `clearEndEpisode`/`clearManualType`/`clearAirDayOfWeek`/`clearAirTime`/`clearFirstAirDate`/`clearCoverImage`/`clearInfoUrl`/`clearWatchUrl`/`clearNotes`/`clearRating`/`clearLocalArchive` (all default `false`); `modifiedAt` optional (defaults to `DateTime.now().toUtc()` if not supplied).
+- **Inputs:** One optional parameter per mutable field, plus `clearEndEpisode`/`clearManualType`/`clearAirDayOfWeek`/`clearAirTime`/`clearFirstAirDate`/`clearCoverImage`/`clearInfoUrl`/`clearWatchUrl`/`clearNotes`/`clearRating`/`clearLocalArchive`/`clearExternalMeta` (all default `false`); `modifiedAt` optional (defaults to `DateTime.now().toUtc()` if not supplied).
 - **Returns:** A new `Anime`; `id`, `createdAt`, and `extraJson` are always carried over unchanged.
 - **Side effects:** None (though calling it without an explicit `modifiedAt` reads the current time).
 - **Algorithm:** For each nullable field with a `clearXxx` flag: if the flag is `true`, the field becomes `null`; else the supplied value is used if non-null, else the existing value is kept (`value ?? this.value`). Non-nullable fields (`season`, `startEpisode`) and `episodeStatuses`/`episodeWeekOffsets` just use `?? this.field` directly with no clear flag.

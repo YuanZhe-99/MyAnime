@@ -26,7 +26,10 @@ air-date/rollover and schedule-shift semantics this page exposes controls for.
 | `_AnimeDetailPageState.build` | method (`_AnimeDetailPageState`, widget build) | B | Build the detail page scaffold (cover, info, episode list). |
 | [`_toggleAllWatched`](#_toggleallwatched) | method (`_AnimeDetailPageState`) | A | Mark every tracked episode watched, or all unwatched if already complete. |
 | `_buildAbandonOrResume` | method (widget helper) | B | Render the "Abandon"/"Resume" action button for the episode list header. |
-| `_buildRatingCard` | method (widget helper) | B | Render the rating summary card. |
+| [`_refreshableUrls`](#_refreshableurls) | method (`_AnimeDetailPageState`) | A | List the source pages this anime can be refreshed from. |
+| [`_refreshExternalMeta`](#_refreshexternalmeta) | method (`_AnimeDetailPageState`) | A | Re-fetch external metadata from every remembered source page. |
+| [`_buildExternalMetaCard`](#_buildexternalmetacard) | method (widget helper) | A | Render the public metadata pulled from external databases. |
+| `_buildRatingCard` | method (widget helper) | B | Render the user's own rating summary card. |
 | `_buildLocalArchiveCard` | method (widget helper) | B | Render the read-only local-archive summary card. |
 | `_formatScore` | method (`_AnimeDetailPageState`) | B | Format a score as an integer when whole, else one decimal place. |
 | [`_abandonAnime`](#_abandonanime) | method (`_AnimeDetailPageState`) | A | Mark every remaining unwatched episode as skipped. |
@@ -192,6 +195,39 @@ air-date/rollover and schedule-shift semantics this page exposes controls for.
   (`_AnimeDetailPageState.build`, episode list header)
 - **Notes:** Overwrites every episode's status unconditionally in one direction — any individually
   `skippedThisWeek` episodes are also swept into `watched`/`unwatched` by this action.
+
+### `List<String> _refreshableUrls(Anime anime)` <a id="_refreshableurls"></a>
+- **Kind:** method of `_AnimeDetailPageState`
+- **Source:** `lib/features/anime/views/anime_detail_page.dart` (line 616)
+- **Purpose:** List the source pages this anime can be refreshed from.
+- **Inputs:** `anime`.
+- **Returns:** `List<String>` — deduplicated, blanks dropped.
+- **Side effects:** None.
+- **Algorithm:** Unions `infoUrl` with the `sourceUrl` of every entry in `externalMeta.ratings`.
+- **Notes:** Combining both is what makes a record built from several sources refresh all of them. It also doubles as the visibility test for the refresh chip: an empty list means there is nothing to re-query, so the chip is not rendered at all.
+
+### `Future<void> _refreshExternalMeta(Anime anime)` <a id="_refreshexternalmeta"></a>
+- **Kind:** method of `_AnimeDetailPageState`
+- **Source:** `lib/features/anime/views/anime_detail_page.dart` (line 635)
+- **Purpose:** Re-fetch external metadata from every remembered source page.
+- **Inputs:** `anime`.
+- **Returns:** None.
+- **Side effects:** Issues HTTP requests via `AnimeSearchService.refreshAll`, writes the updated anime through `AnimeStorage.addOrUpdate`, reloads the page, and shows a snack bar with the outcome.
+- **Algorithm:**
+  1. Bail out with a "no refreshable source" message when [`_refreshableUrls`](#_refreshableurls) is empty.
+  2. `await AnimeSearchService.refreshAll(urls)`; a fully empty result is reported the same way rather than treated as success.
+  3. Fold each fetched result into the existing `externalMeta` with `AnimeExternalMeta.mergedWith`, stamping one shared UTC `now` as both `fetchedAt` and `refreshedAt`.
+  4. Save via `copyWith(externalMeta: merged, modifiedAt: now)`, reload, and confirm.
+- **Notes:** **Only external metadata is touched.** The user's own `rating`, episode progress, and manual edits are left exactly as they are — that separation is the whole reason external scores live in `externalMeta.ratings` rather than in `AnimeRating`. Callers must gate on `AppFlavor.isFull`, since store builds do not ship online lookups; see [`../../../../features/multi-source-search.md`](../../../../features/multi-source-search.md).
+
+### `Widget _buildExternalMetaCard(AnimeExternalMeta meta, ThemeData theme, AppLocalizations l10n)` <a id="_buildexternalmetacard"></a>
+- **Kind:** method of `_AnimeDetailPageState` (widget helper)
+- **Source:** `lib/features/anime/views/anime_detail_page.dart` (line 691)
+- **Purpose:** Render the public metadata pulled from external databases.
+- **Returns:** `Widget`.
+- **Side effects:** None.
+- **Algorithm:** A card headed by the source icon, the section title, and the localized `refreshedAt` date; then a label/value row for each supplied field (format, status, duration, last air date, studios, genres, alternate titles); then, when any rating has a score, a divider, the "external ratings" heading, an explanatory line, and one chip per source showing `source score/max · votes`.
+- **Notes:** Sits directly above the personal rating card and is styled to read as a separate block on purpose — the explanatory line under the ratings heading exists so nobody mistakes an external score for their own. The card itself is **not** flavor-gated: displaying already-synced data is not a network feature, and a store build can legitimately receive this data through WebDAV sync or an imported share file.
 
 ### `Future<void> _abandonAnime()` <a id="_abandonanime"></a>
 - **Kind:** method of `_AnimeDetailPageState`

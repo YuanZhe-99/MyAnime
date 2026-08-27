@@ -137,15 +137,17 @@ and episode air-date computation.
 - **Returns:** `Future<void>`.
 - **Side effects:** Shows a dialog that performs network requests; `setState`s any of
   `_titleController`, `_titleJaController`, `_endEpController`, `_firstAirDate`, `_airDayOfWeek`,
-  `_airTimeController`, `_notesController`, `_coverImage`, `_infoUrlController`.
+  `_airTimeController`, `_notesController`, `_coverImage`, `_infoUrlController`, `_externalMeta`.
 - **Algorithm:**
   1. Use the title controller's text if non-empty, else the Japanese title, as the initial query.
   2. Await `showAnimeSearchDialog(...)`, passing every current form value as a `currentXxx`
      parameter (so the dialog can show "current vs. fetched" comparisons).
   3. If a non-null result map comes back, apply each key present in the map to its matching
-     controller/field — each of the nine possible keys (`title`, `titleJa`, `endEpisode`,
-     `firstAirDate`, `airDayOfWeek`, `airTime`, `notes`, `coverImage`, `infoUrl`) is checked and
-     applied independently via `result.containsKey(...)`.
+     controller/field — each of the ten possible keys (`title`, `titleJa`, `endEpisode`,
+     `firstAirDate`, `airDayOfWeek`, `airTime`, `notes`, `coverImage`, `infoUrl`, `externalMeta`)
+     is checked and applied independently via `result.containsKey(...)`. `externalMeta` is held in
+     `_externalMeta` rather than a form controller — it is never typed by hand — and is written
+     out with the record in `_save()`.
 - **Usage:**
   ```dart
   if (AppFlavor.isFull)

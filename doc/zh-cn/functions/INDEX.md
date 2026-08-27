@@ -2,13 +2,21 @@
 
 这是 MyAnime 仓库中 `lib/` 手写函数解释层文档的顶层索引。每行链接到 `doc/en-us/functions/` 下镜像 `lib/` 树的逐源文件页面（`.dart` 换成 `.md`）。
 
-**总计：** 仓库的 `/// Purpose:` 注释数为 **682**（按 `AGENTS.md` 中的函数解释层约定，排除生成的 `lib/l10n/` 代码——见 [l10n/INDEX.md](l10n/INDEX.md)）。本索引记录 **685** 个声明——比 682 多 3 个——因为三个真实声明（`anime.dart` 中 `AnimeData` 的默认构造函数；`anime_search_service.dart` 中的 `_searchAnime1Single`；以及那些页面上的一个另行说明的情况）在源码中完全没有 `///` 文档注释，但仍是真实、已记录的声明。每个这种情况都在其文件页面和下方的 `features/` 小节中明确说明；没有任何东西被静默编造来凑整。
+**总计：** 仓库的 `/// Purpose:` 注释数为 **688**（按 `AGENTS.md` 中的函数解释层约定，排除生成的 `lib/l10n/` 代码——见 [l10n/INDEX.md](l10n/INDEX.md)）。下方各行合计 **678** 个已记录声明。
 
 | Tier | 计数 |
 |---|---|
-| Tier A（完整条目：Purpose/Inputs/Returns/Side effects/Algorithm/Usage/Notes） | 452 |
-| Tier B（仅索引行） | 233 |
-| **总计** | **685** |
+| Tier A（完整条目：Purpose/Inputs/Returns/Side effects/Algorithm/Usage/Notes） | 437 |
+| Tier B（仅索引行） | 241 |
+| **总计** | **678** |
+
+**已知缺口。** 这两个数字并不相等：有 10 个声明在源码中带 `/// Purpose:` 注释但此处没有对应行，因此本索引对 `lib/` 的覆盖少了这么多。该缺口分布不均，且尚未逐文件审计。另有两个文件方向相反，比其源码的 `Purpose:` 注释数多出一行——见下方 `features/` 小节的说明。
+
+这些总计在 1.4.0 中已对照真实源码树重新计算。此前的数字（682 个 `Purpose:` 注释与 685 个已记录声明）与源码以及本文件自身的逐文件行都已严重偏离——当时逐文件行合计仅为 615。若要改动这些数字，请测量而不要手工调整：
+
+```bash
+find lib -name "*.dart" -not -path "lib/l10n/*" | xargs grep -h '/// Purpose:' | wc -l
+```
 
 ## 根（`lib/`）
 
@@ -32,19 +40,19 @@
 
 | 源文件 | 页面 | 声明数 | Tier A 计数 |
 |---|---|---|---|
-| `lib/features/anime/models/anime.dart` | [features/anime/models/anime.md](features/anime/models/anime.md) | 49 | 42 |
+| `lib/features/anime/models/anime.dart` | [features/anime/models/anime.md](features/anime/models/anime.md) | 63 | 52 |
 | `lib/features/anime/services/anime_storage.dart` | [features/anime/services/anime_storage.md](features/anime/services/anime_storage.md) | 27 | 27 |
-| `lib/features/anime/services/anime_search_service.dart` | [features/anime/services/anime_search_service.md](features/anime/services/anime_search_service.md) | 16 | 16 |
-| `lib/features/anime/views/anime_detail_page.dart` | [features/anime/views/anime_detail_page.md](features/anime/views/anime_detail_page.md) | 21 | 8 |
+| `lib/features/anime/services/anime_search_service.dart` | [features/anime/services/anime_search_service.md](features/anime/services/anime_search_service.md) | 49 | 33 |
+| `lib/features/anime/views/anime_detail_page.dart` | [features/anime/views/anime_detail_page.md](features/anime/views/anime_detail_page.md) | 24 | 11 |
 | `lib/features/anime/views/anime_edit_page.dart` | [features/anime/views/anime_edit_page.md](features/anime/views/anime_edit_page.md) | 25 | 9 |
-| `lib/features/anime/views/anime_search_dialog.dart` | [features/anime/views/anime_search_dialog.md](features/anime/views/anime_search_dialog.md) | 19 | 5 |
+| `lib/features/anime/views/anime_search_dialog.dart` | [features/anime/views/anime_search_dialog.md](features/anime/views/anime_search_dialog.md) | 32 | 16 |
 | `lib/features/anime/views/archive_labels.dart` | [features/anime/views/archive_labels.md](features/anime/views/archive_labels.md) | 3 | 3 |
 | `lib/features/anime/views/home_page.dart` | [features/anime/views/home_page.md](features/anime/views/home_page.md) | 22 | 9 |
 | `lib/features/anime/views/management_page.dart` | [features/anime/views/management_page.md](features/anime/views/management_page.md) | 22 | 10 |
 | `lib/features/anime/views/quarter_picker_dialog.dart` | [features/anime/views/quarter_picker_dialog.md](features/anime/views/quarter_picker_dialog.md) | 5 | 1 |
 | `lib/features/anime/views/statistics_page.dart` | [features/anime/views/statistics_page.md](features/anime/views/statistics_page.md) | 66 | 27 |
 
-注意：`anime.dart` 和 `anime_search_service.dart` 各比其源码的 `Purpose:` 注释数多一行——`AnimeData` 默认构造函数和 `_searchAnime1Single` 在源码中分别没有文档注释，但仍是真实、已记录的声明（见各页面自己的说明）。
+注意：`anime.dart` 和 `anime_search_service.dart` 各比其源码的 `Purpose:` 注释数多一行——`AnimeData` 默认构造函数在源码中完全没有文档注释，而 `searchAnime1` 带的是普通（非 `Purpose:`）注释。两者都是真实、已记录的声明（见各页面自己的说明）。自 1.4.0 起 `_searchAnime1Single` 已有 `Purpose:` 注释，因此不再属于这类情况。
 
 ## features/kana/
 
@@ -63,7 +71,7 @@
 
 ## l10n/
 
-`lib/l10n/` 已在 [l10n/INDEX.md](l10n/INDEX.md) 中记录（生成代码，不属于上面 675/678 个手写声明）。
+`lib/l10n/` 已在 [l10n/INDEX.md](l10n/INDEX.md) 中记录（生成代码，不属于上面 678 个手写声明）。
 
 ## shared/
 
@@ -98,11 +106,11 @@
 | 区域 | 文件 | 声明数 | Tier A | Tier B |
 |---|---|---|---|---|
 | 根（`lib/`） | 1 | 1 | 1 | 0 |
-| `app/` | 4 | 7 | 2 | 5 |
-| `features/anime/` | 11 | 272 | 155 | 117 |
+| `app/` | 5 | 18 | 13 | 5 |
+| `features/anime/` | 11 | 338 | 198 | 140 |
 | `features/kana/` | 1 | 19 | 3 | 16 |
 | `features/settings/` | 4 | 45 | 24 | 21 |
-| `shared/`（utils/widgets/providers） | 8 | 42 | 27 | 15 |
-| `shared/services/` | 14 | 270 | 222 | 48 |
+| `shared/`（utils/widgets/providers） | 8 | 46 | 31 | 15 |
+| `shared/services/` | 14 | 189 | 155 | 34 |
 | `shared/views/` | 1 | 22 | 12 | 10 |
-| **总计** | **44** | **678** | **446** | **232** |
+| **总计** | **45** | **678** | **437** | **241** |

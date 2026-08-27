@@ -17,7 +17,10 @@
 | `_AnimeDetailPageState.build` | 方法（`_AnimeDetailPageState`，组件构建） | B | 构建详情页脚手架（封面、信息、剧集列表）。 |
 | [`_toggleAllWatched`](#_toggleallwatched) | 方法（`_AnimeDetailPageState`） | A | 把每个被跟踪剧集标记为已看，已完整时则全部标记为未看。 |
 | `_buildAbandonOrResume` | 方法（组件辅助） | B | 渲染剧集列表页头的"放弃"/"恢复"操作按钮。 |
-| `_buildRatingCard` | 方法（组件辅助） | B | 渲染评分摘要卡片。 |
+| [`_refreshableUrls`](#_refreshableurls) | 方法（`_AnimeDetailPageState`） | A | 列出这部番剧可用于刷新的来源页面。 |
+| [`_refreshExternalMeta`](#_refreshexternalmeta) | 方法（`_AnimeDetailPageState`） | A | 从每个已记住的来源页面重新抓取外部元数据。 |
+| [`_buildExternalMetaCard`](#_buildexternalmetacard) | 方法（组件辅助） | A | 渲染从外部资料库拉取的公开元数据。 |
+| `_buildRatingCard` | 方法（组件辅助） | B | 渲染用户自己的评分摘要卡片。 |
 | `_buildLocalArchiveCard` | 方法（组件辅助） | B | 渲染只读的本地存档摘要卡片。 |
 | `_formatScore` | 方法（`_AnimeDetailPageState`） | B | 分数为整数时格式化为整数，否则保留一位小数。 |
 | [`_abandonAnime`](#_abandonanime) | 方法（`_AnimeDetailPageState`） | A | 把每个剩余未看剧集标记为跳过。 |
@@ -153,6 +156,39 @@
   ```
   （`_AnimeDetailPageState.build`，剧集列表页头）
 - **备注：** 无条件地向一个方向覆盖每集状态——任何单独 `skippedThisWeek` 的剧集也会被这个操作扫进 `watched`/`unwatched`。
+
+### `List<String> _refreshableUrls(Anime anime)` <a id="_refreshableurls"></a>
+- **种类：** `_AnimeDetailPageState` 的方法
+- **来源：** `lib/features/anime/views/anime_detail_page.dart`（第 616 行）
+- **用途：** 列出这部番剧可用于刷新的来源页面。
+- **输入：** `anime`。
+- **返回：** `List<String>` —— 已去重、已丢弃空串。
+- **副作用：** 无。
+- **算法：** 把 `infoUrl` 与 `externalMeta.ratings` 中每条记录的 `sourceUrl` 取并集。
+- **备注：** 两者合并正是让由多个来源构建的记录能全部刷新的原因。它同时兼作刷新 chip 的显示判据：列表为空说明无可重新查询的对象，此时该 chip 根本不渲染。
+
+### `Future<void> _refreshExternalMeta(Anime anime)` <a id="_refreshexternalmeta"></a>
+- **种类：** `_AnimeDetailPageState` 的方法
+- **来源：** `lib/features/anime/views/anime_detail_page.dart`（第 635 行）
+- **用途：** 从每个已记住的来源页面重新抓取外部元数据。
+- **输入：** `anime`。
+- **返回：** 无。
+- **副作用：** 经 `AnimeSearchService.refreshAll` 发起 HTTP 请求，经 `AnimeStorage.addOrUpdate` 写入更新后的番剧，重新加载页面，并用 SnackBar 提示结果。
+- **算法：**
+  1. [`_refreshableUrls`](#_refreshableurls) 为空时，以「没有可用于刷新的来源」提示直接返回。
+  2. `await AnimeSearchService.refreshAll(urls)`；结果整体为空时同样如此提示，而不是当作成功。
+  3. 用 `AnimeExternalMeta.mergedWith` 把每条抓取结果折叠进已有的 `externalMeta`，并以同一个 UTC `now` 同时作为 `fetchedAt` 与 `refreshedAt`。
+  4. 经 `copyWith(externalMeta: merged, modifiedAt: now)` 保存、重新加载并提示。
+- **备注：** **只有外部元数据会被改动。** 用户自己的 `rating`、观看进度与手动编辑保持原样——这种分离正是外部评分存放在 `externalMeta.ratings` 而非 `AnimeRating` 的全部理由。调用方必须门禁在 `AppFlavor.isFull` 之后，因为商店构建不包含在线查询；见 [`../../../../features/multi-source-search.md`](../../../../features/multi-source-search.md)。
+
+### `Widget _buildExternalMetaCard(AnimeExternalMeta meta, ThemeData theme, AppLocalizations l10n)` <a id="_buildexternalmetacard"></a>
+- **种类：** `_AnimeDetailPageState` 的方法（组件辅助）
+- **来源：** `lib/features/anime/views/anime_detail_page.dart`（第 691 行）
+- **用途：** 渲染从外部资料库拉取的公开元数据。
+- **返回：** `Widget`。
+- **副作用：** 无。
+- **算法：** 卡片顶部是来源图标、区块标题与本地化的 `refreshedAt` 日期；随后为每个已提供字段渲染一行标签/值（作品形式、播出状态、时长、完结日期、制作公司、类型标签、别名）；最后，当任一评分有分值时，加一条分隔线、「外部评分」标题、一行说明文字，以及每个来源一个显示 `来源 评分/满分 · 票数` 的 chip。
+- **备注：** 它刻意紧邻个人评分卡片上方，并在视觉上作为独立区块呈现——评分标题下的说明文字存在的意义，就是让人不会把外部评分误认成自己的评分。卡片本身**不**做 flavor 门禁：展示已经同步过来的数据不属于网络功能，而商店构建完全可能通过 WebDAV 同步或导入的分享文件正当地拿到这些数据。
 
 ### `Future<void> _abandonAnime()` <a id="_abandonanime"></a>
 - **种类：** `_AnimeDetailPageState` 的方法
