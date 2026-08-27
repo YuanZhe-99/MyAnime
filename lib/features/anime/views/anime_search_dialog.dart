@@ -110,6 +110,7 @@ class _SearchDialogState extends State<_SearchDialog> {
   List<String> _queryVariants = const [];
   String? _searchLanguage;
   bool _searching = false;
+  AnimeSearchProgress? _progress;
   String? _error;
 
   // Result list controls
@@ -161,6 +162,7 @@ class _SearchDialogState extends State<_SearchDialog> {
 
     setState(() {
       _searching = true;
+      _progress = null;
       _error = null;
       _results = [];
       _hiddenSources.clear();
@@ -172,9 +174,13 @@ class _SearchDialogState extends State<_SearchDialog> {
       final results = await AnimeSearchService.searchAll(
         query,
         preferredLanguage: language,
+        onProgress: (progress) {
+          if (mounted) setState(() => _progress = progress);
+        },
       );
       if (!mounted) return;
       setState(() {
+        _progress = null;
         _results = results;
         _queryVariants = AnimeSearchService.queryVariants(query);
         _searchLanguage = language;
@@ -187,6 +193,7 @@ class _SearchDialogState extends State<_SearchDialog> {
       if (!mounted) return;
       setState(() {
         _searching = false;
+        _progress = null;
         _error = e.toString();
       });
     }
@@ -630,7 +637,7 @@ class _SearchDialogState extends State<_SearchDialog> {
   /// Notes: Internal helper used within this file only.
   Widget _buildSearchResults(AppLocalizations l10n) {
     if (_searching) {
-      return const Center(child: CircularProgressIndicator());
+      return _buildSearchProgress(l10n);
     }
     if (_error != null) {
       return Center(
@@ -667,6 +674,95 @@ class _SearchDialogState extends State<_SearchDialog> {
       itemCount: visible.length,
       padding: const EdgeInsets.only(bottom: 8),
       itemBuilder: (_, i) => _resultTile(l10n, visible[i]),
+    );
+  }
+
+  /// Purpose: Show which sources have answered while a search is running.
+  /// Inputs: `l10n`.
+  /// Returns: `Widget`.
+  /// Side effects: None.
+  /// Notes: Internal helper used within this file only. A search can take half
+  /// a minute — each source has its own 10–15 second timeout, and sources that
+  /// come back empty are queried again with titles harvested from the first
+  /// round. A bare spinner over that is indistinguishable from a hang, so each
+  /// source reports itself as it lands and the slow one is visible by name.
+  Widget _buildSearchProgress(AppLocalizations l10n) {
+    final theme = Theme.of(context);
+    final progress = _progress;
+    if (progress == null || progress.total == 0) {
+      return const Center(child: CircularProgressIndicator());
+    }
+    final label = progress.round >= 2
+        ? l10n.searchProgressRound2(progress.done, progress.total)
+        : l10n.searchProgressRound1(progress.done, progress.total);
+
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(24, 32, 24, 24),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          LinearProgressIndicator(value: progress.fraction),
+          const SizedBox(height: 12),
+          Text(label, style: theme.textTheme.bodyMedium),
+          const SizedBox(height: 12),
+          Wrap(
+            spacing: 8,
+            runSpacing: 4,
+            children: [
+              for (final source in progress.sources)
+                _sourceChip(l10n, theme, progress, source),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// Purpose: Render one source's state during a search.
+  /// Inputs: `l10n`, `theme`, `progress`, `source`.
+  /// Returns: `Widget`.
+  /// Side effects: None.
+  /// Notes: Internal helper used within this file only. A source that threw and
+  /// a source that legitimately found nothing look different here, because they
+  /// mean different things to someone deciding whether to search again.
+  Widget _sourceChip(
+    AppLocalizations l10n,
+    ThemeData theme,
+    AnimeSearchProgress progress,
+    String source,
+  ) {
+    final pending = progress.isPending(source);
+    final failed = progress.failed.contains(source);
+    final count = progress.counts[source];
+
+    Widget leading;
+    if (pending) {
+      leading = const SizedBox(
+        width: 12,
+        height: 12,
+        child: CircularProgressIndicator(strokeWidth: 2),
+      );
+    } else if (failed) {
+      leading = Icon(
+        Icons.error_outline,
+        size: 14,
+        color: theme.colorScheme.error,
+      );
+    } else {
+      leading = const Icon(Icons.check, size: 14);
+    }
+
+    final trailing = pending
+        ? ''
+        : failed
+        ? ' · ${l10n.searchSourceFailed}'
+        : ' · ${l10n.searchSourceCount(count ?? 0)}';
+
+    return Chip(
+      avatar: leading,
+      label: Text('$source$trailing', style: theme.textTheme.labelSmall),
+      visualDensity: VisualDensity.compact,
+      materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
     );
   }
 

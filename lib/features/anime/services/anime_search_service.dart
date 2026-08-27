@@ -222,8 +222,73 @@ class AnimeSearchSource {
   static const all = [bangumi, mal, anilist, acgsecrets, filmarks];
 }
 
+/// Live progress of one round of [AnimeSearchService.searchAll].
+///
+/// A search is slow for a reason worth showing: each source has its own 10–15
+/// second timeout, and sources that come back empty are queried a second time
+/// with titles harvested from the first round. Without this a user watches a
+/// bare spinner for up to half a minute with no way to tell work from a hang.
+///
+/// Each round reports **its own denominator** — the second round only re-queries
+/// the sources that found nothing — so the bar fills twice rather than jumping
+/// backwards when the total grows mid-search.
+class AnimeSearchProgress {
+  /// 1 for the first pass, 2 for the cross-language backfill pass.
+  final int round;
+
+  /// The sources this round actually queries, in display order.
+  final List<String> sources;
+
+  /// Result count per source, for the sources that have answered.
+  final Map<String, int> counts;
+
+  /// Sources whose request threw or timed out.
+  final Set<String> failed;
+
+  /// Purpose: Create an immutable search progress snapshot.
+  /// Inputs: `round`, `sources`, `counts`, `failed`.
+  /// Returns: A new `AnimeSearchProgress` instance.
+  /// Side effects: None.
+  /// Notes: None.
+  const AnimeSearchProgress({
+    required this.round,
+    required this.sources,
+    this.counts = const {},
+    this.failed = const {},
+  });
+
+  /// Purpose: Count the sources that have answered.
+  /// Inputs: None.
+  /// Returns: `int`.
+  /// Side effects: None.
+  /// Notes: A failed source counts as answered — it is no longer being waited on.
+  int get done => counts.length;
+
+  /// Purpose: Count the sources this round is waiting on in total.
+  /// Inputs: None.
+  /// Returns: `int`.
+  /// Side effects: None.
+  /// Notes: None.
+  int get total => sources.length;
+
+  /// Purpose: Return the completed fraction of this round.
+  /// Inputs: None.
+  /// Returns: `double?` in 0..1, or `null` when no source is being queried.
+  /// Side effects: None.
+  /// Notes: Bind this to a `LinearProgressIndicator.value` directly.
+  double? get fraction =>
+      total > 0 ? (done / total).clamp(0.0, 1.0).toDouble() : null;
+
+  /// Purpose: Report whether one source is still being waited on.
+  /// Inputs: `source`.
+  /// Returns: `bool`.
+  /// Side effects: None.
+  /// Notes: None.
+  bool isPending(String source) => !counts.containsKey(source);
+}
+
 class AnimeSearchService {
-  static const _userAgent = 'MyAnime/1.5.0 (anime tracker)';
+  static const _userAgent = 'MyAnime/1.5.1 (anime tracker)';
 
   /// Maximum results requested from, and kept per, each individual source.
   static const _maxPerSource = 10;
@@ -244,7 +309,9 @@ class AnimeSearchService {
 
   /// Purpose: Search all sources in parallel and return combined results.
   /// Inputs: `query`; `preferredLanguage` — the UI language tag (e.g. `zh_TW`,
-  /// `ja`); results carrying a title in that language win a near-tie.
+  /// `ja`); results carrying a title in that language win a near-tie;
+  /// `onProgress` — optional, receives an [AnimeSearchProgress] when each round
+  /// starts and again as each source answers.
   /// Returns: `Future<List<AnimeSearchResult>>`.
   /// Side effects: Issues HTTP requests to five external services concurrently,
   /// and to a subset of them a second time when cross-language backfill runs.
@@ -257,6 +324,7 @@ class AnimeSearchService {
   static Future<List<AnimeSearchResult>> searchAll(
     String query, {
     String? preferredLanguage,
+    void Function(AnimeSearchProgress)? onProgress,
   }) async {
     final variants = queryVariants(query);
 
@@ -265,6 +333,7 @@ class AnimeSearchService {
       acgsecretsQuery: ChineseConvert.toTraditional(query),
       filmarksQuery: query,
       globalQuery: query,
+      onProgress: onProgress,
     );
 
     final combined = <String, List<AnimeSearchResult>>{...firstRound};
@@ -294,6 +363,8 @@ class AnimeSearchService {
           anilistQuery: emptySources.contains(AnimeSearchSource.anilist)
               ? backfill.latin ?? backfill.japanese
               : null,
+          round: 2,
+          onProgress: onProgress,
         );
         for (final entry in secondRound.entries) {
           combined[entry.key] = [
@@ -478,7 +549,9 @@ class AnimeSearchService {
 
   /// Purpose: Query the requested sources once, in parallel, tolerating failures.
   /// Inputs: `bangumiQuery`, `acgsecretsQuery`, `filmarksQuery`, `globalQuery`,
-  /// `malQuery`, `anilistQuery`.
+  /// `malQuery`, `anilistQuery`; `round` labels the emitted progress and
+  /// `onProgress` receives one snapshot when the round starts and one more as
+  /// each source answers.
   /// Returns: `Future<Map<String, List<AnimeSearchResult>>>` keyed by source name.
   /// Side effects: One HTTP request per non-null, non-blank query.
   /// Notes: Internal helper used within this file only. `globalQuery` is the
@@ -492,24 +565,82 @@ class AnimeSearchService {
     required String? globalQuery,
     String? malQuery,
     String? anilistQuery,
+    int round = 1,
+    void Function(AnimeSearchProgress)? onProgress,
   }) async {
+    final active = <String>[];
+    final counts = <String, int>{};
+    final failed = <String>{};
+
+    void emit() {
+      onProgress?.call(
+        AnimeSearchProgress(
+          round: round,
+          sources: List.unmodifiable(active),
+          counts: Map.unmodifiable(counts),
+          failed: Set.unmodifiable(failed),
+        ),
+      );
+    }
+
     Future<List<AnimeSearchResult>> run(
+      String source,
       String? query,
       Future<List<AnimeSearchResult>> Function(String) fetch,
     ) {
       if (query == null || query.trim().isEmpty) {
         return Future.value(const <AnimeSearchResult>[]);
       }
-      return fetch(query.trim()).catchError((_) => <AnimeSearchResult>[]);
+      active.add(source);
+      return fetch(query.trim())
+          .then((results) {
+            counts[source] = results.length;
+            emit();
+            return results;
+          })
+          .catchError((Object _) {
+            // A source that threw and a source that found nothing are very
+            // different things to a user staring at a slow dialog, so the
+            // failure is recorded rather than flattened into "0 results".
+            counts[source] = 0;
+            failed.add(source);
+            emit();
+            return <AnimeSearchResult>[];
+          });
     }
 
     final futures = <String, Future<List<AnimeSearchResult>>>{
-      AnimeSearchSource.bangumi: run(bangumiQuery, _searchBangumi),
-      AnimeSearchSource.mal: run(malQuery ?? globalQuery, _searchMAL),
-      AnimeSearchSource.anilist: run(anilistQuery ?? globalQuery, _searchAniList),
-      AnimeSearchSource.acgsecrets: run(acgsecretsQuery, _searchAcgsecrets),
-      AnimeSearchSource.filmarks: run(filmarksQuery, _searchFilmarks),
+      AnimeSearchSource.bangumi: run(
+        AnimeSearchSource.bangumi,
+        bangumiQuery,
+        _searchBangumi,
+      ),
+      AnimeSearchSource.mal: run(
+        AnimeSearchSource.mal,
+        malQuery ?? globalQuery,
+        _searchMAL,
+      ),
+      AnimeSearchSource.anilist: run(
+        AnimeSearchSource.anilist,
+        anilistQuery ?? globalQuery,
+        _searchAniList,
+      ),
+      AnimeSearchSource.acgsecrets: run(
+        AnimeSearchSource.acgsecrets,
+        acgsecretsQuery,
+        _searchAcgsecrets,
+      ),
+      AnimeSearchSource.filmarks: run(
+        AnimeSearchSource.filmarks,
+        filmarksQuery,
+        _searchFilmarks,
+      ),
     };
+
+    // `active` is complete only once every `run` call above has returned, so
+    // the "everything pending" snapshot is published here rather than inside
+    // `run`. The fetch callbacks cannot have fired yet — they are async.
+    emit();
 
     final resolved = await Future.wait(futures.values);
     final keys = futures.keys.toList();

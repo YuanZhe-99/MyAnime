@@ -12,7 +12,6 @@ import '../../../shared/widgets/delete_confirm.dart';
 import '../models/anime.dart';
 import '../services/anime_storage.dart';
 import '../services/metadata_update_service.dart';
-import 'metadata_updates_page.dart';
 import 'quarter_picker_dialog.dart';
 
 class ManagementPage extends StatefulWidget {
@@ -126,13 +125,11 @@ class _ManagementPageState extends State<ManagementPage> {
   /// Side effects: Pushes a route and reloads data when it closes.
   /// Notes: Internal helper used within this file only. Gated on
   /// `AppFlavor.isFull` at the call site, since it leads to online lookups.
+  /// Routed through go_router rather than an imperative `MaterialPageRoute`:
+  /// the review screen can itself push the edit page, and a declarative page
+  /// added under an imperative route lands *below* it in the navigator stack.
   Future<void> _openMetadataUpdates() async {
-    await Navigator.of(context).push(
-      MaterialPageRoute<void>(
-        builder: (_) =>
-            MetadataUpdatesPage(currentPageAnimeIds: _currentPageAnimeIds),
-      ),
-    );
+    await context.push<void>('/metadata-updates', extra: _currentPageAnimeIds);
     if (mounted) await _load();
   }
 
@@ -416,11 +413,15 @@ class _ManagementPageState extends State<ManagementPage> {
       appBar: AppBar(
         title: Text(l10n.navManage),
         actions: [
-          if (AppFlavor.isFull && _pendingUpdateCount > 0)
+          // Always offered, badge or not: with no pending proposals there would
+          // otherwise be no way into the review screen at all, and that screen
+          // is where the user starts a check of their own.
+          if (AppFlavor.isFull)
             IconButton(
               tooltip: l10n.metaUpdatesTooltip,
               onPressed: _openMetadataUpdates,
               icon: Badge(
+                isLabelVisible: _pendingUpdateCount > 0,
                 label: Text('$_pendingUpdateCount'),
                 child: const Icon(Icons.cloud_download_outlined),
               ),

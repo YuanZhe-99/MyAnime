@@ -144,6 +144,29 @@ Applying a result writes each field the user checked. External metadata (studios
 status, duration, alternate titles, and the source's score) is a single checkbox that produces one
 `AnimeExternalMeta` record, folded into whatever a previous source already contributed.
 
+## Search progress
+
+`searchAll` takes an optional `onProgress` callback and reports an `AnimeSearchProgress` when each
+round starts and again as each source answers. The dialog binds it to a determinate bar plus one chip
+per source: a spinner while pending, a tick with a result count once it lands, an error icon when it
+threw.
+
+This exists because a search can legitimately take about **half a minute** — every source has its own
+10–15 second timeout, and sources that come back empty are queried a second time with titles
+harvested from the first round. Through 1.5.0 that stretch was covered by a bare spinner, which is
+indistinguishable from a hang. The chips are what actually answer the question: when one source is
+slow, the other four are already ticked.
+
+Each round reports **its own denominator**. Round two re-queries only the sources that came back
+empty, so a single running total would grow mid-search and drive the bar backwards; instead it fills
+once for round one and again for the smaller second pass, with the caption naming which is running.
+
+A failed source counts as answered — it is no longer being waited on — but stays distinguishable in
+`failed`, because "this source is broken" and "this source found nothing" are different answers to
+someone deciding whether to search again. `_runRound` already swallows per-source exceptions to keep
+one dead source from failing the whole search; the progress callback is reported from inside that
+same handler.
+
 ## Refreshing saved metadata
 
 `fetchByUrl(url)` re-fetches one anime from the page URL it came from, by id:

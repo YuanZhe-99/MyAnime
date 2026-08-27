@@ -25,6 +25,10 @@
 | `MetadataUpdatesPage` | 构造器 | B | 创建页面，接收管理页传入的作用域。 |
 | `createState` | 方法 | B | Flutter 生命周期。 |
 | `initState` | 方法 | B | 启动首次加载。 |
+| `dispose` | 方法 | B | 注销服务回调。 |
+| [`_onServiceChanged`](#_onservicechanged) | 方法 | A | 随服务发布建议而重建列表。 |
+| [`_startScan`](#_startscan) | 方法 | A | 执行一次全库检查并报告结果。 |
+| `_openManualSearch` | 方法 | B | 把未匹配的记录交给编辑页的搜索。 |
 | [`_load`](#_load) | 方法 | A | 从存储与缓存重建建议列表。 |
 | [`_batchable`](#_batchable) | 方法 | A | 列出批量操作可以应用的建议。 |
 | `_apply` | 方法 | B | 应用一条已审阅的建议。 |
@@ -39,6 +43,7 @@
 | [`_buildProposalCard`](#_buildproposalcard) | 方法 | A | 渲染一条建议。 |
 | `_buildChangeRow` | 方法 | B | 渲染单个字段的勾选框与取值。 |
 | [`_buildThumbnail`](#_buildthumbnail) | 方法 | A | 渲染候选的封面。 |
+| `_buildScanBanner` | 方法 | B | 显示正在运行的检索进行到哪一步。 |
 
 ## 文档
 
@@ -76,3 +81,29 @@
 - **副作用：** 可能发起一次网络图片请求。
 - **备注：** 开启封面预下载时使用预取的文件，否则直接从来源 URL 加载。正是这条回退路径，使得预下载可以
   **默认关闭**而不给这个界面带来任何损失。
+
+### `void _onServiceChanged()` <a id="_onservicechanged"></a>
+- **种类：** 方法
+- **用途：** 当服务发布新的建议时重建列表。
+- **输入：** 无。
+- **返回：** 无。
+- **副作用：** 重新读取 `anime_data.json`。
+- **注意：** 调用的是 `_load(reloadCache: false)` 而非普通的 `_load()`。
+  `MetadataUpdateService.reload()` 会通知它的监听者，因此在监听器内部再要求它从磁盘重读缓存，
+  会再次触发这个回调，如此往复、永不停止。此处内存中的存储本来就是最新的——服务刚刚写过它。
+
+  在手动检索期间，正是这一点让建议随着被发现而逐条出现，而不是等检索结束后一次性涌出。
+
+### `Future<void> _startScan()` <a id="_startscan"></a>
+- **种类：** 方法
+- **用途：** 应用户要求检查整个库，并报告结果。
+- **输入：** 无。
+- **返回：** 无。
+- **副作用：** 驱动 `MetadataUpdateService.startManualScan`，随后显示 snack bar。
+- **算法：** 等待检索完成，再依据最终进度快照在几种消息中择一：离线（什么都没执行）、
+  队列为空（已是最新）、提前停止、或完成并带上数量。
+- **注意：** 被等待的 future 覆盖**整个**检索过程，可能长达数分钟。离开页面只意味着跳过 snack bar
+  ——检索本身活在服务里，会继续跑完。
+
+  队列为空时报告的是「所有资料都已是最新」而不是「未发现可用更新」：这是两个不同的结论，
+  而当「没有检查任何东西」的原因是「没有东西需要检查」时，只有前者是真的。

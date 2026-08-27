@@ -23,6 +23,8 @@ rebuildable download cache. See [`../../../../data-formats.md`](../../../../data
 | `MetadataFieldChange` | class | One field's current and proposed values, for display. |
 | `MetadataUpdateEntry` | class | One anime's cache entry: status, candidate, attempt/backoff state. |
 | `MetadataUpdateStore` | class | The whole `metadata_updates.json` document. |
+| `MetadataScanPhase` | enum | Where a user-triggered scan stands: `idle`, `scanning`, `done`, `cancelled`. |
+| `MetadataScanProgress` | class | Immutable snapshot of a manual scan, published through a `ValueNotifier`. |
 
 ## Declarations
 
@@ -46,6 +48,9 @@ rebuildable download cache. See [`../../../../data-formats.md`](../../../../data
 | [`needsMetadataDiscovery`](#needsmetadatadiscovery) | function | A | Whether a record is incomplete enough to search for. |
 | [`diffCandidate`](#diffcandidate) | function | A | Work out which core fields a candidate would change. |
 | [`applyMetadataChanges`](#applymetadatachanges) | function | A | Write the accepted fields onto an anime record. |
+| `MetadataScanProgress` | constructor | B | Create a scan progress snapshot. |
+| [`MetadataScanProgress.fraction`](#scanfraction) | getter | A | Completed fraction, or `null` when there is nothing to measure. |
+| `MetadataScanProgress.isRunning` | getter | B | Whether a scan is in flight. |
 
 ## Documentation
 
@@ -154,3 +159,19 @@ rebuildable download cache. See [`../../../../data-formats.md`](../../../../data
 
   The cover field is special: its proposed value is a remote URL, so the caller downloads it first
   and passes the resulting `images/...` path back in.
+
+### `double? MetadataScanProgress.fraction` <a id="scanfraction"></a>
+- **Kind:** getter
+- **Purpose:** Report how far a user-triggered scan has got.
+- **Inputs:** None.
+- **Returns:** `double?` in 0..1, or `null` when `total` is zero.
+- **Side effects:** None.
+- **Notes:** Deliberately mirrors `SyncProgress.fraction` in `myapps_data`, so both progress UIs
+  bind the same way and a `null` means "show no determinate bar" rather than "show an empty one".
+
+  A `total` of zero is a real outcome, not a failure: everything that could be checked was checked
+  recently enough that asking again would change nothing. The review screen turns that into
+  "everything is already up to date" instead of a bar that never moves.
+
+  The denominator is fixed when the scan starts — the queue is a snapshot — so the bar only ever
+  moves forwards.

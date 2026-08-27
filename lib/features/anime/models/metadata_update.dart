@@ -89,6 +89,76 @@ enum MetadataUpdateStatus {
   upToDate,
 }
 
+/// Phase of a user-triggered library scan.
+enum MetadataScanPhase {
+  /// No scan has run in this session, or the last one's result was consumed.
+  idle,
+
+  /// A scan is walking the queue right now.
+  scanning,
+
+  /// The queue was worked through to the end.
+  done,
+
+  /// The user stopped the scan part-way; whatever it found is kept.
+  cancelled,
+}
+
+/// Immutable snapshot of a manual scan, reported through a `ValueNotifier`.
+///
+/// Mirrors the shape of `SyncProgress` in `myapps_data` so both progress UIs
+/// bind the same way: `fraction` feeds `LinearProgressIndicator.value` directly
+/// and is `null` when there is nothing measurable to show.
+class MetadataScanProgress {
+  /// Where the scan stands.
+  final MetadataScanPhase phase;
+
+  /// Records already processed.
+  final int done;
+
+  /// Records the scan set out to process. Zero means the queue was empty, which
+  /// is a real outcome — everything was already fresh.
+  final int total;
+
+  /// Title of the record being worked on, for the status line.
+  final String? currentTitle;
+
+  /// Proposals produced so far in this scan.
+  final int found;
+
+  /// Purpose: Create an immutable scan progress snapshot.
+  /// Inputs: `phase`, `done`, `total`, `currentTitle`, `found`.
+  /// Returns: A new `MetadataScanProgress` instance.
+  /// Side effects: None.
+  /// Notes: None.
+  const MetadataScanProgress({
+    this.phase = MetadataScanPhase.idle,
+    this.done = 0,
+    this.total = 0,
+    this.currentTitle,
+    this.found = 0,
+  });
+
+  /// The resting state shown when no scan is running.
+  static const idle = MetadataScanProgress();
+
+  /// Purpose: Return the completed fraction of the scan.
+  /// Inputs: None.
+  /// Returns: `double?` in 0..1, or `null` when there is nothing to measure.
+  /// Side effects: None.
+  /// Notes: A `null` fraction means the UI should show no determinate bar at
+  /// all rather than an empty one, because an empty queue is a finished scan.
+  double? get fraction =>
+      total > 0 ? (done / total).clamp(0.0, 1.0).toDouble() : null;
+
+  /// Purpose: Report whether a scan is currently running.
+  /// Inputs: None.
+  /// Returns: `bool`.
+  /// Side effects: None.
+  /// Notes: `done` and `cancelled` are terminal states, not running ones.
+  bool get isRunning => phase == MetadataScanPhase.scanning;
+}
+
 /// A core [Anime] field the background pipeline is allowed to propose.
 ///
 /// `externalMeta` is deliberately absent: it is a cache of someone else's data

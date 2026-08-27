@@ -151,7 +151,10 @@ costs nothing until a proposal is accepted.
 
 ## The review screen
 
-Reached from a badge in the management page's app bar, which appears only when something is pending.
+Reached from the management page's app bar. The action is **always** offered in full builds; the
+badge is what appears and disappears with the pending count. Through 1.5.0 the button itself was
+hidden at zero, which left no way into the screen — and therefore no way to ask for a check — for
+exactly the users who had nothing yet.
 
 - Each proposal shows the candidate's cover, source, and match percentage, plus a
   **per-field `current → new` diff with its own checkbox** — a user can accept the episode count and
@@ -169,6 +172,56 @@ The diff is **recomputed against the stored record** every time the screen loads
 cache. So a record edited since its proposal was made shows an accurate before/after, and one whose
 changes the user has since made by hand simply drops off the list.
 
+
+## The manual check
+
+The review screen carries a **Check for updates** action — in the app bar, and again as the primary
+button of the empty state, since the screen can now be opened with nothing in it.
+
+It walks a **snapshot queue** built once at the start by `buildScanQueue`, so the progress bar has an
+honest denominator that never moves and the loop is guaranteed to terminate. What that queue ignores
+and what it honours is the whole design:
+
+| Gate | Manual check | Why |
+|---|---|---|
+| Failure backoff | **ignored** | "Try again now" is what the button means. Backoff is only a "don't retry too soon" heuristic, and it is the first thing an explicit request should override. |
+| 30-day rediscovery window | **ignored** | Same reason. |
+| Dismissals | **honoured** | Re-proposing what the user already refused would make *Ignore* meaningless. |
+| Cache freshness | **honoured** | On a 200-record library, re-fetching still-fresh metadata costs minutes and over a thousand requests to change nothing. |
+| Network policy (`metadataAutoUpdate`) | **ignored** | That setting governs *unattended* traffic. This is one explicit tap the user can watch and stop — and when the policy is `off`, this button is the only way to check at all. |
+| Being offline | **honoured** | Every item would fail and push the whole library into backoff for nothing. The check refuses to start and says so. |
+
+Each record appears at most once: a stale record with a source URL is refreshed, and only a record
+that is *not* being refreshed is searched for. Refresh takes priority, matching the order the
+background loop drains its two queues in.
+
+Because the user is watching, the gaps are tighter than the background ones — and still well inside
+what the APIs document:
+
+| | Gap | Requests per host |
+|---|---|---|
+| Refresh | 2 s | ≤1 per item, so ≤30/min |
+| Discovery | 6 s | ≤2 per item (both rounds), so ≤20/min |
+
+The background timer is cancelled for the duration. Two workers hitting the same APIs at once would
+double the rate these gaps are sized for.
+
+**Progress** is published through `MetadataUpdateService.scanProgress`, a `ValueNotifier` shaped like
+`SyncProgress` so both progress UIs bind identically. The banner shows the bar, `done / total`, how
+many proposals have been found, and the title being worked on right now — which is what separates
+"working slowly" from "hung". Proposals appear in the list one at a time as they are found.
+
+**Cancelling** lets the request already in flight finish, so a response paid for in a network round
+trip is never discarded, and keeps everything found so far. It means "stop here", not "undo".
+
+An **empty queue** is reported as *everything is already up to date*, not *no updates found*. Those
+are different answers, and only the first is true when nothing was checked because nothing needed
+checking.
+
+A proposal marked **needs manual selection** now carries a **Search manually** action, which opens
+the record's edit page with the search dialog already open and the title filled in. It reuses the
+edit page's existing search-and-apply path rather than adding a second way to write a record from a
+search result.
 ## Storage
 
 `metadata_updates.json` in the app data directory — see

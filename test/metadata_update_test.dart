@@ -627,4 +627,210 @@ void main() {
       );
     });
   });
+
+  group('manual scan queue', () {
+    final now = DateTime.parse('2026-06-01T00:00:00.000Z');
+    final service = MetadataUpdateService.instance;
+
+    AnimeExternalMeta meta(String refreshedAt) =>
+        AnimeExternalMeta(refreshedAt: DateTime.parse(refreshedAt));
+
+    test('an entry inside its backoff window is still queued', () {
+      final target = anime(id: 'x');
+      final store = MetadataUpdateStore(
+        entries: [
+          MetadataUpdateEntry(
+            animeId: 'x',
+            status: MetadataUpdateStatus.noMatch,
+            failureCount: 3,
+            nextAttemptAt: now.add(const Duration(days: 6)),
+          ),
+        ],
+      );
+      final queue = service.buildScanQueue([target], store, now);
+      expect(
+        queue.discover.map((a) => a.id),
+        ['x'],
+        reason: 'pressing the button means "try again now"',
+      );
+    });
+
+    test('a record the user dismissed is left alone', () {
+      final target = anime(id: 'x');
+      final store = MetadataUpdateStore(
+        entries: [
+          const MetadataUpdateEntry(
+            animeId: 'x',
+            status: MetadataUpdateStatus.dismissed,
+          ),
+        ],
+      );
+      final queue = service.buildScanQueue([target], store, now);
+      expect(
+        queue.discover,
+        isEmpty,
+        reason: 're-proposing a refusal would make "ignore" meaningless',
+      );
+    });
+
+    test('a record already awaiting the user is not queued again', () {
+      final target = anime(id: 'x');
+      final store = MetadataUpdateStore(
+        entries: [
+          const MetadataUpdateEntry(
+            animeId: 'x',
+            status: MetadataUpdateStatus.proposed,
+          ),
+        ],
+      );
+      expect(
+        service.buildScanQueue([target], store, now).discover,
+        isEmpty,
+      );
+    });
+
+    test('a record with fresh cached metadata is not refreshed', () {
+      final fresh = anime(
+        id: 'fresh',
+        infoUrl: 'https://anilist.co/anime/1',
+        firstAirDate: DateTime.parse('2026-01-01T00:00:00.000Z'),
+        airDayOfWeek: 1,
+        endEpisode: 12,
+        coverImage: 'images/a.jpg',
+        externalMeta: meta('2026-05-31T23:00:00.000Z'),
+      );
+      final queue = service.buildScanQueue(
+        [fresh],
+        const MetadataUpdateStore(),
+        now,
+      );
+      expect(queue.refresh, isEmpty);
+      expect(queue.discover, isEmpty);
+    });
+
+    test('a stale record with a URL is refreshed, not searched for', () {
+      final stale = anime(
+        id: 'stale',
+        infoUrl: 'https://anilist.co/anime/1',
+        externalMeta: meta('2020-01-01T00:00:00.000Z'),
+      );
+      final queue = service.buildScanQueue(
+        [stale],
+        const MetadataUpdateStore(),
+        now,
+      );
+      expect(queue.refresh.map((a) => a.id), ['stale']);
+      expect(
+        queue.discover,
+        isEmpty,
+        reason: 'each record is worth exactly one request per scan',
+      );
+    });
+
+    test('an incomplete record whose cache is fresh is searched for', () {
+      final incomplete = anime(
+        id: 'gap',
+        infoUrl: 'https://anilist.co/anime/1',
+        externalMeta: meta('2026-05-31T23:00:00.000Z'),
+      );
+      final queue = service.buildScanQueue(
+        [incomplete],
+        const MetadataUpdateStore(),
+        now,
+      );
+      expect(queue.refresh, isEmpty);
+      expect(queue.discover.map((a) => a.id), ['gap']);
+    });
+
+    test('a record with no title to search for is skipped', () {
+      final blank = anime(id: 'blank', title: null);
+      expect(
+        service.buildScanQueue([blank], const MetadataUpdateStore(), now)
+            .discover,
+        isEmpty,
+      );
+    });
+  });
+
+  group('MetadataScanProgress', () {
+    test('an empty queue reports no measurable fraction', () {
+      const progress = MetadataScanProgress(
+        phase: MetadataScanPhase.done,
+      );
+      expect(
+        progress.fraction,
+        isNull,
+        reason: 'nothing to check is a finished scan, not an empty bar',
+      );
+    });
+
+    test('fraction tracks done over total', () {
+      const progress = MetadataScanProgress(
+        phase: MetadataScanPhase.scanning,
+        done: 3,
+        total: 12,
+      );
+      expect(progress.fraction, closeTo(0.25, 1e-9));
+      expect(progress.isRunning, isTrue);
+    });
+
+    test('terminal phases are not running', () {
+      for (final phase in [
+        MetadataScanPhase.idle,
+        MetadataScanPhase.done,
+        MetadataScanPhase.cancelled,
+      ]) {
+        expect(MetadataScanProgress(phase: phase).isRunning, isFalse);
+      }
+    });
+  });
+
+  group('AnimeSearchProgress', () {
+    test('a failed source counts as answered', () {
+      const progress = AnimeSearchProgress(
+        round: 1,
+        sources: ['bangumi.tv', 'AniList'],
+        counts: {'bangumi.tv': 0},
+        failed: {'bangumi.tv'},
+      );
+      expect(progress.done, 1);
+      expect(progress.total, 2);
+      expect(progress.fraction, closeTo(0.5, 1e-9));
+      expect(progress.isPending('bangumi.tv'), isFalse);
+      expect(progress.isPending('AniList'), isTrue);
+    });
+
+    test('the second round uses its own denominator', () {
+      const second = AnimeSearchProgress(
+        round: 2,
+        sources: ['filmarks.com'],
+        counts: {'filmarks.com': 4},
+      );
+      expect(
+        second.fraction,
+        1.0,
+        reason: 'only the sources that came back empty are re-queried, so the '
+            'bar fills twice instead of jumping backwards',
+      );
+    });
+  });
+
+  group('scan labels in English', () {
+    final en = AppLocalizationsEn();
+
+    test('a finished scan reads correctly at zero, one, and many', () {
+      expect(en.metaUpdatesScanDone(0), contains('No updates'));
+      expect(en.metaUpdatesScanDone(1), contains('1 update found'));
+      expect(en.metaUpdatesScanDone(3), contains('3 updates found'));
+    });
+
+    test('a stopped scan reads correctly at one', () {
+      expect(en.metaUpdatesScanCancelled(1), contains('1 update found'));
+    });
+
+    test('per-source counts are not pluralized at one', () {
+      expect(en.searchSourceCount(1), '1 result');
+      expect(en.searchSourceCount(2), '2 results');
+    });
+  });
 }

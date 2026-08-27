@@ -31,6 +31,8 @@
 | `_sortLabel` | 方法（`_SearchDialogState`） | B | 单个 `_SearchSort` 值的本地化标签。 |
 | [`_showFilterSheet`](#showfiltersheet) | 方法（`_SearchDialogState`） | A | 在底部面板中展示来源与字段过滤条件。 |
 | `_buildSearchResults` | 方法（`_SearchDialogState`） | B | 在加载圈、错误、空、分组或平铺列表之间选择。 |
+| [`_buildSearchProgress`](#_buildsearchprogress) | 方法 | A | 在检索进行中显示哪些来源已回应。 |
+| `_sourceChip` | 方法 | B | 渲染单个来源的等待/找到/失败状态。 |
 | [`_buildGroupedResults`](#buildgroupedresults) | 方法（`_SearchDialogState`） | A | 把结果列表渲染成每个来源一个可折叠分区。 |
 | [`_resultTile`](#resulttile) | 方法（`_SearchDialogState`） | A | 构建搜索结果列表的一行。 |
 | [`_secondaryLine`](#secondaryline) | 方法（`_SearchDialogState`） | A | 组合结果下方的次要元数据行。 |
@@ -190,3 +192,20 @@
 - **副作用：** 无。
 - **算法：** 一个紧凑的 chip `Wrap`：作品形式、播出状态、时长、每个制作公司、每个类型标签，以及评分。
 - **备注：** 设计上是只读的——上方那个复选框决定其中是否有任何内容被写入。它存在的意义是让用户在接受之前看清「来自 AniList 的 6 项信息」究竟指什么。
+
+### `Widget _buildSearchProgress(AppLocalizations)` <a id="_buildsearchprogress"></a>
+- **种类：** 方法
+- **用途：** 在检索仍在进行时，显示哪些来源已经回应。
+- **输入：** `l10n`。
+- **返回：** `Widget`。
+- **副作用：** 无。
+- **算法：** 用 `AnimeSearchProgress.fraction` 画一条确定进度条，配一行说明当前轮次与计数的文案，
+  再为每个来源画一个 chip——等待中是转圈，落地后是对勾加结果条数，抛异常则是错误图标。
+- **备注：** 取代了本界面直到 1.5.0 一直使用的光秃秃 `CircularProgressIndicator`。一次检索确实可能
+  耗时约半分钟——每个来源各有 10–15 秒超时，且空手而归的来源会用首轮采集到的标题再查一次——
+  在这段时间里，孤零零一个转圈与真正的卡死无法区分。
+
+  真正回答问题的是那些 chip：当某一个来源很慢时，其余四个已经打上对勾，这说明的是「在工作」
+  而不是「卡住了」，并且直接点名了拖后腿的那一个。
+
+  在首个进度快照到达之前回退为普通转圈，因此不会出现「空进度条且没有 chip」的那一帧。

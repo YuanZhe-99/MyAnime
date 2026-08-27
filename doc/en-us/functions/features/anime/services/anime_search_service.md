@@ -26,6 +26,11 @@ and the metadata block becomes `externalMeta`).
 | [`toJson`](#resulttojson) | method (`AnimeSearchResult`) | A | Serialize a fetched result so it can be cached on disk. |
 | [`fromJson`](#resultfromjson) | factory (`AnimeSearchResult`) | A | Rebuild a cached result, defensively. |
 | `AnimeSearchSource._()` | constructor (`AnimeSearchSource`) | B | Prevent instantiation of the source-name holder. |
+| `AnimeSearchProgress(...)` | constructor (`AnimeSearchProgress`) | B | Hold one round's live search progress. |
+| `done` | getter (`AnimeSearchProgress`) | B | How many sources have answered. |
+| `total` | getter (`AnimeSearchProgress`) | B | How many sources this round queries. |
+| [`fraction`](#searchprogressfraction) | getter (`AnimeSearchProgress`) | A | This round's completed fraction, or `null`. |
+| `isPending` | method (`AnimeSearchProgress`) | B | Whether one source is still being waited on. |
 | [`searchAll`](#searchall) | static method (`AnimeSearchService`) | A | Run the two-round cross-language search and return one ranked list. |
 | [`queryVariants`](#queryvariants) | static method (`AnimeSearchService`) | A | Build the Simplified/Traditional variant set for a query. |
 | [`relevance`](#relevance) | static method (`AnimeSearchService`) | A | Score a result against a query variant set, across all its titles. |
@@ -137,7 +142,7 @@ practical seam. Do not call them from production code outside this file.
   yields nulls rather than throwing. `source` falls back to an empty string so a malformed entry is
   still readable and can be discarded by the caller rather than taking the whole file down with it.
 
-### `static Future<List<AnimeSearchResult>> searchAll(String query, {String? preferredLanguage})` <a id="searchall"></a>
+### `static Future<List<AnimeSearchResult>> searchAll(String query, {String? preferredLanguage, void Function(AnimeSearchProgress)? onProgress})` <a id="searchall"></a>
 - **Kind:** static method of `AnimeSearchService`
 - **Source:** `lib/features/anime/services/anime_search_service.dart` (line 173)
 - **Purpose:** Query every metadata source and return one deduplicated, relevance-ranked list.
@@ -588,3 +593,22 @@ practical seam. Do not call them from production code outside this file.
 - **Returns:** `String`.
 - **Side effects:** None.
 - **Notes:** Only six entities are handled — a numeric character reference other than `&#39;` (e.g. `&#8217;`) passes through unescaped.
+
+### `double? AnimeSearchProgress.fraction` <a id="searchprogressfraction"></a>
+- **Kind:** getter of `AnimeSearchProgress`
+- **Purpose:** Report how much of the current search round has answered.
+- **Inputs:** None.
+- **Returns:** `double?` in 0..1, or `null` when no source is being queried.
+- **Side effects:** None.
+- **Notes:** Each round reports **its own denominator**. Round two re-queries only the sources that
+  came back empty, so a single running total would grow mid-search and drive the bar backwards;
+  instead the bar fills once for round one and again for the smaller round two, with the caption
+  saying which pass is running.
+
+  A failed source counts towards `done`, because it is no longer being waited on. Failure is still
+  distinguishable — it is listed in `failed` — since "this source is broken" and "this source found
+  nothing" are different answers to someone deciding whether to search again.
+
+  This exists because a search can legitimately take about half a minute: every source has its own
+  10–15 second timeout and there can be two rounds. Over that stretch a bare spinner is
+  indistinguishable from a hang.

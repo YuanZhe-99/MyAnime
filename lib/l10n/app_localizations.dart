@@ -647,6 +647,30 @@ abstract class AppLocalizations {
   /// **'{count} field(s) from {source}'**
   String searchExternalMetaValue(int count, String source);
 
+  /// No description provided for @searchProgressRound1.
+  ///
+  /// In en, this message translates to:
+  /// **'Searching {done} of {total} sources…'**
+  String searchProgressRound1(int done, int total);
+
+  /// No description provided for @searchProgressRound2.
+  ///
+  /// In en, this message translates to:
+  /// **'Second pass: {done} of {total} sources…'**
+  String searchProgressRound2(int done, int total);
+
+  /// No description provided for @searchSourceFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'failed'**
+  String get searchSourceFailed;
+
+  /// No description provided for @searchSourceCount.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =0{no results} =1{1 result} other{{count} results}}'**
+  String searchSourceCount(int count);
+
   /// No description provided for @animeStudios.
   ///
   /// In en, this message translates to:
@@ -886,6 +910,60 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Select at least one field'**
   String get metaUpdatesNothingSelected;
+
+  /// No description provided for @metaUpdatesScan.
+  ///
+  /// In en, this message translates to:
+  /// **'Check for updates'**
+  String get metaUpdatesScan;
+
+  /// No description provided for @metaUpdatesScanStop.
+  ///
+  /// In en, this message translates to:
+  /// **'Stop checking'**
+  String get metaUpdatesScanStop;
+
+  /// No description provided for @metaUpdatesScanProgress.
+  ///
+  /// In en, this message translates to:
+  /// **'{done} of {total} checked'**
+  String metaUpdatesScanProgress(int done, int total);
+
+  /// No description provided for @metaUpdatesScanFound.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =0{nothing found yet} =1{1 found} other{{count} found}}'**
+  String metaUpdatesScanFound(int count);
+
+  /// No description provided for @metaUpdatesScanDone.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =0{Check complete. No updates found.} =1{Check complete. 1 update found.} other{Check complete. {count} updates found.}}'**
+  String metaUpdatesScanDone(int count);
+
+  /// No description provided for @metaUpdatesScanCancelled.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =0{Check stopped. Nothing found.} =1{Check stopped. 1 update found.} other{Check stopped. {count} updates found.}}'**
+  String metaUpdatesScanCancelled(int count);
+
+  /// No description provided for @metaUpdatesScanUpToDate.
+  ///
+  /// In en, this message translates to:
+  /// **'Everything is already up to date'**
+  String get metaUpdatesScanUpToDate;
+
+  /// No description provided for @metaUpdatesScanOffline.
+  ///
+  /// In en, this message translates to:
+  /// **'No network connection'**
+  String get metaUpdatesScanOffline;
+
+  /// No description provided for @metaUpdatesManualSearch.
+  ///
+  /// In en, this message translates to:
+  /// **'Search manually'**
+  String get metaUpdatesManualSearch;
 
   /// No description provided for @settingsMetaAutoUpdate.
   ///

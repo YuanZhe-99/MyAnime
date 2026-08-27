@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 
 import '../../../l10n/app_localizations.dart';
@@ -55,19 +56,43 @@ class _MetadataUpdatesPageState extends State<MetadataUpdatesPage> {
   @override
   void initState() {
     super.initState();
+    MetadataUpdateService.instance.addListener(_onServiceChanged);
     _load();
   }
 
-  /// Purpose: Rebuild the proposal list from storage and the local cache.
+  /// Purpose: Release listeners, controllers, and other owned resources.
   /// Inputs: None.
+  /// Returns: None.
+  /// Side effects: Unregisters the service callback.
+  /// Notes: Flutter lifecycle override.
+  @override
+  void dispose() {
+    MetadataUpdateService.instance.removeListener(_onServiceChanged);
+    super.dispose();
+  }
+
+  /// Purpose: Rebuild the list when the service publishes new proposals.
+  /// Inputs: None.
+  /// Returns: None.
+  /// Side effects: Re-reads the anime file.
+  /// Notes: Internal helper used within this file only. Reloads without
+  /// re-reading the cache from disk: `reload()` itself notifies listeners, so
+  /// asking for one here would call this callback again, forever. During a scan
+  /// this is what makes proposals appear one by one as they are found.
+  void _onServiceChanged() {
+    if (mounted) _load(reloadCache: false);
+  }
+
+  /// Purpose: Rebuild the proposal list from storage and the local cache.
+  /// Inputs: `reloadCache` — re-read `metadata_updates.json` from disk first.
   /// Returns: None.
   /// Side effects: Reads the anime file and the update cache.
   /// Notes: Internal helper used within this file only. The diff is recomputed
   /// here rather than read from the cache, so a record edited since the
   /// proposal was made shows an accurate before/after — and an entry whose
   /// changes have since been made by hand simply disappears from the list.
-  Future<void> _load() async {
-    await MetadataUpdateService.instance.reload();
+  Future<void> _load({bool reloadCache = true}) async {
+    if (reloadCache) await MetadataUpdateService.instance.reload();
     final data = await AnimeStorage.load();
     final byId = {for (final a in data.animes) a.id: a};
     final store = MetadataUpdateService.instance.store;
@@ -156,6 +181,50 @@ class _MetadataUpdatesPageState extends State<MetadataUpdatesPage> {
     await _load();
     if (!mounted) return;
     setState(() => _working = false);
+  }
+
+  /// Purpose: Run a check of the whole library right now.
+  /// Inputs: None.
+  /// Returns: None.
+  /// Side effects: Drives the service's manual scan, then reports the outcome.
+  /// Notes: Internal helper used within this file only. The awaited future
+  /// covers the entire scan, which can run for minutes; leaving the page just
+  /// means the snackbar is skipped, while the scan itself carries on in the
+  /// service.
+  Future<void> _startScan() async {
+    final l10n = AppLocalizations.of(context)!;
+    final started = await MetadataUpdateService.instance.startManualScan();
+    if (!mounted) return;
+    if (!started) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(l10n.metaUpdatesScanOffline)));
+      return;
+    }
+    final progress = MetadataUpdateService.scanProgress.value;
+    // An empty queue is a real answer, not a failure: everything that could be
+    // checked was checked recently enough that asking again would change
+    // nothing.
+    final message = progress.total == 0
+        ? l10n.metaUpdatesScanUpToDate
+        : progress.phase == MetadataScanPhase.cancelled
+        ? l10n.metaUpdatesScanCancelled(progress.found)
+        : l10n.metaUpdatesScanDone(progress.found);
+    MetadataUpdateService.instance.clearScanProgress();
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message)));
+    await _load();
+  }
+
+  /// Purpose: Hand a record the service could not match to the manual search.
+  /// Inputs: `proposal`.
+  /// Returns: None.
+  /// Side effects: Pushes the edit page, which opens the search dialog itself.
+  /// Notes: Internal helper used within this file only. Reuses the edit page's
+  /// existing search-and-apply path instead of adding a second way to write a
+  /// record from a search result.
+  Future<void> _openManualSearch(_Proposal proposal) async {
+    await context.push<void>('/anime/edit/${proposal.anime.id}', extra: true);
+    if (mounted) await _load();
   }
 
   /// Purpose: Apply every batchable proposal in a scope, after confirmation.
@@ -390,29 +459,94 @@ class _MetadataUpdatesPageState extends State<MetadataUpdatesPage> {
                 ),
               ],
             ),
+          ValueListenableBuilder<MetadataScanProgress>(
+            valueListenable: MetadataUpdateService.scanProgress,
+            builder: (context, progress, _) => progress.isRunning
+                ? IconButton(
+                    tooltip: l10n.metaUpdatesScanStop,
+                    icon: const Icon(Icons.stop_circle_outlined),
+                    onPressed: MetadataUpdateService.instance.cancelManualScan,
+                  )
+                : IconButton(
+                    tooltip: l10n.metaUpdatesScan,
+                    icon: const Icon(Icons.refresh),
+                    onPressed: _working ? null : _startScan,
+                  ),
+          ),
         ],
       ),
-      body: _loading
-          ? const Center(child: CircularProgressIndicator())
-          : _proposals.isEmpty
-          ? _buildEmpty(theme, l10n)
-          : Stack(
-              children: [
-                ListView.builder(
-                  padding: const EdgeInsets.all(12),
-                  itemCount: _proposals.length,
-                  itemBuilder: (context, i) =>
-                      _buildProposalCard(_proposals[i], theme, l10n),
-                ),
-                if (_working)
-                  const Positioned.fill(
-                    child: ColoredBox(
-                      color: Color(0x33000000),
-                      child: Center(child: CircularProgressIndicator()),
-                    ),
+      body: Column(
+        children: [
+          _buildScanBanner(theme, l10n),
+          Expanded(
+            child: _loading
+                ? const Center(child: CircularProgressIndicator())
+                : _proposals.isEmpty
+                ? _buildEmpty(theme, l10n)
+                : Stack(
+                    children: [
+                      ListView.builder(
+                        padding: const EdgeInsets.all(12),
+                        itemCount: _proposals.length,
+                        itemBuilder: (context, i) =>
+                            _buildProposalCard(_proposals[i], theme, l10n),
+                      ),
+                      if (_working)
+                        const Positioned.fill(
+                          child: ColoredBox(
+                            color: Color(0x33000000),
+                            child: Center(child: CircularProgressIndicator()),
+                          ),
+                        ),
+                    ],
                   ),
-              ],
-            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// Purpose: Show how far a running scan has got.
+  /// Inputs: `theme`, `l10n`.
+  /// Returns: `Widget` — empty when no scan is running.
+  /// Side effects: None.
+  /// Notes: Internal helper used within this file only. The denominator is
+  /// fixed when the scan starts, so the bar only ever moves forwards. The
+  /// current title is what distinguishes "working slowly" from "hung".
+  Widget _buildScanBanner(ThemeData theme, AppLocalizations l10n) {
+    return ValueListenableBuilder<MetadataScanProgress>(
+      valueListenable: MetadataUpdateService.scanProgress,
+      builder: (context, progress, _) {
+        if (!progress.isRunning) return const SizedBox.shrink();
+        return Padding(
+          padding: const EdgeInsets.fromLTRB(12, 10, 12, 2),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              LinearProgressIndicator(value: progress.fraction),
+              const SizedBox(height: 6),
+              Text(
+                [
+                  l10n.metaUpdatesScanProgress(progress.done, progress.total),
+                  l10n.metaUpdatesScanFound(progress.found),
+                ].join(' · '),
+                style: theme.textTheme.bodySmall,
+              ),
+              // Always rendered, blank between items: making the row appear and
+              // disappear every few seconds would bounce the whole list under
+              // it by one line for the length of the scan.
+              Text(
+                progress.currentTitle ?? '',
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: theme.textTheme.bodySmall?.copyWith(
+                  color: theme.colorScheme.onSurfaceVariant,
+                ),
+              ),
+            ],
+          ),
+        );
+      },
     );
   }
 
@@ -440,6 +574,18 @@ class _MetadataUpdatesPageState extends State<MetadataUpdatesPage> {
             textAlign: TextAlign.center,
             style: theme.textTheme.bodySmall?.copyWith(
               color: theme.colorScheme.onSurfaceVariant,
+            ),
+          ),
+          const SizedBox(height: 20),
+          // The page can now be opened with nothing in it, so the empty state
+          // has to carry its own primary action rather than leaving the user
+          // hunting for the icon in the bar.
+          ValueListenableBuilder<MetadataScanProgress>(
+            valueListenable: MetadataUpdateService.scanProgress,
+            builder: (context, progress, _) => FilledButton.icon(
+              onPressed: progress.isRunning || _working ? null : _startScan,
+              icon: const Icon(Icons.refresh, size: 18),
+              label: Text(l10n.metaUpdatesScan),
             ),
           ),
         ],
@@ -535,6 +681,14 @@ class _MetadataUpdatesPageState extends State<MetadataUpdatesPage> {
             Row(
               mainAxisAlignment: MainAxisAlignment.end,
               children: [
+                if (manual)
+                  TextButton.icon(
+                    onPressed: _working
+                        ? null
+                        : () => _openManualSearch(proposal),
+                    icon: const Icon(Icons.travel_explore, size: 18),
+                    label: Text(l10n.metaUpdatesManualSearch),
+                  ),
                 TextButton(
                   onPressed: _working ? null : () => _dismiss(proposal),
                   child: Text(l10n.metaUpdatesDismiss),

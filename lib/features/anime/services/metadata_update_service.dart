@@ -104,6 +104,20 @@ class MetadataUpdateService {
   /// a long sweep would postpone syncing indefinitely.
   static const _flushEvery = 10;
 
+  /// Gap between two refreshes during a user-triggered scan.
+  ///
+  /// Tighter than [_refreshGap] because the user is watching, and still safe: a
+  /// refresh sends at most one request per host, so 2s stays at 30 per minute
+  /// per host against Jikan's documented 60 and AniList's 90.
+  static const _manualRefreshGap = Duration(seconds: 2);
+
+  /// Gap between two discovery searches during a user-triggered scan.
+  ///
+  /// A `searchAll` can hit one host twice — the first round plus the
+  /// cross-language backfill round — so 6s keeps it under 20 requests per
+  /// minute per host.
+  static const _manualDiscoverGap = Duration(seconds: 6);
+
   Timer? _timer;
   bool _started = false;
   bool _busy = false;
@@ -112,6 +126,16 @@ class MetadataUpdateService {
   final Map<String, AnimeExternalMeta> _pendingMeta = {};
   int _sinceFlush = 0;
   final List<VoidCallback> _listeners = [];
+  bool _scanning = false;
+  bool _scanCancelled = false;
+
+  /// Live progress of the user-triggered scan, for `ValueListenableBuilder`.
+  ///
+  /// Static so the review page can bind to it before the service has done any
+  /// work, and so a scan started on one visit is still observable on the next.
+  static final scanProgress = ValueNotifier<MetadataScanProgress>(
+    MetadataScanProgress.idle,
+  );
 
   /// Purpose: Report how many anime are waiting for the user's decision.
   /// Inputs: None.
@@ -224,15 +248,9 @@ class MetadataUpdateService {
   /// feature outright on a platform that cannot answer.
   Future<_NetworkGate> _networkGate(MetadataUpdatePolicy policy) async {
     if (policy == MetadataUpdatePolicy.off) return _NetworkGate.blocked;
-    List<ConnectivityResult> results;
-    try {
-      results = await Connectivity().checkConnectivity();
-    } catch (_) {
-      return _NetworkGate.allowed;
-    }
-    if (results.isEmpty || results.every((r) => r == ConnectivityResult.none)) {
-      return _NetworkGate.offline;
-    }
+    final results = await _links();
+    if (results == null) return _NetworkGate.allowed;
+    if (_hasNoLink(results)) return _NetworkGate.offline;
     if (policy == MetadataUpdatePolicy.always) return _NetworkGate.allowed;
     // noCellular: refuse when mobile is the only usable transport.
     final hasUnmetered = results.any(
@@ -242,6 +260,44 @@ class MetadataUpdateService {
           r == ConnectivityResult.vpn,
     );
     return hasUnmetered ? _NetworkGate.allowed : _NetworkGate.blocked;
+  }
+
+  /// Purpose: Read the current link types.
+  /// Inputs: None.
+  /// Returns: `Future<List<ConnectivityResult>?>` — `null` when the plugin
+  /// could not answer.
+  /// Side effects: Queries the platform connectivity plugin.
+  /// Notes: Internal helper used within this file only. Kept separate from
+  /// [_networkGate] so the manual scan can ask "is there a connection at all?"
+  /// without going through the policy check, which short-circuits to `blocked`
+  /// as soon as the policy is `off` — exactly the case where the manual button
+  /// is the user's only way to check.
+  Future<List<ConnectivityResult>?> _links() async {
+    try {
+      return await Connectivity().checkConnectivity();
+    } catch (_) {
+      return null;
+    }
+  }
+
+  /// Purpose: Decide whether a link list means "no connection".
+  /// Inputs: `results`.
+  /// Returns: `bool`.
+  /// Side effects: None.
+  /// Notes: Internal helper used within this file only.
+  static bool _hasNoLink(List<ConnectivityResult> results) =>
+      results.isEmpty || results.every((r) => r == ConnectivityResult.none);
+
+  /// Purpose: Report whether the device currently has no connection at all.
+  /// Inputs: None.
+  /// Returns: `Future<bool>`.
+  /// Side effects: Queries the platform connectivity plugin.
+  /// Notes: Internal helper used within this file only. A plugin that cannot
+  /// answer counts as online, so the request itself gets to fail rather than
+  /// the feature being refused on a platform that cannot report link state.
+  Future<bool> _isOffline() async {
+    final results = await _links();
+    return results != null && _hasNoLink(results);
   }
 
   /// Purpose: Read the effective background-update policy.
@@ -284,6 +340,13 @@ class MetadataUpdateService {
   /// Notes: Internal helper used within this file only. Every exit path
   /// reschedules, so the loop cannot stall on an unexpected failure.
   Future<void> _tick() async {
+    // A manual scan owns the network while it runs; the background loop would
+    // otherwise double the request rate the gaps are sized for. Reschedule so
+    // the loop survives even if the scan's own reschedule is missed.
+    if (_scanning) {
+      _schedule(_idleGap);
+      return;
+    }
     if (_busy || !_started) return;
     _busy = true;
     var next = _idleGap;
@@ -400,6 +463,21 @@ class MetadataUpdateService {
   static Duration backoffFor(int failureCount) =>
       _backoff[(failureCount - 1).clamp(0, _backoff.length - 1)];
 
+  /// Purpose: Report whether an anime's cached metadata is past its freshness
+  /// window.
+  /// Inputs: `anime`, `now`.
+  /// Returns: `bool` — `true` when it has never been fetched.
+  /// Side effects: None.
+  /// Notes: Shared by the background queue and the manual scan so both agree on
+  /// what "stale" means. A finished show gets a far longer window than an
+  /// airing one because its score and episode count stop moving once it ends.
+  static bool isMetaStale(Anime anime, DateTime now) {
+    final refreshedAt = anime.externalMeta?.refreshedAt;
+    if (refreshedAt == null) return true;
+    final freshness = anime.isCompleted ? _finishedFreshness : _airingFreshness;
+    return now.difference(refreshedAt) >= freshness;
+  }
+
   /// Purpose: Pick the next anime whose cached metadata should be refreshed.
   /// Inputs: `animes`, `now`.
   /// Returns: `Anime?`.
@@ -422,12 +500,7 @@ class MetadataUpdateService {
       if (entry != null && !entry.isDue(now)) continue;
 
       final refreshedAt = anime.externalMeta?.refreshedAt;
-      if (refreshedAt != null) {
-        final freshness = anime.isCompleted
-            ? _finishedFreshness
-            : _airingFreshness;
-        if (now.difference(refreshedAt) < freshness) continue;
-      }
+      if (!isMetaStale(anime, now)) continue;
 
       // Never-fetched records win outright; otherwise oldest first.
       if (refreshedAt == null) {
@@ -825,5 +898,169 @@ class MetadataUpdateService {
     );
     await MetadataCache.save(_store);
     _notify();
+  }
+
+  // ── Manual scan ──
+
+  /// Purpose: Report whether a user-triggered scan is running right now.
+  /// Inputs: None.
+  /// Returns: `bool`.
+  /// Side effects: None.
+  /// Notes: The review page uses this to swap its scan button for a cancel one.
+  bool get isScanning => _scanning;
+
+  /// Purpose: Build the work list for a user-triggered scan.
+  /// Inputs: `animes`, `store`, `now`.
+  /// Returns: A record of the anime to refresh and the anime to search for.
+  /// Side effects: None.
+  /// Notes: **Ignores** the failure backoff and the 30-day rediscovery window —
+  /// "try again now" is the whole point of pressing the button, and those two
+  /// are only "don't retry too soon" heuristics. **Honours** dismissals and
+  /// cache freshness: re-proposing what the user already refused would make
+  /// "ignore" meaningless, and re-fetching metadata that is still fresh would
+  /// spend hundreds of requests to change nothing. Each anime appears at most
+  /// once, refresh taking priority the same way [_runOnce] drains the refresh
+  /// queue first, so the total is a count of records and the progress bar's
+  /// denominator never moves.
+  @visibleForTesting
+  ({List<Anime> refresh, List<Anime> discover}) buildScanQueue(
+    List<Anime> animes,
+    MetadataUpdateStore store,
+    DateTime now,
+  ) {
+    final refresh = <Anime>[];
+    final discover = <Anime>[];
+    for (final anime in animes) {
+      if (refreshableUrls(anime).isNotEmpty && isMetaStale(anime, now)) {
+        refresh.add(anime);
+        continue;
+      }
+      if (!needsMetadataDiscovery(anime)) continue;
+      if (anime.displayTitle.isEmpty) continue;
+      final entry = store.entryFor(anime.id);
+      if (entry != null) {
+        if (entry.status == MetadataUpdateStatus.dismissed) continue;
+        if (entry.isPending) continue;
+      }
+      discover.add(anime);
+    }
+    return (refresh: refresh, discover: discover);
+  }
+
+  /// Purpose: Run a user-triggered pass over the library right now.
+  /// Inputs: None.
+  /// Returns: `Future<bool>` — `false` when the device is offline and nothing
+  /// ran.
+  /// Side effects: Pauses the background loop, issues HTTP requests, writes the
+  /// local cache and the anime file, and publishes progress to [scanProgress].
+  /// Notes: Deliberately **not** gated on `metadataAutoUpdate`. That setting
+  /// governs unattended background traffic; this is one explicit tap the user
+  /// can watch and cancel, and when the policy is `off` this button is the only
+  /// way to check at all. Offline is still refused, because every item would
+  /// fail and push the whole library into backoff for nothing.
+  Future<bool> startManualScan() async {
+    if (_scanning) return true;
+    if (await _isOffline()) return false;
+
+    // Stop the background loop for the duration. Two workers hitting the same
+    // APIs at once would double the request rate the gaps below are sized for.
+    _timer?.cancel();
+    _timer = null;
+    _scanning = true;
+    _scanCancelled = false;
+
+    var done = 0;
+    var total = 0;
+    var found = 0;
+    try {
+      await _ensureStoreLoaded();
+      final data = await AnimeStorage.load();
+      final queue = buildScanQueue(
+        data.animes,
+        _store,
+        DateTime.now().toUtc(),
+      );
+      final items = <({Anime anime, bool discovery})>[
+        for (final a in queue.refresh) (anime: a, discovery: false),
+        for (final a in queue.discover) (anime: a, discovery: true),
+      ];
+      total = items.length;
+      scanProgress.value = MetadataScanProgress(
+        phase: MetadataScanPhase.scanning,
+        total: total,
+      );
+
+      for (var i = 0; i < items.length; i++) {
+        if (_scanCancelled) break;
+        final item = items[i];
+        scanProgress.value = MetadataScanProgress(
+          phase: MetadataScanPhase.scanning,
+          done: done,
+          total: total,
+          currentTitle: item.anime.displayTitle,
+          found: found,
+        );
+        final before = pendingCount;
+        final at = DateTime.now().toUtc();
+        if (item.discovery) {
+          await _discoverOne(item.anime, at);
+        } else {
+          await _refreshOne(item.anime, at);
+        }
+        if (pendingCount > before) found += pendingCount - before;
+        done++;
+        // No title between items: the count means "checked", so leaving the
+        // finished record named would read as though it were still in flight
+        // for the whole of the pacing gap.
+        scanProgress.value = MetadataScanProgress(
+          phase: MetadataScanPhase.scanning,
+          done: done,
+          total: total,
+          found: found,
+        );
+        if (_scanCancelled || i == items.length - 1) break;
+        await Future<void>.delayed(
+          item.discovery ? _manualDiscoverGap : _manualRefreshGap,
+        );
+      }
+
+      await _flushPendingMeta();
+    } finally {
+      scanProgress.value = MetadataScanProgress(
+        phase: _scanCancelled
+            ? MetadataScanPhase.cancelled
+            : MetadataScanPhase.done,
+        done: done,
+        total: total,
+        found: found,
+      );
+      _scanning = false;
+      _scanCancelled = false;
+      _schedule(_idleGap);
+      _notify();
+    }
+    return true;
+  }
+
+  /// Purpose: Ask a running scan to stop.
+  /// Inputs: None.
+  /// Returns: None.
+  /// Side effects: Sets the cancel flag read between queue items.
+  /// Notes: The item already in flight is allowed to finish, so a paid-for
+  /// network response is never thrown away. Everything found so far is kept.
+  void cancelManualScan() {
+    if (_scanning) _scanCancelled = true;
+  }
+
+  /// Purpose: Return the progress notifier to its resting state.
+  /// Inputs: None.
+  /// Returns: None.
+  /// Side effects: Publishes [MetadataScanProgress.idle].
+  /// Notes: Called by the review page once it has shown the finished scan's
+  /// summary, so re-entering the page does not replay an old result. Ignored
+  /// while a scan is running.
+  void clearScanProgress() {
+    if (_scanning) return;
+    scanProgress.value = MetadataScanProgress.idle;
   }
 }

@@ -21,6 +21,8 @@
 | `MetadataFieldChange` | class | 单个字段的当前值与提议值，用于展示。 |
 | `MetadataUpdateEntry` | class | 单部番剧的缓存条目：状态、候选、尝试与退避状态。 |
 | `MetadataUpdateStore` | class | 整个 `metadata_updates.json` 文档。 |
+| `MetadataScanPhase` | enum | 用户触发的检索所处的阶段：`idle`、`scanning`、`done`、`cancelled`。 |
+| `MetadataScanProgress` | class | 一次手动检索的不可变快照，通过 `ValueNotifier` 发布。 |
 
 ## 声明
 
@@ -44,6 +46,9 @@
 | [`needsMetadataDiscovery`](#needsmetadatadiscovery) | 函数 | A | 记录是否残缺到值得搜索。 |
 | [`diffCandidate`](#diffcandidate) | 函数 | A | 算出候选会改动哪些核心字段。 |
 | [`applyMetadataChanges`](#applymetadatachanges) | 函数 | A | 把已接受的字段写入番剧记录。 |
+| `MetadataScanProgress` | 构造器 | B | 创建检索进度快照。 |
+| [`MetadataScanProgress.fraction`](#scanfraction) | getter | A | 完成比例，无可度量内容时为 `null`。 |
+| `MetadataScanProgress.isRunning` | getter | B | 是否有检索正在进行。 |
 
 ## 文档
 
@@ -138,3 +143,17 @@
   `copyWith` 都会更新它。这个区别为何要紧，见 [`../../../../sync.md`](../../../../sync.md)。
 
   封面字段较为特殊：它的提议值是一个远程 URL，因此调用方先下载，再把得到的 `images/...` 路径传回来。
+
+### `double? MetadataScanProgress.fraction` <a id="scanfraction"></a>
+- **种类：** getter
+- **用途：** 报告用户触发的检索进行到哪一步。
+- **输入：** 无。
+- **返回：** 0..1 之间的 `double?`；`total` 为零时返回 `null`。
+- **副作用：** 无。
+- **注意：** 刻意与 `myapps_data` 中的 `SyncProgress.fraction` 保持同构，因此两处进度 UI 的绑定方式完全一致，
+  而 `null` 的含义是「不要画确定进度条」，而不是「画一个空的」。
+
+  `total` 为零是一个真实结论，而非失败：所有能检查的记录最近都检查过，再问一遍不会有任何变化。
+  审阅页会把它呈现为「所有资料都已是最新」，而不是一根永远不动的进度条。
+
+  分母在检索开始时就已固定——队列是一份快照——所以进度条只会前进。

@@ -298,6 +298,31 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String searchProgressRound1(int done, int total) {
+    return 'Searching $done of $total sources…';
+  }
+
+  @override
+  String searchProgressRound2(int done, int total) {
+    return 'Second pass: $done of $total sources…';
+  }
+
+  @override
+  String get searchSourceFailed => 'failed';
+
+  @override
+  String searchSourceCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count results',
+      one: '1 result',
+      zero: 'no results',
+    );
+    return '$_temp0';
+  }
+
+  @override
   String get animeStudios => 'Studios';
 
   @override
@@ -481,6 +506,62 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get metaUpdatesNothingSelected => 'Select at least one field';
+
+  @override
+  String get metaUpdatesScan => 'Check for updates';
+
+  @override
+  String get metaUpdatesScanStop => 'Stop checking';
+
+  @override
+  String metaUpdatesScanProgress(int done, int total) {
+    return '$done of $total checked';
+  }
+
+  @override
+  String metaUpdatesScanFound(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count found',
+      one: '1 found',
+      zero: 'nothing found yet',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String metaUpdatesScanDone(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Check complete. $count updates found.',
+      one: 'Check complete. 1 update found.',
+      zero: 'Check complete. No updates found.',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String metaUpdatesScanCancelled(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Check stopped. $count updates found.',
+      one: 'Check stopped. 1 update found.',
+      zero: 'Check stopped. Nothing found.',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get metaUpdatesScanUpToDate => 'Everything is already up to date';
+
+  @override
+  String get metaUpdatesScanOffline => 'No network connection';
+
+  @override
+  String get metaUpdatesManualSearch => 'Search manually';
 
   @override
   String get settingsMetaAutoUpdate => 'Background database updates';

@@ -29,6 +29,8 @@
 | `_minConfidence` | 0.75 | 提议一个候选所需的最低相关度。 |
 | `_confidenceMargin` | 0.08 | 冠军需要领先**其他作品**多少。 |
 | `_flushEvery` | 10 | 两次写入 `anime_data.json` 之间处理的番剧数。 |
+| `_manualRefreshGap` | 2 秒 | 手动检索；一次刷新对单一站点最多 1 次请求，即 ≤30 次/分钟/站。 |
+| `_manualDiscoverGap` | 6 秒 | 手动检索；一次 `searchAll` 对单一站点最多 2 次请求，即 ≤20 次/分钟/站。 |
 
 ## 声明
 
@@ -64,6 +66,15 @@
 | `_resolveCoverPath` | 方法 | B | 把已接受的封面转换为 `images/` 路径。 |
 | [`_promotePrefetchedCover`](#_promoteprefetchedcover) | 方法 | A | 把预取封面复制进 `images/`。 |
 | [`dismissProposal`](#dismissproposal) | 方法 | A | 拒绝一条建议。 |
+| `isScanning` | getter | B | 是否有手动检索正在运行。 |
+| [`buildScanQueue`](#buildscanqueue) | 方法 | A | 为手动检索构造固定的工作清单。 |
+| [`startManualScan`](#startmanualscan) | 方法 | A | 立即执行一次用户触发的全库检查。 |
+| [`cancelManualScan`](#cancelmanualscan) | 方法 | A | 请求正在运行的检索停止。 |
+| `clearScanProgress` | 方法 | B | 把进度通知器恢复到静止状态。 |
+| [`_links`](#_links) | 方法 | A | 读取当前链路类型，不可用时返回 `null`。 |
+| `_hasNoLink` | 静态方法 | B | 判断链路列表是否意味着「没有连接」。 |
+| [`_isOffline`](#_isoffline) | 方法 | A | 是否完全没有连接。 |
+| [`isMetaStale`](#ismetastale) | 静态方法 | A | 缓存的资料是否已过新鲜期。 |
 
 ## 文档
 
@@ -173,3 +184,78 @@
 ### `Future<void> dismissProposal(String)` <a id="dismissproposal"></a>
 - **备注：** 持久化这次拒绝，并删除预取的封面。该记录只有在用户编辑它、或 30 天重新探索窗口到期后才会
   被重新审视。
+
+### `({List<Anime> refresh, List<Anime> discover}) buildScanQueue(List<Anime>, MetadataUpdateStore, DateTime)` <a id="buildscanqueue"></a>
+- **种类：** 方法（`@visibleForTesting`）
+- **用途：** 构造用户触发的检索将要走完的固定工作清单。
+- **输入：** `animes`、`store`、`now`。
+- **返回：** 一个记录，包含待刷新的番剧与待搜索的番剧。
+- **副作用：** 无——它是纯函数，这也正是手动检索中被单元测试覆盖的部分。
+- **算法：** 依次遍历每部番剧：若它有可刷新的 URL **且**缓存已过期，则进入 `refresh`，该记录处理完毕。
+  否则，若它资料残缺、有标题，且既未被忽略也没有待确认的建议，则进入 `discover`。
+- **注意：** 它**无视**什么、**尊重**什么，就是整个设计：
+
+  | 闸门 | 手动检索 | 原因 |
+  |---|---|---|
+  | 失败退避（`nextAttemptAt`） | 无视 | 「立刻重试」正是这个按钮的含义；退避只是「别太快重试」的启发式。 |
+  | 30 天重新探索窗口 | 无视 | 同上。 |
+  | 用户的忽略 | 尊重 | 重新提议用户已经拒绝过的内容，会让「忽略」失去意义。 |
+  | 缓存新鲜度 | 尊重 | 对 200 条的库重新抓取仍新鲜的资料要花上几分钟、上千次请求，却什么都不会改变。 |
+
+  对同一条记录，刷新优先于探索，与 [`_runOnce`](#_runonce) 排空两条队列的顺序一致。
+  因此每部番剧**最多出现一次**，总数就是记录条数，进度条的分母永远不会变动。
+
+### `Future<bool> startManualScan()` <a id="startmanualscan"></a>
+- **种类：** 方法
+- **用途：** 应用户的明确要求，立即检查整个库。
+- **输入：** 无。
+- **返回：** `Future<bool>`——设备离线、什么都没执行时为 `false`。
+- **副作用：** 取消后台定时器、发起 HTTP 请求、写入 `metadata_updates.json` 与 `anime_data.json`，
+  并向 `scanProgress` 发布进度。
+- **算法：** 从 [`buildScanQueue`](#buildscanqueue) 取一份快照队列，先处理刷新项、再处理探索项，
+  每项前后各发布一次进度，并在两项之间检查取消标志。结束时落盘缓冲的资料并恢复后台循环。
+- **注意：** 刻意**不**受 `metadataAutoUpdate` 限制。该设置管的是**无人值守**的后台流量；
+  而这是用户可以看着、可以随时停止的一次明确点击，并且当策略为 `off` 时，这个按钮是唯一的检查途径。
+
+  离线时仍然拒绝执行，因为那样每一项都会失败，白白把整个库推进退避。这也正是
+  [`_isOffline`](#_isoffline) 要独立于 [`_networkGate`](#_networkgate) 存在的原因——后者一旦策略为
+  `off` 就会短路返回 `blocked`，而那恰恰是手动按钮必须能工作的场景。
+
+  执行期间后台定时器会被取消：两个 worker 同时打同一批 API，会让请求速率变成
+  `_manualRefreshGap` 与 `_manualDiscoverGap` 所设定值的两倍。
+
+### `void cancelManualScan()` <a id="cancelmanualscan"></a>
+- **种类：** 方法
+- **用途：** 请求正在运行的检索停止。
+- **输入：** 无。
+- **返回：** 无。
+- **副作用：** 设置在队列项之间被读取的标志。
+- **注意：** 已经发出的那次请求会被允许完成，因此不会白白丢弃一个已经付出网络往返代价的响应。
+  已找到的结果全部保留——取消的含义是「停在这里」，而不是「撤销」。
+
+### `Future<List<ConnectivityResult>?> _links()` <a id="_links"></a>
+- **种类：** 方法
+- **用途：** 读取当前的链路类型。
+- **输入：** 无。
+- **返回：** `Future<List<ConnectivityResult>?>`——插件无法回答时为 `null`。
+- **副作用：** 查询 `connectivity_plus`。
+- **注意：** 由策略闸门与离线判断共用，使插件只有一条调用路径。
+
+### `Future<bool> _isOffline()` <a id="_isoffline"></a>
+- **种类：** 方法
+- **用途：** 报告当前是否完全没有连接。
+- **输入：** 无。
+- **返回：** `Future<bool>`。
+- **副作用：** 查询 `connectivity_plus`。
+- **注意：** 插件无法回答时按在线处理，让请求本身去失败，而不是在一个无法报告链路状态的平台上
+  直接拒绝整个功能。
+
+### `static bool isMetaStale(Anime, DateTime)` <a id="ismetastale"></a>
+- **种类：** 静态方法
+- **用途：** 报告一部番剧缓存的资料是否已过新鲜期。
+- **输入：** `anime`、`now`。
+- **返回：** `bool`——从未抓取过时为 `true`。
+- **副作用：** 无。
+- **注意：** 由 [`_nextRefreshTarget`](#_nextrefreshtarget) 与 [`buildScanQueue`](#buildscanqueue)
+  共用，使后台循环与手动检索对「过期」的定义不会各自漂移。已完结作品适用 `_finishedFreshness`
+  （14 天），放送中作品适用 `_airingFreshness`（24 小时）——因为完结之后评分与集数就不再变动了。

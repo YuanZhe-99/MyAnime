@@ -294,6 +294,30 @@ class AppLocalizationsZh extends AppLocalizations {
   }
 
   @override
+  String searchProgressRound1(int done, int total) {
+    return '正在搜索来源 $done / $total…';
+  }
+
+  @override
+  String searchProgressRound2(int done, int total) {
+    return '跨语言补搜 $done / $total…';
+  }
+
+  @override
+  String get searchSourceFailed => '失败';
+
+  @override
+  String searchSourceCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count 条',
+      zero: '无结果',
+    );
+    return '$_temp0';
+  }
+
+  @override
   String get animeStudios => '制作公司';
 
   @override
@@ -438,6 +462,59 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get metaUpdatesNothingSelected => '请至少选择一个字段';
+
+  @override
+  String get metaUpdatesScan => '检查更新';
+
+  @override
+  String get metaUpdatesScanStop => '停止检查';
+
+  @override
+  String metaUpdatesScanProgress(int done, int total) {
+    return '已检查 $done / $total';
+  }
+
+  @override
+  String metaUpdatesScanFound(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '已找到 $count 项',
+      zero: '暂未发现',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String metaUpdatesScanDone(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '检查完成，找到 $count 项可用更新',
+      zero: '检查完成，未发现可用更新',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String metaUpdatesScanCancelled(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '已停止检查，找到 $count 项可用更新',
+      zero: '已停止检查，未发现可用更新',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get metaUpdatesScanUpToDate => '所有资料都已是最新';
+
+  @override
+  String get metaUpdatesScanOffline => '当前没有网络连接';
+
+  @override
+  String get metaUpdatesManualSearch => '手动搜索';
 
   @override
   String get settingsMetaAutoUpdate => '后台更新资料库信息';
@@ -1706,6 +1783,30 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
   }
 
   @override
+  String searchProgressRound1(int done, int total) {
+    return '正在搜尋來源 $done / $total…';
+  }
+
+  @override
+  String searchProgressRound2(int done, int total) {
+    return '跨語言補搜 $done / $total…';
+  }
+
+  @override
+  String get searchSourceFailed => '失敗';
+
+  @override
+  String searchSourceCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count 筆',
+      zero: '無結果',
+    );
+    return '$_temp0';
+  }
+
+  @override
   String get animeStudios => '製作公司';
 
   @override
@@ -1850,6 +1951,59 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
 
   @override
   String get metaUpdatesNothingSelected => '請至少選擇一個欄位';
+
+  @override
+  String get metaUpdatesScan => '檢查更新';
+
+  @override
+  String get metaUpdatesScanStop => '停止檢查';
+
+  @override
+  String metaUpdatesScanProgress(int done, int total) {
+    return '已檢查 $done / $total';
+  }
+
+  @override
+  String metaUpdatesScanFound(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '已找到 $count 項',
+      zero: '暫未發現',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String metaUpdatesScanDone(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '檢查完成，找到 $count 項可用更新',
+      zero: '檢查完成，未發現可用更新',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String metaUpdatesScanCancelled(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '已停止檢查，找到 $count 項可用更新',
+      zero: '已停止檢查，未發現可用更新',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get metaUpdatesScanUpToDate => '所有資料都已是最新';
+
+  @override
+  String get metaUpdatesScanOffline => '目前沒有網路連線';
+
+  @override
+  String get metaUpdatesManualSearch => '手動搜尋';
 
   @override
   String get settingsMetaAutoUpdate => '背景更新資料庫資訊';

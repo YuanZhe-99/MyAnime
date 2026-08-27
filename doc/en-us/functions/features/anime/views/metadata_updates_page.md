@@ -29,6 +29,10 @@ for the service behind it.
 | `MetadataUpdatesPage` | constructor | B | Create the page, taking the management page's scope. |
 | `createState` | method | B | Flutter lifecycle. |
 | `initState` | method | B | Start the first load. |
+| `dispose` | method | B | Unregister the service callback. |
+| [`_onServiceChanged`](#_onservicechanged) | method | A | Rebuild as the service publishes proposals. |
+| [`_startScan`](#_startscan) | method | A | Run a check of the whole library and report the outcome. |
+| `_openManualSearch` | method | B | Hand an unmatched record to the edit page's search. |
 | [`_load`](#_load) | method | A | Rebuild the proposal list from storage and cache. |
 | [`_batchable`](#_batchable) | method | A | List the proposals a batch action may apply. |
 | `_apply` | method | B | Apply one reviewed proposal. |
@@ -43,6 +47,7 @@ for the service behind it.
 | [`_buildProposalCard`](#_buildproposalcard) | method | A | Render one proposal. |
 | `_buildChangeRow` | method | B | Render one field's checkbox and values. |
 | [`_buildThumbnail`](#_buildthumbnail) | method | A | Render the candidate's cover. |
+| `_buildScanBanner` | method | B | Show how far a running scan has got. |
 
 ## Documentation
 
@@ -85,3 +90,32 @@ for the service behind it.
 - **Notes:** Uses the prefetched file when cover prefetch is on, and otherwise streams the source
   URL. That fallback is why prefetch can stay **off by default** without costing this screen
   anything.
+
+### `void _onServiceChanged()` <a id="_onservicechanged"></a>
+- **Kind:** method
+- **Purpose:** Rebuild the list when the service publishes new proposals.
+- **Inputs:** None.
+- **Returns:** None.
+- **Side effects:** Re-reads `anime_data.json`.
+- **Notes:** Calls `_load(reloadCache: false)`, not plain `_load()`. `MetadataUpdateService.reload()`
+  notifies its listeners, so asking it to re-read the cache from inside a listener would call this
+  callback again, and again, forever. The in-memory store is already current here — the service just
+  wrote it.
+
+  During a manual scan this is what makes proposals appear one at a time as they are found, instead
+  of all at once when the scan ends.
+
+### `Future<void> _startScan()` <a id="_startscan"></a>
+- **Kind:** method
+- **Purpose:** Run a check of the whole library on the user's request and report what happened.
+- **Inputs:** None.
+- **Returns:** None.
+- **Side effects:** Drives `MetadataUpdateService.startManualScan`, then shows a snack bar.
+- **Algorithm:** Await the scan, then pick one of three messages from the final progress snapshot:
+  offline (nothing ran), empty queue (already up to date), stopped early, or finished with a count.
+- **Notes:** The awaited future covers the **entire** scan, which can run for minutes. Leaving the
+  page only means the snack bar is skipped — the scan itself lives in the service and carries on.
+
+  An empty queue is reported as "everything is already up to date" rather than "no updates found":
+  the two are different answers, and only the first one is true when nothing was checked because
+  nothing needed checking.

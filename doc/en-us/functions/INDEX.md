@@ -4,15 +4,15 @@ This is the top-level index of the hand-written Function Explanation Layer docum
 `lib/` in the MyAnime repo. Each row links to a per-source-file page under `doc/en-us/functions/`
 mirroring the `lib/` tree (with `.dart` replaced by `.md`).
 
-**Totals:** the repo's `/// Purpose:` comment count is **781** (per the Function Explanation Layer
+**Totals:** the repo's `/// Purpose:` comment count is **805** (per the Function Explanation Layer
 convention in `AGENTS.md`, excluding generated `lib/l10n/` code — see [l10n/INDEX.md](l10n/INDEX.md)).
-The rows below sum to **771** documented declarations.
+The rows below sum to **795** documented declarations.
 
 | Tier | Count |
 |---|---|
-| Tier A (full entry: Purpose/Inputs/Returns/Side effects/Algorithm/Usage/Notes) | 489 |
-| Tier B (index row only) | 282 |
-| **Total** | **771** |
+| Tier A (full entry: Purpose/Inputs/Returns/Side effects/Algorithm/Usage/Notes) | 500 |
+| Tier B (index row only) | 295 |
+| **Total** | **795** |
 
 **Known gap.** These two numbers do not match: 10 declarations carry a `/// Purpose:` comment in
 source but have no row here, so the index under-covers `lib/` by that much. The gap is not evenly
@@ -20,8 +20,9 @@ distributed and has not been audited file by file. Two individual files go the *
 carry one more row than their source's `Purpose:` count — see the note under the `features/`
 section below.
 
-These totals were recomputed against the actual source tree in 1.4.0 and again in 1.5.0, which
-added 93 declarations across four new files and five changed ones. The pre-1.4.0 figures (682
+These totals were recomputed against the actual source tree in 1.4.0, again in 1.5.0 (93 new
+declarations across four new files and five changed ones), and again in 1.5.1, which added 24
+across five changed files. The pre-1.4.0 figures (682
 `Purpose:` comments and 685 documented declarations) had drifted far from both the source and this
 file's own per-file rows, which summed to 615 at the time. If you change these numbers, measure
 them rather than adjusting them by hand:
@@ -55,18 +56,18 @@ convention (function/method/constructor/getter/setter); see that page for detail
 | Source file | Page | Declarations | Tier A count |
 |---|---|---|---|
 | `lib/features/anime/models/anime.dart` | [features/anime/models/anime.md](features/anime/models/anime.md) | 63 | 52 |
-| `lib/features/anime/models/metadata_update.dart` | [features/anime/models/metadata_update.md](features/anime/models/metadata_update.md) | 19 | 8 |
+| `lib/features/anime/models/metadata_update.dart` | [features/anime/models/metadata_update.md](features/anime/models/metadata_update.md) | 22 | 9 |
 | `lib/features/anime/services/anime_storage.dart` | [features/anime/services/anime_storage.md](features/anime/services/anime_storage.md) | 32 | 32 |
-| `lib/features/anime/services/anime_search_service.dart` | [features/anime/services/anime_search_service.md](features/anime/services/anime_search_service.md) | 51 | 35 |
+| `lib/features/anime/services/anime_search_service.dart` | [features/anime/services/anime_search_service.md](features/anime/services/anime_search_service.md) | 56 | 36 |
 | `lib/features/anime/services/metadata_cache.dart` | [features/anime/services/metadata_cache.md](features/anime/services/metadata_cache.md) | 10 | 7 |
-| `lib/features/anime/services/metadata_update_service.dart` | [features/anime/services/metadata_update_service.md](features/anime/services/metadata_update_service.md) | 32 | 18 |
+| `lib/features/anime/services/metadata_update_service.dart` | [features/anime/services/metadata_update_service.md](features/anime/services/metadata_update_service.md) | 41 | 24 |
 | `lib/features/anime/views/anime_detail_page.dart` | [features/anime/views/anime_detail_page.md](features/anime/views/anime_detail_page.md) | 24 | 11 |
 | `lib/features/anime/views/anime_edit_page.dart` | [features/anime/views/anime_edit_page.md](features/anime/views/anime_edit_page.md) | 25 | 9 |
-| `lib/features/anime/views/anime_search_dialog.dart` | [features/anime/views/anime_search_dialog.md](features/anime/views/anime_search_dialog.md) | 32 | 16 |
+| `lib/features/anime/views/anime_search_dialog.dart` | [features/anime/views/anime_search_dialog.md](features/anime/views/anime_search_dialog.md) | 34 | 17 |
 | `lib/features/anime/views/archive_labels.dart` | [features/anime/views/archive_labels.md](features/anime/views/archive_labels.md) | 3 | 3 |
 | `lib/features/anime/views/home_page.dart` | [features/anime/views/home_page.md](features/anime/views/home_page.md) | 22 | 9 |
 | `lib/features/anime/views/management_page.dart` | [features/anime/views/management_page.md](features/anime/views/management_page.md) | 26 | 12 |
-| `lib/features/anime/views/metadata_updates_page.dart` | [features/anime/views/metadata_updates_page.md](features/anime/views/metadata_updates_page.md) | 17 | 6 |
+| `lib/features/anime/views/metadata_updates_page.dart` | [features/anime/views/metadata_updates_page.md](features/anime/views/metadata_updates_page.md) | 22 | 8 |
 | `lib/features/anime/views/quarter_picker_dialog.dart` | [features/anime/views/quarter_picker_dialog.md](features/anime/views/quarter_picker_dialog.md) | 5 | 1 |
 | `lib/features/anime/views/statistics_page.dart` | [features/anime/views/statistics_page.md](features/anime/views/statistics_page.md) | 66 | 27 |
 

@@ -32,6 +32,8 @@ Applying a *proposal* is the opposite case and does bump it — that is a user e
 | `_minConfidence` | 0.75 | Minimum relevance to offer a candidate at all. |
 | `_confidenceMargin` | 0.08 | How far ahead of a *different work* the winner must be. |
 | `_flushEvery` | 10 | Anime between writes of `anime_data.json`. |
+| `_manualRefreshGap` | 2 s | Manual scan; a refresh is ≤1 request per host, so ≤30/min per host. |
+| `_manualDiscoverGap` | 6 s | Manual scan; a `searchAll` is ≤2 requests per host, so ≤20/min per host. |
 
 ## Declarations
 
@@ -67,6 +69,15 @@ Applying a *proposal* is the opposite case and does bump it — that is a user e
 | `_resolveCoverPath` | method | B | Turn an accepted cover into an `images/` path. |
 | [`_promotePrefetchedCover`](#_promoteprefetchedcover) | method | A | Copy a prefetched cover into `images/`. |
 | [`dismissProposal`](#dismissproposal) | method | A | Reject a proposal. |
+| `isScanning` | getter | B | Whether a manual scan is running. |
+| [`buildScanQueue`](#buildscanqueue) | method | A | Build the fixed work list for a manual scan. |
+| [`startManualScan`](#startmanualscan) | method | A | Run a user-triggered pass over the library now. |
+| [`cancelManualScan`](#cancelmanualscan) | method | A | Ask a running scan to stop. |
+| `clearScanProgress` | method | B | Return the progress notifier to its resting state. |
+| [`_links`](#_links) | method | A | Read the current link types, or `null` when unavailable. |
+| `_hasNoLink` | static method | B | Whether a link list means "no connection". |
+| [`_isOffline`](#_isoffline) | method | A | Whether there is no connection at all. |
+| [`isMetaStale`](#ismetastale) | static method | A | Whether cached metadata is past its freshness window. |
 
 ## Documentation
 
@@ -193,3 +204,85 @@ Applying a *proposal* is the opposite case and does bump it — that is a user e
 ### `Future<void> dismissProposal(String)` <a id="dismissproposal"></a>
 - **Notes:** Persists the rejection and deletes any prefetched cover. The record is re-examined only
   after the user edits it or the 30-day rediscovery window elapses.
+
+### `({List<Anime> refresh, List<Anime> discover}) buildScanQueue(List<Anime>, MetadataUpdateStore, DateTime)` <a id="buildscanqueue"></a>
+- **Kind:** method (`@visibleForTesting`)
+- **Purpose:** Build the fixed work list a user-triggered scan will walk.
+- **Inputs:** `animes`, `store`, `now`.
+- **Returns:** A record of the anime to refresh and the anime to search for.
+- **Side effects:** None — pure, which is why it is the part of the manual scan that is unit tested.
+- **Algorithm:** For each anime, in order: if it has refreshable URLs *and* its cache is stale, it
+  goes to `refresh` and the record is done. Otherwise, if it is incomplete, has a title, and is
+  neither dismissed nor already awaiting a decision, it goes to `discover`.
+- **Notes:** What it **ignores** and what it **honours** is the whole design:
+
+  | Gate | Manual scan | Why |
+  |---|---|---|
+  | Failure backoff (`nextAttemptAt`) | ignored | "Try again now" is what the button means; backoff is only a "don't retry too soon" heuristic. |
+  | 30-day rediscovery window | ignored | Same reason. |
+  | Dismissals | honoured | Re-proposing what the user already refused would make "ignore" meaningless. |
+  | Cache freshness | honoured | Re-fetching fresh metadata on a 200-record library costs minutes and over a thousand requests to change nothing. |
+
+  Refresh takes priority over discovery for the same record, matching the order
+  [`_runOnce`](#_runonce) drains the two queues in. Each anime therefore appears **at most once**,
+  so the total is a count of records and the progress bar's denominator never moves.
+
+### `Future<bool> startManualScan()` <a id="startmanualscan"></a>
+- **Kind:** method
+- **Purpose:** Run a check of the whole library right now, on the user's explicit request.
+- **Inputs:** None.
+- **Returns:** `Future<bool>` — `false` when the device is offline and nothing ran.
+- **Side effects:** Cancels the background timer, issues HTTP requests, writes
+  `metadata_updates.json` and `anime_data.json`, and publishes to `scanProgress`.
+- **Algorithm:** Take a snapshot queue from [`buildScanQueue`](#buildscanqueue), then work through
+  refresh items before discovery items, publishing progress before and after each one and checking
+  the cancel flag between them. Flush buffered metadata at the end and resume the background loop.
+- **Notes:** Deliberately **not** gated on `metadataAutoUpdate`. That setting governs *unattended*
+  background traffic; this is one explicit tap the user can watch and stop, and when the policy is
+  `off` this button is the only way to check at all.
+
+  Offline is still refused, because every item would fail and push the whole library into backoff
+  for nothing. This is why [`_isOffline`](#_isoffline) exists separately from
+  [`_networkGate`](#_networkgate), which short-circuits to `blocked` as soon as the policy is `off`
+  — exactly the case the manual button has to work in.
+
+  The background timer is cancelled for the duration: two workers hitting the same APIs at once
+  would double the request rate `_manualRefreshGap` and `_manualDiscoverGap` are sized for.
+
+### `void cancelManualScan()` <a id="cancelmanualscan"></a>
+- **Kind:** method
+- **Purpose:** Ask a running scan to stop.
+- **Inputs:** None.
+- **Returns:** None.
+- **Side effects:** Sets the flag read between queue items.
+- **Notes:** The request already in flight is allowed to finish, so a response that has been paid
+  for in a network round trip is never thrown away. Everything found so far is kept — cancelling is
+  "stop here", not "undo".
+
+### `Future<List<ConnectivityResult>?> _links()` <a id="_links"></a>
+- **Kind:** method
+- **Purpose:** Read the current link types.
+- **Inputs:** None.
+- **Returns:** `Future<List<ConnectivityResult>?>` — `null` when the plugin could not answer.
+- **Side effects:** Queries `connectivity_plus`.
+- **Notes:** Shared by the policy gate and the offline check so the plugin is called one way only.
+
+### `Future<bool> _isOffline()` <a id="_isoffline"></a>
+- **Kind:** method
+- **Purpose:** Report whether there is no connection at all.
+- **Inputs:** None.
+- **Returns:** `Future<bool>`.
+- **Side effects:** Queries `connectivity_plus`.
+- **Notes:** A plugin that cannot answer counts as online, so the request itself gets to fail rather
+  than the feature being refused outright on a platform that cannot report link state.
+
+### `static bool isMetaStale(Anime, DateTime)` <a id="ismetastale"></a>
+- **Kind:** static method
+- **Purpose:** Report whether an anime's cached metadata is past its freshness window.
+- **Inputs:** `anime`, `now`.
+- **Returns:** `bool` — `true` when it has never been fetched.
+- **Side effects:** None.
+- **Notes:** Shared by [`_nextRefreshTarget`](#_nextrefreshtarget) and
+  [`buildScanQueue`](#buildscanqueue) so the background loop and the manual scan cannot drift on
+  what "stale" means. A finished show gets `_finishedFreshness` (14 days) against an airing show's
+  `_airingFreshness` (24 hours), because a finished show's score and episode count stop moving.

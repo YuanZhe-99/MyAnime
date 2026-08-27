@@ -4,6 +4,7 @@ import '../features/anime/views/anime_detail_page.dart';
 import '../features/anime/views/anime_edit_page.dart';
 import '../features/anime/views/home_page.dart';
 import '../features/anime/views/management_page.dart';
+import '../features/anime/views/metadata_updates_page.dart';
 import '../features/anime/views/statistics_page.dart';
 import '../features/kana/views/kana_page.dart';
 import '../features/settings/views/settings_page.dart';
@@ -43,8 +44,23 @@ final appRouter = GoRouter(
     ),
     GoRoute(
       path: '/anime/edit/:id',
-      builder: (context, state) =>
-          AnimeEditPage(animeId: state.pathParameters['id']),
+      // `extra: true` asks the page to open the online search as soon as it
+      // loads — how the update-review screen hands off a record it could not
+      // match on its own.
+      builder: (context, state) => AnimeEditPage(
+        animeId: state.pathParameters['id'],
+        autoSearch: state.extra == true,
+      ),
+    ),
+    GoRoute(
+      path: '/metadata-updates',
+      // `extra` carries the ids the user was looking at, which is what
+      // "update this page" means on the review screen.
+      builder: (context, state) => MetadataUpdatesPage(
+        currentPageAnimeIds: state.extra is List<String>
+            ? state.extra! as List<String>
+            : const [],
+      ),
     ),
     GoRoute(
       path: '/duplicate-check',

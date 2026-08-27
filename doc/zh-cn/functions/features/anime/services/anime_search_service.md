@@ -23,6 +23,11 @@
 | [`toJson`](#resulttojson) | 方法（`AnimeSearchResult`） | A | 序列化抓取到的结果，以便缓存到磁盘。 |
 | [`fromJson`](#resultfromjson) | 工厂（`AnimeSearchResult`） | A | 防御式地从缓存重建结果。 |
 | `AnimeSearchSource._()` | 构造函数（`AnimeSearchSource`） | B | 阻止实例化来源名常量持有类。 |
+| `AnimeSearchProgress(...)` | 构造器（`AnimeSearchProgress`） | B | 保存单轮检索的实时进度。 |
+| `done` | getter（`AnimeSearchProgress`） | B | 已有多少来源作出回应。 |
+| `total` | getter（`AnimeSearchProgress`） | B | 本轮查询多少个来源。 |
+| [`fraction`](#searchprogressfraction) | getter（`AnimeSearchProgress`） | A | 本轮的完成比例，或 `null`。 |
+| `isPending` | 方法（`AnimeSearchProgress`） | B | 某个来源是否仍在等待中。 |
 | [`searchAll`](#searchall) | 静态方法（`AnimeSearchService`） | A | 执行两阶段跨语言检索并返回一个排好序的列表。 |
 | [`queryVariants`](#queryvariants) | 静态方法（`AnimeSearchService`） | A | 为查询构建简体/繁体变体集合。 |
 | [`relevance`](#relevance) | 静态方法（`AnimeSearchService`） | A | 用查询变体集合对结果的全部标题打分。 |
@@ -129,7 +134,7 @@ client，因此这些映射函数是唯一可行的测试接缝。不要在本�
 - **备注：** 每个字段都是防御式读取的 —— 由更新版本写入、或被手工编辑过的缓存会得到 null 而不是抛出。
   `source` 回退为空字符串，因此格式错误的条目仍然可读，可以由调用方丢弃，而不会把整个文件一起拖垮。
 
-### `static Future<List<AnimeSearchResult>> searchAll(String query, {String? preferredLanguage})` <a id="searchall"></a>
+### `static Future<List<AnimeSearchResult>> searchAll(String query, {String? preferredLanguage, void Function(AnimeSearchProgress)? onProgress})` <a id="searchall"></a>
 - **种类：** `AnimeSearchService` 的静态方法
 - **来源：** `lib/features/anime/services/anime_search_service.dart`（第 173 行）
 - **用途：** 查询每个元数据来源，返回一个去重且按相关度排序的列表。
@@ -580,3 +585,19 @@ client，因此这些映射函数是唯一可行的测试接缝。不要在本�
 - **返回：** `String`。
 - **副作用：** 无。
 - **备注：** 只处理六个实体——`&#39;` 之外的数字字符引用（如 `&#8217;`）会原样透传而不被反转义。
+
+### `double? AnimeSearchProgress.fraction` <a id="searchprogressfraction"></a>
+- **种类：** `AnimeSearchProgress` 的 getter
+- **用途：** 报告当前这一轮检索已有多少来源作出回应。
+- **输入：** 无。
+- **返回：** 0..1 之间的 `double?`；没有来源正在被查询时为 `null`。
+- **副作用：** 无。
+- **备注：** 每一轮使用**各自的分母**。第二轮只重新查询首轮空手而归的来源，因此若用单一总计，
+  分母会在检索途中变大、把进度条往回推；取而代之的是：首轮填满一次，规模更小的第二轮再填一次，
+  文案说明当前处于哪一轮。
+
+  失败的来源计入 `done`，因为它已经不再是等待对象。失败仍然可以区分——它会出现在 `failed` 中
+  ——因为对于正在决定要不要重搜的人来说，「这个来源坏了」和「这个来源没找到」是两个不同的答案。
+
+  它之所以存在，是因为一次检索确实可能耗时约半分钟：每个来源各有 10–15 秒超时，而且可能跑两轮。
+  在这段时间里，一个光秃秃的转圈与真正的卡死无法区分。

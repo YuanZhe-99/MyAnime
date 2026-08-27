@@ -294,6 +294,30 @@ class AppLocalizationsJa extends AppLocalizations {
   }
 
   @override
+  String searchProgressRound1(int done, int total) {
+    return '検索中 $done / $total ソース…';
+  }
+
+  @override
+  String searchProgressRound2(int done, int total) {
+    return '再検索 $done / $total ソース…';
+  }
+
+  @override
+  String get searchSourceFailed => '失敗';
+
+  @override
+  String searchSourceCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count 件',
+      zero: '結果なし',
+    );
+    return '$_temp0';
+  }
+
+  @override
   String get animeStudios => '制作会社';
 
   @override
@@ -438,6 +462,59 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get metaUpdatesNothingSelected => '項目を1つ以上選択してください';
+
+  @override
+  String get metaUpdatesScan => '更新を確認';
+
+  @override
+  String get metaUpdatesScanStop => '確認を停止';
+
+  @override
+  String metaUpdatesScanProgress(int done, int total) {
+    return '$done / $total 件を確認済み';
+  }
+
+  @override
+  String metaUpdatesScanFound(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count 件見つかりました',
+      zero: 'まだ見つかっていません',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String metaUpdatesScanDone(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '確認が完了しました。$count 件の更新が見つかりました',
+      zero: '確認が完了しました。利用できる更新はありません',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String metaUpdatesScanCancelled(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '確認を停止しました。$count 件の更新が見つかりました',
+      zero: '確認を停止しました。利用できる更新はありません',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get metaUpdatesScanUpToDate => 'すべて最新です';
+
+  @override
+  String get metaUpdatesScanOffline => 'ネットワークに接続されていません';
+
+  @override
+  String get metaUpdatesManualSearch => '手動で検索';
 
   @override
   String get settingsMetaAutoUpdate => 'バックグラウンドでデータベース情報を更新';

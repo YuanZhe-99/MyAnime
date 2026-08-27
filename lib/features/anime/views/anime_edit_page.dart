@@ -14,12 +14,20 @@ import 'archive_labels.dart';
 class AnimeEditPage extends StatefulWidget {
   final String? animeId;
 
+  /// Open the online search dialog as soon as the record has loaded.
+  ///
+  /// Set by the update-review screen for a record the background service found
+  /// candidates for but could not choose between, so the user lands directly on
+  /// the search results instead of hunting for the button.
+  final bool autoSearch;
+
   /// Purpose: Create a anime edit page instance.
-  /// Inputs: `key`, `animeId`.
+  /// Inputs: `key`, `animeId`, `autoSearch`.
   /// Returns: A new `AnimeEditPage` instance.
   /// Side effects: None.
-  /// Notes: None.
-  const AnimeEditPage({super.key, this.animeId});
+  /// Notes: `autoSearch` is ignored without an `animeId`, since there would be
+  /// no title to search with.
+  const AnimeEditPage({super.key, this.animeId, this.autoSearch = false});
 
   /// Purpose: Create the mutable state object for this widget.
   /// Inputs: None.
@@ -59,6 +67,7 @@ class _AnimeEditPageState extends State<AnimeEditPage> {
   ArchiveResolution? _archiveResolution;
 
   bool _isEdit = false;
+  bool _autoSearched = false;
   Anime? _existing;
 
   /// Public metadata pulled from external databases. Edited only by applying a
@@ -122,6 +131,15 @@ class _AnimeEditPageState extends State<AnimeEditPage> {
         _archiveLocationController.text = found.localArchive?.location ?? '';
         _externalMeta = found.externalMeta;
       });
+      // Opened from the update-review screen: go straight to the search, now
+      // that the title fields are filled in and can seed the query. Guarded so
+      // a later reload cannot reopen the dialog behind the user's back.
+      if (widget.autoSearch && !_autoSearched) {
+        _autoSearched = true;
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (mounted) _showSearchDialog();
+        });
+      }
     }
   }
 

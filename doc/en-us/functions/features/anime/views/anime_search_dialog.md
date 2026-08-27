@@ -32,6 +32,8 @@ see the flavor-gating rule in
 | `_sortLabel` | method (`_SearchDialogState`) | B | Localized label for one `_SearchSort` value. |
 | [`_showFilterSheet`](#showfiltersheet) | method (`_SearchDialogState`) | A | Show the source and field filters in a bottom sheet. |
 | `_buildSearchResults` | method (`_SearchDialogState`) | B | Choose between spinner, error, empty, grouped, or flat list. |
+| [`_buildSearchProgress`](#_buildsearchprogress) | method | A | Show which sources have answered while a search runs. |
+| `_sourceChip` | method | B | Render one source's pending/found/failed state. |
 | [`_buildGroupedResults`](#buildgroupedresults) | method (`_SearchDialogState`) | A | Render the result list as one collapsible section per source. |
 | [`_resultTile`](#resulttile) | method (`_SearchDialogState`) | A | Build one row of the search result list. |
 | [`_secondaryLine`](#secondaryline) | method (`_SearchDialogState`) | A | Compose the secondary metadata line shown under a result. |
@@ -191,3 +193,23 @@ comments; the enums themselves are counted as types rather than declarations her
 - **Side effects:** None.
 - **Algorithm:** A compact `Wrap` of chips: format, status, duration, each studio, each genre, and the score.
 - **Notes:** Read-only by design — the single checkbox above governs whether any of it is written. It exists so the user can see what "6 fields from AniList" actually means before accepting it.
+
+### `Widget _buildSearchProgress(AppLocalizations)` <a id="_buildsearchprogress"></a>
+- **Kind:** method
+- **Purpose:** Show which sources have answered while a search is still running.
+- **Inputs:** `l10n`.
+- **Returns:** `Widget`.
+- **Side effects:** None.
+- **Algorithm:** Render a determinate bar from `AnimeSearchProgress.fraction`, a caption naming the
+  round and the count, and one chip per source — spinner while pending, a tick and a result count
+  once it lands, an error icon when it threw.
+- **Notes:** Replaces the bare `CircularProgressIndicator` this screen used through 1.5.0. A search
+  can legitimately take about half a minute — each source has its own 10–15 second timeout, and
+  sources that come back empty are queried a second time with titles harvested from the first round
+  — and over that stretch a lone spinner is indistinguishable from a hang.
+
+  The chips are the part that actually answers the question: when one source is slow, the other four
+  are already ticked, which says "working" rather than "stuck", and names the one holding things up.
+
+  Falls back to the plain spinner before the first progress snapshot arrives, so there is never a
+  frame with an empty bar and no chips.
