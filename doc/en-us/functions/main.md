@@ -42,6 +42,11 @@ before handing control to Flutter's widget tree via `runApp`. See
      backup check in the background).
   7. Start `AutoSyncService.instance` so it begins observing app lifecycle events for sync triggers.
   8. Start `ReminderService.startPeriodicCheck()` (desktop 60-second in-process reminder check).
+  8a. Under `AppFlavor.isFull` only, resolve the background metadata-update policy and start
+      `MetadataUpdateService.instance` unless it is `off`. Started without awaiting, so a slow
+      config read cannot delay the first frame. The flavor gate is required here — the service
+      performs online lookups, which store builds do not ship. See
+      [`../features/metadata-auto-update.md`](../features/metadata-auto-update.md).
   9. Initialize `FileOpenService` (registers the mobile file-association `MethodChannel`).
   10. Scan `args` for the first entry ending in `.myanimeitem`; if found, stash it with
       `FileOpenService.setPendingFile()` for desktop cold-start file association.

@@ -155,3 +155,26 @@ next background sync cycle.
   during sync (step 7 above).
 - Sync errors and image transfer warnings are shown in dialogs, not only snackbars, since they
   need to stay visible.
+
+## Cached metadata and `modifiedAt`
+
+The background metadata updater writes `externalMeta` without touching `modifiedAt`, and that is
+deliberate — it is the difference between a cache refresh and a user edit.
+
+Because the merge reads "changed" **only** from `modifiedAt` versus the base, a background write
+that bumped it would be indistinguishable from a real edit, and would therefore:
+
+- resurrect records deleted on another device (local looks modified, so the merge keeps it), and
+- raise conflicts for edits the user never made.
+
+Leaving it alone keeps `localChanged` false, so neither can happen. The refreshed data still reaches
+other devices — when the remote did not touch the record, the merge keeps the local copy, and the
+upload decision is made by raw file comparison, so changed content still uploads. When the remote
+*did* change the record, the remote wins and the cache update is discarded, which is correct for a
+cache: the updater will fetch it again.
+
+Applying an update *proposal* is the opposite case and does bump `modifiedAt` — it is a user edit.
+
+See [`features/metadata-auto-update.md`](features/metadata-auto-update.md), and note the
+`Anime.copyWith` trap documented there: omitting `modifiedAt` stamps the current time rather than
+preserving it.

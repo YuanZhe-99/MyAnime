@@ -16,6 +16,7 @@ for how exported covers are embedded as base64.
 | [`pickAndSaveImage`](#pickandsaveimage) | method (`ImageService`) | A | Let the user pick an image file and copy it into app storage. |
 | [`resolve`](#resolve) | method (`ImageService`) | A | Resolve a relative image path (e.g. `images/xxx.png`) to an absolute `File`. |
 | [`saveImageFromUrl`](#saveimagefromurl) | method (`ImageService`) | A | Download an image from a URL and save it into app storage. |
+| [`saveImageFromFile`](#saveimagefromfile) | method (`ImageService`) | A | Copy an image already on disk into app storage. |
 | [`delete`](#delete) | method (`ImageService`) | A | Delete a previously saved image file. |
 
 ## Documentation
@@ -105,6 +106,18 @@ for how exported covers are embedded as base64.
   locally when the user adds that result)
 - **Notes:** Network or decoding failures are not distinguished from a non-200 response — both
   surface to the caller as a `null` return; there is no retry.
+
+### `static Future<String?> saveImageFromFile(File source)` <a id="saveimagefromfile"></a>
+- **Kind:** static method of `ImageService`
+- **Purpose:** Copy an image that already exists on disk into app storage under a fresh UUID name.
+- **Inputs:** `source` — a file anywhere the app can read.
+- **Returns:** `Future<String?>` — the new `images/<uuid><ext>` relative path, or `null` when the
+  source is missing or the copy failed.
+- **Side effects:** Writes a new file under `images/`.
+- **Notes:** Added in 1.5.0 to promote a cover out of the background updater's prefetch cache
+  (`metadata_covers/`, which is **not** synced) into `images/`, which is — otherwise an accepted
+  cover would never reach the user's other devices. The source is left in place; its owner is
+  responsible for cleaning it up.
 
 ### `static Future<void> delete(String relativePath)` <a id="delete"></a>
 - **Kind:** static method of `ImageService`

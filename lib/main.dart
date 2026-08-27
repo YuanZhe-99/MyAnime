@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 
 import 'package:device_preview/device_preview.dart';
@@ -8,6 +9,9 @@ import 'package:launch_at_startup/launch_at_startup.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 
 import 'app/app.dart';
+import 'app/flavor.dart';
+import 'features/anime/models/metadata_update.dart';
+import 'features/anime/services/metadata_update_service.dart';
 import 'shared/services/auto_sync_service.dart';
 import 'shared/services/backup_service.dart';
 import 'shared/services/file_open_service.dart';
@@ -53,6 +57,16 @@ void main(List<String> args) async {
 
   // Start periodic reminder check (every 60s)
   ReminderService.startPeriodicCheck();
+
+  // Start the background metadata updater. Full builds only — it performs
+  // online lookups, which store builds do not ship. It gates itself again on
+  // the user's network policy, which defaults to off-on-cellular for mobile.
+  if (AppFlavor.isFull) {
+    final policy = await MetadataUpdateService.effectivePolicy();
+    if (policy != MetadataUpdatePolicy.off) {
+      unawaited(MetadataUpdateService.instance.start());
+    }
+  }
 
   // Initialize file open handler (MethodChannel for mobile file associations)
   FileOpenService.init();

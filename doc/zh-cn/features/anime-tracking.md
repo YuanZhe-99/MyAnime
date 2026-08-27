@@ -37,13 +37,21 @@
 - **`AnimeRating`** 是*用户自己*的评分——一个手动总分加五个分项分，在编辑页编辑，在详情页的评分卡片中
   展示。它是唯一参与统计与本地 API 排行端点的评分。
 - **`externalMeta.ratings`** 保存各外部资料库的说法，每个来源一条，统一归一化到 10 分制，且每条都记住
-  自己的来源页面 URL。它展示在个人评分卡片*上方*的独立「资料库信息」卡片中，并附有说明文字，绝不参与
-  统计。
+  自己的来源页面 URL。它展示在个人评分卡片*上方*的独立「资料库信息」卡片中，绝不参与统计。这种区分由
+  版面本身承担 —— 独立的卡片、独立的分区标题，以及每个 chip 前缀的来源名。1.5.0 删除了一句用文字重述
+  这一点的说明：它没有告诉读者任何卡片本身没有展示的信息。
 
-没有任何路径会把外部评分写进 `AnimeRating`。应用搜索结果、或刷新某部番剧的资料库信息，都只改动
-`externalMeta` —— 用户自己的评分、观看进度与手动编辑保持原样。存储形态见
+没有任何路径会把外部评分写进 `AnimeRating`。应用搜索结果、刷新某部番剧的资料库信息，以及后台资料刷新，
+都只改动 `externalMeta` —— 用户自己的评分、观看进度与手动编辑保持原样。存储形态见
 [`../data-formats.md`](../data-formats.md#animeexternalmeta-与-animeexternalrating)，刷新流程见
-[`multi-source-search.md`](multi-source-search.md)。
+[`multi-source-search.md`](multi-source-search.md)，后台更新器见
+[`metadata-auto-update.md`](metadata-auto-update.md)。
+
+## 更新建议
+
+属于*用户*的字段绝不会在后台被写入。当更新器发现某条记录缺少首播日期、封面或集数，或者其集数与来源
+不一致时，它会下载候选数据并归档成一条**建议**，而不是直接应用。建议从管理页的角标进入审阅，可以逐字段
+处理，并按设备存储在同步数据文件之外。见 [`metadata-auto-update.md`](metadata-auto-update.md)。
 
 ## 本地存档
 

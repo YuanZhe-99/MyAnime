@@ -270,14 +270,25 @@ migrates data files, backups, and images.
 | Sync base snapshot | `.sync_base/anime_data.json` | No | Local merge tracking |
 | Local backups | `backups/backup_*.json` | No | Local recovery; v2 bundles reference deduplicated image blobs |
 | Backup image blobs | `backups/blobs/` | No | Content-addressed (`sha256`), shared across backups, reference-counted GC |
+| Background update queue | `metadata_updates.json` | No | Per-device attempt/backoff state plus downloaded update candidates; rebuildable cache |
+| Prefetched candidate covers | `metadata_covers/` | No | Only when cover prefetch is enabled; pruned when its proposal is resolved |
+| Background update policy | `storage_config.json` | No | Device-specific `metadataAutoUpdate` (`off`/`noCellular`/`always`; absent means `noCellular` on mobile, `always` on desktop) and `metadataPrefetchCovers` |
+
+`metadata_updates.json` and `metadata_covers/` are neither synced nor backed up, and that needs no
+special handling: the sync and backup engines only touch the file names registered in
+`ModuleRegistry` plus `images/`, and neither is registered in `lib/app/data_modules.dart`. Both do
+live under `AnimeStorage.getAppDir()`, so a storage-path change carries them along. See
+[`features/metadata-auto-update.md`](features/metadata-auto-update.md).
 
 ### `storage_config.json`
 
 Holds every device-local preference from the table above that isn't WebDAV configuration: theme
 mode, locale, calendar week-start/layout/time-basis/view-format preferences, storage path override,
 auto-backup enabled + retention days (`backupRetentionDays`), reminder settings, API server
-enabled/listen address/port/credentials, and tray/launch-at-startup preferences. None of this file
-is synced — it is intentionally device-specific.
+enabled/listen address/port/credentials, tray/launch-at-startup preferences, and the background
+metadata-update settings (`metadataAutoUpdate`, `metadataPrefetchCovers`). None of this file is
+synced — it is intentionally device-specific, which is the right home for a network policy that
+should differ between a desktop on Ethernet and a phone on a data plan.
 
 ### `webdav_config.json`
 

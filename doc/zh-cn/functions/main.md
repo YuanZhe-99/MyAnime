@@ -26,6 +26,10 @@
   6. 不 await 地触发 `BackupService.runAutoBackupIfNeeded()`（在后台运行每日一次自动备份检查）。
   7. 启动 `AutoSyncService.instance`，使它开始观察应用生命周期事件以触发同步。
   8. 启动 `ReminderService.startPeriodicCheck()`（桌面 60 秒进程内提醒检查）。
+  8a. 仅在 `AppFlavor.isFull` 下，解析后台资料更新策略，若不是 `off` 则启动
+      `MetadataUpdateService.instance`。启动时不 await，因此一次缓慢的配置读取不会拖延首帧。这里的
+      flavor 门禁是必需的 —— 该服务执行在线查询，而商店构建不包含这些功能。见
+      [`../features/metadata-auto-update.md`](../features/metadata-auto-update.md)。
   9. 初始化 `FileOpenService`（注册移动端文件关联 `MethodChannel`）。
   10. 扫描 `args` 找第一个以 `.myanimeitem` 结尾的条目；找到则用 `FileOpenService.setPendingFile()` 暂存，用于桌面冷启动文件关联。
   11. 调用 `runApp`，把 `ProviderScope(child: MyAnimeApp())` 包在 `DevicePreview` 中（仅 `kDebugMode` 启用）。

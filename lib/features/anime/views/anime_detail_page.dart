@@ -13,6 +13,7 @@ import '../../../shared/widgets/delete_confirm.dart';
 import '../models/anime.dart';
 import '../services/anime_search_service.dart';
 import '../services/anime_storage.dart';
+import '../services/metadata_update_service.dart';
 import 'archive_labels.dart';
 
 class AnimeDetailPage extends StatefulWidget {
@@ -605,18 +606,11 @@ class _AnimeDetailPageState extends State<AnimeDetailPage> {
   /// Inputs: `anime`.
   /// Returns: `List<String>`.
   /// Side effects: None.
-  /// Notes: Internal helper used within this file only. Combines `infoUrl` with
-  /// the URL each stored external rating remembers, so a record built from
-  /// several sources refreshes all of them.
-  List<String> _refreshableUrls(Anime anime) {
-    final urls = <String>{
-      if (anime.infoUrl != null && anime.infoUrl!.isNotEmpty) anime.infoUrl!,
-      for (final rating in anime.externalMeta?.ratings ?? const [])
-        if (rating.sourceUrl != null && rating.sourceUrl!.isNotEmpty)
-          rating.sourceUrl!,
-    };
-    return urls.toList();
-  }
+  /// Notes: Internal helper used within this file only. Delegates to
+  /// `MetadataUpdateService.refreshableUrls` so the manual chip and the
+  /// background refresher agree on what "refreshable" means.
+  List<String> _refreshableUrls(Anime anime) =>
+      MetadataUpdateService.refreshableUrls(anime);
 
   /// Purpose: Re-fetch external metadata from every remembered source page.
   /// Inputs: `anime`.
@@ -625,8 +619,11 @@ class _AnimeDetailPageState extends State<AnimeDetailPage> {
   /// and shows a snack bar with the outcome.
   /// Notes: Internal helper used within this file only. Only the external
   /// metadata is touched — the user's own rating, episode progress, and manual
-  /// edits are left exactly as they are. Callers must gate on
-  /// `AppFlavor.isFull`, since store builds do not ship online lookups.
+  /// edits are left exactly as they are. Writes through
+  /// `AnimeStorage.patchExternalMeta`, which deliberately leaves `modifiedAt`
+  /// alone: bumping it would make a record another device deleted come back,
+  /// and would raise conflicts for an edit the user never made. Callers must
+  /// gate on `AppFlavor.isFull`, since store builds do not ship online lookups.
   Future<void> _refreshExternalMeta(Anime anime) async {
     final l10n = AppLocalizations.of(context)!;
     final urls = _refreshableUrls(anime);
@@ -657,9 +654,7 @@ class _AnimeDetailPageState extends State<AnimeDetailPage> {
           refreshedAt: now,
         );
       }
-      await AnimeStorage.addOrUpdate(
-        anime.copyWith(externalMeta: merged, modifiedAt: now),
-      );
+      await AnimeStorage.patchExternalMeta({anime.id: merged});
       if (!mounted) return;
       setState(() => _refreshingMeta = false);
       await _load();
@@ -760,13 +755,6 @@ class _AnimeDetailPageState extends State<AnimeDetailPage> {
               Text(
                 l10n.animeExternalRatings,
                 style: theme.textTheme.titleSmall,
-              ),
-              const SizedBox(height: 2),
-              Text(
-                l10n.animeExternalRatingNote,
-                style: theme.textTheme.bodySmall?.copyWith(
-                  color: theme.colorScheme.onSurfaceVariant,
-                ),
               ),
               const SizedBox(height: 8),
               Wrap(

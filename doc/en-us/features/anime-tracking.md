@@ -66,14 +66,25 @@ Two rating concepts coexist and must not be conflated:
   statistics and the local API's ranking endpoint.
 - **`externalMeta.ratings`** holds what external databases say, one entry per source, each
   normalized onto a 10-point scale and each remembering the page URL it came from. It is shown in
-  a separate "Database Info" card *above* the personal rating card, with an explanatory line, and
-  it never feeds statistics.
+  a separate "Database Info" card *above* the personal rating card, and it never feeds statistics.
+  The separation is carried by the layout — a distinct card, a distinct section heading, and each
+  chip prefixed with its source name. 1.5.0 removed a sentence that restated this in prose; it told
+  the reader nothing the card was not already showing.
 
-Nothing writes an external score into `AnimeRating`. Applying a search result, or refreshing an
-anime's database info, touches only `externalMeta` — the user's own scores, episode progress, and
-manual edits are left exactly as they are. See
+Nothing writes an external score into `AnimeRating`. Applying a search result, refreshing an anime's
+database info, or a background metadata refresh all touch only `externalMeta` — the user's own
+scores, episode progress, and manual edits are left exactly as they are. See
 [`../data-formats.md`](../data-formats.md#animeexternalmeta-and-animeexternalrating) for the stored
-shape and [`multi-source-search.md`](multi-source-search.md) for the refresh flow.
+shape, [`multi-source-search.md`](multi-source-search.md) for the refresh flow, and
+[`metadata-auto-update.md`](metadata-auto-update.md) for the background updater.
+
+## Update proposals
+
+Fields the *user* owns are never written in the background. When the updater finds that a record is
+missing a first air date, a cover, or an episode count — or that its episode count disagrees with
+the source — it downloads the candidate and files a **proposal** instead of applying it. Proposals
+are reviewed from a badge on the management page, one field at a time, and are stored per-device
+outside the synced data file. See [`metadata-auto-update.md`](metadata-auto-update.md).
 
 ## Local archive
 

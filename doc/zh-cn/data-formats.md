@@ -211,10 +211,18 @@ enum AnimeType {
 | 同步基线快照 | `.sync_base/anime_data.json` | 否 | 本地合并跟踪 |
 | 本地备份 | `backups/backup_*.json` | 否 | 本地恢复；v2 捆绑引用去重后的图像 blob |
 | 备份图像 blob | `backups/blobs/` | 否 | 内容寻址（`sha256`）、跨备份共享、引用计数 GC |
+| 后台更新队列 | `metadata_updates.json` | 否 | 设备本地的尝试/退避状态，以及已下载的更新候选；可重建的缓存 |
+| 预取的候选封面 | `metadata_covers/` | 否 | 仅在启用封面预下载时存在；对应建议被处理后即清理 |
+| 后台更新策略 | `storage_config.json` | 否 | 设备特有的 `metadataAutoUpdate`（`off`/`noCellular`/`always`；缺省表示移动端 `noCellular`、桌面 `always`）与 `metadataPrefetchCovers` |
+
+`metadata_updates.json` 与 `metadata_covers/` 既不同步也不备份，而这不需要任何特殊处理：同步与备份引擎
+只会碰 `ModuleRegistry` 中注册的文件名外加 `images/`，而两者都没有注册进 `lib/app/data_modules.dart`。
+它们确实位于 `AnimeStorage.getAppDir()` 之下，所以更换存储路径时会跟着一起迁移。见
+[`features/metadata-auto-update.md`](features/metadata-auto-update.md)。
 
 ### `storage_config.json`
 
-保存上表中除 WebDAV 配置外的每个设备本地偏好：主题模式、语言区域、日历周起始/布局/时间基准/视图格式偏好、存储路径覆盖、自动备份启用 + 保留天数（`backupRetentionDays`）、提醒设置、API 服务器启用/监听地址/端口/凭据，以及托盘/开机自启偏好。此文件的任何内容都不被同步——它刻意设备特有。
+保存上表中除 WebDAV 配置外的每个设备本地偏好：主题模式、语言区域、日历周起始/布局/时间基准/视图格式偏好、存储路径覆盖、自动备份启用 + 保留天数（`backupRetentionDays`）、提醒设置、API 服务器启用/监听地址/端口/凭据、托盘/开机自启偏好，以及后台资料更新设置（`metadataAutoUpdate`、`metadataPrefetchCovers`）。此文件的任何内容都不被同步——它刻意设备特有，而这正是网络策略应有的归宿：接有线网的桌面与走流量套餐的手机本就该不同。
 
 ### `webdav_config.json`
 

@@ -10,6 +10,7 @@
 | [`pickAndSaveImage`](#pickandsaveimage) | 方法（`ImageService`） | A | 让用户选择图像文件并复制进应用存储。 |
 | [`resolve`](#resolve) | 方法（`ImageService`） | A | 把相对图像路径（如 `images/xxx.png`）解析为绝对 `File`。 |
 | [`saveImageFromUrl`](#saveimagefromurl) | 方法（`ImageService`） | A | 从 URL 下载图像并保存进应用存储。 |
+| [`saveImageFromFile`](#saveimagefromfile) | 方法（`ImageService`） | A | 把磁盘上已有的图像复制进应用存储。 |
 | [`delete`](#delete) | 方法（`ImageService`） | A | 删除先前保存的图像文件。 |
 
 ## 文档
@@ -82,6 +83,15 @@
   ```
   （来自 `lib/features/anime/views/anime_search_dialog.dart`，用户添加搜索结果时把其封面图像本地保存）
 - **备注：** 网络或解码失败与非 200 响应不区分——两者都以 `null` 返回浮出给调用方；没有重试。
+
+### `static Future<String?> saveImageFromFile(File source)` <a id="saveimagefromfile"></a>
+- **种类：** `ImageService` 的静态方法
+- **用途：** 把磁盘上已存在的图像以全新的 UUID 文件名复制进应用存储。
+- **输入：** `source` —— 应用可读的任意位置的文件。
+- **返回：** `Future<String?>` —— 新的 `images/<uuid><ext>` 相对路径，源文件缺失或复制失败时为 `null`。
+- **副作用：** 在 `images/` 下写入一个新文件。
+- **备注：** 1.5.0 新增，用于把封面从后台更新器的预取缓存（`metadata_covers/`，**不**同步）提升进
+  `images/`（同步）—— 否则被接受的封面永远到不了用户的其他设备。源文件原样保留，由其所有者负责清理。
 
 ### `static Future<void> delete(String relativePath)` <a id="delete"></a>
 - **种类：** `ImageService` 的静态方法

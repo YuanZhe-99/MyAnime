@@ -74,6 +74,28 @@ class ImageService {
     return 'images/$newName';
   }
 
+  /// Purpose: Copy an image that already exists on disk into app storage.
+  /// Inputs: `source` — a file anywhere the app can read.
+  /// Returns: `Future<String?>` — the relative path, or `null` when the source
+  /// is missing or the copy failed.
+  /// Side effects: Writes a new file under `images/`.
+  /// Notes: Used to promote a cover from the background updater's prefetch
+  /// cache, which is not synced, into `images/`, which is. The source is left
+  /// in place — its owner is responsible for cleaning it up.
+  static Future<String?> saveImageFromFile(File source) async {
+    try {
+      if (!await source.exists()) return null;
+      final imgDir = await _getImageDir();
+      var ext = p.extension(source.path);
+      if (ext.isEmpty || ext.length > 5) ext = '.jpg';
+      final dest = File(p.join(imgDir.path, '${const Uuid().v4()}$ext'));
+      await source.copy(dest.path);
+      return 'images/${p.basename(dest.path)}';
+    } catch (_) {
+      return null;
+    }
+  }
+
   /// Purpose: Delete a previously saved image.
   /// Inputs: `relativePath`.
   /// Returns: None.

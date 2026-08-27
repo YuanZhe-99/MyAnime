@@ -96,3 +96,22 @@ controlled from Settings.
 
 `tray_service.dart` handles desktop tray behavior: Show, Quit, minimize-to-tray, close-to-tray, and
 macOS/Linux/Windows branches. `launch_at_startup` (the package) handles desktop auto-start.
+
+## Connectivity detection
+
+`connectivity_plus` (added in 1.5.0) gates the background metadata updater. It supports all four
+target platforms and comes from the same `plus` family already in use (`share_plus`,
+`package_info_plus`, `wakelock_plus`), so it needs no per-platform wiring beyond `pub get`. On
+Android it merges its own `ACCESS_NETWORK_STATE` permission into the manifest.
+
+**It reports the link type, not whether the link is metered.** This limit is real and worth stating
+plainly, because the setting it drives is called "don't use cellular data":
+
+- A device on a phone's Wi-Fi hotspot reports `wifi` while the uplink is cellular. Undetectable.
+- A mobile VPN may report `vpn` and mask the underlying transport.
+- Android exposes a correct answer through `NetworkCapabilities.NET_CAPABILITY_NOT_METERED`, but
+  `connectivity_plus` does not surface it.
+
+So the `noCellular` policy is a good heuristic, not a guarantee. A plugin failure is treated as
+"allowed" rather than blocking the feature on a platform that cannot answer. See
+[`features/metadata-auto-update.md`](features/metadata-auto-update.md).

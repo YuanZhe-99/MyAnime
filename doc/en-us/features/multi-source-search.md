@@ -179,5 +179,17 @@ store-reachable caller must gate access explicitly:
   [`../platform-notes.md`](../platform-notes.md)) can call `AnimeSearchService.searchAll()`
   directly, because it is a desktop-only feature and desktop builds ship as the `full` flavor, not
   a store/mobile surface.
+- `main.dart` starts `MetadataUpdateService` only under `AppFlavor.isFull`, and `management_page.dart`
+  and `settings_page.dart` gate its badge and settings the same way.
+
+## The background caller
+
+Since 1.5.0 this service has a second, non-interactive caller:
+`MetadataUpdateService` re-runs `fetchByUrl`/`refreshAll` for records that already know their source,
+and `searchAll` for records that are incomplete. It paces itself well below every source's published
+rate limit and backs off on failure. See
+[`metadata-auto-update.md`](metadata-auto-update.md) for the queues, the confidence threshold that
+decides whether a search result is offered at all, and the network policy that governs when it may
+run.
 
 Keep public data-source behavior reflected in `PRIVACY_POLICY.md` when sources change.

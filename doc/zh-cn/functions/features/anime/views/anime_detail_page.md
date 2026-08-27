@@ -164,8 +164,8 @@
 - **输入：** `anime`。
 - **返回：** `List<String>` —— 已去重、已丢弃空串。
 - **副作用：** 无。
-- **算法：** 把 `infoUrl` 与 `externalMeta.ratings` 中每条记录的 `sourceUrl` 取并集。
-- **备注：** 两者合并正是让由多个来源构建的记录能全部刷新的原因。它同时兼作刷新 chip 的显示判据：列表为空说明无可重新查询的对象，此时该 chip 根本不渲染。
+- **算法：** 委托给 `MetadataUpdateService.refreshableUrls`，它把 `infoUrl` 与 `externalMeta.ratings` 中每条记录的 `sourceUrl` 取并集。
+- **备注：** 两者合并正是让由多个来源构建的记录能全部刷新的原因。它同时兼作刷新 chip 的显示判据：列表为空说明无可重新查询的对象，此时该 chip 根本不渲染。自 1.5.0 起这段逻辑移入后台更新器并被共享，因此手动 chip 与后台刷新队列不可能对「可刷新」的定义产生分歧。
 
 ### `Future<void> _refreshExternalMeta(Anime anime)` <a id="_refreshexternalmeta"></a>
 - **种类：** `_AnimeDetailPageState` 的方法
@@ -173,13 +173,18 @@
 - **用途：** 从每个已记住的来源页面重新抓取外部元数据。
 - **输入：** `anime`。
 - **返回：** 无。
-- **副作用：** 经 `AnimeSearchService.refreshAll` 发起 HTTP 请求，经 `AnimeStorage.addOrUpdate` 写入更新后的番剧，重新加载页面，并用 SnackBar 提示结果。
+- **副作用：** 经 `AnimeSearchService.refreshAll` 发起 HTTP 请求，经 `AnimeStorage.patchExternalMeta` 写入更新后的番剧，重新加载页面，并用 SnackBar 提示结果。
 - **算法：**
   1. [`_refreshableUrls`](#_refreshableurls) 为空时，以「没有可用于刷新的来源」提示直接返回。
   2. `await AnimeSearchService.refreshAll(urls)`；结果整体为空时同样如此提示，而不是当作成功。
   3. 用 `AnimeExternalMeta.mergedWith` 把每条抓取结果折叠进已有的 `externalMeta`，并以同一个 UTC `now` 同时作为 `fetchedAt` 与 `refreshedAt`。
-  4. 经 `copyWith(externalMeta: merged, modifiedAt: now)` 保存、重新加载并提示。
+  4. 经 `AnimeStorage.patchExternalMeta({anime.id: merged})` 保存、重新加载并提示。
 - **备注：** **只有外部元数据会被改动。** 用户自己的 `rating`、观看进度与手动编辑保持原样——这种分离正是外部评分存放在 `externalMeta.ratings` 而非 `AnimeRating` 的全部理由。调用方必须门禁在 `AppFlavor.isFull` 之后，因为商店构建不包含在线查询；见 [`../../../../features/multi-source-search.md`](../../../../features/multi-source-search.md)。
+
+  1.5.0 之前第 4 步是 `copyWith(externalMeta: merged, modifiedAt: now)`，它会更新 `modifiedAt`。这与
+  后台刷新会带来的隐患完全相同：由于 `mergeRecords` 判断「是否变化」只看 `modifiedAt` 与同步基线，
+  一条被刷新过的记录可能在另一台设备做出的删除中幸存下来。`patchExternalMeta` 不碰这个时间戳。见
+  [`../../../../sync.md`](../../../../sync.md)。
 
 ### `Widget _buildExternalMetaCard(AnimeExternalMeta meta, ThemeData theme, AppLocalizations l10n)` <a id="_buildexternalmetacard"></a>
 - **种类：** `_AnimeDetailPageState` 的方法（组件辅助）

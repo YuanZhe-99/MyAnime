@@ -66,3 +66,21 @@
 ### 托盘与启动
 
 `tray_service.dart` 处理桌面托盘行为：显示、退出、最小化到托盘、关闭到托盘，以及 macOS/Linux/Windows 分支。`launch_at_startup`（包）处理桌面自动启动。
+
+## 网络连接检测
+
+`connectivity_plus`（1.5.0 新增）用于门禁后台资料更新器。它支持全部四个目标平台，且与仓库中已有的
+`share_plus`、`package_info_plus`、`wakelock_plus` 同属 `plus` 家族，因此除 `pub get` 外不需要任何
+逐平台接线。在 Android 上，它会把自带的 `ACCESS_NETWORK_STATE` 权限合并进 manifest。
+
+**它报告的是链路类型，而不是链路是否计费。** 这个限制是真实存在的，且值得明说，因为它驱动的那个设置项
+叫作「不使用蜂窝数据」：
+
+- 设备连接手机热点时报告 `wifi`，而上行其实是蜂窝。无法检测。
+- 移动端的 VPN 可能报告 `vpn`，从而掩盖底层链路。
+- Android 通过 `NetworkCapabilities.NET_CAPABILITY_NOT_METERED` 提供了正确答案，但
+  `connectivity_plus` 没有把它暴露出来。
+
+因此 `noCellular` 策略是一个足够好的启发式，而不是保证。插件调用失败时按「允许」处理，而不是在一个
+无法回答的平台上把功能整个封死。见
+[`features/metadata-auto-update.md`](features/metadata-auto-update.md)。

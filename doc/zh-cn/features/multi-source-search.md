@@ -155,5 +155,14 @@
 - 桌面本地 API 服务器（`local_api_server.dart`，见
   [`../platform-notes.md`](../platform-notes.md)）可以直接调用 `AnimeSearchService.searchAll()`，因为它是
   仅限桌面的功能，而桌面构建以 `full` flavor 发布，不属于商店/移动端场景。
+- `main.dart` 仅在 `AppFlavor.isFull` 下启动 `MetadataUpdateService`，`management_page.dart` 与
+  `settings_page.dart` 也以同样方式门禁其角标与设置项。
+
+## 后台调用方
+
+自 1.5.0 起，本服务多了一个非交互式的调用方：`MetadataUpdateService` 会为已知来源的记录重新调用
+`fetchByUrl`/`refreshAll`，为资料不全的记录调用 `searchAll`。它的节奏远低于每个来源公布的速率限制，
+并在失败时退避。队列划分、决定一条搜索结果是否值得提议的置信度阈值，以及决定它何时可以运行的网络策略，
+见 [`metadata-auto-update.md`](metadata-auto-update.md)。
 
 来源发生变化时，请让 `PRIVACY_POLICY.md` 中的公开数据源行为保持同步。

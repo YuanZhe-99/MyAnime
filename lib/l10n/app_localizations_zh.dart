@@ -336,9 +336,6 @@ class AppLocalizationsZh extends AppLocalizations {
   }
 
   @override
-  String get animeExternalRatingNote => '来自外部资料库，与你自己的评分相互独立';
-
-  @override
   String get animeRefreshMeta => '刷新资料库信息';
 
   @override
@@ -356,6 +353,116 @@ class AppLocalizationsZh extends AppLocalizations {
   String animeRefreshedAt(String date) {
     return '更新于 $date';
   }
+
+  @override
+  String get metaUpdatesTitle => '可用更新';
+
+  @override
+  String get metaUpdatesTooltip => '可用更新';
+
+  @override
+  String get metaUpdatesEmpty => '暂无可用更新';
+
+  @override
+  String get metaUpdatesEmptyHint => '资料不全的记录会在后台自动查找。';
+
+  @override
+  String metaUpdatesCount(int count) {
+    return '$count 条可用';
+  }
+
+  @override
+  String get metaUpdatesApply => '应用';
+
+  @override
+  String get metaUpdatesDismiss => '忽略';
+
+  @override
+  String get metaUpdatesApplyPage => '更新本页';
+
+  @override
+  String get metaUpdatesApplyAll => '全部更新';
+
+  @override
+  String get metaUpdatesConfirmTitle => '确认更新';
+
+  @override
+  String metaUpdatesConfirmPage(int count) {
+    return '应用本页的 $count 条更新？';
+  }
+
+  @override
+  String metaUpdatesConfirmAll(int count) {
+    return '应用全部 $count 条更新？';
+  }
+
+  @override
+  String metaUpdatesConfirmAgain(int count) {
+    return '这会一次修改 $count 条记录，确定应用？';
+  }
+
+  @override
+  String metaUpdatesApplied(int count) {
+    return '已更新 $count 条记录';
+  }
+
+  @override
+  String get metaUpdatesManualPick => '需要手动选择';
+
+  @override
+  String get metaUpdatesManualPickHint => '没有足够可靠的匹配，请打开该记录手动搜索。';
+
+  @override
+  String metaUpdatesExcludedManual(int count) {
+    return '已排除 $count 条需要手动选择的记录';
+  }
+
+  @override
+  String get metaUpdatesCurrent => '当前';
+
+  @override
+  String get metaUpdatesProposed => '更新为';
+
+  @override
+  String get metaUpdatesEmptyValue => '（空）';
+
+  @override
+  String metaUpdatesFrom(String source) {
+    return '来自 $source';
+  }
+
+  @override
+  String metaUpdatesMatch(int percent) {
+    return '匹配度 $percent%';
+  }
+
+  @override
+  String get metaUpdatesNothingSelected => '请至少选择一个字段';
+
+  @override
+  String get settingsMetaAutoUpdate => '后台更新资料库信息';
+
+  @override
+  String get settingsMetaAutoUpdateDesc =>
+      '应用打开时，自动刷新已保存的资料库信息，并为资料不全的记录查找在线资料。';
+
+  @override
+  String get settingsMetaPolicyOff => '关闭';
+
+  @override
+  String get settingsMetaPolicyNoCellular => '不使用蜂窝数据';
+
+  @override
+  String get settingsMetaPolicyAlways => '任何网络';
+
+  @override
+  String get settingsMetaPolicyHint => '只能识别链路类型，无法判断是否计费——手机热点同样会被识别为 Wi-Fi。';
+
+  @override
+  String get settingsMetaPrefetchCovers => '预下载封面图';
+
+  @override
+  String get settingsMetaPrefetchCoversDesc => '默认关闭。封面是这份缓存里唯一的大体积数据，其余均为纯文字。';
 
   @override
   String get copyAction => '复制';
@@ -1641,9 +1748,6 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
   }
 
   @override
-  String get animeExternalRatingNote => '來自外部資料庫，與你自己的評分相互獨立';
-
-  @override
   String get animeRefreshMeta => '重新整理資料庫資訊';
 
   @override
@@ -1661,6 +1765,116 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
   String animeRefreshedAt(String date) {
     return '更新於 $date';
   }
+
+  @override
+  String get metaUpdatesTitle => '可用更新';
+
+  @override
+  String get metaUpdatesTooltip => '可用更新';
+
+  @override
+  String get metaUpdatesEmpty => '暫無可用更新';
+
+  @override
+  String get metaUpdatesEmptyHint => '資料不全的記錄會在背景自動尋找。';
+
+  @override
+  String metaUpdatesCount(int count) {
+    return '$count 筆可用';
+  }
+
+  @override
+  String get metaUpdatesApply => '套用';
+
+  @override
+  String get metaUpdatesDismiss => '忽略';
+
+  @override
+  String get metaUpdatesApplyPage => '更新本頁';
+
+  @override
+  String get metaUpdatesApplyAll => '全部更新';
+
+  @override
+  String get metaUpdatesConfirmTitle => '確認更新';
+
+  @override
+  String metaUpdatesConfirmPage(int count) {
+    return '套用本頁的 $count 筆更新？';
+  }
+
+  @override
+  String metaUpdatesConfirmAll(int count) {
+    return '套用全部 $count 筆更新？';
+  }
+
+  @override
+  String metaUpdatesConfirmAgain(int count) {
+    return '這會一次修改 $count 筆記錄，確定套用？';
+  }
+
+  @override
+  String metaUpdatesApplied(int count) {
+    return '已更新 $count 筆記錄';
+  }
+
+  @override
+  String get metaUpdatesManualPick => '需要手動選擇';
+
+  @override
+  String get metaUpdatesManualPickHint => '沒有足夠可靠的比對結果，請開啟該記錄手動搜尋。';
+
+  @override
+  String metaUpdatesExcludedManual(int count) {
+    return '已排除 $count 筆需要手動選擇的記錄';
+  }
+
+  @override
+  String get metaUpdatesCurrent => '目前';
+
+  @override
+  String get metaUpdatesProposed => '更新為';
+
+  @override
+  String get metaUpdatesEmptyValue => '（空）';
+
+  @override
+  String metaUpdatesFrom(String source) {
+    return '來自 $source';
+  }
+
+  @override
+  String metaUpdatesMatch(int percent) {
+    return '相符度 $percent%';
+  }
+
+  @override
+  String get metaUpdatesNothingSelected => '請至少選擇一個欄位';
+
+  @override
+  String get settingsMetaAutoUpdate => '背景更新資料庫資訊';
+
+  @override
+  String get settingsMetaAutoUpdateDesc =>
+      '應用程式開啟時，自動重新整理已儲存的資料庫資訊，並為資料不全的記錄尋找線上資料。';
+
+  @override
+  String get settingsMetaPolicyOff => '關閉';
+
+  @override
+  String get settingsMetaPolicyNoCellular => '不使用行動數據';
+
+  @override
+  String get settingsMetaPolicyAlways => '任何網路';
+
+  @override
+  String get settingsMetaPolicyHint => '只能辨識連線類型，無法判斷是否計費——手機熱點同樣會被辨識為 Wi-Fi。';
+
+  @override
+  String get settingsMetaPrefetchCovers => '預先下載封面圖';
+
+  @override
+  String get settingsMetaPrefetchCoversDesc => '預設關閉。封面是這份快取中唯一的大型資料，其餘皆為純文字。';
 
   @override
   String get copyAction => '複製';

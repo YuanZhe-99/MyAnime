@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../app/flavor.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../../shared/services/auto_sync_service.dart';
 import '../../../shared/widgets/import_bundle_dialog.dart';
@@ -10,6 +11,8 @@ import '../../../shared/services/image_service.dart';
 import '../../../shared/widgets/delete_confirm.dart';
 import '../models/anime.dart';
 import '../services/anime_storage.dart';
+import '../services/metadata_update_service.dart';
+import 'metadata_updates_page.dart';
 import 'quarter_picker_dialog.dart';
 
 class ManagementPage extends StatefulWidget {
@@ -59,6 +62,7 @@ class _ManagementPageState extends State<ManagementPage> {
   void initState() {
     super.initState();
     AutoSyncService.instance.addOnLocalDataChanged(_load);
+    MetadataUpdateService.instance.addListener(_onMetadataUpdatesChanged);
     _load();
     final now = DateTime.now();
     final currentQ = _Quarter(now.year, ((now.month - 1) ~/ 3) + 1);
@@ -77,8 +81,59 @@ class _ManagementPageState extends State<ManagementPage> {
   @override
   void dispose() {
     AutoSyncService.instance.removeOnLocalDataChanged(_load);
+    MetadataUpdateService.instance.removeListener(_onMetadataUpdatesChanged);
     _pageController.dispose();
     super.dispose();
+  }
+
+  /// Purpose: Refresh the available-updates badge when the queue changes.
+  /// Inputs: None.
+  /// Returns: None.
+  /// Side effects: Triggers a rebuild.
+  /// Notes: Internal helper used within this file only. The background service
+  /// fires this off-frame, so the mounted check is required.
+  void _onMetadataUpdatesChanged() {
+    if (mounted) setState(() {});
+  }
+
+  /// Purpose: Report how many records are waiting for an update decision.
+  /// Inputs: None.
+  /// Returns: `int`.
+  /// Side effects: None.
+  /// Notes: Internal helper used within this file only. Zero hides the badge
+  /// entirely, so the action never appears without something behind it.
+  int get _pendingUpdateCount => MetadataUpdateService.instance.pendingCount;
+
+  /// Purpose: List the anime the user is currently looking at.
+  /// Inputs: None.
+  /// Returns: `List<String>` of anime ids.
+  /// Side effects: None.
+  /// Notes: Internal helper used within this file only. Defines what "update
+  /// this page" means: the search results while searching, otherwise the
+  /// quarter page (or the "Other" page) currently in view.
+  List<String> get _currentPageAnimeIds {
+    final visible = _searchQuery.isNotEmpty
+        ? _searchResults()
+        : (_isOtherPage
+              ? _otherAnime
+              : _animeForQuarter(_quarters[_currentQuarterIndex]));
+    return [for (final anime in visible) anime.id];
+  }
+
+  /// Purpose: Open the available-updates review screen.
+  /// Inputs: None.
+  /// Returns: None.
+  /// Side effects: Pushes a route and reloads data when it closes.
+  /// Notes: Internal helper used within this file only. Gated on
+  /// `AppFlavor.isFull` at the call site, since it leads to online lookups.
+  Future<void> _openMetadataUpdates() async {
+    await Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        builder: (_) =>
+            MetadataUpdatesPage(currentPageAnimeIds: _currentPageAnimeIds),
+      ),
+    );
+    if (mounted) await _load();
   }
 
   /// Purpose: Provide the internal load helper for this file.
@@ -361,6 +416,15 @@ class _ManagementPageState extends State<ManagementPage> {
       appBar: AppBar(
         title: Text(l10n.navManage),
         actions: [
+          if (AppFlavor.isFull && _pendingUpdateCount > 0)
+            IconButton(
+              tooltip: l10n.metaUpdatesTooltip,
+              onPressed: _openMetadataUpdates,
+              icon: Badge(
+                label: Text('$_pendingUpdateCount'),
+                child: const Icon(Icons.cloud_download_outlined),
+              ),
+            ),
           PopupMenuButton<_ArchiveFilter>(
             icon: Icon(
               _archiveFilter == _ArchiveFilter.all

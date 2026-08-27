@@ -199,7 +199,8 @@ class AnimeStorage {
   /// Inputs: `anime`.
   /// Returns: None.
   /// Side effects: May read or mutate application state, storage, or service resources.
-  /// Notes: None.
+  /// Notes: Carries `AnimeData.extraJson` through, so unknown top-level fields
+  /// written by a newer build survive an edit made by an older one.
   static Future<void> addOrUpdate(Anime anime) async {
     final data = await load();
     final list = List<Anime>.of(data.animes);
@@ -209,18 +210,63 @@ class AnimeStorage {
     } else {
       list.add(anime);
     }
-    await save(AnimeData(animes: list));
+    await save(AnimeData(animes: list, extraJson: data.extraJson));
+  }
+
+  /// Purpose: Refresh cached external metadata without marking records edited.
+  /// Inputs: `updates` — external metadata keyed by anime id.
+  /// Returns: `Future<bool>` — whether anything was actually written.
+  /// Side effects: Rewrites `anime_data.json` when at least one id matched.
+  /// Notes: **Deliberately leaves `modifiedAt` untouched.** `mergeRecords`
+  /// decides whether a record changed purely by comparing `modifiedAt` against
+  /// the sync base, never by comparing content, so bumping it here would do two
+  /// harmful things: a record another device deleted would be resurrected
+  /// ("modified locally after remote deleted -> keep"), and a conflict dialog
+  /// would appear for an edit the user never made. Leaving it alone keeps
+  /// `localChanged` false, which makes both impossible.
+  ///
+  /// The refreshed data still propagates: when the remote did not touch the
+  /// record the merge keeps the local copy, and the upload decision is made by
+  /// raw file comparison. When the remote *did* change it, the remote record
+  /// wins and this cache update is dropped — which is fine, because it is a
+  /// cache and the background service will fetch it again.
+  ///
+  /// Re-reads immediately before writing so a long-running background sweep
+  /// cannot write back a stale snapshot over a concurrent user edit.
+  static Future<bool> patchExternalMeta(
+    Map<String, AnimeExternalMeta> updates,
+  ) async {
+    if (updates.isEmpty) return false;
+    final data = await load();
+    final list = List<Anime>.of(data.animes);
+    var touched = false;
+    for (var i = 0; i < list.length; i++) {
+      final meta = updates[list[i].id];
+      if (meta == null) continue;
+      // `copyWith` defaults `modifiedAt` to now when it is omitted, so the
+      // existing value has to be passed back in explicitly. Everything in the
+      // Notes above depends on this line.
+      list[i] = list[i].copyWith(
+        externalMeta: meta,
+        modifiedAt: list[i].modifiedAt,
+      );
+      touched = true;
+    }
+    if (!touched) return false;
+    await save(AnimeData(animes: list, extraJson: data.extraJson));
+    return true;
   }
 
   /// Purpose: Delete anime from the relevant storage or state.
   /// Inputs: `id`.
   /// Returns: None.
   /// Side effects: May read or mutate application state, storage, or service resources.
-  /// Notes: None.
+  /// Notes: Carries `AnimeData.extraJson` through for the same reason
+  /// [addOrUpdate] does.
   static Future<void> deleteAnime(String id) async {
     final data = await load();
     final list = data.animes.where((a) => a.id != id).toList();
-    await save(AnimeData(animes: list));
+    await save(AnimeData(animes: list, extraJson: data.extraJson));
   }
 
   // ── Config persistence ──
@@ -398,6 +444,59 @@ class AnimeStorage {
       config.remove('homeCalendarFormat');
     } else {
       config['homeCalendarFormat'] = format;
+    }
+    await writeConfig(config);
+  }
+
+  /// Purpose: Return the persisted background metadata-update policy name.
+  /// Inputs: None.
+  /// Returns: `Future<String?>`.
+  /// Side effects: None.
+  /// Notes: `null` means the platform default — `noCellular` on mobile,
+  /// `always` on desktop. Parsed by `parseMetadataUpdatePolicy`.
+  static Future<String?> getMetadataUpdatePolicy() async {
+    final config = await readConfig();
+    return config['metadataAutoUpdate'] as String?;
+  }
+
+  /// Purpose: Persist the background metadata-update policy.
+  /// Inputs: `policy` — a `MetadataUpdatePolicy` name.
+  /// Returns: None.
+  /// Side effects: Writes `storage_config.json`.
+  /// Notes: Passing `null` removes the value and restores the platform default.
+  static Future<void> setMetadataUpdatePolicy(String? policy) async {
+    final config = await readConfig();
+    if (policy == null) {
+      config.remove('metadataAutoUpdate');
+    } else {
+      config['metadataAutoUpdate'] = policy;
+    }
+    await writeConfig(config);
+  }
+
+  /// Purpose: Return whether candidate covers are prefetched in the background.
+  /// Inputs: None.
+  /// Returns: `Future<bool>` — defaults to false.
+  /// Side effects: None.
+  /// Notes: Off by default because covers are the only large data in the
+  /// background update cache; everything else it stores is plain text.
+  static Future<bool> getMetadataPrefetchCovers() async {
+    final config = await readConfig();
+    return config['metadataPrefetchCovers'] == true;
+  }
+
+  /// Purpose: Persist whether candidate covers are prefetched.
+  /// Inputs: `enabled`.
+  /// Returns: None.
+  /// Side effects: Writes `storage_config.json`.
+  /// Notes: The default `false` is removed from config rather than stored,
+  /// matching how `setWeekStartDay` handles its default.
+  static Future<void> setMetadataPrefetchCovers(bool enabled) async {
+    final config = await readConfig();
+    if (enabled) {
+      config['metadataPrefetchCovers'] = true;
+    } else {
+      config.remove('metadataPrefetchCovers');
     }
     await writeConfig(config);
   }

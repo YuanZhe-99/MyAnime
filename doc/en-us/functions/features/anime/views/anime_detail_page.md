@@ -203,8 +203,8 @@ air-date/rollover and schedule-shift semantics this page exposes controls for.
 - **Inputs:** `anime`.
 - **Returns:** `List<String>` — deduplicated, blanks dropped.
 - **Side effects:** None.
-- **Algorithm:** Unions `infoUrl` with the `sourceUrl` of every entry in `externalMeta.ratings`.
-- **Notes:** Combining both is what makes a record built from several sources refresh all of them. It also doubles as the visibility test for the refresh chip: an empty list means there is nothing to re-query, so the chip is not rendered at all.
+- **Algorithm:** Delegates to `MetadataUpdateService.refreshableUrls`, which unions `infoUrl` with the `sourceUrl` of every entry in `externalMeta.ratings`.
+- **Notes:** Combining both is what makes a record built from several sources refresh all of them. It also doubles as the visibility test for the refresh chip: an empty list means there is nothing to re-query, so the chip is not rendered at all. As of 1.5.0 the logic lives in the background updater and is shared, so the manual chip and the background refresh queue cannot disagree about what "refreshable" means.
 
 ### `Future<void> _refreshExternalMeta(Anime anime)` <a id="_refreshexternalmeta"></a>
 - **Kind:** method of `_AnimeDetailPageState`
@@ -212,13 +212,19 @@ air-date/rollover and schedule-shift semantics this page exposes controls for.
 - **Purpose:** Re-fetch external metadata from every remembered source page.
 - **Inputs:** `anime`.
 - **Returns:** None.
-- **Side effects:** Issues HTTP requests via `AnimeSearchService.refreshAll`, writes the updated anime through `AnimeStorage.addOrUpdate`, reloads the page, and shows a snack bar with the outcome.
+- **Side effects:** Issues HTTP requests via `AnimeSearchService.refreshAll`, writes the updated anime through `AnimeStorage.patchExternalMeta`, reloads the page, and shows a snack bar with the outcome.
 - **Algorithm:**
   1. Bail out with a "no refreshable source" message when [`_refreshableUrls`](#_refreshableurls) is empty.
   2. `await AnimeSearchService.refreshAll(urls)`; a fully empty result is reported the same way rather than treated as success.
   3. Fold each fetched result into the existing `externalMeta` with `AnimeExternalMeta.mergedWith`, stamping one shared UTC `now` as both `fetchedAt` and `refreshedAt`.
-  4. Save via `copyWith(externalMeta: merged, modifiedAt: now)`, reload, and confirm.
+  4. Save via `AnimeStorage.patchExternalMeta({anime.id: merged})`, reload, and confirm.
 - **Notes:** **Only external metadata is touched.** The user's own `rating`, episode progress, and manual edits are left exactly as they are — that separation is the whole reason external scores live in `externalMeta.ratings` rather than in `AnimeRating`. Callers must gate on `AppFlavor.isFull`, since store builds do not ship online lookups; see [`../../../../features/multi-source-search.md`](../../../../features/multi-source-search.md).
+
+  Until 1.5.0 step 4 was `copyWith(externalMeta: merged, modifiedAt: now)`, which bumped
+  `modifiedAt`. That carried the same hazard as a background refresh would: because `mergeRecords`
+  reads "changed" only from `modifiedAt` versus the sync base, a refreshed record could survive a
+  deletion made on another device. `patchExternalMeta` leaves the timestamp alone. See
+  [`../../../../sync.md`](../../../../sync.md).
 
 ### `Widget _buildExternalMetaCard(AnimeExternalMeta meta, ThemeData theme, AppLocalizations l10n)` <a id="_buildexternalmetacard"></a>
 - **Kind:** method of `_AnimeDetailPageState` (widget helper)

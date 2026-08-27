@@ -20,7 +20,10 @@ import '../../../shared/services/tray_service.dart';
 import '../../../shared/utils/calendar_preferences.dart';
 import '../../../shared/views/webdav_config_page.dart';
 import '../../../shared/widgets/duplicate_check_page.dart';
+import '../../../app/flavor.dart';
+import '../../anime/models/metadata_update.dart';
 import '../../anime/services/anime_storage.dart';
+import '../../anime/services/metadata_update_service.dart';
 import 'backup_page.dart';
 import 'license_page.dart' as app_license;
 import 'privacy_policy_page.dart';
@@ -57,6 +60,9 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
   String _apiListenAddress = 'localhost';
   String _apiUsername = '';
   String _apiPassword = '';
+  // Background metadata updates
+  MetadataUpdatePolicy _metaPolicy = MetadataUpdatePolicy.always;
+  bool _metaPrefetchCovers = false;
 
   /// Purpose: Initialize listeners, controllers, and first-load work for this state object.
   /// Inputs: None.
@@ -69,6 +75,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
     _loadVersion();
     _loadStoragePath();
     _loadReminder();
+    if (AppFlavor.isFull) _loadMetadataSettings();
     AutoSyncService.instance.addOnStatusChanged(_refreshSyncStatus);
     if (_isDesktop) {
       _loadTraySettings();
@@ -160,6 +167,60 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
       HomeCalendarTimeBasis.jst => l10n.settingsHomeCalendarTimeBasisJst,
       HomeCalendarTimeBasis.local => l10n.settingsHomeCalendarTimeBasisLocal,
     };
+  }
+
+  /// Purpose: Load the background metadata-update preferences.
+  /// Inputs: None.
+  /// Returns: None.
+  /// Side effects: Reads `storage_config.json` and rebuilds.
+  /// Notes: Internal helper used within this file only. The policy falls back
+  /// to the platform default when nothing is stored, so the switch shows the
+  /// behavior actually in force rather than a fixed value.
+  Future<void> _loadMetadataSettings() async {
+    final policy = await MetadataUpdateService.effectivePolicy();
+    final covers = await AnimeStorage.getMetadataPrefetchCovers();
+    if (!mounted) return;
+    setState(() {
+      _metaPolicy = policy;
+      _metaPrefetchCovers = covers;
+    });
+  }
+
+  /// Purpose: Persist a new background metadata-update policy.
+  /// Inputs: `policy`.
+  /// Returns: None.
+  /// Side effects: Writes `storage_config.json` and starts or stops the
+  /// background service so the change takes effect immediately.
+  /// Notes: Internal helper used within this file only.
+  Future<void> _setMetadataPolicy(MetadataUpdatePolicy policy) async {
+    setState(() => _metaPolicy = policy);
+    await AnimeStorage.setMetadataUpdatePolicy(policy.name);
+    if (policy == MetadataUpdatePolicy.off) {
+      await MetadataUpdateService.instance.stop();
+    } else {
+      await MetadataUpdateService.instance.start();
+    }
+  }
+
+  /// Purpose: Localize a background-update policy option.
+  /// Inputs: `policy`, `l10n`.
+  /// Returns: `String`.
+  /// Side effects: None.
+  /// Notes: Internal helper used within this file only. `noCellular` is worded
+  /// as "don't use cellular data" rather than "Wi-Fi only", because the check
+  /// also passes on a wired desktop connection.
+  String _metadataPolicyLabel(
+    MetadataUpdatePolicy policy,
+    AppLocalizations l10n,
+  ) {
+    switch (policy) {
+      case MetadataUpdatePolicy.off:
+        return l10n.settingsMetaPolicyOff;
+      case MetadataUpdatePolicy.noCellular:
+        return l10n.settingsMetaPolicyNoCellular;
+      case MetadataUpdatePolicy.always:
+        return l10n.settingsMetaPolicyAlways;
+    }
   }
 
   /// Purpose: Return a localized weekday label for settings controls.
@@ -727,6 +788,60 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
 
           // ── Data ──
           _buildSection(l10n.settingsData, [
+            // Online lookups ship in full builds only, so this whole group is
+            // gated the same way the search and refresh actions are.
+            if (AppFlavor.isFull) ...[
+              ListTile(
+                leading: const Icon(Icons.cloud_sync_outlined),
+                title: Text(l10n.settingsMetaAutoUpdate),
+                subtitle: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(l10n.settingsMetaAutoUpdateDesc),
+                    if (_metaPolicy == MetadataUpdatePolicy.noCellular)
+                      Padding(
+                        padding: const EdgeInsets.only(top: 4),
+                        child: Text(
+                          l10n.settingsMetaPolicyHint,
+                          style: Theme.of(context).textTheme.bodySmall
+                              ?.copyWith(
+                                color: Theme.of(
+                                  context,
+                                ).colorScheme.onSurfaceVariant,
+                              ),
+                        ),
+                      ),
+                  ],
+                ),
+                isThreeLine: true,
+                trailing: DropdownButton<MetadataUpdatePolicy>(
+                  value: _metaPolicy,
+                  underline: const SizedBox.shrink(),
+                  items: [
+                    for (final policy in MetadataUpdatePolicy.values)
+                      DropdownMenuItem(
+                        value: policy,
+                        child: Text(_metadataPolicyLabel(policy, l10n)),
+                      ),
+                  ],
+                  onChanged: (policy) {
+                    if (policy != null) _setMetadataPolicy(policy);
+                  },
+                ),
+              ),
+              if (_metaPolicy != MetadataUpdatePolicy.off)
+                SwitchListTile(
+                  secondary: const Icon(Icons.image_outlined),
+                  title: Text(l10n.settingsMetaPrefetchCovers),
+                  subtitle: Text(l10n.settingsMetaPrefetchCoversDesc),
+                  value: _metaPrefetchCovers,
+                  onChanged: (v) async {
+                    setState(() => _metaPrefetchCovers = v);
+                    await AnimeStorage.setMetadataPrefetchCovers(v);
+                  },
+                ),
+              const Divider(height: 1, indent: 16, endIndent: 16),
+            ],
             ListTile(
               leading: const Icon(Icons.sync_outlined),
               title: Text(l10n.settingsWebDAVSync),

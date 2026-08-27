@@ -336,9 +336,6 @@ class AppLocalizationsJa extends AppLocalizations {
   }
 
   @override
-  String get animeExternalRatingNote => '外部データベースの評価で、自分の評価とは別に保存されます';
-
-  @override
   String get animeRefreshMeta => 'データベース情報を更新';
 
   @override
@@ -356,6 +353,118 @@ class AppLocalizationsJa extends AppLocalizations {
   String animeRefreshedAt(String date) {
     return '$date に更新';
   }
+
+  @override
+  String get metaUpdatesTitle => '利用可能な更新';
+
+  @override
+  String get metaUpdatesTooltip => '利用可能な更新';
+
+  @override
+  String get metaUpdatesEmpty => '利用可能な更新はありません';
+
+  @override
+  String get metaUpdatesEmptyHint => '情報が不足している記録はバックグラウンドで自動的に検索されます。';
+
+  @override
+  String metaUpdatesCount(int count) {
+    return '$count 件';
+  }
+
+  @override
+  String get metaUpdatesApply => '適用';
+
+  @override
+  String get metaUpdatesDismiss => '無視';
+
+  @override
+  String get metaUpdatesApplyPage => 'このページを更新';
+
+  @override
+  String get metaUpdatesApplyAll => 'すべて更新';
+
+  @override
+  String get metaUpdatesConfirmTitle => '更新の確認';
+
+  @override
+  String metaUpdatesConfirmPage(int count) {
+    return 'このページの $count 件を適用しますか？';
+  }
+
+  @override
+  String metaUpdatesConfirmAll(int count) {
+    return 'すべての $count 件を適用しますか？';
+  }
+
+  @override
+  String metaUpdatesConfirmAgain(int count) {
+    return '$count 件の記録を一度に変更します。適用しますか？';
+  }
+
+  @override
+  String metaUpdatesApplied(int count) {
+    return '$count 件の記録を更新しました';
+  }
+
+  @override
+  String get metaUpdatesManualPick => '手動選択が必要';
+
+  @override
+  String get metaUpdatesManualPickHint => '確実な候補が見つかりませんでした。記録を開いて手動で検索してください。';
+
+  @override
+  String metaUpdatesExcludedManual(int count) {
+    return '手動選択が必要な $count 件は除外されます';
+  }
+
+  @override
+  String get metaUpdatesCurrent => '現在';
+
+  @override
+  String get metaUpdatesProposed => '変更後';
+
+  @override
+  String get metaUpdatesEmptyValue => '（空）';
+
+  @override
+  String metaUpdatesFrom(String source) {
+    return '$source より';
+  }
+
+  @override
+  String metaUpdatesMatch(int percent) {
+    return '一致度 $percent%';
+  }
+
+  @override
+  String get metaUpdatesNothingSelected => '項目を1つ以上選択してください';
+
+  @override
+  String get settingsMetaAutoUpdate => 'バックグラウンドでデータベース情報を更新';
+
+  @override
+  String get settingsMetaAutoUpdateDesc =>
+      'アプリの起動中に、保存済みのデータベース情報を更新し、情報が不足している記録を検索します。';
+
+  @override
+  String get settingsMetaPolicyOff => 'オフ';
+
+  @override
+  String get settingsMetaPolicyNoCellular => 'モバイルデータを使わない';
+
+  @override
+  String get settingsMetaPolicyAlways => 'すべての接続';
+
+  @override
+  String get settingsMetaPolicyHint =>
+      '判別できるのは接続の種類のみで、従量制かどうかは分かりません。スマートフォンのテザリングも Wi-Fi として認識されます。';
+
+  @override
+  String get settingsMetaPrefetchCovers => 'カバー画像を事前ダウンロード';
+
+  @override
+  String get settingsMetaPrefetchCoversDesc =>
+      '既定はオフです。このキャッシュで容量を占めるのはカバー画像のみで、他はすべてテキストです。';
 
   @override
   String get copyAction => 'コピー';

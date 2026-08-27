@@ -20,6 +20,8 @@
 | [`AnimeSearchResult(...)`](#animesearchresult-new) | 构造函数（`AnimeSearchResult`） | A | 保存来自任何来源的一条规范化搜索命中。 |
 | [`allTitles`](#alltitles) | getter（`AnimeSearchResult`） | A | 收集该结果已知的每个标题，并去重。 |
 | [`displayTitle`](#displaytitle) | getter（`AnimeSearchResult`） | B | 返回第一个已知标题，或 `?`。 |
+| [`toJson`](#resulttojson) | 方法（`AnimeSearchResult`） | A | 序列化抓取到的结果，以便缓存到磁盘。 |
+| [`fromJson`](#resultfromjson) | 工厂（`AnimeSearchResult`） | A | 防御式地从缓存重建结果。 |
 | `AnimeSearchSource._()` | 构造函数（`AnimeSearchSource`） | B | 阻止实例化来源名常量持有类。 |
 | [`searchAll`](#searchall) | 静态方法（`AnimeSearchService`） | A | 执行两阶段跨语言检索并返回一个排好序的列表。 |
 | [`queryVariants`](#queryvariants) | 静态方法（`AnimeSearchService`） | A | 为查询构建简体/繁体变体集合。 |
@@ -108,6 +110,24 @@ client，因此这些映射函数是唯一可行的测试接缝。不要在本�
 - **返回：** `String` —— `allTitles` 的第一项，全为空时返回 `'?'`。
 - **副作用：** 无。
 - **备注：** 取代了对话框中旧的内联写法 `r.title ?? r.titleJa ?? '?'`，后者看不到罗马音标题和英文标题。
+
+### `Map<String, dynamic> toJson()` <a id="resulttojson"></a>
+- **种类：** `AnimeSearchResult` 的方法
+- **用途：** 序列化抓取到的结果，以便缓存到磁盘。
+- **返回：** `Map<String, dynamic>`，只包含非 null、非空的字段。
+- **副作用：** 无。
+- **备注：** 1.5.0 新增，用于支撑后台更新缓存 —— 该缓存把候选下载一次，之后无需再联网即可应用。null 与
+  空字段被省略，使缓存文件保持小巧可读。
+
+  `firstAirDate` 与 `endDate` 是**日历日，不是时刻**：它们原样写入、读回时不做 UTC 转换，与番剧模型中
+  的 `_parseCalendarDate` 一致。把它们归一化到 UTC 会在 UTC 以东的每个时区（包括日本）渲染成前一天。
+
+### `factory AnimeSearchResult.fromJson(Map<String, dynamic>)` <a id="resultfromjson"></a>
+- **种类：** `AnimeSearchResult` 的工厂构造器
+- **用途：** 从 JSON 形态重建缓存的结果。
+- **副作用：** 无。
+- **备注：** 每个字段都是防御式读取的 —— 由更新版本写入、或被手工编辑过的缓存会得到 null 而不是抛出。
+  `source` 回退为空字符串，因此格式错误的条目仍然可读，可以由调用方丢弃，而不会把整个文件一起拖垮。
 
 ### `static Future<List<AnimeSearchResult>> searchAll(String query, {String? preferredLanguage})` <a id="searchall"></a>
 - **种类：** `AnimeSearchService` 的静态方法

@@ -2,7 +2,7 @@ name: my_anime
 description: "MyAnime!!!!! — Your anime tracking companion"
 publish_to: 'none'
 
-version: 1.4.0+52
+version: 1.5.0+53
 
 environment:
   sdk: ^3.11.3
@@ -46,6 +46,12 @@ dependencies:
 
   # HTTP (WebDAV sync)
   http: ^1.4.0
+
+  # Link type (wifi/cellular/ethernet) for the background metadata updater.
+  # Reports the transport, NOT whether it is metered — see
+  # doc/en-us/features/metadata-auto-update.md for what that does and does not
+  # guarantee.
+  connectivity_plus: ^6.1.0
 
   # Archive (ZIP export/import)
   archive: ^4.0.9
@@ -100,7 +106,7 @@ msix_config:
   display_name: MyAnime!!!!!
   publisher_display_name: yuanzhe
   identity_name: com.yuanzhe.myanime
-  msix_version: 1.4.0.0
+  msix_version: 1.5.0.0
   logo_path: assets/icon/app_icon.png
   capabilities: internetClient
   install_certificate: false

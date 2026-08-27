@@ -719,12 +719,6 @@ abstract class AppLocalizations {
   /// **'Rank #{rank}'**
   String animeExternalRank(int rank);
 
-  /// No description provided for @animeExternalRatingNote.
-  ///
-  /// In en, this message translates to:
-  /// **'From external databases — separate from your own rating'**
-  String get animeExternalRatingNote;
-
   /// No description provided for @animeRefreshMeta.
   ///
   /// In en, this message translates to:
@@ -754,6 +748,192 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Updated {date}'**
   String animeRefreshedAt(String date);
+
+  /// No description provided for @metaUpdatesTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Available Updates'**
+  String get metaUpdatesTitle;
+
+  /// No description provided for @metaUpdatesTooltip.
+  ///
+  /// In en, this message translates to:
+  /// **'Available updates'**
+  String get metaUpdatesTooltip;
+
+  /// No description provided for @metaUpdatesEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'No updates available'**
+  String get metaUpdatesEmpty;
+
+  /// No description provided for @metaUpdatesEmptyHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Records with missing details are checked in the background.'**
+  String get metaUpdatesEmptyHint;
+
+  /// No description provided for @metaUpdatesCount.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{1 available} other{{count} available}}'**
+  String metaUpdatesCount(int count);
+
+  /// No description provided for @metaUpdatesApply.
+  ///
+  /// In en, this message translates to:
+  /// **'Apply'**
+  String get metaUpdatesApply;
+
+  /// No description provided for @metaUpdatesDismiss.
+  ///
+  /// In en, this message translates to:
+  /// **'Ignore'**
+  String get metaUpdatesDismiss;
+
+  /// No description provided for @metaUpdatesApplyPage.
+  ///
+  /// In en, this message translates to:
+  /// **'Update this page'**
+  String get metaUpdatesApplyPage;
+
+  /// No description provided for @metaUpdatesApplyAll.
+  ///
+  /// In en, this message translates to:
+  /// **'Update all'**
+  String get metaUpdatesApplyAll;
+
+  /// No description provided for @metaUpdatesConfirmTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Confirm update'**
+  String get metaUpdatesConfirmTitle;
+
+  /// No description provided for @metaUpdatesConfirmPage.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{Apply the update on this page?} other{Apply {count} updates on this page?}}'**
+  String metaUpdatesConfirmPage(int count);
+
+  /// No description provided for @metaUpdatesConfirmAll.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{Apply this update?} other{Apply all {count} updates?}}'**
+  String metaUpdatesConfirmAll(int count);
+
+  /// No description provided for @metaUpdatesConfirmAgain.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{This changes one record. Apply it?} other{This changes {count} records at once. Apply them?}}'**
+  String metaUpdatesConfirmAgain(int count);
+
+  /// No description provided for @metaUpdatesApplied.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =0{No records updated} =1{1 record updated} other{{count} records updated}}'**
+  String metaUpdatesApplied(int count);
+
+  /// No description provided for @metaUpdatesManualPick.
+  ///
+  /// In en, this message translates to:
+  /// **'Needs manual selection'**
+  String get metaUpdatesManualPick;
+
+  /// No description provided for @metaUpdatesManualPickHint.
+  ///
+  /// In en, this message translates to:
+  /// **'No match was clear enough. Open the record and search manually.'**
+  String get metaUpdatesManualPickHint;
+
+  /// No description provided for @metaUpdatesExcludedManual.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{1 record needing manual selection is excluded} other{{count} records needing manual selection are excluded}}'**
+  String metaUpdatesExcludedManual(int count);
+
+  /// No description provided for @metaUpdatesCurrent.
+  ///
+  /// In en, this message translates to:
+  /// **'Current'**
+  String get metaUpdatesCurrent;
+
+  /// No description provided for @metaUpdatesProposed.
+  ///
+  /// In en, this message translates to:
+  /// **'New'**
+  String get metaUpdatesProposed;
+
+  /// No description provided for @metaUpdatesEmptyValue.
+  ///
+  /// In en, this message translates to:
+  /// **'(empty)'**
+  String get metaUpdatesEmptyValue;
+
+  /// No description provided for @metaUpdatesFrom.
+  ///
+  /// In en, this message translates to:
+  /// **'From {source}'**
+  String metaUpdatesFrom(String source);
+
+  /// No description provided for @metaUpdatesMatch.
+  ///
+  /// In en, this message translates to:
+  /// **'{percent}% match'**
+  String metaUpdatesMatch(int percent);
+
+  /// No description provided for @metaUpdatesNothingSelected.
+  ///
+  /// In en, this message translates to:
+  /// **'Select at least one field'**
+  String get metaUpdatesNothingSelected;
+
+  /// No description provided for @settingsMetaAutoUpdate.
+  ///
+  /// In en, this message translates to:
+  /// **'Background database updates'**
+  String get settingsMetaAutoUpdate;
+
+  /// No description provided for @settingsMetaAutoUpdateDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'Refreshes saved database info and looks up records with missing details while the app is open.'**
+  String get settingsMetaAutoUpdateDesc;
+
+  /// No description provided for @settingsMetaPolicyOff.
+  ///
+  /// In en, this message translates to:
+  /// **'Off'**
+  String get settingsMetaPolicyOff;
+
+  /// No description provided for @settingsMetaPolicyNoCellular.
+  ///
+  /// In en, this message translates to:
+  /// **'Don\'t use cellular data'**
+  String get settingsMetaPolicyNoCellular;
+
+  /// No description provided for @settingsMetaPolicyAlways.
+  ///
+  /// In en, this message translates to:
+  /// **'Any connection'**
+  String get settingsMetaPolicyAlways;
+
+  /// No description provided for @settingsMetaPolicyHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Connection type is detected, not whether it is metered — a phone hotspot still reports Wi-Fi.'**
+  String get settingsMetaPolicyHint;
+
+  /// No description provided for @settingsMetaPrefetchCovers.
+  ///
+  /// In en, this message translates to:
+  /// **'Pre-download cover images'**
+  String get settingsMetaPrefetchCovers;
+
+  /// No description provided for @settingsMetaPrefetchCoversDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'Off by default. Covers are the only large data cached; everything else is plain text.'**
+  String get settingsMetaPrefetchCoversDesc;
 
   /// No description provided for @copyAction.
   ///

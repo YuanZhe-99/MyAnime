@@ -26,6 +26,7 @@ notifies `AutoSyncService`/`ReminderService` after every save. See
 | [`load`](#load) | static method (`AnimeStorage`) | A | Load `anime_data.json` into an `AnimeData`. |
 | [`_atomicWrite`](#atomicwrite) | static method (`AnimeStorage`) | A | Write a file via a temp-file-then-rename step. |
 | [`save`](#save) | static method (`AnimeStorage`) | A | Persist an `AnimeData`, then notify auto-sync and reminders. |
+| [`patchExternalMeta`](#patchexternalmeta) | static method (`AnimeStorage`) | A | Refresh cached external metadata **without** marking records edited. |
 | [`addOrUpdate`](#addorupdate) | static method (`AnimeStorage`) | A | Insert or replace one anime record by `id` and save. |
 | [`deleteAnime`](#deleteanime) | static method (`AnimeStorage`) | A | Remove one anime record by `id` and save. |
 | [`readConfig`](#readconfig) | static method (`AnimeStorage`) | A | Read `storage_config.json` as a raw JSON map. |
@@ -42,8 +43,46 @@ notifies `AutoSyncService`/`ReminderService` after every save. See
 | [`setHomeCalendarTimeBasis`](#sethomecalendartimebasis) | static method (`AnimeStorage`) | A | Persist the home calendar JST-vs-local time basis preference. |
 | [`getHomeCalendarFormat`](#gethomecalendarformat) | static method (`AnimeStorage`) | A | Read the persisted home calendar view format preference. |
 | [`setHomeCalendarFormat`](#sethomecalendarformat) | static method (`AnimeStorage`) | A | Persist the home calendar view format preference. |
+| [`getMetadataUpdatePolicy`](#getmetadataupdatepolicy) | static method (`AnimeStorage`) | A | Read the persisted background metadata-update policy. |
+| [`setMetadataUpdatePolicy`](#setmetadataupdatepolicy) | static method (`AnimeStorage`) | A | Persist the background metadata-update policy. |
+| [`getMetadataPrefetchCovers`](#getmetadataprefetchcovers) | static method (`AnimeStorage`) | A | Read whether candidate covers are prefetched. |
+| [`setMetadataPrefetchCovers`](#setmetadataprefetchcovers) | static method (`AnimeStorage`) | A | Persist whether candidate covers are prefetched. |
 
 ## Documentation
+
+### `static Future<bool> patchExternalMeta(Map<String, AnimeExternalMeta> updates)` <a id="patchexternalmeta"></a>
+- **Kind:** static method of `AnimeStorage`
+- **Purpose:** Write refreshed external metadata for several anime at once.
+- **Inputs:** `updates` — external metadata keyed by anime id.
+- **Returns:** `Future<bool>` — whether anything was actually written.
+- **Side effects:** Rewrites `anime_data.json` when at least one id matched, which also notifies
+  auto-sync and reminders through [`save`](#save).
+- **Algorithm:**
+  1. Return false immediately for an empty batch.
+  2. Re-read the current data.
+  3. For each matching record, replace `externalMeta` **and pass the record's existing
+     `modifiedAt` back in**.
+  4. Save when at least one record matched.
+- **Usage:** The only write path for cached metadata — used by the background updater and by the
+  detail page's manual "refresh database info" chip.
+- **Notes:** **Deliberately leaves `modifiedAt` untouched.** `mergeRecords` decides whether a record
+  changed purely by comparing `modifiedAt` against the sync base, never by comparing content, so
+  bumping it here would (a) resurrect records another device deleted, because a locally "modified"
+  record survives a remote deletion, and (b) raise conflict dialogs for edits the user never made.
+  Leaving it alone keeps `localChanged` false, which makes both impossible.
+
+  The refreshed data still propagates: when the remote did not touch the record the merge keeps the
+  local copy, and the upload decision is made by raw file comparison. When the remote *did* change
+  it, the remote wins and this cache update is dropped — correct for a cache, since the updater
+  re-fetches it.
+
+  Step 3's explicit pass-through is required, not cosmetic: `Anime.copyWith` stamps `modifiedAt`
+  with the current time whenever the argument is omitted. See
+  [`../../../../sync.md`](../../../../sync.md) and
+  [`../../../../features/metadata-auto-update.md`](../../../../features/metadata-auto-update.md).
+
+  Re-reads immediately before writing so a long background sweep cannot write a stale snapshot over
+  a concurrent user edit.
 
 ### `static Future<Directory> _getDefaultAppDir()` <a id="getdefaultappdir"></a>
 - **Kind:** static method of `AnimeStorage`
@@ -505,3 +544,30 @@ notifies `AutoSyncService`/`ReminderService` after every save. See
   ```
   (`lib/shared/providers/app_settings.dart`, `setHomeCalendarFormat`)
 - **Notes:** None.
+
+### `static Future<String?> getMetadataUpdatePolicy()` <a id="getmetadataupdatepolicy"></a>
+- **Kind:** static method of `AnimeStorage`
+- **Purpose:** Read the raw `metadataAutoUpdate` string.
+- **Returns:** `Future<String?>` — `null` when nothing is stored.
+- **Notes:** `null` means the platform default (`noCellular` on mobile, `always` on desktop), which
+  is resolved by `MetadataUpdateService.effectivePolicy` via `parseMetadataUpdatePolicy`. This
+  method deliberately returns the raw string rather than the enum, matching how
+  `getHomeCalendarLayout` leaves parsing to its caller.
+
+### `static Future<void> setMetadataUpdatePolicy(String? policy)` <a id="setmetadataupdatepolicy"></a>
+- **Kind:** static method of `AnimeStorage`
+- **Inputs:** `policy` — a `MetadataUpdatePolicy` name; `null` removes the key.
+- **Side effects:** Writes `storage_config.json`.
+- **Notes:** Read-modify-write, identical shape to `setThemeMode`.
+
+### `static Future<bool> getMetadataPrefetchCovers()` <a id="getmetadataprefetchcovers"></a>
+- **Kind:** static method of `AnimeStorage`
+- **Returns:** `Future<bool>` — defaults to false.
+- **Notes:** Off by default because covers are the only large data the background update cache
+  holds; everything else it stores is plain text.
+
+### `static Future<void> setMetadataPrefetchCovers(bool enabled)` <a id="setmetadataprefetchcovers"></a>
+- **Kind:** static method of `AnimeStorage`
+- **Side effects:** Writes `storage_config.json`.
+- **Notes:** The default `false` is removed from config rather than stored, matching how
+  `setWeekStartDay` handles its own default.

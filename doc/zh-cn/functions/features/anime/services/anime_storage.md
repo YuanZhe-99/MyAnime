@@ -17,6 +17,7 @@
 | [`load`](#load) | 静态方法（`AnimeStorage`） | A | 把 `anime_data.json` 加载进 `AnimeData`。 |
 | [`_atomicWrite`](#atomicwrite) | 静态方法（`AnimeStorage`） | A | 通过临时文件-重命名步骤写入文件。 |
 | [`save`](#save) | 静态方法（`AnimeStorage`） | A | 持久化 `AnimeData`，然后通知自动同步和提醒。 |
+| [`patchExternalMeta`](#patchexternalmeta) | 静态方法（`AnimeStorage`） | A | 刷新缓存的外部元数据，**不**把记录标记为已编辑。 |
 | [`addOrUpdate`](#addorupdate) | 静态方法（`AnimeStorage`） | A | 按 `id` 插入或替换一条动画记录并保存。 |
 | [`deleteAnime`](#deleteanime) | 静态方法（`AnimeStorage`） | A | 按 `id` 移除一条动画记录并保存。 |
 | [`readConfig`](#readconfig) | 静态方法（`AnimeStorage`） | A | 把 `storage_config.json` 作为原始 JSON 映射读取。 |
@@ -33,8 +34,38 @@
 | [`setHomeCalendarTimeBasis`](#sethomecalendartimebasis) | 静态方法（`AnimeStorage`） | A | 持久化主页日历 JST-vs-本地时间基准偏好。 |
 | [`getHomeCalendarFormat`](#gethomecalendarformat) | 静态方法（`AnimeStorage`） | A | 读取持久化的主页日历视图格式偏好。 |
 | [`setHomeCalendarFormat`](#sethomecalendarformat) | 静态方法（`AnimeStorage`） | A | 持久化主页日历视图格式偏好。 |
+| [`getMetadataUpdatePolicy`](#getmetadataupdatepolicy) | 静态方法（`AnimeStorage`） | A | 读取持久化的后台资料更新策略。 |
+| [`setMetadataUpdatePolicy`](#setmetadataupdatepolicy) | 静态方法（`AnimeStorage`） | A | 持久化后台资料更新策略。 |
+| [`getMetadataPrefetchCovers`](#getmetadataprefetchcovers) | 静态方法（`AnimeStorage`） | A | 读取是否预下载候选封面。 |
+| [`setMetadataPrefetchCovers`](#setmetadataprefetchcovers) | 静态方法（`AnimeStorage`） | A | 持久化是否预下载候选封面。 |
 
 ## 文档
+
+### `static Future<bool> patchExternalMeta(Map<String, AnimeExternalMeta> updates)` <a id="patchexternalmeta"></a>
+- **种类：** `AnimeStorage` 的静态方法
+- **用途：** 一次性为多部番剧写入刷新后的外部元数据。
+- **输入：** `updates` —— 按番剧 id 索引的外部元数据。
+- **返回：** `Future<bool>` —— 是否真的写入了内容。
+- **副作用：** 至少匹配到一个 id 时重写 `anime_data.json`，这也会通过 [`save`](#save) 通知自动同步与提醒。
+- **算法：**
+  1. 空批次立即返回 false。
+  2. 重新读取当前数据。
+  3. 对每条匹配的记录替换 `externalMeta`，**并把该记录已有的 `modifiedAt` 传回去**。
+  4. 至少匹配到一条时保存。
+- **用法：** 缓存元数据唯一的写入路径 —— 由后台更新器以及详情页的手动「刷新资料库信息」chip 使用。
+- **备注：** **刻意不碰 `modifiedAt`。** `mergeRecords` 判断一条记录是否变化，只比较 `modifiedAt` 与同步
+  基线，从不比较内容，因此在这里更新它会导致：(a) 让另一台设备删除的记录复活，因为本地「已修改」的记录
+  能在远端删除中幸存；(b) 为用户从未做过的编辑弹出冲突对话框。不动它会让 `localChanged` 恒为 false，
+  使两者都不可能发生。
+
+  刷新到的数据仍然会传播：远端没有碰过这条记录时，合并保留本地副本，而上传与否是按文件原文比较决定的。
+  当远端**确实**改动了它时，远端获胜、这次缓存更新被丢弃 —— 这对缓存而言是正确的，因为更新器会重新抓取。
+
+  第 3 步的显式传回是必需的，不是装饰性的：`Anime.copyWith` 在省略该参数时会把 `modifiedAt` 填成当前
+  时间。见 [`../../../../sync.md`](../../../../sync.md) 与
+  [`../../../../features/metadata-auto-update.md`](../../../../features/metadata-auto-update.md)。
+
+  写入前会立即重读，因此一次长时间的后台扫描不会把陈旧快照覆盖到并发的用户编辑之上。
 
 ### `static Future<Directory> _getDefaultAppDir()` <a id="getdefaultappdir"></a>
 - **种类：** `AnimeStorage` 的静态方法
@@ -489,3 +520,27 @@
   ```
   （`lib/shared/providers/app_settings.dart`，`setHomeCalendarFormat`）
 - **备注：** 无。
+
+### `static Future<String?> getMetadataUpdatePolicy()` <a id="getmetadataupdatepolicy"></a>
+- **种类：** `AnimeStorage` 的静态方法
+- **用途：** 读取原始的 `metadataAutoUpdate` 字符串。
+- **返回：** `Future<String?>` —— 未存储时为 `null`。
+- **备注：** `null` 表示平台默认（移动端 `noCellular`、桌面 `always`），由
+  `MetadataUpdateService.effectivePolicy` 经 `parseMetadataUpdatePolicy` 解析。这个方法刻意返回原始
+  字符串而非枚举，与 `getHomeCalendarLayout` 把解析留给调用方的做法一致。
+
+### `static Future<void> setMetadataUpdatePolicy(String? policy)` <a id="setmetadataupdatepolicy"></a>
+- **种类：** `AnimeStorage` 的静态方法
+- **输入：** `policy` —— `MetadataUpdatePolicy` 的名称；`null` 会移除该键。
+- **副作用：** 写入 `storage_config.json`。
+- **备注：** 读-改-写，形态与 `setThemeMode` 相同。
+
+### `static Future<bool> getMetadataPrefetchCovers()` <a id="getmetadataprefetchcovers"></a>
+- **种类：** `AnimeStorage` 的静态方法
+- **返回：** `Future<bool>` —— 默认为 false。
+- **备注：** 默认关闭，因为封面是后台更新缓存中唯一的大体积数据；它存储的其余内容全是纯文字。
+
+### `static Future<void> setMetadataPrefetchCovers(bool enabled)` <a id="setmetadataprefetchcovers"></a>
+- **种类：** `AnimeStorage` 的静态方法
+- **副作用：** 写入 `storage_config.json`。
+- **备注：** 默认值 `false` 会从配置中移除而不是存下来，与 `setWeekStartDay` 处理自身默认值的方式一致。

@@ -117,6 +117,90 @@ class AnimeSearchResult {
     final titles = allTitles;
     return titles.isEmpty ? '?' : titles.first;
   }
+
+  /// Purpose: Serialize a fetched result so it can be cached on disk.
+  /// Inputs: None.
+  /// Returns: `Map<String, dynamic>` holding only the non-null fields.
+  /// Side effects: None.
+  /// Notes: Backs the background update cache, which downloads a candidate once
+  /// and then applies it without going back to the network. Null and empty
+  /// fields are omitted so the cache file stays small and readable.
+  /// `firstAirDate` and `endDate` are calendar days, not instants — they are
+  /// written as-is and read back without a UTC conversion, matching
+  /// `_parseCalendarDate` in the anime model.
+  Map<String, dynamic> toJson() => {
+    'source': source,
+    if (sourceUrl != null) 'sourceUrl': sourceUrl,
+    if (title != null) 'title': title,
+    if (titleJa != null) 'titleJa': titleJa,
+    if (titleRomaji != null) 'titleRomaji': titleRomaji,
+    if (titleEn != null) 'titleEn': titleEn,
+    if (synonyms.isNotEmpty) 'synonyms': synonyms,
+    if (episodes != null) 'episodes': episodes,
+    if (firstAirDate != null)
+      'firstAirDate': firstAirDate!.toIso8601String(),
+    if (airDayOfWeek != null) 'airDayOfWeek': airDayOfWeek,
+    if (airTime != null) 'airTime': airTime,
+    if (endDate != null) 'endDate': endDate!.toIso8601String(),
+    if (format != null) 'format': format,
+    if (status != null) 'status': status,
+    if (durationMinutes != null) 'durationMinutes': durationMinutes,
+    if (genres.isNotEmpty) 'genres': genres,
+    if (studios.isNotEmpty) 'studios': studios,
+    if (score != null) 'score': score,
+    'scoreMax': scoreMax,
+    if (scoreVotes != null) 'scoreVotes': scoreVotes,
+    if (scoreRank != null) 'scoreRank': scoreRank,
+    if (coverImageUrl != null) 'coverImageUrl': coverImageUrl,
+    if (summary != null) 'summary': summary,
+  };
+
+  /// Purpose: Rebuild a cached result from its JSON form.
+  /// Inputs: `json`.
+  /// Returns: A new `AnimeSearchResult`.
+  /// Side effects: None.
+  /// Notes: Every field is defensive — a cache written by a newer build, or
+  /// hand-edited, yields nulls rather than throwing. `source` falls back to an
+  /// empty string so a malformed entry is still readable and can be discarded
+  /// by the caller.
+  factory AnimeSearchResult.fromJson(Map<String, dynamic> json) {
+    List<String> stringList(Object? value) => value is List
+        ? value.whereType<String>().toList()
+        : const <String>[];
+    DateTime? date(Object? value) =>
+        value is String ? DateTime.tryParse(value) : null;
+    double? number(Object? value) => value is num ? value.toDouble() : null;
+
+    return AnimeSearchResult(
+      source: json['source'] is String ? json['source'] as String : '',
+      sourceUrl: json['sourceUrl'] as String?,
+      title: json['title'] as String?,
+      titleJa: json['titleJa'] as String?,
+      titleRomaji: json['titleRomaji'] as String?,
+      titleEn: json['titleEn'] as String?,
+      synonyms: stringList(json['synonyms']),
+      episodes: json['episodes'] is int ? json['episodes'] as int : null,
+      firstAirDate: date(json['firstAirDate']),
+      airDayOfWeek: json['airDayOfWeek'] is int
+          ? json['airDayOfWeek'] as int
+          : null,
+      airTime: json['airTime'] as String?,
+      endDate: date(json['endDate']),
+      format: json['format'] as String?,
+      status: json['status'] as String?,
+      durationMinutes: json['durationMinutes'] is int
+          ? json['durationMinutes'] as int
+          : null,
+      genres: stringList(json['genres']),
+      studios: stringList(json['studios']),
+      score: number(json['score']),
+      scoreMax: number(json['scoreMax']) ?? 10,
+      scoreVotes: json['scoreVotes'] is int ? json['scoreVotes'] as int : null,
+      scoreRank: json['scoreRank'] is int ? json['scoreRank'] as int : null,
+      coverImageUrl: json['coverImageUrl'] as String?,
+      summary: json['summary'] as String?,
+    );
+  }
 }
 
 /// Source display names, also used as the keys of per-source result maps.
@@ -139,7 +223,7 @@ class AnimeSearchSource {
 }
 
 class AnimeSearchService {
-  static const _userAgent = 'MyAnime/1.4.0 (anime tracker)';
+  static const _userAgent = 'MyAnime/1.5.0 (anime tracker)';
 
   /// Maximum results requested from, and kept per, each individual source.
   static const _maxPerSource = 10;

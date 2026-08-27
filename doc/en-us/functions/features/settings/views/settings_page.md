@@ -29,6 +29,9 @@ lead to (`../../../shared/views/webdav_config_page.md`, `backup_page.md` in this
 | `_buildSection` | method (widget helper) | B | Render a titled settings section. |
 | [`_calendarLayoutLabel`](#calendarlayoutlabel) | method (`_SettingsPageState`) | A | Map a `HomeCalendarLayout` value to its localized label. |
 | [`_homeCalendarTimeBasisLabel`](#homecalendartimebasislabel) | method (`_SettingsPageState`) | A | Map a `HomeCalendarTimeBasis` value to its localized label. |
+| [`_loadMetadataSettings`](#loadmetadatasettings) | method (`_SettingsPageState`) | A | Load the background metadata-update preferences. |
+| [`_setMetadataPolicy`](#setmetadatapolicy) | method (`_SettingsPageState`) | A | Persist a new policy and start or stop the service. |
+| [`_metadataPolicyLabel`](#metadatapolicylabel) | method (`_SettingsPageState`) | A | Localize a background-update policy option. |
 | [`_weekdayLabel`](#weekdaylabel) | method (`_SettingsPageState`) | A | Map a weekday number to its localized short label. |
 | `_isDesktop` | getter (`_SettingsPageState`) | B | Report whether the app is running on a desktop platform. |
 | [`_exportData`](#exportdata) | method (`_SettingsPageState`) | A | Export anime data as a ZIP or Markdown file to a user-chosen folder. |
@@ -109,6 +112,27 @@ lead to (`../../../shared/views/webdav_config_page.md`, `backup_page.md` in this
     ),
   ```
 - **Notes:** None.
+
+### `Future<void> _loadMetadataSettings()` <a id="loadmetadatasettings"></a>
+- **Kind:** method of `_SettingsPageState`
+- **Purpose:** Load the background metadata-update policy and cover-prefetch flag.
+- **Side effects:** Reads `storage_config.json` and rebuilds.
+- **Notes:** Goes through `MetadataUpdateService.effectivePolicy` rather than reading the raw string,
+  so the control shows the behavior actually in force — the platform default when nothing is stored,
+  not a fixed value. Only called under `AppFlavor.isFull`.
+
+### `Future<void> _setMetadataPolicy(MetadataUpdatePolicy policy)` <a id="setmetadatapolicy"></a>
+- **Kind:** method of `_SettingsPageState`
+- **Side effects:** Writes `storage_config.json`, then starts or stops the background service.
+- **Notes:** Starting/stopping here is what makes the change take effect immediately instead of at
+  the next launch.
+
+### `String _metadataPolicyLabel(MetadataUpdatePolicy policy, AppLocalizations l10n)` <a id="metadatapolicylabel"></a>
+- **Kind:** method of `_SettingsPageState`
+- **Notes:** `noCellular` is worded "don't use cellular data" rather than "Wi-Fi only", because the
+  check also passes on a wired desktop connection — and because it detects the link type, not
+  whether the link is metered. See
+  [`../../../../platform-notes.md`](../../../../platform-notes.md).
 
 ### `String _weekdayLabel(int weekday, AppLocalizations l10n)` <a id="weekdaylabel"></a>
 - **Kind:** method of `_SettingsPageState`

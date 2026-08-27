@@ -15,6 +15,9 @@
 | `_buildSection` | 方法（组件辅助） | B | 渲染一个带标题的设置小节。 |
 | [`_calendarLayoutLabel`](#calendarlayoutlabel) | 方法（`_SettingsPageState`） | A | 把 `HomeCalendarLayout` 值映射为其本地化标签。 |
 | [`_homeCalendarTimeBasisLabel`](#homecalendartimebasislabel) | 方法（`_SettingsPageState`） | A | 把 `HomeCalendarTimeBasis` 值映射为其本地化标签。 |
+| [`_loadMetadataSettings`](#loadmetadatasettings) | 方法（`_SettingsPageState`） | A | 加载后台资料更新偏好。 |
+| [`_setMetadataPolicy`](#setmetadatapolicy) | 方法（`_SettingsPageState`） | A | 持久化新策略并启动或停止服务。 |
+| [`_metadataPolicyLabel`](#metadatapolicylabel) | 方法（`_SettingsPageState`） | A | 本地化后台更新策略选项。 |
 | [`_weekdayLabel`](#weekdaylabel) | 方法（`_SettingsPageState`） | A | 把星期数字映射为其本地化短标签。 |
 | `_isDesktop` | getter（`_SettingsPageState`） | B | 报告应用是否运行在桌面平台。 |
 | [`_exportData`](#exportdata) | 方法（`_SettingsPageState`） | A | 把动画数据导出为 ZIP 或 Markdown 文件到用户选择的文件夹。 |
@@ -87,6 +90,24 @@
     ),
   ```
 - **备注：** 无。
+
+### `Future<void> _loadMetadataSettings()` <a id="loadmetadatasettings"></a>
+- **种类：** `_SettingsPageState` 的方法
+- **用途：** 加载后台资料更新策略与封面预取开关。
+- **副作用：** 读取 `storage_config.json` 并重建。
+- **备注：** 走 `MetadataUpdateService.effectivePolicy` 而不是直接读原始字符串，因此控件显示的是实际
+  生效的行为 —— 未存储时为平台默认，而不是一个固定值。仅在 `AppFlavor.isFull` 下调用。
+
+### `Future<void> _setMetadataPolicy(MetadataUpdatePolicy policy)` <a id="setmetadatapolicy"></a>
+- **种类：** `_SettingsPageState` 的方法
+- **副作用：** 写入 `storage_config.json`，然后启动或停止后台服务。
+- **备注：** 在这里启停，正是让改动立即生效而不是等到下次启动的原因。
+
+### `String _metadataPolicyLabel(MetadataUpdatePolicy policy, AppLocalizations l10n)` <a id="metadatapolicylabel"></a>
+- **种类：** `_SettingsPageState` 的方法
+- **备注：** `noCellular` 的文案写作「不使用蜂窝数据」而非「仅 Wi-Fi」，因为该检查在有线桌面连接下同样
+  放行 —— 也因为它检测的是链路类型，而不是链路是否计费。见
+  [`../../../../platform-notes.md`](../../../../platform-notes.md)。
 
 ### `String _weekdayLabel(int weekday, AppLocalizations l10n)` <a id="weekdaylabel"></a>
 - **种类：** `_SettingsPageState` 的方法

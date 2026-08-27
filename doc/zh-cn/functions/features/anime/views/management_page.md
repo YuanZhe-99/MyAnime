@@ -10,7 +10,11 @@
 | `ManagementPage.createState` | 方法（`ManagementPage`） | B | 为此组件创建可变状态对象。 |
 | `_isOtherPage` | getter（`_ManagementPageState`） | B | 当前显示的页面是否是"其他"（无日期）页。 |
 | [`_ManagementPageState.initState`](#initstate-mgmt) | 方法（`_ManagementPageState`） | A | 加载数据并把 `PageView` 定位到当前季度。 |
-| `_ManagementPageState.dispose` | 方法（`_ManagementPageState`） | B | 注销同步重载回调并释放页面控制器。 |
+| `_ManagementPageState.dispose` | 方法（`_ManagementPageState`） | B | 注销同步重载与更新队列回调，并释放页面控制器。 |
+| `_onMetadataUpdatesChanged` | 方法（`_ManagementPageState`） | B | 队列变化时重建可用更新角标。 |
+| [`_pendingUpdateCount`](#_pendingupdatecount) | getter（`_ManagementPageState`） | A | 有多少记录在等待更新决定。 |
+| [`_currentPageAnimeIds`](#_currentpageanimeids) | getter（`_ManagementPageState`） | A | 用户当前正在查看的番剧 —— 即「本页」作用域。 |
+| `_openMetadataUpdates` | 方法（`_ManagementPageState`） | B | 推入可用更新审阅界面。 |
 | [`_load`](#_load) | 方法（`_ManagementPageState`） | A | 从存储重载所有动画。 |
 | [`_animeForQuarter`](#_animeforquarter) | 方法（`_ManagementPageState`） | A | 过滤并排序在给定季度播出的动画。 |
 | [`_otherAnime`](#_otheranime) | getter（`_ManagementPageState`） | A | 没有 `firstAirDate` 的动画，按标题排序。 |
@@ -184,6 +188,24 @@
   ```
   （`_ManagementPageState.build`，同一文件）
 - **备注：** 与 `HomePage._showAddOptions`（[`home_page.md`](home_page.md#_showaddoptions)）结构相同，但这个版本之后额外把 `PageView` 跳到新动画的季度，这正是管理页（与主页不同）需要额外 `_jumpToAnimeQuarter` 步骤的原因。
+
+### `int get _pendingUpdateCount` <a id="_pendingupdatecount"></a>
+- **种类：** `_ManagementPageState` 的 getter
+- **用途：** 报告有多少记录在等待更新决定。
+- **返回：** 来自 `MetadataUpdateService.instance.pendingCount` 的 `int`。
+- **副作用：** 无。
+- **备注：** 为零时 AppBar 角标完全隐藏，因此这个操作绝不会在背后没有内容时出现。角标另外还门禁于
+  `AppFlavor.isFull`，因为它通向在线查询。见
+  [`../../../../features/metadata-auto-update.md`](../../../../features/metadata-auto-update.md)。
+
+### `List<String> get _currentPageAnimeIds` <a id="_currentpageanimeids"></a>
+- **种类：** `_ManagementPageState` 的 getter
+- **用途：** 列出用户当前正在查看的番剧。
+- **返回：** 番剧 id 的 `List<String>`。
+- **副作用：** 无。
+- **备注：** 这个 getter *定义*了审阅界面上「更新本页」的含义：搜索状态下是搜索结果，否则是当前季度页
+  或「其它」页。作用域是传入 `MetadataUpdatesPage` 的，而不是在那里重新推导，因此批量操作覆盖的始终
+  正是屏幕上的内容。
 
 ### `void _jumpToAnimeQuarter(String animeId)` <a id="_jumptoanimequarter"></a>
 - **种类：** `_ManagementPageState` 的方法

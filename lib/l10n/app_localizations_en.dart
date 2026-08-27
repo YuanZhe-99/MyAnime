@@ -340,10 +340,6 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String get animeExternalRatingNote =>
-      'From external databases — separate from your own rating';
-
-  @override
   String get animeRefreshMeta => 'Refresh database info';
 
   @override
@@ -361,6 +357,157 @@ class AppLocalizationsEn extends AppLocalizations {
   String animeRefreshedAt(String date) {
     return 'Updated $date';
   }
+
+  @override
+  String get metaUpdatesTitle => 'Available Updates';
+
+  @override
+  String get metaUpdatesTooltip => 'Available updates';
+
+  @override
+  String get metaUpdatesEmpty => 'No updates available';
+
+  @override
+  String get metaUpdatesEmptyHint =>
+      'Records with missing details are checked in the background.';
+
+  @override
+  String metaUpdatesCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count available',
+      one: '1 available',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get metaUpdatesApply => 'Apply';
+
+  @override
+  String get metaUpdatesDismiss => 'Ignore';
+
+  @override
+  String get metaUpdatesApplyPage => 'Update this page';
+
+  @override
+  String get metaUpdatesApplyAll => 'Update all';
+
+  @override
+  String get metaUpdatesConfirmTitle => 'Confirm update';
+
+  @override
+  String metaUpdatesConfirmPage(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Apply $count updates on this page?',
+      one: 'Apply the update on this page?',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String metaUpdatesConfirmAll(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Apply all $count updates?',
+      one: 'Apply this update?',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String metaUpdatesConfirmAgain(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'This changes $count records at once. Apply them?',
+      one: 'This changes one record. Apply it?',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String metaUpdatesApplied(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count records updated',
+      one: '1 record updated',
+      zero: 'No records updated',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get metaUpdatesManualPick => 'Needs manual selection';
+
+  @override
+  String get metaUpdatesManualPickHint =>
+      'No match was clear enough. Open the record and search manually.';
+
+  @override
+  String metaUpdatesExcludedManual(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count records needing manual selection are excluded',
+      one: '1 record needing manual selection is excluded',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get metaUpdatesCurrent => 'Current';
+
+  @override
+  String get metaUpdatesProposed => 'New';
+
+  @override
+  String get metaUpdatesEmptyValue => '(empty)';
+
+  @override
+  String metaUpdatesFrom(String source) {
+    return 'From $source';
+  }
+
+  @override
+  String metaUpdatesMatch(int percent) {
+    return '$percent% match';
+  }
+
+  @override
+  String get metaUpdatesNothingSelected => 'Select at least one field';
+
+  @override
+  String get settingsMetaAutoUpdate => 'Background database updates';
+
+  @override
+  String get settingsMetaAutoUpdateDesc =>
+      'Refreshes saved database info and looks up records with missing details while the app is open.';
+
+  @override
+  String get settingsMetaPolicyOff => 'Off';
+
+  @override
+  String get settingsMetaPolicyNoCellular => 'Don\'t use cellular data';
+
+  @override
+  String get settingsMetaPolicyAlways => 'Any connection';
+
+  @override
+  String get settingsMetaPolicyHint =>
+      'Connection type is detected, not whether it is metered — a phone hotspot still reports Wi-Fi.';
+
+  @override
+  String get settingsMetaPrefetchCovers => 'Pre-download cover images';
+
+  @override
+  String get settingsMetaPrefetchCoversDesc =>
+      'Off by default. Covers are the only large data cached; everything else is plain text.';
 
   @override
   String get copyAction => 'Copy';

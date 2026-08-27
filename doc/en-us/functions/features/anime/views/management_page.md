@@ -19,7 +19,11 @@ for the quarter-placement rules this page's grouping relies on.
 | `ManagementPage.createState` | method (`ManagementPage`) | B | Create the mutable state object for this widget. |
 | `_isOtherPage` | getter (`_ManagementPageState`) | B | Whether the currently displayed page is the "Other" (no-date) page. |
 | [`_ManagementPageState.initState`](#initstate-mgmt) | method (`_ManagementPageState`) | A | Load data and position the `PageView` on the current quarter. |
-| `_ManagementPageState.dispose` | method (`_ManagementPageState`) | B | Unregister the sync-reload callback and dispose the page controller. |
+| `_ManagementPageState.dispose` | method (`_ManagementPageState`) | B | Unregister the sync-reload and update-queue callbacks and dispose the page controller. |
+| `_onMetadataUpdatesChanged` | method (`_ManagementPageState`) | B | Rebuild the available-updates badge when the queue changes. |
+| [`_pendingUpdateCount`](#_pendingupdatecount) | getter (`_ManagementPageState`) | A | How many records await an update decision. |
+| [`_currentPageAnimeIds`](#_currentpageanimeids) | getter (`_ManagementPageState`) | A | The anime the user is currently looking at — the "this page" scope. |
+| `_openMetadataUpdates` | method (`_ManagementPageState`) | B | Push the available-updates review screen. |
 | [`_load`](#_load) | method (`_ManagementPageState`) | A | Reload all anime from storage. |
 | [`_animeForQuarter`](#_animeforquarter) | method (`_ManagementPageState`) | A | Filter and sort the anime airing in a given quarter. |
 | [`_otherAnime`](#_otheranime) | getter (`_ManagementPageState`) | A | Anime with no `firstAirDate`, sorted by title. |
@@ -222,6 +226,25 @@ for the quarter-placement rules this page's grouping relies on.
   ([`home_page.md`](home_page.md#_showaddoptions)), but this version additionally jumps the
   `PageView` to the new anime's quarter afterward, which is why Management (unlike Home) needs the
   extra `_jumpToAnimeQuarter` step.
+
+### `int get _pendingUpdateCount` <a id="_pendingupdatecount"></a>
+- **Kind:** getter of `_ManagementPageState`
+- **Purpose:** Report how many records are waiting for an update decision.
+- **Returns:** `int` from `MetadataUpdateService.instance.pendingCount`.
+- **Side effects:** None.
+- **Notes:** Zero hides the app-bar badge entirely, so the action never appears with nothing behind
+  it. The badge is additionally gated on `AppFlavor.isFull`, since it leads to online lookups. See
+  [`../../../../features/metadata-auto-update.md`](../../../../features/metadata-auto-update.md).
+
+### `List<String> get _currentPageAnimeIds` <a id="_currentpageanimeids"></a>
+- **Kind:** getter of `_ManagementPageState`
+- **Purpose:** List the anime the user is currently looking at.
+- **Returns:** `List<String>` of anime ids.
+- **Side effects:** None.
+- **Notes:** This getter *defines* what "update this page" means on the review screen: the search
+  results while searching, otherwise the current quarter page or the "Other" page. The scope is
+  passed into `MetadataUpdatesPage` rather than recomputed there, so a batch action always covers
+  exactly what was on screen.
 
 ### `void _jumpToAnimeQuarter(String animeId)` <a id="_jumptoanimequarter"></a>
 - **Kind:** method of `_ManagementPageState`

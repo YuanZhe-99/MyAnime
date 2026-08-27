@@ -23,6 +23,8 @@ and the metadata block becomes `externalMeta`).
 | [`AnimeSearchResult(...)`](#animesearchresult-new) | constructor (`AnimeSearchResult`) | A | Hold one normalized search hit from any source. |
 | [`allTitles`](#alltitles) | getter (`AnimeSearchResult`) | A | Collect every title the result knows about, deduplicated. |
 | [`displayTitle`](#displaytitle) | getter (`AnimeSearchResult`) | B | Return the first known title, or `?`. |
+| [`toJson`](#resulttojson) | method (`AnimeSearchResult`) | A | Serialize a fetched result so it can be cached on disk. |
+| [`fromJson`](#resultfromjson) | factory (`AnimeSearchResult`) | A | Rebuild a cached result, defensively. |
 | `AnimeSearchSource._()` | constructor (`AnimeSearchSource`) | B | Prevent instantiation of the source-name holder. |
 | [`searchAll`](#searchall) | static method (`AnimeSearchService`) | A | Run the two-round cross-language search and return one ranked list. |
 | [`queryVariants`](#queryvariants) | static method (`AnimeSearchService`) | A | Build the Simplified/Traditional variant set for a query. |
@@ -113,6 +115,27 @@ practical seam. Do not call them from production code outside this file.
 - **Returns:** `String` — the first entry of `allTitles`, or `'?'` when there are none.
 - **Side effects:** None.
 - **Notes:** Replaces the older inline `r.title ?? r.titleJa ?? '?'` in the dialog, which could not see romaji or English titles.
+
+### `Map<String, dynamic> toJson()` <a id="resulttojson"></a>
+- **Kind:** method of `AnimeSearchResult`
+- **Purpose:** Serialize a fetched result so it can be cached on disk.
+- **Returns:** `Map<String, dynamic>` holding only the non-null, non-empty fields.
+- **Side effects:** None.
+- **Notes:** Added in 1.5.0 to back the background update cache, which downloads a candidate once
+  and then applies it without going back to the network. Null and empty fields are omitted so the
+  cache file stays small and readable.
+
+  `firstAirDate` and `endDate` are **calendar days, not instants**: they are written as-is and read
+  back without a UTC conversion, matching `_parseCalendarDate` in the anime model. Normalizing them
+  to UTC would render the previous day in every timezone east of UTC — including Japan.
+
+### `factory AnimeSearchResult.fromJson(Map<String, dynamic>)` <a id="resultfromjson"></a>
+- **Kind:** factory constructor of `AnimeSearchResult`
+- **Purpose:** Rebuild a cached result from its JSON form.
+- **Side effects:** None.
+- **Notes:** Every field is read defensively — a cache written by a newer build, or hand-edited,
+  yields nulls rather than throwing. `source` falls back to an empty string so a malformed entry is
+  still readable and can be discarded by the caller rather than taking the whole file down with it.
 
 ### `static Future<List<AnimeSearchResult>> searchAll(String query, {String? preferredLanguage})` <a id="searchall"></a>
 - **Kind:** static method of `AnimeSearchService`
