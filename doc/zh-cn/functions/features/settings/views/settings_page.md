@@ -1,6 +1,12 @@
 # lib/features/settings/views/settings_page.dart
 
-`SettingsPage` 是应用的主设置屏：主题/语言区域/日历偏好（由 `shared/providers/app_settings.dart` 支撑）、提醒开关、数据操作（WebDAV 同步入口、备份入口、ZIP/Markdown 导出/导入、重复检查、存储位置）、纯桌面托盘/开机自启/本地 API 服务器控件，以及关于小节（版本、隐私政策、许可证）。它是一个 `ConsumerStatefulWidget`（Riverpod），也监听 `AutoSyncService.addOnStatusChanged`，使 WebDAV 行的错误/冲突副标题无需导航离开就保持实时。与 `license_page.dart`/`privacy_policy_page.dart` 不同，它大多数非 `build` 方法都是真实操作处理器——读写 `AnimeStorage` 的 JSON 配置、调用 `ImportExportService`、`LocalApiServer`、`ReminderService`、`TrayService` 和 `launch_at_startup`——因此这个"视图"文件有巨大的 Tier A 表面。这些处理器配置的纯桌面 API 服务器/托盘行为见 [`../../../platform-notes.md`](../../../../platform-notes.md)，WebDAV/备份入口通向哪里（`../../../shared/views/webdav_config_page.md`、同目录的 `backup_page.md`）见 [`../../../sync.md`](../../../../sync.md) / [`../../../backup-restore.md`](../../../../backup-restore.md)。
+`SettingsPage` 是应用的主设置屏：主题/语言区域/日历偏好（由 `shared/providers/app_settings.dart` 支撑）、提醒开关、数据操作（WebDAV 同步入口、备份入口、ZIP/Markdown 导出/导入、重复检查、存储位置）、纯桌面托盘/开机自启/本地 API 服务器控件，以及关于小节（版本、隐私政策、许可证）。它是一个 `ConsumerStatefulWidget`（Riverpod），也监听 `AutoSyncService.addOnStatusChanged`，使 WebDAV 行的错误/冲突副标题无需导航离开就保持实时。与 `license_page.dart`/`privacy_policy_page.dart` 不同，它大多数非 `build` 方法都是真实操作处理器——读写 `AnimeStorage` 的 JSON 配置、调用 `ImportExportService`、`LocalApiServer`、`ReminderService`、`TrayService` 和 `launch_at_startup`——因此这个"视图"文件有巨大的 Tier A 表面。
+
+自 1.5.4 起它同时也是一个列表-详情布局。在全应用拆分规则允许的窗口上，一级列表留在左边，它所通向的二级
+页面填满右边，与系统设置应用的行为一致；在更窄的窗口上，每一行仍与从前完全一样全屏推入。私有的
+`_SettingsDetail` 枚举点名了参与其中的五行——WebDAV 同步、备份、查重、隐私政策与许可证——而 `_open` 是
+决定一次点击做这两件事中哪一件的唯一去处。页面上其余的东西要么是内联控件、要么是对话框，两者都不是页面。
+见 [`../../../../adaptive-layout.md`](../../../../adaptive-layout.md)。这些处理器配置的纯桌面 API 服务器/托盘行为见 [`../../../platform-notes.md`](../../../../platform-notes.md)，WebDAV/备份入口通向哪里（`../../../shared/views/webdav_config_page.md`、同目录的 `backup_page.md`）见 [`../../../sync.md`](../../../../sync.md) / [`../../../backup-restore.md`](../../../../backup-restore.md)。
 
 ## 声明
 
@@ -12,6 +18,10 @@
 | `dispose` | 方法（组件生命周期） | B | 移除同步状态监听器。 |
 | `_refreshSyncStatus` | 方法（组件辅助） | B | 后台同步状态变化时重建页面。 |
 | [`_loadVersion`](#loadversion) | 方法（`_SettingsPageState`） | A | 加载并存储应用的版本/构建号字符串。 |
+| [`_detailPage`](#detailpage) | 方法（组件辅助） | A | 构建某个设置行所通向的二级页面。 |
+| [`_open`](#open) | 方法（`_SettingsPageState`） | A | 按当前布局所要求的方式打开一个二级页面。 |
+| [`_buildDetailPane`](#builddetailpane) | 方法（组件辅助） | A | 构建两栏设置布局的右栏。 |
+| [`_buildSettingsList`](#buildsettingslist) | 方法（组件辅助） | A | 构建一级设置列表。 |
 | `_buildSection` | 方法（组件辅助） | B | 渲染一个带标题的设置小节。 |
 | [`_calendarLayoutLabel`](#calendarlayoutlabel) | 方法（`_SettingsPageState`） | A | 把 `HomeCalendarLayout` 值映射为其本地化标签。 |
 | [`_homeCalendarTimeBasisLabel`](#homecalendartimebasislabel) | 方法（`_SettingsPageState`） | A | 把 `HomeCalendarTimeBasis` 值映射为其本地化标签。 |
@@ -35,6 +45,88 @@
 | `build` | 方法（组件构建） | B | 为当前状态/平台渲染完整设置列表。 |
 
 ## 文档
+
+### `Widget _detailPage(_SettingsDetail detail)` <a id="detailpage"></a>
+- **种类：** `_SettingsPageState` 的方法（组件辅助）
+- **来源：** `lib/features/settings/views/settings_page.dart`（约第 140 行）
+- **用途：** 构建某个设置行所通向的二级页面。
+- **输入：** `detail`——五者之一。
+- **返回：** `Widget`——该页面，其本身是一个带自己应用栏的 `Scaffold`。
+- **副作用：** 除构建控件外无。
+- **算法：** 从枚举到 `WebDAVConfigPage`、`BackupPage`、`DuplicateCheckPage`、`PrivacyPolicyPage` 或
+  `app_license.LicensePage` 的一个 `switch`。
+- **用法：**
+  ```dart
+  Navigator.of(context, rootNavigator: true)
+      .push(MaterialPageRoute(builder: (_) => _detailPage(detail)));
+  ```
+  （出自同一文件的 `_open`）
+- **备注：** 同一个控件服务于两种模式——窄窗口上全屏推入，宽窗口上寄宿于详情栏。**这五个页面没有一个需要改动
+  才能被嵌入**，因为详情栏把它们包进了一个只持有单条路由的嵌套 `Navigator`，它报告 `canPop == false`，于是
+  它们的应用栏不会长出返回箭头。
+
+  刻意不在此列：调用 Flutter 自带 `showLicensePage` 的开源许可证一行。那个页面本身已经包含自己的主从结构，
+  嵌套它会让屏幕上出现三栏。
+
+### `void _open(_SettingsDetail detail)` <a id="open"></a>
+- **种类：** `_SettingsPageState` 的方法
+- **来源：** `lib/features/settings/views/settings_page.dart`（约第 157 行）
+- **用途：** 按当前布局所要求的方式打开一个二级页面。
+- **输入：** `detail`。
+- **返回：** 无。
+- **副作用：** 要么选中详情栏的页面（`setState`），要么在根导航器上推入一条路由。
+- **算法：** `_twoPane` 时执行 `setState(() => _detail = detail)`；否则在根导航器上推入
+  `_detailPage(detail)`，与 1.5.4 之前这些行各自所做的完全一致。
+- **用法：**
+  ```dart
+  onTap: () => _open(_SettingsDetail.webdav),
+  ```
+  （出自同一文件的 `_buildSettingsList`）
+- **备注：** 五行全部经由此处，因此两种模式不可能彼此走样。`_twoPane` 是在 `build` 期间缓存的而非在此重新
+  计算，这样一次点击所做的事情永远与它发生时屏幕上的样子相符。
+
+### `Widget _buildDetailPane(AppLocalizations l10n)` <a id="builddetailpane"></a>
+- **种类：** `_SettingsPageState` 的方法（组件辅助）
+- **来源：** `lib/features/settings/views/settings_page.dart`（约第 177 行）
+- **用途：** 构建两栏设置布局的右栏。
+- **输入：** `l10n`——用于占位提示的文案。
+- **返回：** `Widget`。
+- **副作用：** 除构建控件外无。
+- **算法：** 未选中任何项时，是居中的 `Icons.tune_outlined` 加其下的 `l10n.settingsSelectItem`。否则是一个以
+  当前选择为 key 的 `Navigator`，其 `onGenerateRoute` 返回 `_detailPage(_detail!)`。
+- **用法：**
+  ```dart
+  Expanded(child: _buildDetailPane(l10n)),
+  ```
+  （出自同一文件的 `_SettingsPageState.build`）
+- **备注：** 嵌套 `Navigator` 正是给寄宿页面一条真实路由的手段，这使其内部的 `Navigator.pop` 仍有意义，也让
+  它的应用栏不带前导控件。以当前选择为 key 会在每次切换时销毁并重建，这对那三个挂载时异步加载的页面而言是
+  正确的。
+
+  缩到门控之下——把设备合上——会让 `_detail` 保留但不被使用，于是列表回来，展开时选择也随之恢复。这与列表列数
+  偏好被钳制而非改写是同一个道理。
+
+### `Widget _buildSettingsList(AppLocalizations l10n, AppSettings settings, AppSettingsNotifier notifier, bool usesJapaneseCalendar)` <a id="buildsettingslist"></a>
+- **种类：** `_SettingsPageState` 的方法（组件辅助）
+- **来源：** `lib/features/settings/views/settings_page.dart`（约第 806 行）
+- **用途：** 构建一级设置列表。
+- **输入：** `l10n`；供 Riverpod 支撑的控件使用的 `settings` 与 `notifier`；以及会禁用每周起始日一行的
+  `usesJapaneseCalendar`。
+- **返回：** `Widget`——由各小节组成的滚动 `ListView`。
+- **副作用：** 除构建控件外无；各行自身的回调有其各自的副作用。
+- **算法：** 与 `build` 从前直接返回的内容一致：通用、数据、Debug、桌面与关于各小节。
+- **用法：**
+  ```dart
+  final list = _buildSettingsList(l10n, settings, notifier, usesJapaneseCalendar);
+  if (!_twoPane) return list;
+  ```
+  （出自同一文件的 `_SettingsPageState.build`）
+- **备注：** 1.5.4 中抽出，好让同一份列表既能在窄窗口上充当整个页身、又能在宽窗口上充当左栏，而不必写两遍。
+  那五个带 `›` 的行带有 `selected: _twoPane && _detail == ...`，因此当前所在的那一栏会被高亮，与系统设置应用
+  的做法一致。
+
+  它那些尾部的 `DropdownButton` 以及它们的选项都设置了 `alignment: AlignmentDirectional.centerEnd`。两半都
+  是必需的：菜单弹出时会以选中项覆盖在按钮之上，因此只对齐按钮会让标签在菜单打开的瞬间横向跳动。
 
 ### `Future<void> _loadVersion()` <a id="loadversion"></a>
 - **种类：** `_SettingsPageState` 的方法

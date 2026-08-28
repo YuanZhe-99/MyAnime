@@ -1,8 +1,21 @@
 import 'package:flutter/material.dart';
 
 import '../../../l10n/app_localizations.dart';
+import '../../../shared/utils/adaptive_layout.dart';
 
 enum _KanaScript { hiragana, katakana }
+
+/// Narrowest a kana table may be before the page stops putting two side by
+/// side, in logical pixels.
+///
+/// A five-column table spends 44 on its row label, so 330 leaves about 57 per
+/// cell — level with what the same table gets on a phone in one column. Below
+/// this the unfolded screen would be showing more, smaller kana than a phone
+/// does, which is the opposite of the point.
+const _kanaTableMinWidth = 330.0;
+
+/// Narrowest a rule card may be before the rules stop flowing two across.
+const _kanaRuleMinWidth = 320.0;
 
 class KanaPage extends StatefulWidget {
   /// Purpose: Create a kana page instance.
@@ -41,7 +54,11 @@ class _KanaPageState extends State<KanaPage> {
   /// Inputs: `context`.
   /// Returns: The widget tree for the current state.
   /// Side effects: Creates UI widgets from the current state.
-  /// Notes: Keep this method cheap because Flutter may call it often.
+  /// Notes: Keep this method cheap because Flutter may call it often. The
+  /// two-column arrangement is gated twice: by the app-wide [canSplitLayout],
+  /// and by whether two tables of [_kanaTableMinWidth] actually fit. The second
+  /// gate is what keeps the narrower unfolded foldables on one column without
+  /// needing a breakpoint of their own.
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
@@ -49,10 +66,85 @@ class _KanaPageState extends State<KanaPage> {
     final query = _query.trim().toLowerCase();
     final matches = query.isEmpty ? <_KanaEntry>[] : _matchingEntries(query);
 
+    final screen = MediaQuery.sizeOf(context);
+    final available = shellContentWidth(screen.width) - 32;
+    final contentWidth = available > 1080 ? 1080.0 : available;
+    final twoColumn =
+        canSplitLayout(screen.width, screen.height) &&
+        columnCapacity(
+              contentWidth,
+              minItemWidth: _kanaTableMinWidth,
+              maxColumns: 2,
+            ) >=
+            2;
+
+    final scriptPicker = SegmentedButton<_KanaScript>(
+      segments: [
+        ButtonSegment(
+          value: _KanaScript.hiragana,
+          icon: const Icon(Icons.text_fields, size: 18),
+          label: Text(l10n.kanaScriptHiragana),
+        ),
+        ButtonSegment(
+          value: _KanaScript.katakana,
+          icon: const Icon(Icons.title, size: 18),
+          label: Text(l10n.kanaScriptKatakana),
+        ),
+      ],
+      selected: {_script},
+      onSelectionChanged: (selection) {
+        setState(() => _script = selection.first);
+      },
+    );
+
+    final searchField = TextField(
+      controller: _searchController,
+      decoration: InputDecoration(
+        hintText: l10n.kanaSearchHint,
+        prefixIcon: const Icon(Icons.search),
+        suffixIcon: _query.isEmpty
+            ? null
+            : IconButton(
+                icon: const Icon(Icons.close),
+                onPressed: () {
+                  _searchController.clear();
+                  setState(() => _query = '');
+                },
+              ),
+      ),
+      onChanged: (value) => setState(() => _query = value),
+    );
+
+    final basicTable = _buildKanaTable(theme, l10n.kanaBasicSection, const [
+      'a',
+      'i',
+      'u',
+      'e',
+      'o',
+    ], _basicRows);
+    final voicedTable = _buildKanaTable(theme, l10n.kanaVoicedSection, const [
+      'a',
+      'i',
+      'u',
+      'e',
+      'o',
+    ], _voicedRows);
+    final yoonTable = _buildKanaTable(theme, l10n.kanaYoonSection, const [
+      'ya',
+      'yu',
+      'yo',
+    ], _yoonRows);
+    final rules = _buildRules(theme, l10n);
+
     return Scaffold(
       appBar: AppBar(title: Text(l10n.kanaTitle)),
       body: ListView(
-        padding: const EdgeInsets.fromLTRB(16, 8, 16, 80),
+        padding: EdgeInsets.fromLTRB(
+          16,
+          8,
+          16,
+          shellListBottomInset(screen.width),
+        ),
         children: [
           Center(
             child: ConstrainedBox(
@@ -60,69 +152,66 @@ class _KanaPageState extends State<KanaPage> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  SegmentedButton<_KanaScript>(
-                    segments: [
-                      ButtonSegment(
-                        value: _KanaScript.hiragana,
-                        icon: const Icon(Icons.text_fields, size: 18),
-                        label: Text(l10n.kanaScriptHiragana),
-                      ),
-                      ButtonSegment(
-                        value: _KanaScript.katakana,
-                        icon: const Icon(Icons.title, size: 18),
-                        label: Text(l10n.kanaScriptKatakana),
-                      ),
-                    ],
-                    selected: {_script},
-                    onSelectionChanged: (selection) {
-                      setState(() => _script = selection.first);
-                    },
-                  ),
-                  const SizedBox(height: 12),
-                  TextField(
-                    controller: _searchController,
-                    decoration: InputDecoration(
-                      hintText: l10n.kanaSearchHint,
-                      prefixIcon: const Icon(Icons.search),
-                      suffixIcon: _query.isEmpty
-                          ? null
-                          : IconButton(
-                              icon: const Icon(Icons.close),
-                              onPressed: () {
-                                _searchController.clear();
-                                setState(() => _query = '');
-                              },
-                            ),
-                    ),
-                    onChanged: (value) => setState(() => _query = value),
-                  ),
+                  // Side by side when there is room: the picker sizes to its
+                  // content and the field takes the rest, which buys back a
+                  // row of vertical space on the axis a foldable is short on.
+                  if (twoColumn)
+                    Row(
+                      children: [
+                        scriptPicker,
+                        const SizedBox(width: listTileGap),
+                        Expanded(child: searchField),
+                      ],
+                    )
+                  else ...[
+                    scriptPicker,
+                    const SizedBox(height: 12),
+                    searchField,
+                  ],
                   const SizedBox(height: 20),
-                  if (query.isEmpty) ...[
-                    _buildKanaTable(theme, l10n.kanaBasicSection, const [
-                      'a',
-                      'i',
-                      'u',
-                      'e',
-                      'o',
-                    ], _basicRows),
-                    const SizedBox(height: 20),
-                    _buildKanaTable(theme, l10n.kanaVoicedSection, const [
-                      'a',
-                      'i',
-                      'u',
-                      'e',
-                      'o',
-                    ], _voicedRows),
-                    const SizedBox(height: 20),
-                    _buildKanaTable(theme, l10n.kanaYoonSection, const [
-                      'ya',
-                      'yu',
-                      'yo',
-                    ], _yoonRows),
-                  ] else
+                  if (query.isNotEmpty) ...[
                     _buildSearchResults(theme, l10n, matches),
-                  const SizedBox(height: 24),
-                  _buildRules(theme, l10n),
+                    const SizedBox(height: 24),
+                    rules,
+                  ] else if (twoColumn)
+                    // The tall basic and yoon tables balance against the short
+                    // voiced table plus the rules, so neither column runs far
+                    // past the other.
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.stretch,
+                            children: [
+                              basicTable,
+                              const SizedBox(height: 20),
+                              yoonTable,
+                            ],
+                          ),
+                        ),
+                        const SizedBox(width: listTileGap),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.stretch,
+                            children: [
+                              voicedTable,
+                              const SizedBox(height: 20),
+                              rules,
+                            ],
+                          ),
+                        ),
+                      ],
+                    )
+                  else ...[
+                    basicTable,
+                    const SizedBox(height: 20),
+                    voicedTable,
+                    const SizedBox(height: 20),
+                    yoonTable,
+                    const SizedBox(height: 24),
+                    rules,
+                  ],
                 ],
               ),
             ),
@@ -434,9 +523,19 @@ class _KanaPageState extends State<KanaPage> {
 
     return LayoutBuilder(
       builder: (context, constraints) {
-        final isWide = constraints.maxWidth >= 720;
-        final width = isWide
-            ? (constraints.maxWidth - 12) / 2
+        // Measured against whatever this section is actually given, which is a
+        // whole page width in one column and half of one in two, so the cards
+        // reflow on their own rather than needing to know which mode they are
+        // in. Capped at two: these are paragraphs, and a third column would
+        // take them below a comfortable reading measure.
+        final ruleColumns = columnCapacity(
+          constraints.maxWidth,
+          minItemWidth: _kanaRuleMinWidth,
+          maxColumns: 2,
+        );
+        final width = ruleColumns > 1
+            ? (constraints.maxWidth - listTileGap * (ruleColumns - 1)) /
+                  ruleColumns
             : constraints.maxWidth;
 
         return Column(

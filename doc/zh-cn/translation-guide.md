@@ -124,6 +124,10 @@
 | background update | 后台更新 | 应用打开时自动进行的资料刷新与探索；zh-TW 用「背景更新」，ja 用「バックグラウンド更新」 |
 | split (layout) | 分栏 | 布局拆成左右两栏或多列；不要译成「分割」 |
 | column count | 列数 | 列表的多列列数；zh-TW 用「欄數」 |
+| navigation rail | 侧边导航栏 | 宽屏下取代底部导航栏的竖向导航；zh-TW 用「側邊導覽列」 |
+| navigation bar | 底部导航栏 | 窄屏下的横向导航；与侧边导航栏成对出现，勿混用 |
+| list-detail | 列表-详情 | 左边一级列表、右边二级页面的布局；勿译成「主从」 |
+| detail pane | 详情栏 | 列表-详情布局的右栏；「栏」用于左右分栏，「列」用于多列列表 |
 | window size class | 窗口尺寸等级 | Material 的 compact/medium/expanded 断点分级 |
 | foldable | 折叠屏 | zh-TW 用「摺疊螢幕」，ja 用「折りたたみ」 |
 | aspect ratio | 宽高比 | 拆分判据中的宽除以高 |

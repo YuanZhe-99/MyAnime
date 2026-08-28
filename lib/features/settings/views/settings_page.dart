@@ -17,6 +17,7 @@ import '../../../shared/services/import_export_service.dart';
 import '../../../shared/services/local_api_server.dart';
 import '../../../shared/services/reminder_service.dart';
 import '../../../shared/services/tray_service.dart';
+import '../../../shared/utils/adaptive_layout.dart';
 import '../../../shared/utils/calendar_preferences.dart';
 import '../../../shared/views/webdav_config_page.dart';
 import '../../../shared/widgets/duplicate_check_page.dart';
@@ -27,6 +28,12 @@ import '../../anime/services/metadata_update_service.dart';
 import 'backup_page.dart';
 import 'license_page.dart' as app_license;
 import 'privacy_policy_page.dart';
+
+/// The five settings rows that lead to a second-level page.
+///
+/// Only these five participate in the two-pane layout. Everything else on the
+/// page is either an inline control or a dialog, and neither is a page.
+enum _SettingsDetail { webdav, backup, duplicates, privacy, license }
 
 class SettingsPage extends ConsumerStatefulWidget {
   /// Purpose: Create a settings page instance.
@@ -63,6 +70,11 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
   // Background metadata updates
   MetadataUpdatePolicy _metaPolicy = MetadataUpdatePolicy.always;
   bool _metaPrefetchCovers = false;
+  // Which second-level page the detail pane is showing, when there is one.
+  // Kept when the window narrows back to one pane rather than cleared, so
+  // folding a device shut and opening it again restores the selection.
+  _SettingsDetail? _detail;
+  bool _twoPane = false;
 
   /// Purpose: Initialize listeners, controllers, and first-load work for this state object.
   /// Inputs: None.
@@ -114,6 +126,87 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
     if (mounted) {
       setState(() => _version = '${info.version}+${info.buildNumber}');
     }
+  }
+
+  /// Purpose: Build the second-level page a settings row leads to.
+  /// Inputs: `detail`.
+  /// Returns: `Widget` — the page, which is a `Scaffold` with its own app bar.
+  /// Side effects: None beyond building widgets.
+  /// Notes: Internal helper used within this file only. The same widget serves
+  /// both modes: pushed full-screen on a narrow window, and hosted in the
+  /// detail pane on a wide one. None of the five pages needed a change to be
+  /// embeddable, because a nested `Navigator` holding one route reports
+  /// `canPop == false` and their app bars therefore grow no back arrow.
+  Widget _detailPage(_SettingsDetail detail) {
+    return switch (detail) {
+      _SettingsDetail.webdav => const WebDAVConfigPage(),
+      _SettingsDetail.backup => const BackupPage(),
+      _SettingsDetail.duplicates => const DuplicateCheckPage(),
+      _SettingsDetail.privacy => const PrivacyPolicyPage(),
+      _SettingsDetail.license => const app_license.LicensePage(),
+    };
+  }
+
+  /// Purpose: Open a second-level page the way the current layout calls for.
+  /// Inputs: `detail`.
+  /// Returns: None.
+  /// Side effects: Either selects the detail pane's page or pushes a route on
+  /// the root navigator.
+  /// Notes: Internal helper used within this file only. Every one of the five
+  /// rows goes through here, so the two modes cannot drift apart.
+  void _open(_SettingsDetail detail) {
+    if (_twoPane) {
+      setState(() => _detail = detail);
+      return;
+    }
+    Navigator.of(
+      context,
+      rootNavigator: true,
+    ).push(MaterialPageRoute(builder: (_) => _detailPage(detail)));
+  }
+
+  /// Purpose: Build the right-hand pane of the two-pane settings layout.
+  /// Inputs: `l10n`.
+  /// Returns: `Widget`.
+  /// Side effects: None beyond building widgets.
+  /// Notes: Internal helper used within this file only. The nested `Navigator`
+  /// gives the hosted page a real route, which is what keeps `Navigator.pop`
+  /// inside it meaningful and its app bar leading-free. Keying it on the
+  /// selection disposes and rebuilds on every change, which is correct for
+  /// three pages that load asynchronously when they mount.
+  Widget _buildDetailPane(AppLocalizations l10n) {
+    final detail = _detail;
+    if (detail == null) {
+      final theme = Theme.of(context);
+      return Center(
+        child: Padding(
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(
+                Icons.tune_outlined,
+                size: 48,
+                color: theme.colorScheme.onSurfaceVariant,
+              ),
+              const SizedBox(height: 12),
+              Text(
+                l10n.settingsSelectItem,
+                textAlign: TextAlign.center,
+                style: theme.textTheme.bodyLarge?.copyWith(
+                  color: theme.colorScheme.onSurfaceVariant,
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+    return Navigator(
+      key: ValueKey(detail),
+      onGenerateRoute: (_) =>
+          MaterialPageRoute(builder: (_) => _detailPage(detail)),
+    );
   }
 
   /// Purpose: Provide the internal build section helper for this file.
@@ -417,9 +510,18 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
   /// Inputs: None.
   /// Returns: None.
   /// Side effects: May read or mutate application state, storage, or service resources.
-  /// Notes: Internal helper used within this file only.
+  /// Notes: Internal helper used within this file only. `launchAtStartup`
+  /// throws `UnsupportedError` unless `main` has called `setup` on it, which
+  /// nothing but the real app entry point does — so opening this page from a
+  /// test, or on a platform the plugin does not implement, would otherwise
+  /// raise an unhandled async error. The switch simply reads as off.
   Future<void> _loadAutoStartStatus() async {
-    final enabled = await launchAtStartup.isEnabled();
+    bool enabled;
+    try {
+      enabled = await launchAtStartup.isEnabled();
+    } catch (_) {
+      enabled = false;
+    }
     if (!mounted) return;
     setState(() => _autoStart = enabled);
   }
@@ -628,7 +730,13 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
   /// Inputs: `context`.
   /// Returns: The widget tree for the current state.
   /// Side effects: Creates UI widgets from the current state.
-  /// Notes: Keep this method cheap because Flutter may call it often.
+  /// Notes: Keep this method cheap because Flutter may call it often. On a
+  /// window the app-wide split rule allows, the first-level list keeps its
+  /// place on the left and the second-level page it leads to fills the right,
+  /// the way a system settings app behaves. The list itself is identical in
+  /// both modes; only where its five `›` rows land changes. `_twoPane` is
+  /// cached here rather than recomputed in the tap handler so that what a tap
+  /// does always matches what was on screen when it happened.
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
@@ -637,410 +745,449 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
     final usesJapaneseCalendar =
         settings.homeCalendarLayout == HomeCalendarLayout.japanese;
 
+    final screen = MediaQuery.sizeOf(context);
+    _twoPane = canSplitLayout(screen.width, screen.height);
+
     return Scaffold(
       appBar: AppBar(title: Text(l10n.navSettings)),
-      body: ListView(
-        children: [
-          // ── General ──
-          _buildSection(l10n.settingsGeneral, [
-            ListTile(
-              leading: const Icon(Icons.palette_outlined),
-              title: Text(l10n.settingsTheme),
-            ),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              child: SegmentedButton<ThemeMode>(
-                segments: [
-                  ButtonSegment(
-                    value: ThemeMode.system,
-                    icon: const Icon(Icons.brightness_auto, size: 18),
-                    label: Text(l10n.settingsThemeSystem),
-                  ),
-                  ButtonSegment(
-                    value: ThemeMode.light,
-                    icon: const Icon(Icons.light_mode, size: 18),
-                    label: Text(l10n.settingsThemeLight),
-                  ),
-                  ButtonSegment(
-                    value: ThemeMode.dark,
-                    icon: const Icon(Icons.dark_mode, size: 18),
-                    label: Text(l10n.settingsThemeDark),
-                  ),
-                ],
-                selected: {settings.themeMode},
-                onSelectionChanged: (s) => notifier.setThemeMode(s.first),
+      body: LayoutBuilder(
+        builder: (context, constraints) {
+          final list = _buildSettingsList(
+            l10n,
+            settings,
+            notifier,
+            usesJapaneseCalendar,
+          );
+          if (!_twoPane) return list;
+          return Row(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              SizedBox(
+                width: settingsLeftPaneWidth(constraints.maxWidth),
+                child: list,
               ),
-            ),
-            ListTile(
-              leading: const Icon(Icons.language),
-              title: Text(l10n.settingsLanguage),
-              trailing: DropdownButton<Locale?>(
-                value: settings.locale,
-                underline: const SizedBox.shrink(),
-                items: [
-                  DropdownMenuItem(
-                    value: null,
-                    child: Text(l10n.settingsLanguageSystem),
-                  ),
-                  const DropdownMenuItem(
-                    value: Locale('en'),
-                    child: Text('English'),
-                  ),
-                  const DropdownMenuItem(
-                    value: Locale('zh'),
-                    child: Text('简体中文'),
-                  ),
-                  const DropdownMenuItem(
-                    value: Locale('zh', 'TW'),
-                    child: Text('繁體中文'),
-                  ),
-                  const DropdownMenuItem(
-                    value: Locale('ja'),
-                    child: Text('日本語'),
-                  ),
-                ],
-                onChanged: (locale) => notifier.setLocale(locale),
-              ),
-            ),
-            ListTile(
-              leading: const Icon(Icons.calendar_month_outlined),
-              title: Text(l10n.settingsHomeCalendarLayout),
-              trailing: DropdownButton<HomeCalendarLayout>(
-                value: settings.homeCalendarLayout,
-                underline: const SizedBox.shrink(),
-                items: [
-                  for (final layout in HomeCalendarLayout.values)
-                    DropdownMenuItem(
-                      value: layout,
-                      child: Text(_calendarLayoutLabel(layout, l10n)),
-                    ),
-                ],
-                onChanged: (layout) {
-                  if (layout != null) notifier.setHomeCalendarLayout(layout);
-                },
-              ),
-            ),
-            ListTile(
-              leading: const Icon(Icons.view_week_outlined),
-              title: Text(l10n.settingsWeekStartDay),
-              subtitle: usesJapaneseCalendar
-                  ? Text(l10n.settingsWeekStartLockedJapanese)
-                  : null,
-              trailing: DropdownButton<int>(
-                value: settings.effectiveWeekStartDay,
-                underline: const SizedBox.shrink(),
-                items: [
-                  for (final weekday in weekdaySequence(defaultWeekStartDay))
-                    DropdownMenuItem(
-                      value: weekday,
-                      child: Text(_weekdayLabel(weekday, l10n)),
-                    ),
-                ],
-                onChanged: usesJapaneseCalendar
-                    ? null
-                    : (weekday) {
-                        if (weekday != null) notifier.setWeekStartDay(weekday);
-                      },
-              ),
-            ),
-            ListTile(
-              leading: const Icon(Icons.schedule_outlined),
-              title: Text(l10n.settingsHomeCalendarTimeBasis),
-              subtitle: Text(l10n.settingsHomeCalendarTimeBasisDesc),
-              trailing: DropdownButton<HomeCalendarTimeBasis>(
-                value: settings.homeCalendarTimeBasis,
-                underline: const SizedBox.shrink(),
-                items: [
-                  for (final basis in HomeCalendarTimeBasis.values)
-                    DropdownMenuItem(
-                      value: basis,
-                      child: Text(_homeCalendarTimeBasisLabel(basis, l10n)),
-                    ),
-                ],
-                onChanged: (basis) {
-                  if (basis != null) {
-                    notifier.setHomeCalendarTimeBasis(basis);
-                  }
-                },
-              ),
-            ),
-            SwitchListTile(
-              secondary: const Icon(Icons.notifications_outlined),
-              title: Text(l10n.settingsReminder),
-              subtitle: Text(
-                _reminderEnabled
-                    ? _reminderTime.format(context)
-                    : l10n.settingsReminderOff,
-              ),
-              value: _reminderEnabled,
-              onChanged: _setReminderEnabled,
-            ),
-            if (_reminderEnabled)
-              ListTile(
-                leading: const SizedBox(width: 24),
-                title: Text(l10n.settingsReminderTime),
-                trailing: TextButton(
-                  onPressed: _pickReminderTime,
-                  child: Text(_reminderTime.format(context)),
-                ),
-              ),
-          ]),
+              const VerticalDivider(width: 1),
+              Expanded(child: _buildDetailPane(l10n)),
+            ],
+          );
+        },
+      ),
+    );
+  }
 
-          // ── Data ──
-          _buildSection(l10n.settingsData, [
-            // Online lookups ship in full builds only, so this whole group is
-            // gated the same way the search and refresh actions are.
-            if (AppFlavor.isFull) ...[
-              ListTile(
-                leading: const Icon(Icons.cloud_sync_outlined),
-                title: Text(l10n.settingsMetaAutoUpdate),
-                subtitle: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(l10n.settingsMetaAutoUpdateDesc),
-                    if (_metaPolicy == MetadataUpdatePolicy.noCellular)
-                      Padding(
-                        padding: const EdgeInsets.only(top: 4),
-                        child: Text(
-                          l10n.settingsMetaPolicyHint,
-                          style: Theme.of(context).textTheme.bodySmall
-                              ?.copyWith(
-                                color: Theme.of(
-                                  context,
-                                ).colorScheme.onSurfaceVariant,
-                              ),
+  /// Purpose: Build the first-level settings list.
+  /// Inputs: `l10n`, `settings`, `notifier`, `usesJapaneseCalendar`.
+  /// Returns: `Widget` — the scrolling list of sections.
+  /// Side effects: None beyond building widgets.
+  /// Notes: Internal helper used within this file only. Extracted from `build`
+  /// unchanged so the same list can be the whole body on a narrow window and
+  /// the left pane on a wide one, rather than being written twice.
+  Widget _buildSettingsList(
+    AppLocalizations l10n,
+    AppSettings settings,
+    AppSettingsNotifier notifier,
+    bool usesJapaneseCalendar,
+  ) {
+    return ListView(
+      children: [
+        // ── General ──
+        _buildSection(l10n.settingsGeneral, [
+          ListTile(
+            leading: const Icon(Icons.palette_outlined),
+            title: Text(l10n.settingsTheme),
+          ),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            child: SegmentedButton<ThemeMode>(
+              segments: [
+                ButtonSegment(
+                  value: ThemeMode.system,
+                  icon: const Icon(Icons.brightness_auto, size: 18),
+                  label: Text(l10n.settingsThemeSystem),
+                ),
+                ButtonSegment(
+                  value: ThemeMode.light,
+                  icon: const Icon(Icons.light_mode, size: 18),
+                  label: Text(l10n.settingsThemeLight),
+                ),
+                ButtonSegment(
+                  value: ThemeMode.dark,
+                  icon: const Icon(Icons.dark_mode, size: 18),
+                  label: Text(l10n.settingsThemeDark),
+                ),
+              ],
+              selected: {settings.themeMode},
+              onSelectionChanged: (s) => notifier.setThemeMode(s.first),
+            ),
+          ),
+          ListTile(
+            leading: const Icon(Icons.language),
+            title: Text(l10n.settingsLanguage),
+            trailing: DropdownButton<Locale?>(
+              alignment: AlignmentDirectional.centerEnd,
+              value: settings.locale,
+              underline: const SizedBox.shrink(),
+              items: [
+                DropdownMenuItem(
+                  alignment: AlignmentDirectional.centerEnd,
+                  value: null,
+                  child: Text(l10n.settingsLanguageSystem),
+                ),
+                const DropdownMenuItem(
+                  alignment: AlignmentDirectional.centerEnd,
+                  value: Locale('en'),
+                  child: Text('English'),
+                ),
+                const DropdownMenuItem(
+                  alignment: AlignmentDirectional.centerEnd,
+                  value: Locale('zh'),
+                  child: Text('简体中文'),
+                ),
+                const DropdownMenuItem(
+                  alignment: AlignmentDirectional.centerEnd,
+                  value: Locale('zh', 'TW'),
+                  child: Text('繁體中文'),
+                ),
+                const DropdownMenuItem(value: Locale('ja'), child: Text('日本語')),
+              ],
+              onChanged: (locale) => notifier.setLocale(locale),
+            ),
+          ),
+          ListTile(
+            leading: const Icon(Icons.calendar_month_outlined),
+            title: Text(l10n.settingsHomeCalendarLayout),
+            trailing: DropdownButton<HomeCalendarLayout>(
+              alignment: AlignmentDirectional.centerEnd,
+              value: settings.homeCalendarLayout,
+              underline: const SizedBox.shrink(),
+              items: [
+                for (final layout in HomeCalendarLayout.values)
+                  DropdownMenuItem(
+                    alignment: AlignmentDirectional.centerEnd,
+                    value: layout,
+                    child: Text(_calendarLayoutLabel(layout, l10n)),
+                  ),
+              ],
+              onChanged: (layout) {
+                if (layout != null) notifier.setHomeCalendarLayout(layout);
+              },
+            ),
+          ),
+          ListTile(
+            leading: const Icon(Icons.view_week_outlined),
+            title: Text(l10n.settingsWeekStartDay),
+            subtitle: usesJapaneseCalendar
+                ? Text(l10n.settingsWeekStartLockedJapanese)
+                : null,
+            trailing: DropdownButton<int>(
+              alignment: AlignmentDirectional.centerEnd,
+              value: settings.effectiveWeekStartDay,
+              underline: const SizedBox.shrink(),
+              items: [
+                for (final weekday in weekdaySequence(defaultWeekStartDay))
+                  DropdownMenuItem(
+                    alignment: AlignmentDirectional.centerEnd,
+                    value: weekday,
+                    child: Text(_weekdayLabel(weekday, l10n)),
+                  ),
+              ],
+              onChanged: usesJapaneseCalendar
+                  ? null
+                  : (weekday) {
+                      if (weekday != null) notifier.setWeekStartDay(weekday);
+                    },
+            ),
+          ),
+          ListTile(
+            leading: const Icon(Icons.schedule_outlined),
+            title: Text(l10n.settingsHomeCalendarTimeBasis),
+            subtitle: Text(l10n.settingsHomeCalendarTimeBasisDesc),
+            trailing: DropdownButton<HomeCalendarTimeBasis>(
+              alignment: AlignmentDirectional.centerEnd,
+              value: settings.homeCalendarTimeBasis,
+              underline: const SizedBox.shrink(),
+              items: [
+                for (final basis in HomeCalendarTimeBasis.values)
+                  DropdownMenuItem(
+                    alignment: AlignmentDirectional.centerEnd,
+                    value: basis,
+                    child: Text(_homeCalendarTimeBasisLabel(basis, l10n)),
+                  ),
+              ],
+              onChanged: (basis) {
+                if (basis != null) {
+                  notifier.setHomeCalendarTimeBasis(basis);
+                }
+              },
+            ),
+          ),
+          SwitchListTile(
+            secondary: const Icon(Icons.notifications_outlined),
+            title: Text(l10n.settingsReminder),
+            subtitle: Text(
+              _reminderEnabled
+                  ? _reminderTime.format(context)
+                  : l10n.settingsReminderOff,
+            ),
+            value: _reminderEnabled,
+            onChanged: _setReminderEnabled,
+          ),
+          if (_reminderEnabled)
+            ListTile(
+              leading: const SizedBox(width: 24),
+              title: Text(l10n.settingsReminderTime),
+              trailing: TextButton(
+                onPressed: _pickReminderTime,
+                child: Text(_reminderTime.format(context)),
+              ),
+            ),
+        ]),
+
+        // ── Data ──
+        _buildSection(l10n.settingsData, [
+          // Online lookups ship in full builds only, so this whole group is
+          // gated the same way the search and refresh actions are.
+          if (AppFlavor.isFull) ...[
+            ListTile(
+              leading: const Icon(Icons.cloud_sync_outlined),
+              title: Text(l10n.settingsMetaAutoUpdate),
+              subtitle: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(l10n.settingsMetaAutoUpdateDesc),
+                  if (_metaPolicy == MetadataUpdatePolicy.noCellular)
+                    Padding(
+                      padding: const EdgeInsets.only(top: 4),
+                      child: Text(
+                        l10n.settingsMetaPolicyHint,
+                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                          color: Theme.of(context).colorScheme.onSurfaceVariant,
                         ),
                       ),
-                  ],
-                ),
-                isThreeLine: true,
-                trailing: DropdownButton<MetadataUpdatePolicy>(
-                  value: _metaPolicy,
-                  underline: const SizedBox.shrink(),
-                  items: [
-                    for (final policy in MetadataUpdatePolicy.values)
-                      DropdownMenuItem(
-                        value: policy,
-                        child: Text(_metadataPolicyLabel(policy, l10n)),
-                      ),
-                  ],
-                  onChanged: (policy) {
-                    if (policy != null) _setMetadataPolicy(policy);
-                  },
-                ),
-              ),
-              if (_metaPolicy != MetadataUpdatePolicy.off)
-                SwitchListTile(
-                  secondary: const Icon(Icons.image_outlined),
-                  title: Text(l10n.settingsMetaPrefetchCovers),
-                  subtitle: Text(l10n.settingsMetaPrefetchCoversDesc),
-                  value: _metaPrefetchCovers,
-                  onChanged: (v) async {
-                    setState(() => _metaPrefetchCovers = v);
-                    await AnimeStorage.setMetadataPrefetchCovers(v);
-                  },
-                ),
-              const Divider(height: 1, indent: 16, endIndent: 16),
-            ],
-            ListTile(
-              leading: const Icon(Icons.sync_outlined),
-              title: Text(l10n.settingsWebDAVSync),
-              subtitle: AutoSyncService.instance.lastError == null
-                  ? null
-                  : Text(
-                      AutoSyncService.instance.hasPendingConflicts
-                          ? '${l10n.settingsWebDAVAutoSyncConflict}: ${AutoSyncService.instance.lastError}'
-                          : '${l10n.settingsWebDAVAutoSyncFailed}: ${AutoSyncService.instance.lastError}',
                     ),
-              trailing: const Icon(Icons.chevron_right),
-              onTap: () => Navigator.of(context, rootNavigator: true).push(
-                MaterialPageRoute(builder: (_) => const WebDAVConfigPage()),
+                ],
+              ),
+              isThreeLine: true,
+              trailing: DropdownButton<MetadataUpdatePolicy>(
+                alignment: AlignmentDirectional.centerEnd,
+                value: _metaPolicy,
+                underline: const SizedBox.shrink(),
+                items: [
+                  for (final policy in MetadataUpdatePolicy.values)
+                    DropdownMenuItem(
+                      alignment: AlignmentDirectional.centerEnd,
+                      value: policy,
+                      child: Text(_metadataPolicyLabel(policy, l10n)),
+                    ),
+                ],
+                onChanged: (policy) {
+                  if (policy != null) _setMetadataPolicy(policy);
+                },
               ),
             ),
+            if (_metaPolicy != MetadataUpdatePolicy.off)
+              SwitchListTile(
+                secondary: const Icon(Icons.image_outlined),
+                title: Text(l10n.settingsMetaPrefetchCovers),
+                subtitle: Text(l10n.settingsMetaPrefetchCoversDesc),
+                value: _metaPrefetchCovers,
+                onChanged: (v) async {
+                  setState(() => _metaPrefetchCovers = v);
+                  await AnimeStorage.setMetadataPrefetchCovers(v);
+                },
+              ),
             const Divider(height: 1, indent: 16, endIndent: 16),
-            ListTile(
-              leading: const Icon(Icons.backup_outlined),
-              title: Text(l10n.backupTitle),
-              subtitle: Text(l10n.backupSubtitle),
-              trailing: const Icon(Icons.chevron_right),
-              onTap: () => Navigator.of(
-                context,
-                rootNavigator: true,
-              ).push(MaterialPageRoute(builder: (_) => const BackupPage())),
-            ),
-            ListTile(
-              leading: const Icon(Icons.file_upload_outlined),
-              title: Text(l10n.exportData),
-              onTap: _exportData,
-            ),
-            ListTile(
-              leading: const Icon(Icons.file_download_outlined),
-              title: Text(l10n.importData),
-              onTap: _importData,
-            ),
-            const Divider(height: 1, indent: 16, endIndent: 16),
-            ListTile(
-              leading: const Icon(Icons.content_copy),
-              title: Text(l10n.settingsDuplicateCheck),
-              subtitle: Text(l10n.settingsDuplicateCheckDesc),
-              trailing: const Icon(Icons.chevron_right),
-              onTap: () => Navigator.of(context, rootNavigator: true).push(
-                MaterialPageRoute(builder: (_) => const DuplicateCheckPage()),
-              ),
-            ),
-            if (_isDesktop)
-              ListTile(
-                leading: const Icon(Icons.folder_outlined),
-                title: Text(l10n.settingsStorageLocation),
-                subtitle: Text(
-                  _storagePath,
-                  style: Theme.of(context).textTheme.bodySmall,
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                ),
-                trailing: const Icon(Icons.chevron_right),
-                onTap: _showStoragePathDialog,
-              ),
-            if (_isDesktop)
-              ListTile(
-                leading: const Icon(Icons.folder_open_outlined),
-                title: Text(l10n.dataMigration),
-                subtitle: Text(l10n.dataMigrationDesc),
-                onTap: _openDataFolder,
-              ),
-          ]),
-
-          // ── Debug ──
-          if (kDebugMode)
-            _buildSection('Debug', [
-              ListTile(
-                leading: const Icon(Icons.schedule),
-                title: const Text('JST Time'),
-                subtitle: Text(
-                  DateFormat('yyyy-MM-dd HH:mm:ss').format(JstTime.now()),
-                ),
-              ),
-            ]),
-
-          // ── Desktop ──
+          ],
+          ListTile(
+            leading: const Icon(Icons.sync_outlined),
+            title: Text(l10n.settingsWebDAVSync),
+            subtitle: AutoSyncService.instance.lastError == null
+                ? null
+                : Text(
+                    AutoSyncService.instance.hasPendingConflicts
+                        ? '${l10n.settingsWebDAVAutoSyncConflict}: ${AutoSyncService.instance.lastError}'
+                        : '${l10n.settingsWebDAVAutoSyncFailed}: ${AutoSyncService.instance.lastError}',
+                  ),
+            trailing: const Icon(Icons.chevron_right),
+            selected: _twoPane && _detail == _SettingsDetail.webdav,
+            onTap: () => _open(_SettingsDetail.webdav),
+          ),
+          const Divider(height: 1, indent: 16, endIndent: 16),
+          ListTile(
+            leading: const Icon(Icons.backup_outlined),
+            title: Text(l10n.backupTitle),
+            subtitle: Text(l10n.backupSubtitle),
+            trailing: const Icon(Icons.chevron_right),
+            selected: _twoPane && _detail == _SettingsDetail.backup,
+            onTap: () => _open(_SettingsDetail.backup),
+          ),
+          ListTile(
+            leading: const Icon(Icons.file_upload_outlined),
+            title: Text(l10n.exportData),
+            onTap: _exportData,
+          ),
+          ListTile(
+            leading: const Icon(Icons.file_download_outlined),
+            title: Text(l10n.importData),
+            onTap: _importData,
+          ),
+          const Divider(height: 1, indent: 16, endIndent: 16),
+          ListTile(
+            leading: const Icon(Icons.content_copy),
+            title: Text(l10n.settingsDuplicateCheck),
+            subtitle: Text(l10n.settingsDuplicateCheckDesc),
+            trailing: const Icon(Icons.chevron_right),
+            selected: _twoPane && _detail == _SettingsDetail.duplicates,
+            onTap: () => _open(_SettingsDetail.duplicates),
+          ),
           if (_isDesktop)
-            _buildSection(l10n.settingsDesktop, [
-              SwitchListTile(
-                secondary: const Icon(Icons.minimize_outlined),
-                title: Text(l10n.settingsMinimizeToTray),
-                value: _minimizeToTray,
-                onChanged: (v) {
-                  setState(() => _minimizeToTray = v);
-                  TrayService.instance.setMinimizeToTray(v);
-                },
+            ListTile(
+              leading: const Icon(Icons.folder_outlined),
+              title: Text(l10n.settingsStorageLocation),
+              subtitle: Text(
+                _storagePath,
+                style: Theme.of(context).textTheme.bodySmall,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
               ),
-              SwitchListTile(
-                secondary: const Icon(Icons.close_outlined),
-                title: Text(l10n.settingsCloseToTray),
-                value: _closeToTray,
-                onChanged: (v) {
-                  setState(() => _closeToTray = v);
-                  TrayService.instance.setCloseToTray(v);
-                },
-              ),
-              SwitchListTile(
-                secondary: const Icon(Icons.login_outlined),
-                title: Text(l10n.settingsAutoStart),
-                value: _autoStart,
-                onChanged: (v) async {
-                  if (v) {
-                    await launchAtStartup.enable();
-                  } else {
-                    await launchAtStartup.disable();
-                  }
-                  setState(() => _autoStart = v);
-                },
-              ),
-              const Divider(height: 1, indent: 16, endIndent: 16),
-              SwitchListTile(
-                secondary: const Icon(Icons.dns_outlined),
-                title: Text(l10n.settingsApiEnabled),
-                subtitle: Text(
-                  LocalApiServer.isRunning
-                      ? l10n.settingsApiRunning(LocalApiServer.port)
-                      : LocalApiServer.lastError == 'credentials_required'
-                      ? l10n.settingsApiNeedCredentials
-                      : LocalApiServer.lastError != null
-                      ? '${l10n.settingsApiStopped} (${LocalApiServer.lastError})'
-                      : l10n.settingsApiStopped,
-                  style:
-                      !LocalApiServer.isRunning &&
-                          LocalApiServer.lastError != null
-                      ? TextStyle(color: Theme.of(context).colorScheme.error)
-                      : null,
-                ),
-                value: _apiEnabled,
-                onChanged: (v) async {
-                  final config = await AnimeStorage.readConfig();
-                  config['apiEnabled'] = v;
-                  await AnimeStorage.writeConfig(config);
-                  setState(() => _apiEnabled = v);
-                  if (v) {
-                    await LocalApiServer.start();
-                  } else {
-                    await LocalApiServer.stop();
-                  }
-                  if (mounted) setState(() {});
-                },
-              ),
-              ListTile(
-                leading: const Icon(Icons.settings_outlined),
-                title: Text(l10n.settingsApiServer),
-                trailing: const Icon(Icons.chevron_right),
-                enabled: _apiEnabled,
-                onTap: _apiEnabled ? _showApiSettingsDialog : null,
-              ),
-            ]),
+              trailing: const Icon(Icons.chevron_right),
+              onTap: _showStoragePathDialog,
+            ),
+          if (_isDesktop)
+            ListTile(
+              leading: const Icon(Icons.folder_open_outlined),
+              title: Text(l10n.dataMigration),
+              subtitle: Text(l10n.dataMigrationDesc),
+              onTap: _openDataFolder,
+            ),
+        ]),
 
-          // ── About ──
-          _buildSection(l10n.settingsAbout, [
+        // ── Debug ──
+        if (kDebugMode)
+          _buildSection('Debug', [
             ListTile(
-              leading: const Icon(Icons.info_outline),
-              title: Text(l10n.settingsVersion),
-              trailing: Text(
-                _version,
-                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                  color: Theme.of(context).colorScheme.onSurfaceVariant,
-                ),
-              ),
-            ),
-            ListTile(
-              leading: const Icon(Icons.privacy_tip_outlined),
-              title: Text(l10n.settingsPrivacyPolicy),
-              trailing: const Icon(Icons.chevron_right),
-              onTap: () => Navigator.of(context, rootNavigator: true).push(
-                MaterialPageRoute(builder: (_) => const PrivacyPolicyPage()),
-              ),
-            ),
-            ListTile(
-              leading: const Icon(Icons.gavel_outlined),
-              title: Text(l10n.settingsLicense),
-              trailing: const Icon(Icons.chevron_right),
-              onTap: () => Navigator.of(context, rootNavigator: true).push(
-                MaterialPageRoute(
-                  builder: (_) => const app_license.LicensePage(),
-                ),
-              ),
-            ),
-            ListTile(
-              leading: const Icon(Icons.description_outlined),
-              title: Text(l10n.settingsLicenses),
-              onTap: () => showLicensePage(
-                context: context,
-                applicationName: l10n.appTitle,
-                applicationVersion: _version,
+              leading: const Icon(Icons.schedule),
+              title: const Text('JST Time'),
+              subtitle: Text(
+                DateFormat('yyyy-MM-dd HH:mm:ss').format(JstTime.now()),
               ),
             ),
           ]),
 
-          const SizedBox(height: 24),
-        ],
-      ),
+        // ── Desktop ──
+        if (_isDesktop)
+          _buildSection(l10n.settingsDesktop, [
+            SwitchListTile(
+              secondary: const Icon(Icons.minimize_outlined),
+              title: Text(l10n.settingsMinimizeToTray),
+              value: _minimizeToTray,
+              onChanged: (v) {
+                setState(() => _minimizeToTray = v);
+                TrayService.instance.setMinimizeToTray(v);
+              },
+            ),
+            SwitchListTile(
+              secondary: const Icon(Icons.close_outlined),
+              title: Text(l10n.settingsCloseToTray),
+              value: _closeToTray,
+              onChanged: (v) {
+                setState(() => _closeToTray = v);
+                TrayService.instance.setCloseToTray(v);
+              },
+            ),
+            SwitchListTile(
+              secondary: const Icon(Icons.login_outlined),
+              title: Text(l10n.settingsAutoStart),
+              value: _autoStart,
+              onChanged: (v) async {
+                if (v) {
+                  await launchAtStartup.enable();
+                } else {
+                  await launchAtStartup.disable();
+                }
+                setState(() => _autoStart = v);
+              },
+            ),
+            const Divider(height: 1, indent: 16, endIndent: 16),
+            SwitchListTile(
+              secondary: const Icon(Icons.dns_outlined),
+              title: Text(l10n.settingsApiEnabled),
+              subtitle: Text(
+                LocalApiServer.isRunning
+                    ? l10n.settingsApiRunning(LocalApiServer.port)
+                    : LocalApiServer.lastError == 'credentials_required'
+                    ? l10n.settingsApiNeedCredentials
+                    : LocalApiServer.lastError != null
+                    ? '${l10n.settingsApiStopped} (${LocalApiServer.lastError})'
+                    : l10n.settingsApiStopped,
+                style:
+                    !LocalApiServer.isRunning &&
+                        LocalApiServer.lastError != null
+                    ? TextStyle(color: Theme.of(context).colorScheme.error)
+                    : null,
+              ),
+              value: _apiEnabled,
+              onChanged: (v) async {
+                final config = await AnimeStorage.readConfig();
+                config['apiEnabled'] = v;
+                await AnimeStorage.writeConfig(config);
+                setState(() => _apiEnabled = v);
+                if (v) {
+                  await LocalApiServer.start();
+                } else {
+                  await LocalApiServer.stop();
+                }
+                if (mounted) setState(() {});
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.settings_outlined),
+              title: Text(l10n.settingsApiServer),
+              trailing: const Icon(Icons.chevron_right),
+              enabled: _apiEnabled,
+              onTap: _apiEnabled ? _showApiSettingsDialog : null,
+            ),
+          ]),
+
+        // ── About ──
+        _buildSection(l10n.settingsAbout, [
+          ListTile(
+            leading: const Icon(Icons.info_outline),
+            title: Text(l10n.settingsVersion),
+            trailing: Text(
+              _version,
+              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
+              ),
+            ),
+          ),
+          ListTile(
+            leading: const Icon(Icons.privacy_tip_outlined),
+            title: Text(l10n.settingsPrivacyPolicy),
+            trailing: const Icon(Icons.chevron_right),
+            selected: _twoPane && _detail == _SettingsDetail.privacy,
+            onTap: () => _open(_SettingsDetail.privacy),
+          ),
+          ListTile(
+            leading: const Icon(Icons.gavel_outlined),
+            title: Text(l10n.settingsLicense),
+            trailing: const Icon(Icons.chevron_right),
+            selected: _twoPane && _detail == _SettingsDetail.license,
+            onTap: () => _open(_SettingsDetail.license),
+          ),
+          ListTile(
+            leading: const Icon(Icons.description_outlined),
+            title: Text(l10n.settingsLicenses),
+            onTap: () => showLicensePage(
+              context: context,
+              applicationName: l10n.appTitle,
+              applicationVersion: _version,
+            ),
+          ),
+        ]),
+
+        const SizedBox(height: 24),
+      ],
     );
   }
 }

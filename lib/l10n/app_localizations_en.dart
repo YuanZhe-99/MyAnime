@@ -764,6 +764,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get settingsData => 'Data';
 
   @override
+  String get settingsSelectItem => 'Select an item from the list';
+
+  @override
   String get settingsAbout => 'About';
 
   @override

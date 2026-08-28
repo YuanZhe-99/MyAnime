@@ -1564,8 +1564,9 @@ class _StatisticsPageState extends ConsumerState<StatisticsPage> {
     final rankedAnime = isRanking ? _rankingAnime : const <Anime>[];
     final settings = ref.watch(appSettingsProvider);
     final screen = MediaQuery.sizeOf(context);
-    // The lists sit inside the page's 16dp horizontal padding.
-    final contentWidth = screen.width - 32;
+    // The lists sit inside the page's 16dp horizontal padding, and inside
+    // whatever the shell's navigation rail leaves behind.
+    final contentWidth = shellContentWidth(screen.width) - 32;
     final capacity = canSplitLayout(screen.width, screen.height)
         ? listColumnCapacity(contentWidth)
         : 1;
@@ -1601,7 +1602,9 @@ class _StatisticsPageState extends ConsumerState<StatisticsPage> {
       body: RefreshIndicator(
         onRefresh: _load,
         child: ListView(
-          padding: const EdgeInsets.only(bottom: 80),
+          padding: EdgeInsets.only(
+            bottom: shellListBottomInset(MediaQuery.sizeOf(context).width),
+          ),
           children: [
             Padding(
               padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),

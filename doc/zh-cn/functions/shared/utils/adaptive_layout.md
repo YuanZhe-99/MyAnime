@@ -2,11 +2,13 @@
 
 全应用范围的自适应布局策略：决定布局是否可以拆分的 `splitMinWidth`、`splitMinHeight`、`splitMinAspect` 三个
 阈值，以及一旦可以拆分后决定列表分成几列的 `listTileMinWidth`、`listTileGap`、`listMaxColumns`、
-`listColumnsAuto` 四个常量。在它们之上是四个纯函数。
+`listColumnsAuto` 四个常量，外加为外壳侧边导航栏与设置详情栏而设的 `navRailMinWidth`、`navRailWidth`
+与 `settingsRightPaneMinWidth`。在它们之上是九个纯函数。
 
 该模块刻意只依赖 `dart:core`——它不含任何 Flutter 导入，`canSplitLayout` 接收两个 double 而非一个 `Size` 正是
 出于这个原因——因此每个辅助函数都可直接进行单元测试（`test/adaptive_layout_test.dart`），而渲染结果则由
-`test/list_columns_ui_test.dart` 与 `test/detail_layout_ui_test.dart` 在真实设备几何下单独覆盖。
+`test/list_columns_ui_test.dart`、`test/detail_layout_ui_test.dart`、`test/kana_layout_ui_test.dart`、
+`test/settings_two_pane_ui_test.dart` 与 `test/shell_nav_ui_test.dart` 在真实设备几何下单独覆盖。
 
 这些数字的推导过程、折叠屏设备表格以及与 Google 规范的调和见
 [../../../adaptive-layout.md](../../../adaptive-layout.md)。本页记录的是声明本身。
@@ -14,18 +16,24 @@
 使用方：`detail_layout.dart`（见 [detail_layout.md](detail_layout.md)），其 `useDetailTwoPane` 是转发到
 `canSplitLayout` 的单行委托；`home_page.dart`、`management_page.dart` 与 `statistics_page.dart` 用于各自的列表
 列数；以及 `anime_storage.dart` 与 `app_settings.dart` 在校验存储的偏好时使用 `listColumnsAuto` 与
-`listMaxColumns`。
+`listMaxColumns`；`shell_scaffold.dart` 使用 `useNavigationRail`；`kana_page.dart` 以自己的最小宽度使用
+`columnCapacity`；以及 `settings_page.dart` 使用 `settingsLeftPaneWidth`。
 
 ## 声明
 
 | 声明 | 种类 | 层级 | 用途 |
 |---|---|---|---|
 | [`canSplitLayout`](#cansplitlayout) | 顶层函数 | A | 报告布局是否可以拆成分栏或多列。 |
+| [`useNavigationRail`](#usenavigationrail) | 顶层函数 | A | 报告外壳是否应展示侧边导航栏。 |
+| [`shellContentWidth`](#shellcontentwidth) | 顶层函数 | A | 返回外壳页面内容实际获得的宽度。 |
+| [`shellListBottomInset`](#shelllistbottominset) | 顶层函数 | A | 返回外壳页面滚动列表所需的底部内边距。 |
+| [`columnCapacity`](#columncapacity) | 顶层函数 | A | 返回给定最小宽度下一个内容框能容纳多少列。 |
 | [`listColumnCapacity`](#listcolumncapacity) | 顶层函数 | A | 返回给定内容宽度能承载多少列表列。 |
 | [`listColumnCount`](#listcolumncount) | 顶层函数 | A | 返回列表实际应当渲染的列数。 |
 | [`listRowCount`](#listrowcount) | 顶层函数 | A | 返回在某个列数下一组条目需要多少行。 |
+| [`settingsLeftPaneWidth`](#settingsleftpanewidth) | 顶层函数 | A | 返回设置页固定左栏的宽度。 |
 
-七个常量是没有 `/// Purpose:` 注释的普通声明，不作为独立行编入索引。
+十个常量是没有 `/// Purpose:` 注释的普通声明，不作为独立行编入索引。
 
 ## 文档
 
@@ -56,27 +64,105 @@
   表格以及与 Google"用宽度而非宽高比"规范的刻意分歧见
   [../../../adaptive-layout.md](../../../adaptive-layout.md)。
 
+### `bool useNavigationRail(double screenWidth)` <a id="usenavigationrail"></a>
+- **种类：** 顶层函数
+- **来源：** `lib/shared/utils/adaptive_layout.dart`（约第 87 行）
+- **用途：** 判定外壳把导航放在侧边还是底部。
+- **输入：** `screenWidth`——整块屏幕的宽度，逻辑像素。
+- **返回：** `bool`。
+- **副作用：** 无。
+- **算法：** `screenWidth >= navRailMinWidth`（600.0）。
+- **用法：**
+  ```dart
+  if (!useNavigationRail(MediaQuery.sizeOf(context).width)) {
+    return Scaffold(body: child, bottomNavigationBar: NavigationBar(...));
+  }
+  ```
+  （出自 `ShellScaffold.build`）
+- **备注：** **只看宽度，这是刻意的——它不是 [`canSplitLayout`](#cansplitlayout)，也绝不可改为走它。** 侧边
+  导航栏不是一次拆分：它拿宽度——在本函数返回真时总是充裕的那一维——去换高度，而高度并不充裕。它帮助最大的
+  那个情形，正是拆分规则刻意拒绝的那个——一台普通手机横持于 915 × 412，底栏在此花掉 19% 的高度用于导航，而
+  915 逻辑像素的宽度闲置着。
+
+### `double shellContentWidth(double screenWidth)` <a id="shellcontentwidth"></a>
+- **种类：** 顶层函数
+- **来源：** `lib/shared/utils/adaptive_layout.dart`（约第 96 行）
+- **用途：** 报告扣除侧边导航栏后外壳页面还剩多少宽度。
+- **输入：** `screenWidth`——整块屏幕的宽度，逻辑像素。
+- **返回：** `double`，永不为负。
+- **副作用：** 无。
+- **算法：** 当 [`useNavigationRail`](#usenavigationrail) 为真时减去 `navRailWidth`（81——80 dp 的导航栏
+  加其 1 dp 的分隔线），并把结果下限钳制到零。
+- **用法：**
+  ```dart
+  final contentWidth = shellContentWidth(screen.width);
+  final capacity = canSplitLayout(screen.width, screen.height)
+      ? listColumnCapacity(contentWidth)
+      : 1;
+  ```
+  （出自 `_ManagementPageState.build`）
+- **备注：** 凡是要计算容量或栏宽的地方都传这个结果；而传给 `canSplitLayout` 的仍然是未经处理的屏幕尺寸，
+  因为它问的是窗口的形状，而不是窗口内部还剩多少空间。随侧边导航栏于 1.5.4 引入：在那之前三个列表页传的是
+  原始屏幕宽度，之所以正确只是因为当时还没有任何东西被减掉。
+
+### `double shellListBottomInset(double screenWidth)` <a id="shelllistbottominset"></a>
+- **种类：** 顶层函数
+- **来源：** `lib/shared/utils/adaptive_layout.dart`（约第 110 行）
+- **用途：** 按外壳当前的导航形态给滚动页面相应的底部内边距。
+- **输入：** `screenWidth`——整块屏幕的宽度，逻辑像素。
+- **返回：** `double`——有侧边导航栏时为 16，有底栏时为 80。
+- **副作用：** 无。
+- **算法：** `useNavigationRail(screenWidth) ? 16.0 : 80.0`。
+- **用法：**
+  ```dart
+  padding: EdgeInsets.only(
+    bottom: shellListBottomInset(MediaQuery.sizeOf(context).width),
+  ),
+  ```
+  （出自 `_ManagementPageState._buildQuarterView`）
+- **备注：** 底部导航栏会盖住列表的最后几行，因此页面为其预留空间。侧边导航栏改为占用宽度，于是这份预留恰好
+  会在垂直空间最紧缺的时刻变成死区——Z Fold 8 横向时只有 704 逻辑像素高。
+
+### `int columnCapacity(double contentWidth, {required double minItemWidth, double gap = listTileGap, int maxColumns = listMaxColumns})` <a id="columncapacity"></a>
+- **种类：** 顶层函数
+- **来源：** `lib/shared/utils/adaptive_layout.dart`（约第 122 行）
+- **用途：** 报告给定最小宽度下一个内容框能容纳多少列。
+- **输入：** `contentWidth`——可用宽度，逻辑像素；`minItemWidth`——单列的最小宽度；`gap`——列间距；
+  `maxColumns`——无论多宽都不超过的上限。
+- **返回：** `int`，最小 1，最大 `maxColumns`。
+- **副作用：** 无。
+- **算法：** `((contentWidth + gap) / (minItemWidth + gap)).floor()`，钳制到 `[1, maxColumns]`。在分子上加
+  一个间距，正是让这个算式计算列**之间**的间距、而不是每一列之后都算一个间距的原因。非正的 `contentWidth`
+  返回 1；非正的 `minItemWidth` 返回上限而不是除以零。
+- **用法：**
+  ```dart
+  final twoColumn = canSplitLayout(screen.width, screen.height) &&
+      columnCapacity(contentWidth, minItemWidth: 330, maxColumns: 2) >= 2;
+  ```
+  （出自 `_KanaPageState.build`）
+- **备注：** 这是 Google 为 feed 与网格推荐的自适应最小宽度做法，而非为每个断点写死一个列数。1.5.4 从
+  `listColumnCapacity` 中泛化出来，好让假名页带来自己的最小宽度——五列假名表 330，规则卡 320，两者上限均为
+  二——以取代它自本模块存在之前就一直带着的那个写死的 `720` 断点。
+
 ### `int listColumnCapacity(double contentWidth)` <a id="listcolumncapacity"></a>
 - **种类：** 顶层函数
-- **来源：** `lib/shared/utils/adaptive_layout.dart`（约第 68 行）
+- **来源：** `lib/shared/utils/adaptive_layout.dart`（约第 140 行）
 - **用途：** 报告列表所获得的宽度中能容纳多少个不低于 `listTileMinWidth` 的列。
 - **输入：** `contentWidth`——列表可用的宽度，逻辑像素。
 - **返回：** `int`，最小 1，最大 `listMaxColumns`（4）。
 - **副作用：** 无。
-- **算法：** `((contentWidth + listTileGap) / (listTileMinWidth + listTileGap)).floor()`，钳制到
-  `[1, listMaxColumns]`。在分子上加一个间距，正是让这个算式计算列**之间**的间距、而不是每一列之后都算一个间距
-  的原因。非正的宽度返回 1。
+- **算法：** 以 `minItemWidth: listTileMinWidth` 调用 [`columnCapacity`](#columncapacity)。
 - **用法：**
   ```dart
-  final contentWidth = screen.width - 32;
+  final contentWidth = shellContentWidth(screen.width) - 32;
   final capacity = canSplitLayout(screen.width, screen.height)
       ? listColumnCapacity(contentWidth)
       : 1;
   ```
   （出自 `_StatisticsPageState.build`，其列表位于 16 dp 的页面水平内边距之内）
-- **备注：** 这是 Google 为 feed 布局推荐的自适应最小宽度做法，而非为每个断点写死一个列数。320 dp 是列表条目
-  在其 40 × 56 封面、两行文字和最多两个尾部图标按钮把标题挤到无处容身之前所需要的宽度。请传入列表实际获得的
-  宽度而非屏幕宽度，这样页面内边距已经被计入。
+- **备注：** 320 dp 是列表条目在其 40 × 56 封面、两行文字和最多两个尾部图标按钮把标题挤到无处容身之前所需要
+  的宽度。请传入列表实际获得的宽度——[`shellContentWidth`](#shellcontentwidth) 再减去页面内边距——而非屏幕
+  宽度，这样侧边导航栏与内边距就都被计入了。
 
 ### `int listColumnCount({required double screenWidth, required double screenHeight, required double contentWidth, required int preference})` <a id="listcolumncount"></a>
 - **种类：** 顶层函数
@@ -128,3 +214,25 @@
   （出自 `_ManagementPageState._buildSearchResults`）
 - **备注：** 最后一行可能不满；`adaptiveTileRow` 会为其补位，使剩余条目保持自身宽度而不是横向拉伸铺满整行。
   对 `columns < 1` 的保护让算式在尚未钳制的调用点保持完整，而不是除以零。
+
+### `double settingsLeftPaneWidth(double contentWidth)` <a id="settingsleftpanewidth"></a>
+- **种类：** 顶层函数
+- **来源：** `lib/shared/utils/adaptive_layout.dart`（约第 189 行）
+- **用途：** 返回设置页固定左栏的宽度。
+- **输入：** `contentWidth`——两栏共享的宽度，即 [`shellContentWidth`](#shellcontentwidth) 而非屏幕宽度。
+- **返回：** `double`。
+- **副作用：** 无。
+- **算法：** `(contentWidth * 0.44).clamp(300, 440)`，随后以 `contentWidth - settingsRightPaneMinWidth`
+  （280）为上限；该上限生效时再下限钳制到 240。
+- **用法：**
+  ```dart
+  SizedBox(
+    width: settingsLeftPaneWidth(constraints.maxWidth),
+    child: list,
+  ),
+  ```
+  （出自 `_SettingsPageState.build`，置于 `LayoutBuilder` 内，因此量到的是扣除侧边导航栏之后的宽度）
+- **备注：** 比详情页的 `detailLeftPaneWidth` 更宽，因为这一栏承载的是带尾部下拉框的完整 `ListTile`，而不是
+  一张封面加一列文字。那个上限只在手动调整过的桌面窗口以及最窄的展开态折叠屏上生效——Z Fold 5 扣除导航栏后
+  只剩 578，此时是左栏让出宽度，而不是让详情栏变得无法使用。那里的设置行确实很挤，标题会在下拉框旁边换行；
+  这是为了让设置页的门控继续沿用那一条共享的 `canSplitLayout`、而不是长出自己的阈值所接受的代价。

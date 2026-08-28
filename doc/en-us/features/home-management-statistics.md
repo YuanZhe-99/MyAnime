@@ -73,6 +73,11 @@ folded cover screen. **Each of the three tabs remembers its own count**, device-
 `storage_config.json`. A foldable unfolding widens the window without restarting the app, so the
 count follows immediately; folding back clamps it to one column without forgetting the choice.
 
+Since 1.5.4 the width the count is measured against excludes the shell's navigation rail, which
+takes 81 logical pixels on any window 600 wide or more. That is a real difference at one size: a
+tablet in landscape now gets two columns where it previously got three, because a third of the
+943 that remain would be 306 wide, under the 320 dp a tile needs. The room changed, not the rule.
+
 Management's swipe gestures are the one thing that changes shape: swipe-right-to-edit and
 swipe-left-to-delete stay exactly as they were at one column, and are dropped above it, because a
 horizontal drag inside one narrow cell is ambiguous. Nothing is lost — the long-press sheet carries

@@ -6,7 +6,7 @@
 
 - `lib/main.dart` — 应用入口点。
 - `lib/app/app.dart` — 根 `MaterialApp`/`App` 组件接线。
-- `lib/app/router.dart` — 基于 `go_router` 的导航。路由器使用一个 `ShellRoute` 包住五个底部导航标签：
+- `lib/app/router.dart` — 基于 `go_router` 的导航。路由器使用一个 `ShellRoute` 包住五个导航标签——在窄窗口上渲染为底部 `NavigationBar`，从 600 逻辑像素起渲染为侧边 `NavigationRail`，见 [`adaptive-layout.md`](adaptive-layout.md)：
   - 主页（`/home`，`home_page.dart`）
   - 管理（`/manage`，`management_page.dart`）
   - 统计（`/stats`，`statistics_page.dart`）
@@ -125,8 +125,10 @@ WebDAV 同步引擎、备份引擎、ZIP 传输引擎和自动同步调度器**�
 - **状态管理：** `flutter_riverpod`；常规变更不用 Provider 或 Bloc。
 - **导航：** `go_router`，带 `ShellRoute` 和上面列出的五个底部标签。
 - **视觉体系：** 基于 `flex_color_scheme` 的 Material 3。
-- **响应式布局：** 一条共享规则决定界面何时可以拆成分栏或多列，以及列表分成几列——
-  `shared/utils/adaptive_layout.dart`，推导见 [`adaptive-layout.md`](adaptive-layout.md)。不要新增内联的宽度断点。
+- **响应式布局：** 一条共享规则决定界面何时可以拆成分栏或多列，以及列表分成几列；另有一条只看宽度的规则
+  决定导航放在侧边还是底部。两者都位于 `shared/utils/adaptive_layout.dart`，推导见
+  [`adaptive-layout.md`](adaptive-layout.md)。**不要新增内联的宽度断点**——截至 1.5.4，`lib/` 中一个
+  也不剩了。容量请对 `shellContentWidth` 测量而非原始屏幕宽度，因为侧边导航栏并不归页面支配。
 - **文件 I/O：** 应通过 `AnimeStorage.getAppDir()`，使自定义存储路径（见 [`data-formats.md`](data-formats.md) 中的 `storage_config.json`）一致工作。
 - **JSON 格式化：** 所有写入磁盘的数据都用 `JsonEncoder.withIndent('  ')` 美化打印——这对同步很重要，因为它让未变化的文件命中原始相等快速路径（见 [`sync.md`](sync.md)）。
 - **时间戳：** 动画模型的时间戳使用 UTC，通常为 `DateTime.now().toUtc()`。本地时间的 `modifiedAt` 值会破坏同步冲突检测，因为三方合并要跨不同时区的设备比较 `modifiedAt`。

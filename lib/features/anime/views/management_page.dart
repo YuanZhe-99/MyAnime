@@ -413,13 +413,16 @@ class _ManagementPageState extends ConsumerState<ManagementPage> {
     final isSearching = _searchQuery.isNotEmpty;
     final settings = ref.watch(appSettingsProvider);
     final screen = MediaQuery.sizeOf(context);
+    // The shell's navigation rail, when it is showing, is not part of the
+    // width this list gets, so the capacity must be measured without it.
+    final contentWidth = shellContentWidth(screen.width);
     final capacity = canSplitLayout(screen.width, screen.height)
-        ? listColumnCapacity(screen.width)
+        ? listColumnCapacity(contentWidth)
         : 1;
     final columns = listColumnCount(
       screenWidth: screen.width,
       screenHeight: screen.height,
-      contentWidth: screen.width,
+      contentWidth: contentWidth,
       preference: settings.manageListColumns,
     );
 
@@ -515,7 +518,9 @@ class _ManagementPageState extends ConsumerState<ManagementPage> {
       );
     }
     return ListView.builder(
-      padding: const EdgeInsets.only(bottom: 80),
+      padding: EdgeInsets.only(
+        bottom: shellListBottomInset(MediaQuery.sizeOf(context).width),
+      ),
       itemCount: listRowCount(results.length, columns),
       itemBuilder: (context, row) => adaptiveTileRow(
         rowIndex: row,
@@ -615,7 +620,11 @@ class _ManagementPageState extends ConsumerState<ManagementPage> {
                   );
                 }
                 return ListView.builder(
-                  padding: const EdgeInsets.only(bottom: 80),
+                  padding: EdgeInsets.only(
+                    bottom: shellListBottomInset(
+                      MediaQuery.sizeOf(context).width,
+                    ),
+                  ),
                   itemCount: listRowCount(animeList.length, columns),
                   itemBuilder: (context, row) => adaptiveTileRow(
                     rowIndex: row,
@@ -642,7 +651,11 @@ class _ManagementPageState extends ConsumerState<ManagementPage> {
               }
 
               return ListView.builder(
-                padding: const EdgeInsets.only(bottom: 80),
+                padding: EdgeInsets.only(
+                  bottom: shellListBottomInset(
+                    MediaQuery.sizeOf(context).width,
+                  ),
+                ),
                 itemCount: listRowCount(animeList.length, columns),
                 itemBuilder: (context, row) => adaptiveTileRow(
                   rowIndex: row,

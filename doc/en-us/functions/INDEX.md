@@ -4,15 +4,15 @@ This is the top-level index of the hand-written Function Explanation Layer docum
 `lib/` in the MyAnime repo. Each row links to a per-source-file page under `doc/en-us/functions/`
 mirroring the `lib/` tree (with `.dart` replaced by `.md`).
 
-**Totals:** the repo's `/// Purpose:` comment count is **842** (per the Function Explanation Layer
+**Totals:** the repo's `/// Purpose:` comment count is **853** (per the Function Explanation Layer
 convention in `AGENTS.md`, excluding generated `lib/l10n/` code — see [l10n/INDEX.md](l10n/INDEX.md)).
-The rows below sum to **832** documented declarations.
+The rows below sum to **843** documented declarations.
 
 | Tier | Count |
 |---|---|
-| Tier A (full entry: Purpose/Inputs/Returns/Side effects/Algorithm/Usage/Notes) | 517 |
-| Tier B (index row only) | 315 |
-| **Total** | **832** |
+| Tier A (full entry: Purpose/Inputs/Returns/Side effects/Algorithm/Usage/Notes) | 530 |
+| Tier B (index row only) | 313 |
+| **Total** | **843** |
 
 **Known gap.** These two numbers do not match: 10 declarations carry a `/// Purpose:` comment in
 source but have no row here, so the index under-covers `lib/` by that much. The gap is not evenly
@@ -23,7 +23,9 @@ section below.
 These totals were recomputed against the actual source tree in 1.4.0, again in 1.5.0 (93 new
 declarations across four new files and five changed ones), and again in 1.5.1, which added 24
 across five changed files, again in 1.5.2, which added 15 across one new file and four changed
-ones, and again in 1.5.3, which added 22 across three new files and six changed ones. The
+ones, again in 1.5.3, which added 22 across three new files and six changed ones, and again
+in 1.5.4, which added 11 across three changed files and promoted three more rows from Tier B to
+Tier A without adding any file. The
 pre-1.4.0 figures (682
 `Purpose:` comments and 685 documented declarations) had drifted far from both the source and this
 file's own per-file rows, which summed to 615 at the time. If you change these numbers, measure

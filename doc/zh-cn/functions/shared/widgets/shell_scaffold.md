@@ -1,33 +1,96 @@
 # lib/shared/widgets/shell_scaffold.dart
 
-`ShellScaffold` 是 `router.dart` 的 `ShellRoute` 渲染的常驻外壳组件——它把当前标签（`child`）包在带五个主标签（主页、管理、统计、假名、设置）底部 `NavigationBar` 的 `Scaffold` 中。此组件所在的路由表见 [../../../architecture.md](../../../architecture.md#app-shell) 和 [../../app/router.md](../../app/router.md)。
+`ShellScaffold` 是由 `router.dart` 的 `ShellRoute` 渲染的常驻外壳控件——它把当前标签页（`child`）包进一个
+`Scaffold`，其导航要么是底部的 `NavigationBar`，要么是侧边的 `NavigationRail`，服务于五个主标签页（首页、
+管理、统计、假名、设置）。该控件所处的路由表见
+[../../../architecture.md](../../../architecture.md#app-shell) 与
+[../../app/router.md](../../app/router.md)，而在两者之间做选择的规则见
+[../../../adaptive-layout.md](../../../adaptive-layout.md)。
 
 ## 声明
 
-| 声明 | 种类 | Tier | 用途 |
+| 声明 | 种类 | 层级 | 用途 |
 |---|---|---|---|
-| `ShellScaffold.new` | 构造函数（`ShellScaffold`） | B | 创建 `ShellScaffold` 实例。 |
-| [`ShellScaffold._currentIndex`](#shellscaffold_currentindex) | 方法（`ShellScaffold`） | A | 为当前路由确定选中哪个底部导航标签。 |
-| `ShellScaffold.build` | 方法（`ShellScaffold`，组件构建） | B | 在 `child` 周围构建带底部 `NavigationBar` 的 `Scaffold`。 |
+| `ShellScaffold.new` | 构造函数（`ShellScaffold`） | B | 创建一个 `ShellScaffold` 实例。 |
+| [`ShellScaffold._currentIndex`](#shellscaffold_currentindex) | 方法（`ShellScaffold`） | A | 判定当前路由对应哪一个导航目的地被选中。 |
+| [`ShellScaffold._destinations`](#shellscaffold_destinations) | 方法（`ShellScaffold`） | A | 把外壳的五个目的地连同图标一次性描述清楚。 |
+| [`ShellScaffold.build`](#shellscaffold_build) | 方法（`ShellScaffold`，控件构建） | A | 围绕 `child` 构建带侧边导航栏或底栏的 `Scaffold`。 |
+| `_ShellDestination.new` | 构造函数（`_ShellDestination`） | B | 创建一个 `_ShellDestination` 实例。 |
 
 ## 文档
 
 ### `int _currentIndex(BuildContext context)` <a id="shellscaffold_currentindex"></a>
 - **种类：** `ShellScaffold` 的方法
-- **来源：** `lib/shared/widgets/shell_scaffold.dart`（约第 23 行）
-- **用途：** 把当前 `go_router` 位置映射到匹配的底部导航目的地索引。
-- **输入：** `context` — 用于读取 `GoRouterState.of(context).uri.path`。
-- **返回：** `int` — `_routes`（因此 `NavigationBar.destinations`）中路径前缀匹配当前位置的索引；无匹配时为 `0`（主页）。
+- **来源：** `lib/shared/widgets/shell_scaffold.dart`（约第 24 行）
+- **用途：** 把当前 `go_router` 位置映射到匹配的目的地下标。
+- **输入：** `context`——用于读取 `GoRouterState.of(context).uri.path`。
+- **返回：** `int`——`_routes`（因而也是当前所显示的那个导航控件）中路径前缀与当前位置匹配的那一项的下标；
+  都不匹配时为 `0`（首页）。
 - **副作用：** 无。
 - **算法：**
   1. 从 `GoRouterState.of(context).uri.path` 读取当前路径。
-  2. 按顺序遍历 `_routes`（`['/home', '/manage', '/stats', '/kana', '/settings']`）；返回当前路径以 `_routes[i]` 开头的第一个索引 `i`。
-  3. 没有路由匹配时返回 `0`。
+  2. 按顺序遍历 `_routes`（`['/home', '/manage', '/stats', '/kana', '/settings']`），返回第一个使当前路径以
+     `_routes[i]` 开头的下标 `i`。
+  3. 若都不匹配，返回 `0`。
 - **用法：**
   ```dart
-  bottomNavigationBar: NavigationBar(
-    selectedIndex: _currentIndex(context),
+  final index = _currentIndex(context);
+  ```
+  （出自同一文件的 `ShellScaffold.build`，供给两个导航控件中正在构建的那一个）
+- **备注：** 使用 `startsWith` 而非精确相等，因此在外壳内渲染的嵌套/非标签路由（若日后在某个标签路径下新增）
+  仍会高亮对应的标签。由于 `router.dart` 目前把动画详情/编辑与查重作为 `ShellRoute` 之外的顶层路由推入，这套
+  匹配今天实际上只需要区分上面列出的五个前缀。
+
+### `List<_ShellDestination> _destinations(AppLocalizations l10n)` <a id="shellscaffold_destinations"></a>
+- **种类：** `ShellScaffold` 的方法
+- **来源：** `lib/shared/widgets/shell_scaffold.dart`（约第 39 行）
+- **用途：** 把外壳的五个目的地连同图标一次性描述清楚。
+- **输入：** `l10n`——用于五个 `nav*` 标签。
+- **返回：** 与 `_routes` 同序的 `List<_ShellDestination>`。
+- **副作用：** 无。
+- **算法：** 返回一个由五条记录组成的固定列表，每条包含一个轮廓图标、一个选中态实心图标与一个本地化标签。
+- **用法：**
+  ```dart
+  for (final d in destinations)
+    NavigationRailDestination(
+      icon: Icon(d.icon),
+      selectedIcon: Icon(d.selectedIcon),
+      label: Text(d.label),
+    ),
+  ```
+  （出自同一文件的 `ShellScaffold.build`）
+- **备注：** 随侧边导航栏于 1.5.4 加入。底栏与侧边导航栏都从这一份列表读取，因此一个目的地不可能只出现在其中
+  之一，也不可能在两者中顺序不同——那会悄悄弄坏 `_currentIndex`，因为它是按位置索引这两者的。私有的
+  `_ShellDestination` 记录本身没有任何逻辑，不作为独立行编入索引。
+
+### `Widget build(BuildContext context)` <a id="shellscaffold_build"></a>
+- **种类：** `ShellScaffold` 的方法（控件构建）
+- **来源：** `lib/shared/widgets/shell_scaffold.dart`（约第 74 行）
+- **用途：** 围绕 `child` 构建带侧边导航栏或底栏的 `Scaffold`。
+- **输入：** `context`。
+- **返回：** 外壳的控件树。
+- **副作用：** 点击目的地时经由 `context.go` 导航。
+- **算法：**
+  1. 构建目的地列表与选中下标。
+  2. 当 `useNavigationRail(MediaQuery.sizeOf(context).width)` 为假时，返回原本那个带底部 `NavigationBar` 的
+     `Scaffold`。
+  3. 否则返回一个 `Scaffold`，其 body 是由侧边导航栏、`VerticalDivider(width: 1)` 与
+     `Expanded(child: child)` 组成的 `Row`。
+- **用法：**
+  ```dart
+  ShellRoute(
+    builder: (context, state, child) => ShellScaffold(child: child),
     ...
   ```
-  （来自 `ShellScaffold.build`，同一文件）
-- **备注：** 用 `startsWith` 而不是精确相等，因此在外壳内渲染的嵌套/非标签路由（如果被加在标签路径下）仍会高亮对应标签。由于 `router.dart` 目前把动画详情/编辑和重复检查作为 `ShellRoute` 之外的顶层路由压栈，此匹配今天实际只需要区分五个列出的前缀。
+  （出自 `lib/app/router.dart` 中的 `appRouter`）
+- **备注：** 显示哪一种导航是 `useNavigationRail` **只看宽度**的判定，刻意不是全应用的拆分规则——见
+  [../utils/adaptive_layout.md](../utils/adaptive_layout.md#usenavigationrail)。这里没有任何状态，因此折叠
+  设备会在下一帧把两者互换，不发生路由变化，也没有需要保存与恢复的东西。
+
+  侧边导航栏设置 `groupAlignment: 0` 以将其目的地居中，而非采用默认的顶部对齐：顶部对齐是为了让导航栏坐落在
+  一个前导菜单按钮或 FAB 之下，而这里两者都没有，于是五个目的地挤在一条 704 dp 高的导航栏顶端会让它整个下半
+  部分空着。
+
+  它还被包进了标准的 `LayoutBuilder` → `SingleChildScrollView` → `ConstrainedBox(minHeight:)` →
+  `IntrinsicHeight` 组合。五个带标签的目的地约合 370 逻辑像素，这在今天任何宽到足以获得侧边导航栏的窗口里都
+  放得下——但侧边导航栏可能出现在 compact 高度下（手机横持只有 412），因此允许它滚动而不是溢出。

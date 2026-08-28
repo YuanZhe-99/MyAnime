@@ -28,6 +28,22 @@ const listMaxColumns = 4;
 /// Column preference meaning "use whatever the width can fit".
 const listColumnsAuto = 0;
 
+/// Minimum viewport width, in logical pixels, before the shell shows its
+/// navigation rail instead of a bottom navigation bar.
+///
+/// Material's *medium* width class, which is where Google's guidance moves
+/// navigation to the side. This is a width-only threshold on purpose; see
+/// [useNavigationRail].
+const navRailMinWidth = 600.0;
+
+/// Logical pixels the navigation rail takes from the content when it is shown.
+///
+/// An 80 dp `NavigationRail` plus the 1 dp `VerticalDivider` beside it.
+const navRailWidth = 81.0;
+
+/// Smallest width, in logical pixels, the settings detail pane may be given.
+const settingsRightPaneMinWidth = 280.0;
+
 /// Purpose: Report whether a layout may split into panes or columns.
 /// Inputs: `width`, `height` — the viewport size in logical pixels.
 /// Returns: `bool`.
@@ -48,21 +64,76 @@ bool canSplitLayout(double width, double height) {
   return width / height >= splitMinAspect;
 }
 
+/// Purpose: Report whether the shell should show a navigation rail.
+/// Inputs: `screenWidth` — the whole screen width in logical pixels.
+/// Returns: `bool`.
+/// Side effects: None.
+/// Notes: **Width only, deliberately** — this is not [canSplitLayout] and must
+/// not be routed through it. A rail is not a split; it trades width, which is
+/// abundant whenever this returns true, for height, which is not. The case it
+/// helps most is the one the split rule rejects on purpose: an ordinary phone
+/// held in landscape at 915 x 412, where a bottom bar spends 19% of the height
+/// on navigation while 915 logical pixels of width sit unused.
+bool useNavigationRail(double screenWidth) => screenWidth >= navRailMinWidth;
+
+/// Purpose: Return the width a shell page's content actually receives.
+/// Inputs: `screenWidth` — the whole screen width in logical pixels.
+/// Returns: `double`, never negative.
+/// Side effects: None.
+/// Notes: Subtracts the navigation rail when the shell is showing one. Pass the
+/// result wherever a capacity is being computed; keep passing the untouched
+/// screen size to [canSplitLayout], which asks about the window's shape rather
+/// than about the room left over inside it.
+double shellContentWidth(double screenWidth) {
+  final width = useNavigationRail(screenWidth)
+      ? screenWidth - navRailWidth
+      : screenWidth;
+  return width < 0 ? 0 : width;
+}
+
+/// Purpose: Return the bottom padding a shell page's scrolling list needs.
+/// Inputs: `screenWidth` — the whole screen width in logical pixels.
+/// Returns: `double`.
+/// Side effects: None.
+/// Notes: The shell's bottom navigation bar overlaps the last rows of a list,
+/// so pages reserve room for it. A navigation rail takes width instead, and the
+/// reservation becomes dead space at the very moment vertical room is scarcest
+/// — a Fold 8 in landscape is only 704 logical pixels tall.
+double shellListBottomInset(double screenWidth) =>
+    useNavigationRail(screenWidth) ? 16.0 : 80.0;
+
+/// Purpose: Return how many columns of a given minimum width fit a content box.
+/// Inputs: `contentWidth` — the width available, in logical pixels;
+/// `minItemWidth` — the narrowest one column may be; `gap` — spacing between
+/// columns; `maxColumns` — a ceiling however wide the box is.
+/// Returns: `int`, at least 1 and at most `maxColumns`.
+/// Side effects: None.
+/// Notes: The adaptive-minimum-width approach Google recommends for feeds and
+/// grids, rather than a hardcoded count per breakpoint. One gap is added to the
+/// numerator so the arithmetic pays for the gaps *between* columns rather than
+/// one after every column. Non-positive widths return 1.
+int columnCapacity(
+  double contentWidth, {
+  required double minItemWidth,
+  double gap = listTileGap,
+  int maxColumns = listMaxColumns,
+}) {
+  final ceiling = maxColumns < 1 ? 1 : maxColumns;
+  if (contentWidth <= 0) return 1;
+  if (minItemWidth <= 0) return ceiling;
+  final fit = ((contentWidth + gap) / (minItemWidth + gap)).floor();
+  return fit.clamp(1, ceiling);
+}
+
 /// Purpose: Return how many list columns a given content width can carry.
 /// Inputs: `contentWidth` — the width available to the list, in logical pixels.
 /// Returns: `int`, at least 1 and at most [listMaxColumns].
 /// Side effects: None.
-/// Notes: Counts how many [listTileMinWidth] columns fit once the
-/// [listTileGap] between them is paid for, which is the adaptive-minimum-width
-/// approach Google recommends for feeds rather than a hardcoded count per
-/// breakpoint. Pass the width the list actually gets, not the screen width, so
-/// page padding is already accounted for.
-int listColumnCapacity(double contentWidth) {
-  if (contentWidth <= 0) return 1;
-  final fit = ((contentWidth + listTileGap) / (listTileMinWidth + listTileGap))
-      .floor();
-  return fit.clamp(1, listMaxColumns);
-}
+/// Notes: [columnCapacity] at the anime-list tile's own minimum. Pass the width
+/// the list actually gets — [shellContentWidth] less any page padding — not the
+/// screen width, so the navigation rail and the padding are both accounted for.
+int listColumnCapacity(double contentWidth) =>
+    columnCapacity(contentWidth, minItemWidth: listTileMinWidth);
 
 /// Purpose: Return the number of columns a list should actually render.
 /// Inputs: `screenWidth`, `screenHeight` — the whole screen, which decides
@@ -98,4 +169,22 @@ int listRowCount(int itemCount, int columns) {
   if (itemCount <= 0) return 0;
   final perRow = columns < 1 ? 1 : columns;
   return (itemCount + perRow - 1) ~/ perRow;
+}
+
+/// Purpose: Return the width of the settings page's fixed left pane.
+/// Inputs: `contentWidth` — the width both panes share, in logical pixels,
+/// which is [shellContentWidth] rather than the screen width.
+/// Returns: `double`.
+/// Side effects: None.
+/// Notes: Proportional, then clamped, then capped so the detail pane can never
+/// be squeezed below [settingsRightPaneMinWidth]. The left pane needs more room
+/// than the anime detail page's does, because it carries full `ListTile`s with
+/// trailing dropdowns rather than a cover and a column of text. The cap only
+/// binds on a hand-resized desktop window and on the narrowest foldables, where
+/// it gives up left-pane width rather than let the right pane become unusable.
+double settingsLeftPaneWidth(double contentWidth) {
+  final preferred = (contentWidth * 0.44).clamp(300.0, 440.0);
+  final capped = contentWidth - settingsRightPaneMinWidth;
+  if (preferred <= capped) return preferred;
+  return capped.clamp(240.0, 440.0);
 }

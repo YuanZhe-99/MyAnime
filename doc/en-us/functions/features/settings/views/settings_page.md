@@ -9,7 +9,15 @@ licenses). It is a `ConsumerStatefulWidget` (Riverpod) that also listens to
 navigating away. Unlike `license_page.dart`/`privacy_policy_page.dart`, most of its non-`build`
 methods are real action handlers — reading/writing `AnimeStorage`'s JSON config, calling
 `ImportExportService`, `LocalApiServer`, `ReminderService`, `TrayService`, and `launch_at_startup`
-— so this page has a large Tier A surface despite being a "view" file. See
+— so this page has a large Tier A surface despite being a "view" file.
+
+Since 1.5.4 it is also a list-detail layout. On a window the app-wide split rule allows, the
+first-level list stays on the left and the second-level page it leads to fills the right, the way
+a system settings app behaves; on a narrower one every row pushes full-screen exactly as before.
+The private `_SettingsDetail` enum names the five rows that participate — WebDAV sync, backup,
+duplicate check, privacy policy and license — and `_open` is the single place that decides which
+of the two things a tap does. Everything else on the page is an inline control or a dialog, and
+neither is a page. See [`../../../../adaptive-layout.md`](../../../../adaptive-layout.md). See
 [`../../../platform-notes.md`](../../../../platform-notes.md) for the desktop-only API server/tray
 behavior these handlers configure, and
 [`../../../sync.md`](../../../../sync.md) /
@@ -26,6 +34,10 @@ lead to (`../../../shared/views/webdav_config_page.md`, `backup_page.md` in this
 | `dispose` | method (widget lifecycle) | B | Remove the sync-status listener. |
 | `_refreshSyncStatus` | method (widget helper) | B | Rebuild the page when background sync status changes. |
 | [`_loadVersion`](#loadversion) | method (`_SettingsPageState`) | A | Load and store the app's version/build-number string. |
+| [`_detailPage`](#detailpage) | method (widget helper) | A | Build the second-level page a settings row leads to. |
+| [`_open`](#open) | method (`_SettingsPageState`) | A | Open a second-level page the way the current layout calls for. |
+| [`_buildDetailPane`](#builddetailpane) | method (widget helper) | A | Build the right-hand pane of the two-pane settings layout. |
+| [`_buildSettingsList`](#buildsettingslist) | method (widget helper) | A | Build the first-level settings list. |
 | `_buildSection` | method (widget helper) | B | Render a titled settings section. |
 | [`_calendarLayoutLabel`](#calendarlayoutlabel) | method (`_SettingsPageState`) | A | Map a `HomeCalendarLayout` value to its localized label. |
 | [`_homeCalendarTimeBasisLabel`](#homecalendartimebasislabel) | method (`_SettingsPageState`) | A | Map a `HomeCalendarTimeBasis` value to its localized label. |
@@ -49,6 +61,98 @@ lead to (`../../../shared/views/webdav_config_page.md`, `backup_page.md` in this
 | `build` | method (widget build) | B | Render the full settings list for the current state/platform. |
 
 ## Documentation
+
+### `Widget _detailPage(_SettingsDetail detail)` <a id="detailpage"></a>
+- **Kind:** method of `_SettingsPageState` (widget helper)
+- **Source:** `lib/features/settings/views/settings_page.dart` (approx. line 140)
+- **Purpose:** Build the second-level page a settings row leads to.
+- **Inputs:** `detail` — which of the five.
+- **Returns:** `Widget` — the page, itself a `Scaffold` with its own app bar.
+- **Side effects:** None beyond building widgets.
+- **Algorithm:** A `switch` from the enum to `WebDAVConfigPage`, `BackupPage`,
+  `DuplicateCheckPage`, `PrivacyPolicyPage` or `app_license.LicensePage`.
+- **Usage:**
+  ```dart
+  Navigator.of(context, rootNavigator: true)
+      .push(MaterialPageRoute(builder: (_) => _detailPage(detail)));
+  ```
+  (from `_open`, same file)
+- **Notes:** The same widget serves both modes — pushed full-screen on a narrow window, hosted in
+  the detail pane on a wide one. **None of the five pages needed a change to become embeddable**,
+  because the pane wraps them in a nested `Navigator` holding a single route, which reports
+  `canPop == false`, so their app bars grow no back arrow.
+
+  Not on this list, deliberately: the open-source licenses row, which calls Flutter's own
+  `showLicensePage`. That page already contains its own master-detail, and nesting it would put
+  three panes on screen.
+
+### `void _open(_SettingsDetail detail)` <a id="open"></a>
+- **Kind:** method of `_SettingsPageState`
+- **Source:** `lib/features/settings/views/settings_page.dart` (approx. line 157)
+- **Purpose:** Open a second-level page the way the current layout calls for.
+- **Inputs:** `detail`.
+- **Returns:** None.
+- **Side effects:** Either selects the detail pane's page (`setState`) or pushes a route on the
+  root navigator.
+- **Algorithm:** When `_twoPane`, `setState(() => _detail = detail)`; otherwise push
+  `_detailPage(detail)` on the root navigator, exactly as every one of these rows did before 1.5.4.
+- **Usage:**
+  ```dart
+  onTap: () => _open(_SettingsDetail.webdav),
+  ```
+  (from `_buildSettingsList`, same file)
+- **Notes:** All five rows go through here, so the two modes cannot drift apart. `_twoPane` is
+  cached during `build` rather than recomputed here, so what a tap does always matches what was on
+  screen when it happened.
+
+### `Widget _buildDetailPane(AppLocalizations l10n)` <a id="builddetailpane"></a>
+- **Kind:** method of `_SettingsPageState` (widget helper)
+- **Source:** `lib/features/settings/views/settings_page.dart` (approx. line 177)
+- **Purpose:** Build the right-hand pane of the two-pane settings layout.
+- **Inputs:** `l10n` — for the placeholder's label.
+- **Returns:** `Widget`.
+- **Side effects:** None beyond building widgets.
+- **Algorithm:** With nothing selected, a centred `Icons.tune_outlined` above
+  `l10n.settingsSelectItem`. Otherwise a `Navigator` keyed on the selection whose `onGenerateRoute`
+  returns `_detailPage(_detail!)`.
+- **Usage:**
+  ```dart
+  Expanded(child: _buildDetailPane(l10n)),
+  ```
+  (from `_SettingsPageState.build`, same file)
+- **Notes:** The nested `Navigator` is what gives the hosted page a real route, which keeps
+  `Navigator.pop` inside it meaningful and its app bar leading-free. Keying it on the selection
+  disposes and rebuilds on every change, which is correct for the three pages that load
+  asynchronously when they mount.
+
+  Shrinking below the gate — folding a device shut — leaves `_detail` set but unused, so the list
+  returns and unfolding restores the selection. That mirrors how the list column preference is
+  clamped rather than rewritten.
+
+### `Widget _buildSettingsList(AppLocalizations l10n, AppSettings settings, AppSettingsNotifier notifier, bool usesJapaneseCalendar)` <a id="buildsettingslist"></a>
+- **Kind:** method of `_SettingsPageState` (widget helper)
+- **Source:** `lib/features/settings/views/settings_page.dart` (approx. line 806)
+- **Purpose:** Build the first-level settings list.
+- **Inputs:** `l10n`; `settings` and `notifier` for the Riverpod-backed controls;
+  `usesJapaneseCalendar`, which disables the week-start row.
+- **Returns:** `Widget` — the scrolling `ListView` of sections.
+- **Side effects:** None beyond building widgets; the rows' own callbacks have their own.
+- **Algorithm:** Unchanged from what `build` used to return directly: the General, Data, Debug,
+  Desktop and About sections.
+- **Usage:**
+  ```dart
+  final list = _buildSettingsList(l10n, settings, notifier, usesJapaneseCalendar);
+  if (!_twoPane) return list;
+  ```
+  (from `_SettingsPageState.build`, same file)
+- **Notes:** Extracted in 1.5.4 so one list can be the whole body on a narrow window and the left
+  pane on a wide one, rather than being written twice. The five `›` rows carry
+  `selected: _twoPane && _detail == ...` so the current pane is highlighted, as a system settings
+  app does.
+
+  Its trailing `DropdownButton`s, and their items, set `alignment: AlignmentDirectional.centerEnd`.
+  Both halves are needed: the menu overlays the button with the selected item on top of it, so
+  aligning only the button would make the label jump sideways as the menu opens.
 
 ### `Future<void> _loadVersion()` <a id="loadversion"></a>
 - **Kind:** method of `_SettingsPageState`

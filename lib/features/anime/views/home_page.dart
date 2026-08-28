@@ -311,13 +311,16 @@ class _HomePageState extends ConsumerState<HomePage> {
     final unwatchedEpisodeCount = _countUnwatchedAiredEpisodes();
 
     final screen = MediaQuery.sizeOf(context);
+    // The shell's navigation rail, when it is showing, is not part of the
+    // width this list gets, so the capacity must be measured without it.
+    final contentWidth = shellContentWidth(screen.width);
     final capacity = canSplitLayout(screen.width, screen.height)
-        ? listColumnCapacity(screen.width)
+        ? listColumnCapacity(contentWidth)
         : 1;
     final columns = listColumnCount(
       screenWidth: screen.width,
       screenHeight: screen.height,
-      contentWidth: screen.width,
+      contentWidth: contentWidth,
       preference: settings.homeListColumns,
     );
 

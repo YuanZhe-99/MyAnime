@@ -167,4 +167,101 @@ void main() {
       expect(listRowCount(6, 0), 6);
     });
   });
+
+  group('navigation rail', () {
+    test('appears from the medium width class up, whatever the height', () {
+      expect(useNavigationRail(599), isFalse); // just under sw600dp
+      expect(useNavigationRail(600), isTrue); // exactly sw600dp
+      expect(useNavigationRail(933), isTrue); // Z Fold 8, landscape
+      expect(useNavigationRail(412), isFalse); // Pixel 9, portrait
+    });
+
+    test('a phone in landscape gets a rail but still may not split', () {
+      // The case the two rules exist to disagree about. 915x412 is a Pixel 9
+      // on its side: wide enough that navigation belongs at the edge, far too
+      // short to carry two panes.
+      expect(useNavigationRail(915), isTrue);
+      expect(canSplitLayout(915, 412), isFalse);
+    });
+
+    test('content width is the screen less the rail, when there is one', () {
+      expect(shellContentWidth(933), 933 - navRailWidth); // Z Fold 8
+      expect(shellContentWidth(412), 412); // Pixel 9, no rail
+      expect(shellContentWidth(600), 600 - navRailWidth); // first rail width
+      expect(shellContentWidth(0), 0);
+    });
+
+    test('the bottom inset is only reserved for a bottom bar', () {
+      expect(shellListBottomInset(412), 80); // Pixel 9, bottom bar
+      expect(shellListBottomInset(933), 16); // Z Fold 8, rail
+    });
+  });
+
+  group('generic column capacity', () {
+    test('counts items of a given minimum, paying only inner gaps', () {
+      // Two 330 columns need 330 + 12 + 330 = 672.
+      expect(columnCapacity(671, minItemWidth: 330, maxColumns: 2), 1);
+      expect(columnCapacity(672, minItemWidth: 330, maxColumns: 2), 2);
+    });
+
+    test('kana tables go two-up on exactly the devices that can hold them', () {
+      int kana(double screenWidth) {
+        final available = shellContentWidth(screenWidth) - 32;
+        return columnCapacity(
+          available > 1080 ? 1080 : available,
+          minItemWidth: 330,
+          maxColumns: 2,
+        );
+      }
+
+      expect(kana(933), 2); // Z Fold 8, landscape
+      expect(kana(954), 2); // Z Fold 8 Ultra, landscape
+      expect(kana(859), 2); // Z Fold 8 Ultra, portrait
+      expect(kana(791), 2); // Pixel 10 Pro Fold
+      expect(kana(832), 2); // Z Fold 7, landscape
+      expect(kana(750), 1); // Z Fold 7, portrait
+      expect(kana(675), 1); // Z Fold 6
+      expect(kana(659), 1); // Z Fold 5
+      expect(kana(1024), 2); // tablet, landscape
+      expect(kana(1600), 2); // desktop, capped at two
+    });
+
+    test('rule cards keep the two-up layout a tablet in portrait had', () {
+      // 1.5.3 used a hardcoded `maxWidth >= 720`. The rail now takes 81 of a
+      // tablet's 768, leaving 655 â which that literal would have failed.
+      final tabletPortrait = shellContentWidth(768) - 32;
+      expect(tabletPortrait, lessThan(720));
+      expect(
+        columnCapacity(tabletPortrait, minItemWidth: 320, maxColumns: 2),
+        2,
+      );
+    });
+
+    test('degenerate arguments fall back rather than divide by zero', () {
+      expect(columnCapacity(0, minItemWidth: 320), 1);
+      expect(columnCapacity(-10, minItemWidth: 320), 1);
+      expect(columnCapacity(1000, minItemWidth: 0, maxColumns: 3), 3);
+      expect(columnCapacity(1000, minItemWidth: 320, maxColumns: 0), 1);
+    });
+  });
+
+  group('settings pane width', () {
+    test('is proportional between its clamps', () {
+      // Z Fold 8 in landscape, less the rail.
+      expect(settingsLeftPaneWidth(852), closeTo(374.88, 0.01));
+    });
+
+    test('clamps at both ends', () {
+      expect(settingsLeftPaneWidth(669), 300); // Z Fold 7, floor
+      expect(settingsLeftPaneWidth(1519), 440); // desktop, ceiling
+    });
+
+    test('never squeezes the detail pane below its minimum', () {
+      // Z Fold 5 unfolded, less the rail: the floor cannot be honoured and the
+      // left pane gives way rather than the right becoming unusable.
+      final left = settingsLeftPaneWidth(578);
+      expect(left, 578 - settingsRightPaneMinWidth);
+      expect(578 - left, settingsRightPaneMinWidth);
+    });
+  });
 }

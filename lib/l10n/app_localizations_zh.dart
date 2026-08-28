@@ -712,6 +712,9 @@ class AppLocalizationsZh extends AppLocalizations {
   String get settingsData => '数据';
 
   @override
+  String get settingsSelectItem => '从左侧列表中选择一项';
+
+  @override
   String get settingsAbout => '关于';
 
   @override
@@ -2225,6 +2228,9 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
 
   @override
   String get settingsData => '資料';
+
+  @override
+  String get settingsSelectItem => '從左側清單中選擇一項';
 
   @override
   String get settingsAbout => '關於';

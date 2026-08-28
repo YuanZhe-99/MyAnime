@@ -11,6 +11,14 @@ rest of the file is `_KanaPageState`, which renders the script switch, the searc
 static tables (when the search query is empty), the search-results grid (when it isn't), and a set
 of pronunciation-rule cards.
 
+Since 1.5.4 the page is adaptive: on a window the app-wide split rule allows, and wide enough to
+hold two tables, it lays its sections out in two columns and puts the script switch beside the
+search field. Two file-level constants carry the minimums — `_kanaTableMinWidth` (330) and
+`_kanaRuleMinWidth` (320) — and both are fed to the shared `columnCapacity`. This is also where
+the hardcoded `constraints.maxWidth >= 720` that `adaptive-layout.md` used to record as a known
+exception went; there is no longer a second layout rule in `lib/`. See
+[`../../../../adaptive-layout.md`](../../../../adaptive-layout.md).
+
 ## Declarations
 
 | Declaration | Kind | Tier | Purpose |
@@ -18,7 +26,7 @@ of pronunciation-rule cards.
 | `KanaPage.new` | constructor (`KanaPage`) | B | Create a `KanaPage` instance. |
 | `KanaPage.createState` | method (`KanaPage`) | B | Create the mutable state object for this widget. |
 | `_KanaPageState.dispose` | method (`_KanaPageState`) | B | Dispose the search text controller. |
-| `_KanaPageState.build` | method (`_KanaPageState`, widget build) | B | Build the page scaffold: script switch, search field, and either the static tables or search results, plus the rule cards. |
+| [`_KanaPageState.build`](#kanabuild) | method (`_KanaPageState`, widget build) | A | Build the page scaffold in one or two columns: script switch, search field, and either the static tables or search results, plus the rule cards. |
 | [`_KanaPageState._matchingEntries`](#_matchingentries) | method (`_KanaPageState`) | A | Find every unique kana entry across all tables that matches a search query. |
 | `_KanaPageState._buildKanaTable` | method (widget helper) | B | Render one titled kana table (header row + data rows) for a column set. |
 | `_KanaPageState._buildHeaderRow` | method (widget helper) | B | Render a table's column-label header row. |
@@ -26,7 +34,7 @@ of pronunciation-rule cards.
 | `_KanaPageState._buildKanaCell` | method (widget helper) | B | Render one kana/romaji cell, or a blank placeholder for a missing combination. |
 | `_KanaPageState._buildSearchResults` | method (widget helper) | B | Render the search-results grid, or an empty-state message when there are no matches. |
 | `_KanaPageState._buildResultTile` | method (widget helper) | B | Render one kana entry as a search-result tile. |
-| `_KanaPageState._buildRules` | method (widget helper) | B | Lay out the pronunciation-rule cards in a responsive 1- or 2-column wrap. |
+| [`_KanaPageState._buildRules`](#kanabuildrules) | method (widget helper) | A | Lay out the pronunciation-rule cards in a responsive 1- or 2-column wrap. |
 | `_KanaPageState._buildRuleCard` | method (widget helper) | B | Render one pronunciation-rule card (icon, title, body). |
 | `_KanaPageState._sectionTitle` | method (widget helper) | B | Render a section heading (icon + label) shared by the tables and rules sections. |
 | `_KanaEntry.new` | constructor (`_KanaEntry`) | B | Create a kana entry (hiragana, katakana, and romaji forms). |
@@ -37,7 +45,37 @@ of pronunciation-rule cards.
 
 ## Documentation
 
+### `Widget build(BuildContext context)` <a id="kanabuild"></a>
+- **Kind:** method of `_KanaPageState` (widget build)
+- **Source:** `lib/features/kana/views/kana_page.dart` (approx. line 63)
+- **Purpose:** Build the page in one or two columns, according to the window.
+- **Inputs:** `context`.
+- **Returns:** The page's widget tree.
+- **Side effects:** None beyond building widgets.
+- **Algorithm:**
+  1. Content width is `shellContentWidth(screen.width) - 32`, capped at the page's own 1080 maximum.
+  2. `twoColumn` is `canSplitLayout(screen.width, screen.height)` **and**
+     `columnCapacity(contentWidth, minItemWidth: _kanaTableMinWidth, maxColumns: 2) >= 2`.
+  3. Build the script picker, the search field, the three tables and the rules section as locals.
+  4. Header: side by side in a `Row` when `twoColumn`, otherwise stacked as before.
+  5. Body: the search results plus the rules when a query is active; otherwise a two-column `Row`
+     of (basic, yoon) and (voiced, rules) when `twoColumn`; otherwise the original stacked order.
+- **Usage:**
+  ```dart
+  GoRoute(path: '/kana', builder: (context, state) => const KanaPage()),
+  ```
+  (from `appRouter` in `lib/app/router.dart`)
+- **Notes:** **Gated twice, on purpose.** The first gate is the app-wide shape rule; the second asks
+  whether two tables of at least 330 logical pixels actually fit. The second is what keeps the
+  narrower unfolded foldables — a Z Fold 5 has 546 of content, and two tables need 672 — on one
+  column without needing a breakpoint of their own. The Z Fold 8 Ultra and the Pixel 10 Pro Fold do
+  fit, at about 58 logical pixels per cell, level with what a phone gives in one column.
+
+  The columns are assigned rather than flowed so they balance: the tall basic and yoon tables on
+  the left against the short voiced table plus the rules on the right.
+
 ### `List<_KanaEntry> _matchingEntries(String query)` <a id="_matchingentries"></a>
+
 - **Kind:** method of `_KanaPageState`
 - **Source:** `lib/features/kana/views/kana_page.dart` (line 140)
 - **Purpose:** Collect every kana entry across the basic, voiced, and yoon tables whose hiragana,
@@ -64,7 +102,33 @@ of pronunciation-rule cards.
 - **Notes:** The query is expected pre-lowercased; this function does not lowercase it itself
   (case-folding happens once in `build`, and again per-field in `matches` for the romaji comparison).
 
+### `Widget _buildRules(ThemeData theme, AppLocalizations l10n)` <a id="kanabuildrules"></a>
+- **Kind:** method of `_KanaPageState` (widget helper)
+- **Source:** `lib/features/kana/views/kana_page.dart` (approx. line 445)
+- **Purpose:** Lay out the seven pronunciation-rule cards across one or two columns.
+- **Inputs:** `theme`, `l10n`.
+- **Returns:** `Widget` — a section title above a `Wrap` of fixed-width cards.
+- **Side effects:** None beyond building widgets.
+- **Algorithm:** Inside a `LayoutBuilder`, take
+  `columnCapacity(constraints.maxWidth, minItemWidth: _kanaRuleMinWidth, maxColumns: 2)`, divide the
+  available width by it net of the gaps, and give every card that width in a `Wrap`.
+- **Usage:**
+  ```dart
+  final rules = _buildRules(theme, l10n);
+  ```
+  (from `_KanaPageState.build`, same file)
+- **Notes:** Measured against whatever this section is actually given — a whole page width in one
+  column and half of one in two — so the cards reflow on their own rather than needing to know which
+  mode the page is in.
+
+  This replaced a hardcoded `constraints.maxWidth >= 720` in 1.5.4, and the change **preserved**
+  behaviour rather than altering it. The navigation rail leaves a tablet in portrait 655 logical
+  pixels of rule width, which the `720` literal would now fail and the shared arithmetic passes.
+  Capped at two columns because these are paragraphs: a third would fall below a comfortable
+  reading measure.
+
 ### `String kana(_KanaScript script)` <a id="kana"></a>
+
 - **Kind:** method of `_KanaEntry`
 - **Source:** `lib/features/kana/views/kana_page.dart` (line 553)
 - **Purpose:** Return this entry's hiragana or katakana spelling depending on which script is

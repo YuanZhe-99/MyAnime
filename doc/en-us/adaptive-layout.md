@@ -1,15 +1,16 @@
 # Adaptive layout
 
-This is the app-wide rule for **when a layout may split** — into two panes on the anime detail
-page, or into multiple columns in the three data-browsing modules — and, once it may, **how many
-columns** it gets. Both live in
+This is the app-wide rule for **when a layout may split** — into two panes on the anime detail page
+and the settings page, or into multiple columns in the three data-browsing modules and on the kana
+page — and, once it may, **how many columns** it gets. A second, narrower rule decides **where
+navigation lives**. Both live in
 [`lib/shared/utils/adaptive_layout.dart`](functions/shared/utils/adaptive_layout.md), a module that
 deliberately imports nothing but `dart:core` so every decision is directly unit-testable without a
 widget tree.
 
 Before this file existed the rule lived only inside the detail page's own helper and read as a
-detail-page rule. It is not: the same three thresholds now gate the multi-column lists as well, so
-one device answers the same way everywhere in the app.
+detail-page rule. It is not: the same three thresholds now gate the multi-column lists, the kana
+page and the settings panes as well, so one device answers the same way everywhere in the app.
 
 ## When to split
 
@@ -53,9 +54,8 @@ user-adjustable **Display size** setting, so a plausible range is shown.
 | Pixel 9 / 10 Pro Fold | 2076 × 2152 | 0.96 | 755–791 | split | split |
 
 `0.82` sits near the middle of the gap between the Fold 8's portrait `0.755` and the Fold 7 /
-Fold 8 Ultra's portrait `0.90`, with roughly 9% margin on each side. A `720` threshold — the value
-`kana_page.dart` uses for its own unrelated rule — would have failed the Fold 8, the Fold 5 and the
-Fold 6 outright; `840` would have left only the Ultra.
+Fold 8 Ultra's portrait `0.90`, with roughly 9% margin on each side. A `720` threshold would have
+failed the Fold 8, the Fold 5 and the Fold 6 outright; `840` would have left only the Ultra.
 
 ### The width floor
 
@@ -79,48 +79,104 @@ split in landscape.
 
 ## How many columns
 
-Once splitting is allowed, the column count comes from the width the list actually gets:
+Once splitting is allowed, the count comes from the width the content actually gets and a minimum
+width per column:
 
 ```dart
-int listColumnCapacity(double contentWidth) =>
-    ((contentWidth + listTileGap) / (listTileMinWidth + listTileGap))
+int columnCapacity(
+  double contentWidth, {
+  required double minItemWidth,
+  double gap = listTileGap,
+  int maxColumns = listMaxColumns,
+}) => ((contentWidth + gap) / (minItemWidth + gap))
         .floor()
-        .clamp(1, listMaxColumns);
+        .clamp(1, maxColumns);
 ```
 
-with `listTileMinWidth = 320.0`, `listTileGap = 12.0` and `listMaxColumns = 4`. This is the
-adaptive-minimum-width approach Google recommends for feed layouts — fit as many columns of at
-least a minimum width as the space allows — rather than a hardcoded count per breakpoint. 320 dp is
-what a list tile needs before its 40 × 56 cover, two lines of text and up to two trailing icon
-buttons squeeze the title to nothing.
+This is the adaptive-minimum-width approach Google recommends for feed layouts — fit as many
+columns of at least a minimum width as the space allows — rather than a hardcoded count per
+breakpoint. Each caller brings the minimum its own content needs:
 
-`listColumnCount` combines the two: one column when `canSplitLayout` is false, otherwise the
-capacity when the user's preference is `listColumnsAuto`, otherwise the preference clamped to the
-capacity. Clamping rather than rejecting is what lets a preference set on a desktop survive being
-carried onto a folded phone and come back on unfolding.
-
-| Viewport | Splits | Capacity | Columns at auto |
+| Caller | Minimum | Max | Why that number |
 |---|---|---|---|
-| Z Fold 8 landscape 933 × 704 | yes | 2 | 2 |
-| Z Fold 8 portrait 704 × 933 | no | — | 1 |
-| Z Fold 7 750 × 832 / 832 × 750 | yes | 2 | 2 either way |
-| Z Fold 8 Ultra 859 × 954 / 954 × 859 | yes | 2 | 2 either way |
-| Tablet 1024 × 768 | yes | 3 | 3 |
-| Tablet 768 × 1024 | no | — | 1 |
-| Phone landscape 915 × 412 | no | — | 1 |
-| Desktop 1600 × 900 | yes | 4 | 4 |
+| Anime lists (`listColumnCapacity`) | `320` | 4 | What a tile needs before its 40 × 56 cover, two lines of text and up to two trailing icon buttons squeeze the title to nothing. |
+| Kana tables | `330` | 2 | A five-column table spends 44 on its row label, so 330 leaves ≈ 57 per cell — level with what the same table gets on a phone in one column. |
+| Kana rule cards | `320` | 2 | Paragraph cards; a third column would fall below a comfortable reading measure. |
+
+`listColumnCount` combines the gate with the capacity: one column when `canSplitLayout` is false,
+otherwise the capacity when the user's preference is `listColumnsAuto`, otherwise the preference
+clamped to the capacity. Clamping rather than rejecting is what lets a preference set on a desktop
+survive being carried onto a folded phone and come back on unfolding.
+
+Content width is `shellContentWidth(screenWidth)` less whatever padding the page adds — see
+[the section below](#measure-the-screen-for-the-gate-the-content-for-the-capacity).
+
+| Viewport | Splits | List content | Anime list columns | Kana table columns |
+|---|---|---|---|---|
+| Z Fold 8 landscape 933 × 704 | yes | 852 | 2 | 2 |
+| Z Fold 8 portrait 704 × 933 | no | — | 1 | 1 |
+| Z Fold 8 Ultra 954 × 859 / 859 × 954 | yes | 873 / 778 | 2 / 2 | 2 / 2 |
+| Pixel 10 Pro Fold 791 × 820 | yes | 710 | 2 | 2 |
+| Z Fold 7 832 × 750 / 750 × 832 | yes | 751 / 669 | 2 / 2 | 2 / 1 |
+| Z Fold 6 675 × 786 · Z Fold 5 659 × 791 | yes | 594 / 578 | 1 / 1 | 1 / 1 |
+| Tablet 1024 × 768 | yes | 943 | 2 | 2 |
+| Tablet 768 × 1024 | no | — | 1 | 1 |
+| Phone landscape 915 × 412 | no | — | 1 | 1 |
+| Desktop 1600 × 900 | yes | 1519 | 4 | 2 |
+
+**A tablet in landscape now gets two anime-list columns where 1.5.3 gave three.** The navigation
+rail takes 81 of its 1024, and a third column of the remaining 943 would be 306 wide — under the
+320 minimum. The count changed because the room did; the rule did not.
 
 Tiles are laid out **left to right, then top to bottom**. See
 [`functions/shared/widgets/adaptive_tile_grid.md`](functions/shared/widgets/adaptive_tile_grid.md)
 for why that is a builder over rows rather than a `GridView`.
 
+## Where navigation lives
+
+A **second rule, and deliberately a narrower one**:
+
+```dart
+bool useNavigationRail(double screenWidth) => screenWidth >= navRailMinWidth; // 600.0
+```
+
+Above it the shell renders a `NavigationRail` down the side; below it, the bottom `NavigationBar`
+it always had. Both are built from one list of destinations in
+[`shell_scaffold.dart`](functions/shared/widgets/shell_scaffold.md), so they cannot drift apart. The rail
+centres its destinations (`groupAlignment: 0`) rather than taking the default top alignment: a rail
+top-aligns to sit under a leading menu button or FAB, and this one has neither, so five
+destinations pinned to the top of a 704 dp rail would leave its whole lower half empty.
+
+**This is width-only on purpose, and must not be routed through `canSplitLayout`.** A rail is not a
+split. It trades width — abundant whenever the test passes — for height, which is not. The case it
+helps most is precisely the one the split rule rejects: an ordinary phone in landscape at
+915 × 412, where a bottom bar spends 19% of the height on navigation while 915 logical pixels of
+width sit unused. On a Z Fold 8 in landscape the window is only 704 tall, and the same trade
+applies.
+
+Two consequences follow through the rest of the app:
+
+- `shellContentWidth(screenWidth)` subtracts `navRailWidth` (81 = an 80 dp rail plus its 1 dp
+  divider) whenever the rail is showing. Every capacity is measured from that, never from the raw
+  screen width.
+- `shellListBottomInset(screenWidth)` drops the 80 dp that scrolling pages reserved for the bottom
+  bar down to 16 when there is no bottom bar — otherwise the reservation becomes dead space at the
+  exact moment vertical room is scarcest.
+
+Not done, deliberately: a `NavigationDrawer` above 1240 dp. The rail is correct through
+extra-large here, and a third navigation mode is not worth its cost.
+
 ## Measure the screen for the gate, the content for the capacity
 
-`canSplitLayout` reads `MediaQuery.sizeOf(context)` — the whole screen. `listColumnCapacity` and
-the detail page's pane sizing read the width the content actually gets. The asymmetry is
-deliberate: measuring the split decision against the `Scaffold` body would subtract the app bar
-from the height and inflate the ratio, reading a Z Fold 8 in portrait as `0.80` instead of `0.755`
-and leaving almost no margin under the threshold.
+`canSplitLayout` and `useNavigationRail` read `MediaQuery.sizeOf(context)` — the whole screen.
+Capacities and pane widths read what the content actually gets. The asymmetry is deliberate, for
+two separate reasons:
+
+- Measuring the split decision against the `Scaffold` body would subtract the app bar from the
+  height and inflate the ratio, reading a Z Fold 8 in portrait as `0.80` instead of `0.755` and
+  leaving almost no margin under the threshold.
+- The gate asks about the window's *shape*, which the rail does not change. The capacity asks how
+  much room is left, which the rail very much does.
 
 ## Folding and unfolding
 
@@ -130,19 +186,22 @@ folding or unfolding resizes the window **without restarting the activity**. Eve
 `MediaQuery.sizeOf` therefore re-evaluates on the next frame, which is all "switch automatically
 when the device unfolds" needs — no lifecycle work, and no state to save and restore.
 
-## Where this rule is and is not used
+## Where these rules are used
 
-| Call site | Uses the rule |
-|---|---|
-| `anime_detail_page.dart` | Yes, through `useDetailTwoPane`, a one-line delegate to `canSplitLayout`. |
-| `home_page.dart`, `management_page.dart`, `statistics_page.dart` | Yes, through `listColumnCount`. |
-| `kana_page.dart` | **No.** |
+| Call site | Split rule | Notes |
+|---|---|---|
+| `anime_detail_page.dart` | Yes | Through `useDetailTwoPane`, a one-line delegate to `canSplitLayout`. |
+| `home_page.dart`, `management_page.dart`, `statistics_page.dart` | Yes | Through `listColumnCount`. |
+| `settings_page.dart` | Yes | Two panes: the first-level list on the left, the second-level page it leads to on the right. |
+| `kana_page.dart` | Yes | Gated by `canSplitLayout`, then by whether two 330 dp tables fit. |
+| `shell_scaffold.dart` | No — `useNavigationRail` | Width only; see above. |
 
-`kana_page.dart` has its own inline `constraints.maxWidth >= 720` for its two-column card `Wrap`,
-predating this module, and is deliberately left alone. Routing it through `canSplitLayout` would
-change its behaviour on a tablet in portrait — 720 × 1280 currently gives two columns and the
-aspect rule would give one — which is a user-visible change nobody asked for. It is recorded here
-so the inconsistency is a known exception rather than a discovery.
+**The `kana_page.dart` exception recorded here in 1.5.3 is resolved.** It used to carry its own
+inline `constraints.maxWidth >= 720` for the rule cards' two-column `Wrap`, and was left alone
+because changing it would have altered tablet-portrait behaviour nobody had asked about. Routing it
+through `columnCapacity` in 1.5.4 turns out to *preserve* that behaviour rather than change it: the
+rail leaves a tablet in portrait 655 dp of rule width, which the `720` literal would have failed
+and the shared arithmetic passes. There is no longer a second layout rule anywhere in `lib/`.
 
 ## Divergence from Google's guidance
 
@@ -151,15 +210,27 @@ size of the device screen" and "not intended for *isTablet*-type logic", and dir
 from available width rather than aspect ratio. This app **deliberately diverges** on one point: the
 aspect test. It is not an oversight. Width alone cannot give the Fold 8 two different answers in
 its two orientations, and that behaviour — split in landscape, original single column in portrait —
-is the requirement the rule exists to satisfy. The width and height floors follow Google's
-breakpoints exactly, and the column capacity follows its feed guidance exactly.
+is the requirement the rule exists to satisfy.
+
+Everything else follows Google exactly: the width and height floors are its breakpoints, the column
+capacity is its feed guidance, and the navigation rail at medium width and up is its recommendation
+verbatim.
 
 ## Tests
 
-- `test/adaptive_layout_test.dart` — the gate, the capacity, the preference clamping and the row
-  math, pinned at the real logical-pixel geometry of every device in the tables above, with the
-  device named in a comment so a regression names the device it would break. It also asserts that
-  `useDetailTwoPane` and `canSplitLayout` still agree, so the delegation cannot silently drift.
+- `test/adaptive_layout_test.dart` — the gate, the rail rule, the content width, the capacity, the
+  preference clamping, the settings pane width and the row math, pinned at the real logical-pixel
+  geometry of every device in the tables above, with the device named in a comment so a regression
+  names the device it would break. It also asserts that `useDetailTwoPane` and `canSplitLayout`
+  still agree, so the delegation cannot silently drift.
 - `test/detail_layout_test.dart` — the detail page's pane and cover sizing.
-- `test/list_columns_ui_test.dart` and `test/detail_layout_ui_test.dart` — the rendered result,
-  driven through the real pages at the same geometries.
+- `test/list_columns_ui_test.dart`, `test/detail_layout_ui_test.dart`,
+  `test/kana_layout_ui_test.dart`, `test/settings_two_pane_ui_test.dart` and
+  `test/shell_nav_ui_test.dart` — the rendered result, driven through the real pages at the same
+  geometries.
+
+`flutter_test` renders every glyph of its default font as a full em square, which inflates a label
+to roughly two and a half times its real width. That is why `settings_two_pane_ui_test.dart` runs
+in Simplified Chinese: the English option labels would overflow their rows in the test environment
+and nowhere else, and short Chinese labels let the test measure the real layout rather than filter
+errors around a fake one.

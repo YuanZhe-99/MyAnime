@@ -715,6 +715,9 @@ class AppLocalizationsJa extends AppLocalizations {
   String get settingsData => 'データ';
 
   @override
+  String get settingsSelectItem => '左のリストから項目を選択してください';
+
+  @override
   String get settingsAbout => 'バージョン情報';
 
   @override

@@ -628,7 +628,10 @@
 `build` 读取 `MediaQuery.sizeOf(context)`，向
 [`canSplitLayout`](../../../shared/utils/adaptive_layout.md#cansplitlayout) 询问该视口是否可以拆分，并把
 [`listColumnCount`](../../../shared/utils/adaptive_layout.md#listcolumncount) 的结果——被宽度容量钳制后的存储
-偏好——向下传给列表构建器。条目由
+偏好——向下传给列表构建器。它据以测量容量的宽度是
+[`shellContentWidth`](../../../shared/utils/adaptive_layout.md#shellcontentwidth) 而非原始屏幕宽度：自
+1.5.4 起外壳可能正在显示侧边导航栏，其中 81 逻辑像素并不归这个列表支配。门控仍然读取未经处理的屏幕尺寸，
+因为它问的是窗口的形状，而不是窗口内部还剩多少空间。条目由
 [`adaptiveTileRows` / `adaptiveTileRow`](../../../shared/widgets/adaptive_tile_grid.md) 按从左到右、然后从上到下
 排布，应用栏中带有一个
 [`listColumnsButton`](../../../shared/widgets/adaptive_tile_grid.md#listcolumnsbutton)，当只容得下一列时它会被

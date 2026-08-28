@@ -10,7 +10,8 @@ Architecture" section. See [`data-formats.md`](data-formats.md) for the data mod
 - `lib/main.dart` — app entry point.
 - `lib/app/app.dart` — root `MaterialApp`/`App` widget wiring.
 - `lib/app/router.dart` — navigation, built on `go_router`. The router uses a `ShellRoute` wrapping
-  five bottom-navigation tabs:
+  five navigation tabs — rendered as a bottom `NavigationBar` on a narrow window and a side
+  `NavigationRail` from 600 logical pixels up, see [`adaptive-layout.md`](adaptive-layout.md):
   - Home (`/home`, `home_page.dart`)
   - Manage (`/manage`, `management_page.dart`)
   - Stats (`/stats`, `statistics_page.dart`)
@@ -158,8 +159,11 @@ feature area:
 - **Navigation:** `go_router` with a `ShellRoute` and the five bottom tabs listed above.
 - **Visual system:** Material 3 via `flex_color_scheme`.
 - **Responsive layout:** one shared rule decides when the UI may split into panes or columns, and
-  how many columns a list gets — `shared/utils/adaptive_layout.dart`, derived in
-  [`adaptive-layout.md`](adaptive-layout.md). Do not add a new inline width breakpoint.
+  how many columns a list gets; a second, width-only rule decides whether navigation sits at the
+  side or along the bottom. Both live in `shared/utils/adaptive_layout.dart` and are derived in
+  [`adaptive-layout.md`](adaptive-layout.md). **Do not add a new inline width breakpoint** — as of
+  1.5.4 there is not a single one left in `lib/`. Measure capacity against `shellContentWidth`,
+  never the raw screen width, because the navigation rail is not the page's to spend.
 - **File I/O:** should go through `AnimeStorage.getAppDir()` so custom storage paths (see
   `storage_config.json` in [`data-formats.md`](data-formats.md)) work consistently.
 - **JSON formatting:** output is pretty-printed with `JsonEncoder.withIndent('  ')` everywhere data

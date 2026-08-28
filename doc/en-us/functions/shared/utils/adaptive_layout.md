@@ -3,13 +3,16 @@
 The app-wide adaptive-layout policy: the `splitMinWidth`, `splitMinHeight` and `splitMinAspect`
 thresholds that decide whether a layout may split at all, and the `listTileMinWidth`,
 `listTileGap`, `listMaxColumns` and `listColumnsAuto` constants that decide how many columns a list
-gets once it may. Four pure helpers sit on top of them.
+gets once it may, plus `navRailMinWidth`, `navRailWidth` and `settingsRightPaneMinWidth`
+for the shell's navigation rail and the settings detail pane. Nine pure helpers sit on top of
+them.
 
 The module deliberately depends on nothing but `dart:core` — it holds no Flutter imports, and
 `canSplitLayout` takes two doubles rather than a `Size` for exactly that reason — so every helper
 is directly unit-testable (`test/adaptive_layout_test.dart`), and the rendered result is covered
-separately at real device geometries by `test/list_columns_ui_test.dart` and
-`test/detail_layout_ui_test.dart`.
+separately at real device geometries by `test/list_columns_ui_test.dart`,
+`test/detail_layout_ui_test.dart`, `test/kana_layout_ui_test.dart`,
+`test/settings_two_pane_ui_test.dart` and `test/shell_nav_ui_test.dart`.
 
 The prose derivation of these numbers, the foldable device tables and the reconciliation with
 Google's guidance live in [../../../adaptive-layout.md](../../../adaptive-layout.md). This page
@@ -19,18 +22,25 @@ Consumers: `detail_layout.dart` (see [detail_layout.md](detail_layout.md)), whos
 `useDetailTwoPane` is a one-line delegate to `canSplitLayout`; `home_page.dart`,
 `management_page.dart` and `statistics_page.dart` for their list column counts; and
 `anime_storage.dart` and `app_settings.dart` for `listColumnsAuto` and `listMaxColumns` when
-validating the stored preference.
+validating the stored preference; `shell_scaffold.dart` for `useNavigationRail`;
+`kana_page.dart` for `columnCapacity` at its own minimums; and `settings_page.dart` for
+`settingsLeftPaneWidth`.
 
 ## Declarations
 
 | Declaration | Kind | Tier | Purpose |
 |---|---|---|---|
 | [`canSplitLayout`](#cansplitlayout) | top-level function | A | Report whether a layout may split into panes or columns. |
+| [`useNavigationRail`](#usenavigationrail) | top-level function | A | Report whether the shell should show a navigation rail. |
+| [`shellContentWidth`](#shellcontentwidth) | top-level function | A | Return the width a shell page's content actually receives. |
+| [`shellListBottomInset`](#shelllistbottominset) | top-level function | A | Return the bottom padding a shell page's scrolling list needs. |
+| [`columnCapacity`](#columncapacity) | top-level function | A | Return how many columns of a given minimum width fit a content box. |
 | [`listColumnCapacity`](#listcolumncapacity) | top-level function | A | Return how many list columns a given content width can carry. |
 | [`listColumnCount`](#listcolumncount) | top-level function | A | Return the number of columns a list should actually render. |
 | [`listRowCount`](#listrowcount) | top-level function | A | Return how many rows a list of items needs at a column count. |
+| [`settingsLeftPaneWidth`](#settingsleftpanewidth) | top-level function | A | Return the width of the settings page's fixed left pane. |
 
-The seven constants are plain declarations without `/// Purpose:` comments and are not indexed as
+The ten constants are plain declarations without `/// Purpose:` comments and are not indexed as
 separate rows.
 
 ## Documentation
@@ -66,29 +76,113 @@ separate rows.
   from Google's "use width, not aspect ratio" guidance are in
   [../../../adaptive-layout.md](../../../adaptive-layout.md).
 
-### `int listColumnCapacity(double contentWidth)` <a id="listcolumncapacity"></a>
+### `bool useNavigationRail(double screenWidth)` <a id="usenavigationrail"></a>
 - **Kind:** top-level function
-- **Source:** `lib/shared/utils/adaptive_layout.dart` (approx. line 68)
-- **Purpose:** Report how many columns of at least `listTileMinWidth` fit in the width a list gets.
-- **Inputs:** `contentWidth` — the width available to the list, in logical pixels.
-- **Returns:** `int`, at least 1 and at most `listMaxColumns` (4).
+- **Source:** `lib/shared/utils/adaptive_layout.dart` (approx. line 87)
+- **Purpose:** Decide whether the shell puts navigation at the side or along the bottom.
+- **Inputs:** `screenWidth` â the whole screen width in logical pixels.
+- **Returns:** `bool`.
 - **Side effects:** None.
-- **Algorithm:** `((contentWidth + listTileGap) / (listTileMinWidth + listTileGap)).floor()`,
-  clamped to `[1, listMaxColumns]`. Adding one gap to the numerator is what makes the arithmetic
-  count gaps *between* columns rather than after every column. A non-positive width returns 1.
+- **Algorithm:** `screenWidth >= navRailMinWidth` (600.0).
 - **Usage:**
   ```dart
-  final contentWidth = screen.width - 32;
+  if (!useNavigationRail(MediaQuery.sizeOf(context).width)) {
+    return Scaffold(body: child, bottomNavigationBar: NavigationBar(...));
+  }
+  ```
+  (from `ShellScaffold.build`)
+- **Notes:** **Width only, deliberately â this is not [`canSplitLayout`](#cansplitlayout) and must
+  not be routed through it.** A rail is not a split: it trades width, which is abundant whenever
+  this returns true, for height, which is not. The case it helps most is the one the split rule
+  rejects on purpose â an ordinary phone in landscape at 915 Ã 412, where a bottom bar spends 19%
+  of the height on navigation while 915 logical pixels of width sit unused.
+
+### `double shellContentWidth(double screenWidth)` <a id="shellcontentwidth"></a>
+- **Kind:** top-level function
+- **Source:** `lib/shared/utils/adaptive_layout.dart` (approx. line 96)
+- **Purpose:** Report how much width is left for a shell page after the navigation rail.
+- **Inputs:** `screenWidth` â the whole screen width in logical pixels.
+- **Returns:** `double`, never negative.
+- **Side effects:** None.
+- **Algorithm:** Subtracts `navRailWidth` (81 â an 80 dp rail plus its 1 dp divider) when
+  [`useNavigationRail`](#usenavigationrail) is true, and floors the result at zero.
+- **Usage:**
+  ```dart
+  final contentWidth = shellContentWidth(screen.width);
+  final capacity = canSplitLayout(screen.width, screen.height)
+      ? listColumnCapacity(contentWidth)
+      : 1;
+  ```
+  (from `_ManagementPageState.build`)
+- **Notes:** Pass the result wherever a capacity or a pane width is being computed; keep passing
+  the untouched screen size to `canSplitLayout`, which asks about the window's shape rather than
+  about the room left inside it. Introduced in 1.5.4 with the rail: before it, the three list pages
+  passed the raw screen width and were correct only because nothing had been subtracted yet.
+
+### `double shellListBottomInset(double screenWidth)` <a id="shelllistbottominset"></a>
+- **Kind:** top-level function
+- **Source:** `lib/shared/utils/adaptive_layout.dart` (approx. line 110)
+- **Purpose:** Give a scrolling page the bottom padding its shell chrome calls for.
+- **Inputs:** `screenWidth` â the whole screen width in logical pixels.
+- **Returns:** `double` â 16 with a rail, 80 with a bottom bar.
+- **Side effects:** None.
+- **Algorithm:** `useNavigationRail(screenWidth) ? 16.0 : 80.0`.
+- **Usage:**
+  ```dart
+  padding: EdgeInsets.only(
+    bottom: shellListBottomInset(MediaQuery.sizeOf(context).width),
+  ),
+  ```
+  (from `_ManagementPageState._buildQuarterView`)
+- **Notes:** The bottom navigation bar overlaps the last rows of a list, so pages reserve room for
+  it. A rail takes width instead, and the reservation becomes dead space at the exact moment
+  vertical room is scarcest â a Z Fold 8 in landscape is only 704 logical pixels tall.
+
+### `int columnCapacity(double contentWidth, {required double minItemWidth, double gap = listTileGap, int maxColumns = listMaxColumns})` <a id="columncapacity"></a>
+- **Kind:** top-level function
+- **Source:** `lib/shared/utils/adaptive_layout.dart` (approx. line 122)
+- **Purpose:** Report how many columns of a given minimum width fit a content box.
+- **Inputs:** `contentWidth` â the width available, in logical pixels; `minItemWidth` â the
+  narrowest one column may be; `gap` â spacing between columns; `maxColumns` â a ceiling however
+  wide the box is.
+- **Returns:** `int`, at least 1 and at most `maxColumns`.
+- **Side effects:** None.
+- **Algorithm:** `((contentWidth + gap) / (minItemWidth + gap)).floor()`, clamped to
+  `[1, maxColumns]`. Adding one gap to the numerator is what makes the arithmetic count gaps
+  *between* columns rather than after every column. A non-positive `contentWidth` returns 1; a
+  non-positive `minItemWidth` returns the ceiling rather than dividing by zero.
+- **Usage:**
+  ```dart
+  final twoColumn = canSplitLayout(screen.width, screen.height) &&
+      columnCapacity(contentWidth, minItemWidth: 330, maxColumns: 2) >= 2;
+  ```
+  (from `_KanaPageState.build`)
+- **Notes:** The adaptive-minimum-width approach Google recommends for feeds and grids, rather than
+  a hardcoded count per breakpoint. Generalized out of `listColumnCapacity` in 1.5.4 so the kana
+  page could bring its own minimums â 330 for a five-column kana table, 320 for a rule card, both
+  capped at two â instead of the hardcoded `720` breakpoint it had carried since before this module
+  existed.
+
+### `int listColumnCapacity(double contentWidth)` <a id="listcolumncapacity"></a>
+- **Kind:** top-level function
+- **Source:** `lib/shared/utils/adaptive_layout.dart` (approx. line 140)
+- **Purpose:** Report how many columns of at least `listTileMinWidth` fit in the width a list gets.
+- **Inputs:** `contentWidth` â the width available to the list, in logical pixels.
+- **Returns:** `int`, at least 1 and at most `listMaxColumns` (4).
+- **Side effects:** None.
+- **Algorithm:** [`columnCapacity`](#columncapacity) at `minItemWidth: listTileMinWidth`.
+- **Usage:**
+  ```dart
+  final contentWidth = shellContentWidth(screen.width) - 32;
   final capacity = canSplitLayout(screen.width, screen.height)
       ? listColumnCapacity(contentWidth)
       : 1;
   ```
   (from `_StatisticsPageState.build`, whose lists sit inside a 16 dp horizontal page padding)
-- **Notes:** This is the adaptive-minimum-width approach Google recommends for feed layouts, rather
-  than a hardcoded column count per breakpoint. 320 dp is what a list tile needs before its
-  40 × 56 cover, two lines of text and up to two trailing icon buttons squeeze the title to
-  nothing. Pass the width the list actually gets, not the screen width, so page padding is already
-  accounted for.
+- **Notes:** 320 dp is what a list tile needs before its 40 Ã 56 cover, two lines of text and up to
+  two trailing icon buttons squeeze the title to nothing. Pass the width the list actually gets â
+  [`shellContentWidth`](#shellcontentwidth) less any page padding â not the screen width, so both
+  the rail and the padding are accounted for.
 
 ### `int listColumnCount({required double screenWidth, required double screenHeight, required double contentWidth, required int preference})` <a id="listcolumncount"></a>
 - **Kind:** top-level function
@@ -145,3 +239,30 @@ separate rows.
 - **Notes:** The last row may be short; `adaptiveTileRow` pads it so the remaining tiles keep their
   width instead of stretching across the row. Guarding `columns < 1` keeps the arithmetic total
   rather than dividing by zero at a call site that has not clamped yet.
+
+### `double settingsLeftPaneWidth(double contentWidth)` <a id="settingsleftpanewidth"></a>
+- **Kind:** top-level function
+- **Source:** `lib/shared/utils/adaptive_layout.dart` (approx. line 189)
+- **Purpose:** Return the width of the settings page's fixed left pane.
+- **Inputs:** `contentWidth` â the width both panes share, which is
+  [`shellContentWidth`](#shellcontentwidth) rather than the screen width.
+- **Returns:** `double`.
+- **Side effects:** None.
+- **Algorithm:** `(contentWidth * 0.44).clamp(300, 440)`, then capped at
+  `contentWidth - settingsRightPaneMinWidth` (280) and floored at 240 if that cap binds.
+- **Usage:**
+  ```dart
+  SizedBox(
+    width: settingsLeftPaneWidth(constraints.maxWidth),
+    child: list,
+  ),
+  ```
+  (from `_SettingsPageState.build`, inside a `LayoutBuilder` so the width is measured after the
+  navigation rail)
+- **Notes:** Wider than the detail page's `detailLeftPaneWidth`, because this pane carries full
+  `ListTile`s with trailing dropdowns rather than a cover and a column of text. The cap only binds
+  on a hand-resized desktop window and on the narrowest unfolded foldables â a Z Fold 5 leaves 578
+  after the rail, where the pane gives up width rather than let the detail pane become unusable.
+  Those rows are cramped there, with the title wrapping beside its dropdown; that was accepted in
+  exchange for the settings gate staying the one shared `canSplitLayout` rather than growing a
+  threshold of its own.

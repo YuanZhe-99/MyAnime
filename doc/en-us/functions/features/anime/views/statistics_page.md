@@ -807,7 +807,12 @@ action sheet.
 [`canSplitLayout`](../../../shared/utils/adaptive_layout.md#cansplitlayout) whether this viewport
 may split at all, and passes the result of
 [`listColumnCount`](../../../shared/utils/adaptive_layout.md#listcolumncount) — the stored
-preference clamped to what the width fits — down to the list builders. The tiles are laid out left
+preference clamped to what the width fits — down to the list builders. The width it measures the
+capacity against is
+[`shellContentWidth`](../../../shared/utils/adaptive_layout.md#shellcontentwidth), not the raw
+screen width: since 1.5.4 the shell may be showing a navigation rail, and 81 logical pixels of it
+are not this list's to spend. The gate still reads the untouched screen size, because it asks
+about the window's shape rather than the room left inside it. The tiles are laid out left
 to right then top to bottom by
 [`adaptiveTileRows` / `adaptiveTileRow`](../../../shared/widgets/adaptive_tile_grid.md), and the
 app bar carries a

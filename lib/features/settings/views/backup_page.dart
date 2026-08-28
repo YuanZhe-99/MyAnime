@@ -168,9 +168,7 @@ class _BackupPageState extends State<BackupPage> {
     if (result.missingImages > 0 && mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(
-            l10n.backupRestoreMissingImages(result.missingImages),
-          ),
+          content: Text(l10n.backupRestoreMissingImages(result.missingImages)),
         ),
       );
     }
@@ -376,13 +374,18 @@ class _BackupPageState extends State<BackupPage> {
                     leading: const Icon(Icons.auto_delete),
                     title: Text(l10n.backupRetention),
                     trailing: DropdownButton<int>(
+                      alignment: AlignmentDirectional.centerEnd,
                       value: _retentionDays,
                       underline: const SizedBox.shrink(),
                       items: _retentionOptions.map((d) {
                         final label = d == 0
                             ? l10n.backupKeepForever
                             : l10n.backupKeepDays(d);
-                        return DropdownMenuItem(value: d, child: Text(label));
+                        return DropdownMenuItem(
+                          alignment: AlignmentDirectional.centerEnd,
+                          value: d,
+                          child: Text(label),
+                        );
                       }).toList(),
                       onChanged: (v) {
                         if (v != null) _setRetention(v);
@@ -420,9 +423,7 @@ class _BackupPageState extends State<BackupPage> {
                               b.corrupt
                                   ? Icons.error_outline
                                   : Icons.inventory_2_outlined,
-                              color: b.corrupt
-                                  ? theme.colorScheme.error
-                                  : null,
+                              color: b.corrupt ? theme.colorScheme.error : null,
                             ),
                             title: Text(dateStr),
                             subtitle: Text(

@@ -1337,6 +1337,12 @@ abstract class AppLocalizations {
   /// **'Data'**
   String get settingsData;
 
+  /// No description provided for @settingsSelectItem.
+  ///
+  /// In en, this message translates to:
+  /// **'Select an item from the list'**
+  String get settingsSelectItem;
+
   /// No description provided for @settingsAbout.
   ///
   /// In en, this message translates to:
