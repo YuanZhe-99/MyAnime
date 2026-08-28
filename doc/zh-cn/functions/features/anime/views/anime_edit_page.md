@@ -20,7 +20,10 @@
 | [`_buildLocalArchive`](#_buildlocalarchive) | 方法（`_AnimeEditPageState`） | A | 从存档控件组装 `AnimeLocalArchive`，未填写则 `null`。 |
 | `_parseScore` | 方法（`_AnimeEditPageState`） | B | 把评分控制器的文本解析为 `double?`。 |
 | `_formatScore` | 方法（`_AnimeEditPageState`） | B | 分数为整数时格式化为整数，否则保留一位小数。 |
-| `_AnimeEditPageState.build` | 方法（`_AnimeEditPageState`，组件构建） | B | 构建编辑/创建表单脚手架。 |
+| [`_AnimeEditPageState.build`](#_animeeditpagestate_build) | 方法（`_AnimeEditPageState`，组件构建） | A | 把编辑/创建表单构建为单列或双栏。 |
+| [`_buildCoverPicker`](#_buildcoverpicker) | 方法（`_AnimeEditPageState`） | A | 以显式尺寸构建封面选择器。 |
+| [`_buildTitleFields`](#_buildtitlefields) | 方法（`_AnimeEditPageState`） | A | 构建与封面共处左栏的两个标题字段。 |
+| [`_buildDetailFields`](#_builddetailfields) | 方法（`_AnimeEditPageState`） | A | 构建两个标题之下的每一个表单字段。 |
 | `_buildRatingField` | 方法（组件辅助） | B | 渲染一个带校验的 0–10 评分 `TextFormField`。 |
 | `_dayName` | 方法（`_AnimeEditPageState`） | B | 本地化星期几数字供播出日下拉框使用。 |
 | `_typeLabel` | 方法（`_AnimeEditPageState`） | B | 本地化 `AnimeType` 值供类型覆盖下拉框使用。 |
@@ -222,3 +225,92 @@
   ```
   （`_WatchUrlSearchDialogState.initState`，同一文件；也从搜索字段的 `onSubmitted` 和搜索 `FilledButton` 重新调用）
 - **备注：** 错误以原始 `e.toString()` 文本浮出，而不是本地化消息。
+
+### `Widget build(BuildContext context)` <a id="_animeeditpagestate_build"></a>
+- **种类：** `_AnimeEditPageState` 的方法（组件构建）
+- **来源：** `lib/features/anime/views/anime_edit_page.dart`（约第 487 行）
+- **用途：** 把编辑/创建表单构建为单列或双栏。
+- **输入：** `context`。
+- **返回：** 该页面的控件树。
+- **副作用：** 由当前状态创建 UI 控件。
+- **算法：**
+  1. 先各构建一次 `_buildTitleFields` 与 `_buildDetailFields`，使两种布局拿到的是同一批控件。
+  2. 当 `useDetailTwoPane(screen.width, screen.height)` 为假时，返回原本那个单一 `ListView`：120 × 170 的封面、
+     两个标题，然后是其余字段。
+  3. 否则返回一个 `Row`：一个 `SizedBox(width: detailLeftPaneWidth(constraints.maxWidth))` 装着按
+     `editCoverSize` 定尺寸的封面与两个标题，一条 `VerticalDivider(width: 1)`，以及一个装着其余字段的
+     `Expanded` `ListView`。
+- **用法：**
+  ```dart
+  GoRoute(
+    path: '/anime/edit/:id',
+    builder: (context, state) =>
+        AnimeEditPage(animeId: state.pathParameters['id']),
+  ),
+  ```
+  （出自 `lib/app/router.dart` 中的 `appRouter`）
+- **备注：** 于 1.5.5 加入，采用详情页自 1.5.2 起就有的形状，并且经由同一个 `useDetailTwoPane` 委托。这条路由位于
+  `ShellRoute` **之外**，因此没有侧边导航栏需要扣除，`constraints.maxWidth` 就是整块宽度——这也是它成为唯一
+  一个不经过 `shellContentWidth` 的自适应页面的原因。
+
+  两栏都留在同一个 `Form` 内，因此 `_save` 的 `validate()` 仍能同时够到左边的标题字段与右边的季度字段。这里
+  除了状态对象本来就持有的那些控制器之外没有任何状态，所以折叠设备会在下一帧互换两种布局，而输了一半的标题
+  原封不动。
+
+### `Widget _buildCoverPicker({required double width, required double height})` <a id="_buildcoverpicker"></a>
+- **种类：** `_AnimeEditPageState` 的方法
+- **来源：** `lib/features/anime/views/anime_edit_page.dart`（约第 552 行）
+- **用途：** 以显式尺寸构建封面选择器。
+- **输入：** `width`、`height`——选择器方框的逻辑像素尺寸。
+- **返回：** `Widget`。
+- **副作用：** 经由 `ImageService.resolve` 读取封面文件；点击会打开图片选择器。
+- **算法：** 一个 `Center` 套 `GestureDetector` 套按给定尺寸的 `Container`，显示解析出的封面文件或
+  `add_photo_alternate` 图标。
+- **用法：**
+  ```dart
+  _buildCoverPicker(width: cover.width, height: cover.height),
+  ```
+  （出自同一文件 `build` 的双栏分支）
+- **备注：** 于 1.5.5 从 `build` 中抽出并接受尺寸参数，因为双栏布局是由其左栏剩下的高度推导它的，而单列布局保持
+  原本固定的 120 × 170 方框。与 `anime_detail_page._buildCover` 对应。
+
+### `List<Widget> _buildTitleFields(AppLocalizations l10n)` <a id="_buildtitlefields"></a>
+- **种类：** `_AnimeEditPageState` 的方法
+- **来源：** `lib/features/anime/views/anime_edit_page.dart`（约第 596 行）
+- **用途：** 构建与封面共处左栏的两个标题字段。
+- **输入：** `l10n`。
+- **返回：** `List<Widget>`——标题字段、一个 12 dp 间距、日文标题字段。
+- **副作用：** 无。
+- **算法：** 原样返回那两个 `TextFormField`，与它们在单列形态下完全相同。
+- **用法：**
+  ```dart
+  final titleFields = _buildTitleFields(l10n);
+  ```
+  （出自同一文件的 `build`）
+- **备注：** 与 [`_buildDetailFields`](#_builddetailfields) 分开，因为这恰是用户要求留在封面旁边的那些。无论渲染
+  在哪里它们都必须待在一起：标题的校验器在日文标题已填写时接受空值，因此把它们拆开会让一个字段的有效性落在
+  另一栏里。
+
+### `List<Widget> _buildDetailFields(AppLocalizations l10n)` <a id="_builddetailfields"></a>
+- **种类：** `_AnimeEditPageState` 的方法
+- **来源：** `lib/features/anime/views/anime_edit_page.dart`（约第 630 行）
+- **用途：** 构建两个标题之下的每一个表单字段。
+- **输入：** `l10n`。
+- **返回：** `List<Widget>`——季度、集数区间、类型、播出日、播出时间、首播日期、信息 URL、观看 URL、评分卡片、
+  本地存档卡片与备注。
+- **副作用：** 无。
+- **算法：** 原样返回那些字段，与它们原本作为 `build` 中 `ListView` 尾部时完全相同。
+- **用法：**
+  ```dart
+  Expanded(
+    child: ListView(
+      padding: const EdgeInsets.all(16),
+      children: detailFields,
+    ),
+  ),
+  ```
+  （出自同一文件 `build` 的双栏分支）
+- **备注：** 在双栏布局里它们是滚动栏的子控件，否则就是那个单一 `ListView` 的尾部——一份列表、两个宿主，因此
+  字段顺序不可能在两种布局之间走样。`test/local_archive_ui_test.dart` 滚动的正是这个 `ListView`；自 1.5.5 起它
+  必须经由 `find.byType(ListView)` 来指认它，而不能再当作页面上的第一个 `Scrollable`，因为左栏的滚动视图现在
+  排在前面。

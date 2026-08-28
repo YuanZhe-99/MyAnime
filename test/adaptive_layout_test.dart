@@ -264,4 +264,94 @@ void main() {
       expect(578 - left, settingsRightPaneMinWidth);
     });
   });
+
+  group('statistics summary beside the chart', () {
+    test('needs both blocks to fit, not merely a wide window', () {
+      // The gate is exactly the two minimums plus the gap between them.
+      expect(useStatsSideBySide(651), isFalse);
+      expect(useStatsSideBySide(652), isTrue);
+    });
+
+    test('the three foldables that split but stay stacked', () {
+      // All three pass canSplitLayout and still fail on width: the chart would
+      // be left too little to plot in. This is why the gate has two parts.
+      expect(canSplitLayout(659, 791), isTrue); // Z Fold 5
+      expect(canSplitLayout(675, 786), isTrue); // Z Fold 6
+      expect(canSplitLayout(750, 832), isTrue); // Z Fold 7 portrait
+      expect(useStatsSideBySide(shellContentWidth(659) - 32), isFalse);
+      expect(useStatsSideBySide(shellContentWidth(675) - 32), isFalse);
+      expect(useStatsSideBySide(shellContentWidth(750) - 32), isFalse);
+    });
+
+    test('the devices that do get it', () {
+      expect(useStatsSideBySide(shellContentWidth(933) - 32), isTrue); // Fold 8
+      expect(useStatsSideBySide(shellContentWidth(791) - 32), isTrue); // Pixel
+      expect(useStatsSideBySide(shellContentWidth(832) - 32), isTrue); // Fold 7
+      expect(
+        useStatsSideBySide(shellContentWidth(1024) - 32),
+        isTrue,
+      ); // tablet
+    });
+
+    test('the card pane is proportional between its clamps', () {
+      expect(statsSummaryPaneWidth(820), closeTo(278.8, 0.01)); // Z Fold 8
+      expect(statsSummaryPaneWidth(678), statsSummaryPaneMinWidth); // floor
+      expect(statsSummaryPaneWidth(1487), 360); // desktop ceiling
+    });
+
+    test('the chart always keeps its minimum once the gate has passed', () {
+      // The invariant that lets statsSummaryPaneWidth skip the right-hand cap
+      // that settingsLeftPaneWidth needs: the pane grows at 0.34 of the width
+      // and the chart at 0.66, so the floor is met exactly at the gate and only
+      // widens above it.
+      for (var width = 652.0; width <= 2000.0; width += 1) {
+        final chart = width - statsSummaryPaneWidth(width) - listTileGap;
+        expect(
+          chart,
+          greaterThanOrEqualTo(statsChartMinWidth),
+          reason: 'chart starved at content width $width',
+        );
+      }
+    });
+  });
+
+  group('ranking filter panel', () {
+    int filterPairs(double width) => columnCapacity(
+      width,
+      minItemWidth: rankingFilterMinWidth,
+      maxColumns: 2,
+    );
+
+    test('the two filter dropdowns pair from 572 up', () {
+      expect(filterPairs(571), 1);
+      expect(filterPairs(572), 2);
+    });
+
+    test('the three sort controls share a row from 674 up', () {
+      expect(useRankingSortRow(673), isFalse);
+      expect(useRankingSortRow(674), isTrue);
+    });
+
+    test('a phone in landscape gets both, although it never splits', () {
+      // 915 x 412: the rail applies, the split rule does not, and the pairing
+      // is a width question — so the shortest viewport of all gets the biggest
+      // saving. Held in portrait the same phone keeps today's stacked panel.
+      final landscape = shellContentWidth(915) - 32;
+      expect(canSplitLayout(915, 412), isFalse);
+      expect(filterPairs(landscape), 2);
+      expect(useRankingSortRow(landscape), isTrue);
+
+      final portrait = shellContentWidth(412) - 32;
+      expect(filterPairs(portrait), 1);
+      expect(useRankingSortRow(portrait), isFalse);
+    });
+
+    test('the custom-range buttons now share the filters own minimum', () {
+      // 1.5.4 left an inline `maxWidth < 560` here — the same question as the
+      // pairing above, asked its own way. It now asks it the same way, which
+      // moves the threshold by 12 logical pixels and nothing else.
+      expect(filterPairs(560), 1);
+      expect(filterPairs(572), 2);
+    });
+  });
 }

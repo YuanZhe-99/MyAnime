@@ -87,7 +87,14 @@ void main() {
 
   Future<void> openRanking(WidgetTester tester) async {
     tester.view.devicePixelRatio = 1.0;
-    tester.view.physicalSize = const Size(900, 1400);
+    // Wide enough that the ranking sort row, which shares one line from 674
+    // logical pixels up since 1.5.5, still fits `flutter_test`'s default font.
+    // That font renders every glyph as a full em square and inflates these
+    // English labels by roughly 2.5x; 900 overflows here while the real layout
+    // is comfortable. `statistics_layout_ui_test.dart` measures the geometry in
+    // Simplified Chinese for the same reason. This test is about which anime
+    // rank, not about where the controls sit, so it just needs the room.
+    tester.view.physicalSize = const Size(1100, 1400);
     addTearDown(tester.view.reset);
     await tester.runAsync(() async {
       await tester.pumpWidget(

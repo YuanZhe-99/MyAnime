@@ -31,7 +31,10 @@ and episode air-date computation.
 | [`_buildLocalArchive`](#_buildlocalarchive) | method (`_AnimeEditPageState`) | A | Assemble an `AnimeLocalArchive` from the archive controls, or `null` if untouched. |
 | `_parseScore` | method (`_AnimeEditPageState`) | B | Parse a rating controller's text into a `double?`. |
 | `_formatScore` | method (`_AnimeEditPageState`) | B | Format a score as an integer when whole, else one decimal place. |
-| `_AnimeEditPageState.build` | method (`_AnimeEditPageState`, widget build) | B | Build the edit/create form scaffold. |
+| [`_AnimeEditPageState.build`](#_animeeditpagestate_build) | method (`_AnimeEditPageState`, widget build) | A | Build the edit/create form as one column or two panes. |
+| [`_buildCoverPicker`](#_buildcoverpicker) | method (`_AnimeEditPageState`) | A | Build the cover picker at an explicit size. |
+| [`_buildTitleFields`](#_buildtitlefields) | method (`_AnimeEditPageState`) | A | Build the two title fields that share the left pane with the cover. |
+| [`_buildDetailFields`](#_builddetailfields) | method (`_AnimeEditPageState`) | A | Build every form field below the two titles. |
 | `_buildRatingField` | method (widget helper) | B | Render one 0–10 rating `TextFormField` with validation. |
 | `_dayName` | method (`_AnimeEditPageState`) | B | Localize a day-of-week number for the air-day dropdown. |
 | `_typeLabel` | method (`_AnimeEditPageState`) | B | Localize an `AnimeType` value for the type-override dropdown. |
@@ -292,3 +295,97 @@ and episode air-date computation.
   (`_WatchUrlSearchDialogState.initState`, same file; also re-invoked from the search field's
   `onSubmitted` and the search `FilledButton`)
 - **Notes:** Errors are surfaced as raw `e.toString()` text rather than a localized message.
+
+### `Widget build(BuildContext context)` <a id="_animeeditpagestate_build"></a>
+- **Kind:** method of `_AnimeEditPageState` (widget build)
+- **Source:** `lib/features/anime/views/anime_edit_page.dart` (approx. line 487)
+- **Purpose:** Build the edit/create form as one column or two panes.
+- **Inputs:** `context`.
+- **Returns:** The page's widget tree.
+- **Side effects:** Creates UI widgets from the current state.
+- **Algorithm:**
+  1. Build `_buildTitleFields` and `_buildDetailFields` once, so both layouts get the same widgets.
+  2. When `useDetailTwoPane(screen.width, screen.height)` is false, return the original single
+     `ListView`: cover at 120 × 170, the titles, then the detail fields.
+  3. Otherwise return a `Row` of a `SizedBox(width: detailLeftPaneWidth(constraints.maxWidth))`
+     holding the cover at `editCoverSize` and the two titles, a `VerticalDivider(width: 1)`, and an
+     `Expanded` `ListView` of the detail fields.
+- **Usage:**
+  ```dart
+  GoRoute(
+    path: '/anime/edit/:id',
+    builder: (context, state) =>
+        AnimeEditPage(animeId: state.pathParameters['id']),
+  ),
+  ```
+  (from `appRouter` in `lib/app/router.dart`)
+- **Notes:** Added in 1.5.5, on the shape the detail page has had since 1.5.2 and through the same
+  `useDetailTwoPane` delegate. This route sits **outside** the `ShellRoute`, so there is no
+  navigation rail to subtract and `constraints.maxWidth` is the whole width — which is why this is
+  the one adaptive page that does not go through `shellContentWidth`.
+
+  Both panes stay inside the single `Form`, so `_save`'s `validate()` still reaches the title field
+  on the left and the season field on the right. Nothing here is stateful beyond the controllers
+  the state object already owned, so folding the device swaps the layouts on the next frame with a
+  half-typed title intact.
+
+### `Widget _buildCoverPicker({required double width, required double height})` <a id="_buildcoverpicker"></a>
+- **Kind:** method of `_AnimeEditPageState`
+- **Source:** `lib/features/anime/views/anime_edit_page.dart` (approx. line 552)
+- **Purpose:** Build the cover picker at an explicit size.
+- **Inputs:** `width`, `height` — the picker box in logical pixels.
+- **Returns:** `Widget`.
+- **Side effects:** Reads the cover file through `ImageService.resolve`; tapping opens the picker.
+- **Algorithm:** A `Center` around a `GestureDetector` around a `Container` at the given size,
+  showing the resolved cover file or an `add_photo_alternate` icon.
+- **Usage:**
+  ```dart
+  _buildCoverPicker(width: cover.width, height: cover.height),
+  ```
+  (from `build`, same file, two-pane branch)
+- **Notes:** Extracted from `build` in 1.5.5 and given a size because the two-pane layout derives
+  it from the height its left pane has left over, while the single-column layout keeps the original
+  fixed 120 × 170 box. Mirrors `anime_detail_page._buildCover`.
+
+### `List<Widget> _buildTitleFields(AppLocalizations l10n)` <a id="_buildtitlefields"></a>
+- **Kind:** method of `_AnimeEditPageState`
+- **Source:** `lib/features/anime/views/anime_edit_page.dart` (approx. line 596)
+- **Purpose:** Build the two title fields that share the left pane with the cover.
+- **Inputs:** `l10n`.
+- **Returns:** `List<Widget>` — the title field, a 12 dp gap, the Japanese title field.
+- **Side effects:** None.
+- **Algorithm:** Returns the two `TextFormField`s unchanged from their single-column form.
+- **Usage:**
+  ```dart
+  final titleFields = _buildTitleFields(l10n);
+  ```
+  (from `build`, same file)
+- **Notes:** Separate from [`_buildDetailFields`](#_builddetailfields) because these are exactly
+  what the user asked to keep beside the cover. They have to stay together wherever they render:
+  the title's validator accepts an empty value when the Japanese title is filled in, so splitting
+  them would put a field's validity in another pane.
+
+### `List<Widget> _buildDetailFields(AppLocalizations l10n)` <a id="_builddetailfields"></a>
+- **Kind:** method of `_AnimeEditPageState`
+- **Source:** `lib/features/anime/views/anime_edit_page.dart` (approx. line 630)
+- **Purpose:** Build every form field below the two titles.
+- **Inputs:** `l10n`.
+- **Returns:** `List<Widget>` — season, episode range, type, air day, air time, first air date,
+  info URL, watch URL, the rating card, the local-archive card and notes.
+- **Side effects:** None.
+- **Algorithm:** Returns the fields verbatim from what used to be the tail of `build`'s `ListView`.
+- **Usage:**
+  ```dart
+  Expanded(
+    child: ListView(
+      padding: const EdgeInsets.all(16),
+      children: detailFields,
+    ),
+  ),
+  ```
+  (from `build`, same file, two-pane branch)
+- **Notes:** These are the scrolling pane's children in the two-pane layout and the tail of the
+  single `ListView` otherwise — one list, two hosts, so the field order cannot drift between the
+  layouts. This is the `ListView` `test/local_archive_ui_test.dart` scrolls; since 1.5.5 it must
+  address it through `find.byType(ListView)` rather than as the first `Scrollable` on the page,
+  because the left pane's scroll view now comes first.

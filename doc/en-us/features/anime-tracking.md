@@ -128,3 +128,20 @@ landscape and keeps the single column in portrait, while the near-square Fold 7 
 split in both. Tablets follow the same rule — split in landscape, single column in portrait. The
 exact thresholds and the reasoning behind each of them live in
 [`../functions/shared/utils/detail_layout.md`](../functions/shared/utils/detail_layout.md).
+
+## Edit page layout
+
+Since 1.5.5 the edit form takes the same shape on the same windows, through the same rule. The
+**cover picker and the two title fields are fixed on the left**; everything from the season down
+scrolls on the right. That keeps what is being edited on screen while the rest of the form moves,
+which a single long column could not.
+
+The left pane does not scroll. The cover is sized from the height the pane has left over rather
+than kept at a fixed 120 × 170, so the column fits by construction at any window the split rule
+admits — down to the 480 dp minimum height, where the cover shrinks instead of the fields running
+off the bottom. The pane can still scroll if a soft keyboard shrinks the window past what that
+arithmetic covers, which degrades gracefully rather than showing an overflow stripe.
+
+Both panes stay inside one `Form`, so saving still validates the title on the left and the season
+on the right together. Nothing is stored across the layout swap beyond the text you have typed, so
+folding or unfolding mid-edit keeps a half-written title intact.

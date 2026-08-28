@@ -102,6 +102,7 @@ breakpoint. Each caller brings the minimum its own content needs:
 | Anime lists (`listColumnCapacity`) | `320` | 4 | What a tile needs before its 40 × 56 cover, two lines of text and up to two trailing icon buttons squeeze the title to nothing. |
 | Kana tables | `330` | 2 | A five-column table spends 44 on its row label, so 330 leaves ≈ 57 per cell — level with what the same table gets on a phone in one column. |
 | Kana rule cards | `320` | 2 | Paragraph cards; a third column would fall below a comfortable reading measure. |
+| Ranking filter dropdowns | `280` | 2 | An `OutlineInputBorder` dropdown whose longest localized label is Japanese; narrower and the label truncates before the arrow. Also governs the custom-range buttons below them. |
 
 `listColumnCount` combines the gate with the capacity: one column when `canSplitLayout` is false,
 otherwise the capacity when the user's preference is `listColumnsAuto`, otherwise the preference
@@ -131,6 +132,53 @@ rail takes 81 of its 1024, and a third column of the remaining 943 would be 306 
 Tiles are laid out **left to right, then top to bottom**. See
 [`functions/shared/widgets/adaptive_tile_grid.md`](functions/shared/widgets/adaptive_tile_grid.md)
 for why that is a builder over rows rather than a `GridView`.
+
+## Two blocks side by side: a width floor on top of the split rule
+
+Some layouts need both questions answered. The statistics summary is the clearest case: four
+status counts above a 200 dp trend chart cost roughly 340 of a Z Fold 8's ~640 dp body before a
+single anime row appears. Putting the counts in a 2 × 2 grid beside the chart reclaims about 150 —
+but only where the chart still has room to plot in.
+
+```dart
+canSplitLayout(screenWidth, screenHeight)   // does the window have the shape?
+  && useStatsSideBySide(contentWidth)       // is there room for both blocks?
+  && _trendData.isNotEmpty                  // is there a chart at all?
+```
+
+`useStatsSideBySide` is `contentWidth >= 260 + 380 + 12`. The two minimums are the summary pane
+(four cards in a 2 × 2 grid, ≈ 124 each) and the chart (a 32 dp sticky y-axis plus roughly seven
+bar groups at 50 dp). The split rule alone is not enough: a Z Fold 5, a Z Fold 6 and a Z Fold 7 in
+portrait all pass it and would leave the chart between 215 and 245 dp. They keep the stacked
+layout, and need no breakpoint of their own to do so — the same double gate the kana tables use.
+
+`statsSummaryPaneWidth` is `(contentWidth * 0.34).clamp(260, 360)` with **no right-hand cap**,
+unlike `settingsLeftPaneWidth`. None can bind: above the gate the pane grows at 0.34 of the width
+while the chart grows at 0.66, so the chart's floor is met exactly at the boundary and only more
+comfortably above it. That invariant is asserted across the whole range in
+`test/adaptive_layout_test.dart` rather than defended by a second clamp.
+
+The third condition is not defensive padding. An empty chart renders `SizedBox.shrink()`, so
+without it the cards would sit in a 260 dp pane beside a blank half rather than falling back to
+their full-width row.
+
+| Viewport | Splits | Content | Numbers beside chart | Pane | Chart |
+|---|---|---|---|---|---|
+| Z Fold 8 landscape 933 × 704 | yes | 820 | **yes** | 279 | 529 |
+| Z Fold 8 portrait 704 × 933 | no | — | no | — | — |
+| Z Fold 8 Ultra 954 / 859 | yes | 841 / 746 | **yes** / **yes** | 286 / 260 | 543 / 474 |
+| Pixel 10 Pro Fold 791 × 820 | yes | 678 | **yes** | 260 | 406 |
+| Z Fold 7 832 / 750 | yes | 719 / 637 | **yes** / no | 260 / — | 447 / — |
+| Z Fold 6 675 · Z Fold 5 659 | yes | 562 / 546 | no / no | — | — |
+| Tablet 1024 / 768 | yes / no | 911 / — | **yes** / no | 310 / — | 589 / — |
+| Phone landscape 915 × 412 | no | — | no | — | — |
+| Desktop 1600 × 900 | yes | 1487 | **yes** | 360 | 1115 |
+
+**The cost of gating this on `canSplitLayout`:** a phone in landscape at 915 × 412 keeps the
+stacked layout, although it is the viewport with the least height of any. A width-only rule — the
+one `useNavigationRail` uses, and the one the ranking filter panel below uses — would have helped
+it. The app-wide split rule was chosen instead, deliberately, for consistency with the detail,
+settings and kana pages.
 
 ## Where navigation lives
 
@@ -194,6 +242,9 @@ when the device unfolds" needs — no lifecycle work, and no state to save and r
 | `home_page.dart`, `management_page.dart`, `statistics_page.dart` | Yes | Through `listColumnCount`. |
 | `settings_page.dart` | Yes | Two panes: the first-level list on the left, the second-level page it leads to on the right. |
 | `kana_page.dart` | Yes | Gated by `canSplitLayout`, then by whether two 330 dp tables fit. |
+| `anime_edit_page.dart` | Yes | Through `useDetailTwoPane`, like the detail page. The cover and the two title fields are fixed on the left; everything below them scrolls on the right. |
+| `statistics_page.dart` (summary) | Yes | Gated by `canSplitLayout`, then by `useStatsSideBySide`; see above. |
+| `statistics_page.dart` (ranking filters) | No — width only | Pairing controls onto a row is a packing question, not a two-pane one. |
 | `shell_scaffold.dart` | No — `useNavigationRail` | Width only; see above. |
 
 **The `kana_page.dart` exception recorded here in 1.5.3 is resolved.** It used to carry its own
@@ -201,7 +252,41 @@ inline `constraints.maxWidth >= 720` for the rule cards' two-column `Wrap`, and 
 because changing it would have altered tablet-portrait behaviour nobody had asked about. Routing it
 through `columnCapacity` in 1.5.4 turns out to *preserve* that behaviour rather than change it: the
 rail leaves a tablet in portrait 655 dp of rule width, which the `720` literal would have failed
-and the shared arithmetic passes. There is no longer a second layout rule anywhere in `lib/`.
+and the shared arithmetic passes.
+
+**Correction, made in 1.5.5.** This section claimed after 1.5.4 that no second layout rule remained
+anywhere in `lib/`. That was wrong: `statistics_page.dart` still carried an inline
+`constraints.maxWidth < 560` deciding whether the ranking view's two custom-range buttons shared a
+row. It was overlooked because the search that produced the claim covered the pages 1.5.4 touched
+rather than the whole tree. It now asks the same question the filter dropdowns above it ask, in the
+same way — `columnCapacity` at `rankingFilterMinWidth` — which moves the threshold from 560 to 572
+and changes nothing else. With that folded in, the claim holds: **every width decision in `lib/`
+now goes through `adaptive_layout.dart`.**
+
+### Where the ranking filter panel diverges
+
+The ranking panel's two pairings are **width-only**, and deliberately not `canSplitLayout`:
+
+- the time and type dropdowns share a row from 572 dp of panel width up (`columnCapacity` at 280);
+- the score source, sort field and direction share one from 674 dp up (`useRankingSortRow`, which
+  is `200 + 280 + 170` plus two gaps — a segmented button on each side of a dropdown, rather than
+  two equal halves, which is why it is a separate and larger threshold).
+
+Packing controls onto a line asks whether they fit, not whether the window has the shape for two
+panes. Reading it as a split would have excluded a phone in landscape, where the panel costs 244 of
+412 dp — proportionally the worst case in the app, and the one the pairing helps most. Below 572
+nothing changes, so the phone-in-portrait layout is exactly what it was.
+
+| Viewport | Panel width | Filter row | Sort row | Panel height |
+|---|---|---|---|---|
+| Z Fold 8 landscape 933 | 820 | yes | yes | 244 → **124** |
+| Z Fold 8 portrait 704 | 591 | yes | no | 244 → **176** |
+| Pixel 10 Pro Fold 791 | 678 | yes | yes | 244 → **124** |
+| Z Fold 7 832 / 750 | 719 / 637 | yes / yes | yes / no | **124** / **176** |
+| Z Fold 6 675 · Z Fold 5 659 | 562 / 546 | no | no | 244 (unchanged) |
+| Tablet 1024 / 768 | 911 / 655 | yes | yes / no | **124** / **176** |
+| Phone landscape 915 × 412 | 802 | yes | yes | 244 → **124** |
+| Phone portrait 412 | 380 | no | no | 244 (unchanged) |
 
 ## Divergence from Google's guidance
 

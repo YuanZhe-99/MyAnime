@@ -77,16 +77,18 @@ declarations are handled elsewhere in this doc set.
 | [`_StatisticsPageState._quarterTrendEntry`](#_quartertrendentry) | method (`_StatisticsPageState`) | A | Build one quarter's trend entry (tracked/completed/dropped counts). |
 | [`_StatisticsPageState._yearTrendEntry`](#_yeartrendentry) | method (`_StatisticsPageState`) | A | Build one year's trend entry (tracked/completed/dropped counts). |
 | [`_StatisticsPageState._focusedTrendIndex`](#_focusedtrendindex) | method (`_StatisticsPageState`) | A | Locate the trend-data index matching the currently selected summary period, if any. |
-| `_StatisticsPageState.build` | method (`_StatisticsPageState`, widget build) | B | Build the page scaffold: scope/view switch, summary or ranking body, and the share action. |
-| `_StatisticsPageState._buildSummaryCard` | method (widget helper) | B | Render one summary count card (label + count) in a given color. |
+| [`_StatisticsPageState.build`](#statisticspagestate_build) | method (`_StatisticsPageState`, widget build) | A | Build the page scaffold, choosing whether the summary sits beside the chart or above it. |
+| [`_StatisticsPageState._buildSummaryCard`](#statisticspagestate_buildsummarycard) | method (`_StatisticsPageState`) | A | Build one status summary card. |
+| [`_StatisticsPageState._buildSummaryCards`](#statisticspagestate_buildsummarycards) | method (`_StatisticsPageState`) | A | Build the four status summary cards in the requested shape. |
 | `_StatisticsPageState._buildRankingView` | method (widget helper) | B | Render the ranking view: filter controls followed by the ranked anime list. |
-| `_StatisticsPageState._buildRankingFilters` | method (widget helper) | B | Render the ranking view's time/type/score-source/sort-field/order filter controls. |
+| [`_StatisticsPageState._buildRankingFilters`](#statisticspagestate_buildrankingfilters) | method (`_StatisticsPageState`) | A | Build the ranking view's filter and sort panel. |
+| [`_StatisticsPageState._buildRankingFilterBody`](#statisticspagestate_buildrankingfilterbody) | method (`_StatisticsPageState`) | A | Build the ranking filter panel at a decided set of pairings. |
 | `_StatisticsPageState._buildRankingRangeButton` | method (widget helper) | B | Render one quarter-range button (start or end) for the custom ranking time filter. |
 | `_StatisticsPageState._showActions` | method (widget helper) | B | Show the long-press action sheet for one anime and reload. |
 | `_StatisticsPageState._buildRankingTile` | method (widget helper) | B | Render one ranked anime row with rank, cover thumbnail, title, and score. |
 | `_StatisticsPageState._buildCoverThumbnail` | method (widget helper) | B | Render an anime's cover-image thumbnail, or a placeholder if it has none. |
 | `_StatisticsPageState._coverPlaceholder` | method (widget helper) | B | Render the placeholder icon shown for a missing cover thumbnail. |
-| `_StatisticsPageState._buildTrendChart` | method (widget helper) | B | Render the scrollable trend bar chart, sourcing its data from `_trendData`. |
+| [`_StatisticsPageState._buildTrendChart`](#statisticspagestate_buildtrendchart) | method (`_StatisticsPageState`) | A | Build the trend bar chart with its title and legend. |
 | `_StatisticsPageState._buildYAxisStub` | method (widget helper) | B | Render the trend chart's fixed left-side Y-axis label column. |
 | `_StatisticsPageState._buildBarChart` | method (widget helper) | B | Render the trend chart's scrollable `fl_chart` bar-chart body. |
 | `_StatisticsPageState._legendDot` | method (widget helper) | B | Render one colored-dot-plus-label legend entry. |
@@ -830,3 +832,148 @@ which is exactly why the sheet exists.
 
 Reading that preference is why this page became a `ConsumerStatefulWidget` in 1.5.3; it previously
 held no Riverpod state at all.
+
+### `Widget build(BuildContext context)` <a id="statisticspagestate_build"></a>
+- **Kind:** method of `_StatisticsPageState` (widget build)
+- **Source:** `lib/features/anime/views/statistics_page.dart` (approx. line 1559)
+- **Purpose:** Build the page scaffold, choosing whether the summary sits beside the chart.
+- **Inputs:** `context`.
+- **Returns:** The page's widget tree.
+- **Side effects:** Creates UI widgets; `RefreshIndicator` re-runs `_load` on pull.
+- **Algorithm:**
+  1. Compute `contentWidth` as `shellContentWidth(screen.width) - 32`, and the list column count.
+  2. Compute `summaryBesideChart` from three conditions, all necessary:
+     `canSplitLayout(screen.width, screen.height) && useStatsSideBySide(contentWidth) &&
+     _trendData.isNotEmpty`.
+  3. In the ranking view, delegate to `_buildRankingView`.
+  4. Otherwise emit the period navigator, then either a `Row` of the 2 × 2 card grid and an
+     `Expanded` chart, or the original four-across card row followed by the full-width chart.
+- **Usage:**
+  ```dart
+  GoRoute(path: '/stats', builder: (context, state) => const StatisticsPage()),
+  ```
+  (from `appRouter` in `lib/app/router.dart`)
+- **Notes:** The three-part gate is documented in full in
+  [../../../../adaptive-layout.md](../../../../adaptive-layout.md). Briefly: the split rule asks
+  whether the window has the shape, the width floor asks whether the chart is still readable once
+  the cards have taken their pane — which the split rule alone does not guarantee, since a Z Fold 5
+  passes it and would leave the chart about 215 logical pixels — and the data check exists because
+  an empty chart renders `SizedBox.shrink()` and would strand the cards beside a blank half.
+
+  Gating on `canSplitLayout` rather than on width alone was a deliberate choice for consistency
+  with the detail, settings and kana pages. Its cost is that a phone in landscape at 915 × 412
+  keeps the stacked layout although it has the least height of any viewport.
+
+### `Widget _buildSummaryCard(ThemeData theme, String label, int count, Color color)` <a id="statisticspagestate_buildsummarycard"></a>
+- **Kind:** method of `_StatisticsPageState`
+- **Source:** `lib/features/anime/views/statistics_page.dart` (approx. line 1766)
+- **Purpose:** Build one status summary card.
+- **Inputs:** `theme`, `label`, `count`, `color`.
+- **Returns:** `Widget` — a bare `Card`, unwrapped.
+- **Side effects:** None.
+- **Algorithm:** A `Card` holding the count in `headlineSmall` above the label in `labelSmall`.
+- **Usage:**
+  ```dart
+  Expanded(child: cards[0]),
+  ```
+  (from `_buildSummaryCards`, same file)
+- **Notes:** Returned the card wrapped in its own `Expanded` before 1.5.5. It now returns the card
+  bare, because two layouts consume these — one row of four, and a 2 × 2 grid — and each supplies
+  its own `Expanded`. Spacing keeps coming from the `Card`'s 4 dp margin in both, so the original
+  single-row layout is unchanged to the pixel.
+
+### `Widget _buildSummaryCards(ThemeData theme, AppLocalizations l10n, Map<AnimeViewingStatus, List<Anime>> grouped, int columns)` <a id="statisticspagestate_buildsummarycards"></a>
+- **Kind:** method of `_StatisticsPageState`
+- **Source:** `lib/features/anime/views/statistics_page.dart` (approx. line 1802)
+- **Purpose:** Build the four status summary cards in the requested shape.
+- **Inputs:** `theme`, `l10n`, `grouped` — anime by viewing status; `columns` — 4 for the
+  full-width row above the chart, 2 for the grid beside it.
+- **Returns:** `Widget`.
+- **Side effects:** None.
+- **Algorithm:** Builds the four cards through `_buildSummaryCard`, then returns either one `Row`
+  of four `Expanded` cards or a `Column` of two `Row`s of two.
+- **Usage:**
+  ```dart
+  SizedBox(
+    width: statsSummaryPaneWidth(contentWidth),
+    child: _buildSummaryCards(theme, l10n, grouped, 2),
+  ),
+  ```
+  (from `build`, same file)
+- **Notes:** One builder for both shapes so the four cards, their colours and their order cannot
+  drift between the layouts. At two columns the grid is about 160 logical pixels tall against the
+  chart's 268, which is why the row that holds them uses `CrossAxisAlignment.start` rather than
+  stretching.
+
+### `Widget _buildTrendChart(ThemeData theme, AppLocalizations l10n, {bool padded = true})` <a id="statisticspagestate_buildtrendchart"></a>
+- **Kind:** method of `_StatisticsPageState`
+- **Source:** `lib/features/anime/views/statistics_page.dart` (approx. line 2295)
+- **Purpose:** Build the trend bar chart with its title and legend.
+- **Inputs:** `theme`, `l10n`; `padded` — whether to apply the page's own horizontal padding.
+- **Returns:** `Widget`; `SizedBox.shrink()` when there is nothing to plot.
+- **Side effects:** None.
+- **Algorithm:** Title row, legend, then a 200 dp `SizedBox` holding either the plain bar chart or,
+  above eight periods, a sticky y-axis beside a horizontally scrolling one.
+- **Usage:**
+  ```dart
+  Expanded(child: _buildTrendChart(theme, l10n, padded: false)),
+  ```
+  (from `build`, same file, summary-beside-chart branch)
+- **Notes:** `padded` is false only when the chart sits inside the summary row, which supplies the
+  page padding once for both blocks. Callers that embed it must also check `_trendData.isNotEmpty`
+  themselves: an empty chart collapses to nothing, and inside a `Row` that leaves the cards beside
+  a blank half rather than falling back to full width.
+
+### `Widget _buildRankingFilters(ThemeData theme, AppLocalizations l10n)` <a id="statisticspagestate_buildrankingfilters"></a>
+- **Kind:** method of `_StatisticsPageState`
+- **Source:** `lib/features/anime/views/statistics_page.dart` (approx. line 1911)
+- **Purpose:** Build the ranking view's filter and sort panel.
+- **Inputs:** `theme`, `l10n`.
+- **Returns:** `Widget`.
+- **Side effects:** None.
+- **Algorithm:** A `LayoutBuilder` that resolves the two pairing decisions —
+  `columnCapacity(width, minItemWidth: rankingFilterMinWidth, maxColumns: 2) >= 2` and
+  `useRankingSortRow(width)` — then delegates to
+  [`_buildRankingFilterBody`](#statisticspagestate_buildrankingfilterbody).
+- **Usage:**
+  ```dart
+  _buildRankingFilters(theme, l10n),
+  ```
+  (from `_buildRankingView`, same file)
+- **Notes:** Four full-width controls stacked in a column cost about 244 logical pixels above the
+  first ranked tile — on a Z Fold 8 in landscape more than a third of the body, and on a phone in
+  landscape 244 of 412. Two pairings reclaim it, each at its own minimum through the shared
+  arithmetic. Below 572 nothing changes, so the phone-in-portrait layout is untouched.
+  `constraints.maxWidth` is already the content width here, because this sits inside
+  `_buildRankingView`'s own 16 dp padding — no `MediaQuery` read is needed.
+
+  Both decisions are **width only**, deliberately not `canSplitLayout`: packing controls onto a
+  line asks whether they fit, not whether the window has the shape for two panes.
+
+### `Widget _buildRankingFilterBody(ThemeData theme, AppLocalizations l10n, {required bool pairFilters, required bool oneSortRow})` <a id="statisticspagestate_buildrankingfilterbody"></a>
+- **Kind:** method of `_StatisticsPageState`
+- **Source:** `lib/features/anime/views/statistics_page.dart` (approx. line 1938)
+- **Purpose:** Build the ranking filter panel at a decided set of pairings.
+- **Inputs:** `theme`, `l10n`; `pairFilters`, `oneSortRow`.
+- **Returns:** `Widget`.
+- **Side effects:** `setState` on every control's change callback.
+- **Algorithm:** Builds the five controls as locals, then assembles them: time and type either
+  paired in a `Row` or stacked; the period navigator or custom-range block full width below them;
+  and the score source, sort field and direction either on one `Row` or on the two rows they used
+  to occupy.
+- **Usage:**
+  ```dart
+  return _buildRankingFilterBody(
+    theme,
+    l10n,
+    pairFilters: pairFilters,
+    oneSortRow: oneSortRow,
+  );
+  ```
+  (from `_buildRankingFilters`, same file)
+- **Notes:** Split from `_buildRankingFilters` so the layout decisions are made once, at the top,
+  and this method only assembles. The period navigator and the custom-range buttons stay full width
+  in both shapes: both are wide controls in their own right, and pairing them with a dropdown would
+  be the cramped layout the panel exists to avoid. The custom-range buttons' own narrow/wide
+  decision carried an inline `constraints.maxWidth < 560` until 1.5.5 and now asks the same
+  `columnCapacity` question the filter row above it asks.

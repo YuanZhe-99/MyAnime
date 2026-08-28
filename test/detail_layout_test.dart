@@ -86,7 +86,10 @@ void main() {
   group('cover size', () {
     test('keeps the cover aspect ratio', () {
       final cover = detailCoverSize(300, 800);
-      expect(cover.width / cover.height, closeTo(detailCoverAspectRatio, 0.001));
+      expect(
+        cover.width / cover.height,
+        closeTo(detailCoverAspectRatio, 0.001),
+      );
     });
 
     test('grows with the height left after the header budget', () {
@@ -119,7 +122,54 @@ void main() {
       const paneWidth = 260.0;
       final cover = detailCoverSize(paneWidth, 1200);
       expect(cover.width, lessThanOrEqualTo(paneWidth - 32));
-      expect(cover.width / cover.height, closeTo(detailCoverAspectRatio, 0.001));
+      expect(
+        cover.width / cover.height,
+        closeTo(detailCoverAspectRatio, 0.001),
+      );
+    });
+  });
+
+  group('edit page cover size', () {
+    // What the left pane holds under the cover: 16 below it, two 56 dp fields
+    // with 12 between them, and 16 of bottom padding.
+    double columnHeight(double coverHeight) =>
+        coverHeight + 16 + 56 + 12 + 56 + 16;
+
+    test('clamps on a tall pane rather than becoming a poster', () {
+      final cover = editCoverSize(420, 900); // desktop
+      expect(cover.height, 320);
+      expect(cover.width / cover.height, closeTo(editCoverAspectRatio, 0.001));
+    });
+
+    test('floors on a short pane so it stays a usable tap target', () {
+      final cover = editCoverSize(336, 300);
+      expect(cover.height, 140);
+    });
+
+    test('re-derives from width on a narrow pane', () {
+      const paneWidth = 220.0;
+      final cover = editCoverSize(paneWidth, 900);
+      expect(cover.width, lessThanOrEqualTo(paneWidth - 32));
+      expect(cover.width / cover.height, closeTo(editCoverAspectRatio, 0.001));
+    });
+
+    test('the left pane fits without scrolling at every splittable height', () {
+      // The load-bearing property: the pane is declared non-scrolling, so the
+      // column it holds must fit by construction. 480 is the minimum height
+      // canSplitLayout admits; 56 comes off it for the app bar.
+      for (
+        var screenHeight = 480.0;
+        screenHeight <= 1200.0;
+        screenHeight += 1
+      ) {
+        final paneHeight = screenHeight - 56;
+        final cover = editCoverSize(336, paneHeight);
+        expect(
+          columnHeight(cover.height),
+          lessThanOrEqualTo(paneHeight),
+          reason: 'left pane overflows at screen height $screenHeight',
+        );
+      }
     });
   });
 }

@@ -4,15 +4,17 @@ The app-wide adaptive-layout policy: the `splitMinWidth`, `splitMinHeight` and `
 thresholds that decide whether a layout may split at all, and the `listTileMinWidth`,
 `listTileGap`, `listMaxColumns` and `listColumnsAuto` constants that decide how many columns a list
 gets once it may, plus `navRailMinWidth`, `navRailWidth` and `settingsRightPaneMinWidth`
-for the shell's navigation rail and the settings detail pane. Nine pure helpers sit on top of
-them.
+for the shell's navigation rail and the settings detail pane, and `statsSummaryPaneMinWidth`,
+`statsChartMinWidth`, `rankingFilterMinWidth`, `rankingScoreSourceWidth` and
+`rankingDirectionWidth` for the statistics page. Twelve pure helpers sit on top of them.
 
 The module deliberately depends on nothing but `dart:core` — it holds no Flutter imports, and
 `canSplitLayout` takes two doubles rather than a `Size` for exactly that reason — so every helper
 is directly unit-testable (`test/adaptive_layout_test.dart`), and the rendered result is covered
 separately at real device geometries by `test/list_columns_ui_test.dart`,
 `test/detail_layout_ui_test.dart`, `test/kana_layout_ui_test.dart`,
-`test/settings_two_pane_ui_test.dart` and `test/shell_nav_ui_test.dart`.
+`test/settings_two_pane_ui_test.dart`, `test/shell_nav_ui_test.dart`,
+`test/statistics_layout_ui_test.dart` and `test/anime_edit_two_pane_ui_test.dart`.
 
 The prose derivation of these numbers, the foldable device tables and the reconciliation with
 Google's guidance live in [../../../adaptive-layout.md](../../../adaptive-layout.md). This page
@@ -23,8 +25,9 @@ Consumers: `detail_layout.dart` (see [detail_layout.md](detail_layout.md)), whos
 `management_page.dart` and `statistics_page.dart` for their list column counts; and
 `anime_storage.dart` and `app_settings.dart` for `listColumnsAuto` and `listMaxColumns` when
 validating the stored preference; `shell_scaffold.dart` for `useNavigationRail`;
-`kana_page.dart` for `columnCapacity` at its own minimums; and `settings_page.dart` for
-`settingsLeftPaneWidth`.
+`kana_page.dart` for `columnCapacity` at its own minimums; `settings_page.dart` for
+`settingsLeftPaneWidth`; and `statistics_page.dart` again for `useStatsSideBySide`,
+`statsSummaryPaneWidth` and `useRankingSortRow`.
 
 ## Declarations
 
@@ -39,8 +42,11 @@ validating the stored preference; `shell_scaffold.dart` for `useNavigationRail`;
 | [`listColumnCount`](#listcolumncount) | top-level function | A | Return the number of columns a list should actually render. |
 | [`listRowCount`](#listrowcount) | top-level function | A | Return how many rows a list of items needs at a column count. |
 | [`settingsLeftPaneWidth`](#settingsleftpanewidth) | top-level function | A | Return the width of the settings page's fixed left pane. |
+| [`useStatsSideBySide`](#usestatssidebyside) | top-level function | A | Report whether the statistics summary fits beside the trend chart. |
+| [`statsSummaryPaneWidth`](#statssummarypanewidth) | top-level function | A | Return the width of the statistics summary's 2x2 card pane. |
+| [`useRankingSortRow`](#userankingsortrow) | top-level function | A | Report whether the ranking sort controls fit on a single row. |
 
-The ten constants are plain declarations without `/// Purpose:` comments and are not indexed as
+The fifteen constants are plain declarations without `/// Purpose:` comments and are not indexed as
 separate rows.
 
 ## Documentation
@@ -266,3 +272,72 @@ separate rows.
   Those rows are cramped there, with the title wrapping beside its dropdown; that was accepted in
   exchange for the settings gate staying the one shared `canSplitLayout` rather than growing a
   threshold of its own.
+
+### `bool useStatsSideBySide(double contentWidth)` <a id="usestatssidebyside"></a>
+- **Kind:** top-level function
+- **Source:** `lib/shared/utils/adaptive_layout.dart` (approx. line 219)
+- **Purpose:** Report whether the statistics summary fits beside the trend chart.
+- **Inputs:** `contentWidth` — the width the statistics body gets, which is
+  [`shellContentWidth`](#shellcontentwidth) less the page's own 32 of padding.
+- **Returns:** `bool`.
+- **Side effects:** None.
+- **Algorithm:** `contentWidth >= statsSummaryPaneMinWidth + statsChartMinWidth + listTileGap`
+  — 260 + 380 + 12 = 652.
+- **Usage:**
+  ```dart
+  final summaryBesideChart =
+      canSplitLayout(screen.width, screen.height) &&
+      useStatsSideBySide(contentWidth) &&
+      _trendData.isNotEmpty;
+  ```
+  (from `_StatisticsPageState.build`)
+- **Notes:** A width floor **on top of** `canSplitLayout`, never instead of it — callers must test
+  both, the same double gate the kana tables use. The split rule alone admits a Z Fold 5, a Z Fold
+  6 and a Z Fold 7 in portrait, all of which would leave the chart between 215 and 245 logical
+  pixels. Those three keep the stacked layout without needing a breakpoint of their own.
+
+### `double statsSummaryPaneWidth(double contentWidth)` <a id="statssummarypanewidth"></a>
+- **Kind:** top-level function
+- **Source:** `lib/shared/utils/adaptive_layout.dart` (approx. line 231)
+- **Purpose:** Return the width of the statistics summary's 2x2 card pane.
+- **Inputs:** `contentWidth` — the width both blocks share.
+- **Returns:** `double`.
+- **Side effects:** None.
+- **Algorithm:** `(contentWidth * 0.34).clamp(statsSummaryPaneMinWidth, 360)`.
+- **Usage:**
+  ```dart
+  SizedBox(
+    width: statsSummaryPaneWidth(contentWidth),
+    child: _buildSummaryCards(theme, l10n, grouped, 2),
+  ),
+  ```
+  (from `_StatisticsPageState.build`)
+- **Notes:** No right-hand cap, unlike [`settingsLeftPaneWidth`](#settingsleftpanewidth), because
+  none can bind: above [`useStatsSideBySide`](#usestatssidebyside) the pane grows at 0.34 of the
+  width while the chart grows at 0.66, so `statsChartMinWidth` is met exactly at the gate and only
+  more comfortably above it. `test/adaptive_layout_test.dart` asserts that across the whole range
+  rather than defending it with a second clamp.
+
+### `bool useRankingSortRow(double contentWidth)` <a id="userankingsortrow"></a>
+- **Kind:** top-level function
+- **Source:** `lib/shared/utils/adaptive_layout.dart` (approx. line 243)
+- **Purpose:** Report whether the ranking sort controls fit on a single row.
+- **Inputs:** `contentWidth` — the width the ranking filter panel gets, which is its
+  `LayoutBuilder`'s `constraints.maxWidth`.
+- **Returns:** `bool`.
+- **Side effects:** None.
+- **Algorithm:**
+  `rankingScoreSourceWidth + rankingFilterMinWidth + rankingDirectionWidth + 2 * listTileGap`
+  — 200 + 280 + 170 + 24 = 674.
+- **Usage:**
+  ```dart
+  final oneSortRow = useRankingSortRow(constraints.maxWidth);
+  ```
+  (from `_StatisticsPageState._buildRankingFilters`)
+- **Notes:** A separate and larger threshold than the filter dropdowns' own pairing, which is a
+  plain `columnCapacity` call at `rankingFilterMinWidth` (572). This row carries a segmented button
+  on each side of a dropdown rather than two equal halves, so the same number would not describe
+  it. Below it the score source keeps the line it has always had. **Width only, deliberately** —
+  packing controls onto a line asks whether they fit, not whether the window has the shape for two
+  panes, and reading it as a split would exclude a phone in landscape, where the panel costs 244 of
+  412 logical pixels.

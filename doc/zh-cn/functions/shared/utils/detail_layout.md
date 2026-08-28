@@ -1,10 +1,10 @@
 # lib/shared/utils/detail_layout.dart
 
-番剧详情页自适应布局的小型共享工具模块：`detailCoverAspectRatio` 和 `detailLeftPaneHeaderBudget` 常量，以及三个被 `anime_detail_page.dart`（见 [../../features/anime/views/anime_detail_page.md](../../features/anime/views/anime_detail_page.md)）用于判断是否把页面拆成双栏、并为该拆分定尺寸的纯辅助函数。
+为那两个会拆成固定左栏加滚动右栏的番剧页面服务的小型共享自适应布局工具模块：四个比例与预算常量，以及四个纯辅助函数，被 `anime_detail_page.dart`（见 [../../features/anime/views/anime_detail_page.md](../../features/anime/views/anime_detail_page.md)）以及自 1.5.5 起的 `anime_edit_page.dart`（见 [../../features/anime/views/anime_edit_page.md](../../features/anime/views/anime_edit_page.md)）用于判断是否把页面拆成双栏、并为该拆分定尺寸。
 
 **拆分判定本身已不在此处。** 原先的 `detailTwoPaneMinWidth`、`detailTwoPaneMinHeight` 和 `detailTwoPaneMinAspect` 三个阈值已于 1.5.3 迁往 [adaptive_layout.md](adaptive_layout.md)，因为首页、管理与统计模块中的多列列表开始共用同一条规则；`useDetailTwoPane` 现在是转发到 `canSplitLayout` 的单行委托。留在此处的是真正属于本页面的尺寸计算——左栏有多宽，以及其中的封面能有多大。
 
-本模块刻意只依赖 `dart:core` 及其同级的 `adaptive_layout.dart`——不含任何 Flutter 导入，`useDetailTwoPane` 接收两个 double 而非 `Size` 正是出于此因——因此每个辅助函数都可直接单元测试（`test/detail_layout_test.dart`），渲染结果则由 `test/detail_layout_ui_test.dart` 在真实设备几何尺寸下单独覆盖。
+本模块刻意只依赖 `dart:core` 及其同级的 `adaptive_layout.dart`——不含任何 Flutter 导入，`useDetailTwoPane` 接收两个 double 而非 `Size` 正是出于此因——因此每个辅助函数都可直接单元测试（`test/detail_layout_test.dart`），渲染结果则由 `test/detail_layout_ui_test.dart` 与 `test/anime_edit_two_pane_ui_test.dart` 在真实设备几何尺寸下单独覆盖。
 
 ## 声明
 
@@ -13,8 +13,9 @@
 | [`useDetailTwoPane`](#usedetailtwopane) | 顶层函数 | A | 报告番剧详情页是否应使用双栏布局。 |
 | [`detailLeftPaneWidth`](#detailleftpanewidth) | 顶层函数 | A | 返回详情页固定左栏的宽度。 |
 | [`detailCoverSize`](#detailcoversize) | 顶层函数 | A | 返回详情页左栏封面图的尺寸。 |
+| [`editCoverSize`](#editcoversize) | 顶层函数 | A | 返回编辑页左栏封面选择器的尺寸。 |
 
-两个常量是没有 `/// Purpose:` 注释的普通声明，不作为单独行索引。`detailCoverAspectRatio`（180/260）保持单栏布局一直使用的封面比例，`detailLeftPaneHeaderBudget`（220.0）是封面下方为日文标题、标签行、进度条及其标签预留的纵向空间。
+四个常量是没有 `/// Purpose:` 注释的普通声明，不作为单独行索引。`detailCoverAspectRatio`（180/260）保持单栏布局一直使用的封面比例，`detailLeftPaneHeaderBudget`（220.0）是封面下方为日文标题、标签行、进度条及其标签预留的纵向空间。`editCoverAspectRatio`（120/170）与 `editLeftPaneFieldBudget`（200.0）是编辑页的对应物，其预算涵盖两个 56 dp 的文本框、它们之间的 12、封面下方的 16、16 的底部内边距，以及为标题下方可能出现的校验错误留出的 44 余量。
 
 ## 文档
 
@@ -79,3 +80,18 @@
   ```
   （出自 `_AnimeDetailPageState.build` 的双栏分支，传给 `_buildCover`）
 - **备注：** 每一项限制都有其必要，其中两项是在看过渲染结果之后才加上的，而非事先推导出来。**半栏封顶**之所以存在，是因为封面下方的头部是内容自适应高度的：在横屏的 Z Fold 8（高 704 dp）上，仅凭固定预算会给封面 420 dp，此时标题折成两行、其下三排标签就会越过栏底。**宽度检查**之所以存在，是因为 3:4 竖向面板相对宽度的纵向空间远多于近方形面板，只按高度定尺寸会得到又高又窄的封面。左栏仍是 `SingleChildScrollView`，因此异常长的内容或极端文本缩放会滚动而不是溢出。
+
+### `({double width, double height}) editCoverSize(double paneWidth, double paneHeight)` <a id="editcoversize"></a>
+- **种类：** 顶层函数
+- **来源：** `lib/shared/utils/detail_layout.dart`（约第 82 行）
+- **用途：** 返回编辑页左栏封面选择器的尺寸。
+- **输入：** `paneWidth`、`paneHeight` — 左栏的逻辑像素尺寸。
+- **返回：** 一个含封面 `width` 与 `height` 的记录。
+- **副作用：** 无。
+- **算法：** `paneHeight - editLeftPaneFieldBudget`，钳制到 140–320；宽度是该高度乘以 `editCoverAspectRatio`，若会溢出则由 `paneWidth - 32` 反推。
+- **用法：**
+  ```dart
+  final cover = editCoverSize(paneWidth, constraints.maxHeight);
+  ```
+  （出自 `_AnimeEditPageState.build` 的双栏分支，传给 `_buildCoverPicker`）
+- **备注：** **这正是编辑页左栏得以不可滑动的原因。** 用户要求封面与两个标题字段保持不动、其余表单滚动，因此封面取用剩下的高度而不是固定的 120 × 170——这样那一列是靠构造放得下，而不是靠指望。在两个钳制之间，装配后的整列高度在 296 到 476 逻辑像素之间，而 `canSplitLayout` 允许的 480 dp 最小高度下栏高为 424；`test/detail_layout_test.dart` 对整个区间断言了这一点。尽管如此，该栏仍被包进标准的 `SingleChildScrollView` + `ConstrainedBox(minHeight:)` 组合，用以守住算式覆盖不到的那一种情形：软键盘把 body 压到 296 以下。它会退化为滚动而不是溢出条纹，实际使用中不会滚动。它比 [`detailCoverSize`](#detailcoversize) 更简单——没有半栏封顶——因为这张封面下方是两个固定高度的文本框，而不是会换行的标题与几排标签。

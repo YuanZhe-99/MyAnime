@@ -7,6 +7,16 @@ const detailCoverAspectRatio = 180 / 260;
 /// its label before the cover is given whatever height is left.
 const detailLeftPaneHeaderBudget = 220.0;
 
+/// Width-to-height ratio of the edit page's cover picker.
+const editCoverAspectRatio = 120 / 170;
+
+/// Logical pixels the edit page's left pane reserves below its cover.
+///
+/// Two `OutlineInputBorder` text fields at 56 each, the 12 between them, the 16
+/// under the cover, 16 of bottom padding, and 44 of slack so a validation error
+/// appearing under the title field cannot push the column past the pane.
+const editLeftPaneFieldBudget = 200.0;
+
 /// Purpose: Report whether the anime detail page should use its two-pane layout.
 /// Inputs: `width`, `height` — the viewport size in logical pixels.
 /// Returns: `bool`.
@@ -60,6 +70,34 @@ double detailLeftPaneWidth(double totalWidth) {
   if (width > maxWidth) {
     width = maxWidth;
     height = width / detailCoverAspectRatio;
+  }
+  return (width: width, height: height);
+}
+
+/// Purpose: Return the cover picker size for the edit page's left pane.
+/// Inputs: `paneWidth`, `paneHeight` — the left pane's size in logical pixels.
+/// Returns: A record of the cover `width` and `height`.
+/// Side effects: None.
+/// Notes: This is what makes the left pane non-scrolling: the cover takes the
+/// height left after [editLeftPaneFieldBudget], so the column fits by
+/// construction rather than by hoping. The 320 ceiling stops a desktop window
+/// turning the picker into a poster, and the 140 floor keeps it a usable tap
+/// target; between them the column runs 296 to 476 logical pixels, against the
+/// 424 a pane has at the 480 minimum split height with an app bar above it.
+/// Like [detailCoverSize] the height is re-derived from the width whenever the
+/// aspect-correct width would overflow a narrow pane.
+({double width, double height}) editCoverSize(
+  double paneWidth,
+  double paneHeight,
+) {
+  var height = paneHeight - editLeftPaneFieldBudget;
+  if (height > 320) height = 320;
+  if (height < 140) height = 140;
+  final maxWidth = (paneWidth - 32).clamp(80.0, double.infinity);
+  var width = height * editCoverAspectRatio;
+  if (width > maxWidth) {
+    width = maxWidth;
+    height = width / editCoverAspectRatio;
   }
   return (width: width, height: height);
 }

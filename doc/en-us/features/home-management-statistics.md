@@ -78,6 +78,25 @@ takes 81 logical pixels on any window 600 wide or more. That is a real differenc
 tablet in landscape now gets two columns where it previously got three, because a third of the
 943 that remain would be 306 wide, under the 320 dp a tile needs. The room changed, not the rule.
 
+## Statistics on a wide window
+
+Two changes in 1.5.5, both about the vertical space the page spends before showing any anime. Both
+are derived in [`../adaptive-layout.md`](../adaptive-layout.md).
+
+**Numbers beside the chart.** The four status counts become a 2 × 2 grid in a left pane with the
+trend chart beside them, instead of a row of four above it. That reclaims roughly 150 logical
+pixels — on a Z Fold 8 in landscape the two blocks used to cost about 340 of a ~640 dp body. It
+applies where the window can split *and* the chart would still have 380 dp to plot in, so a Z Fold
+5, a Z Fold 6 and a Z Fold 7 held in portrait keep the stacked layout. A phone in landscape keeps
+it too: the split rule rejects short windows, and that rule was reused here rather than the
+width-only one, for consistency with the detail, settings and kana pages.
+
+**A shorter ranking filter panel.** The time and type filters share a row from 572 dp of panel
+width up, and the score source, sort field and direction share one from 674 up — about 244 dp of
+filter chrome down to 124. This is a width-only decision, so a phone in landscape gets it as well,
+which is where it matters most: the panel used to cost 244 of that viewport's 412 dp. Below 572
+nothing changes, so a phone in portrait sees exactly the panel it always had.
+
 Management's swipe gestures are the one thing that changes shape: swipe-right-to-edit and
 swipe-left-to-delete stay exactly as they were at one column, and are dropped above it, because a
 horizontal drag inside one narrow cell is ambiguous. Nothing is lost — the long-press sheet carries

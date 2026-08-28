@@ -44,6 +44,32 @@ const navRailWidth = 81.0;
 /// Smallest width, in logical pixels, the settings detail pane may be given.
 const settingsRightPaneMinWidth = 280.0;
 
+/// Smallest width, in logical pixels, the statistics summary cards may occupy
+/// when they sit beside the trend chart rather than above it.
+///
+/// The four cards become a 2x2 grid there, so this leaves each card about 124
+/// logical pixels — enough for a two-digit count above a wrapped label.
+const statsSummaryPaneMinWidth = 260.0;
+
+/// Smallest width, in logical pixels, the trend chart may be given before the
+/// statistics summary stops sitting beside it.
+///
+/// The chart reserves 32 for its sticky y-axis and draws one bar group every 50
+/// logical pixels, so this shows roughly seven periods before scrolling.
+const statsChartMinWidth = 380.0;
+
+/// Minimum width, in logical pixels, one ranking filter dropdown may occupy.
+///
+/// Each is an `OutlineInputBorder` dropdown whose longest localized label is
+/// Japanese; below this the label truncates before the arrow.
+const rankingFilterMinWidth = 280.0;
+
+/// Width, in logical pixels, the ranking score-source segmented button needs.
+const rankingScoreSourceWidth = 200.0;
+
+/// Width, in logical pixels, the ranking sort-direction segmented button needs.
+const rankingDirectionWidth = 170.0;
+
 /// Purpose: Report whether a layout may split into panes or columns.
 /// Inputs: `width`, `height` — the viewport size in logical pixels.
 /// Returns: `bool`.
@@ -188,3 +214,41 @@ double settingsLeftPaneWidth(double contentWidth) {
   if (preferred <= capped) return preferred;
   return capped.clamp(240.0, 440.0);
 }
+
+/// Purpose: Report whether the statistics summary fits beside the trend chart.
+/// Inputs: `contentWidth` — the width the statistics body gets, in logical
+/// pixels, which is [shellContentWidth] less the page's own padding.
+/// Returns: `bool`.
+/// Side effects: None.
+/// Notes: A width floor **on top of** [canSplitLayout], not instead of it — the
+/// same double gate the kana tables use. The split rule alone admits viewports
+/// the size of a Z Fold 5, where the chart would be left about 215 logical
+/// pixels and show four bar groups. Callers must test both.
+bool useStatsSideBySide(double contentWidth) =>
+    contentWidth >= statsSummaryPaneMinWidth + statsChartMinWidth + listTileGap;
+
+/// Purpose: Return the width of the statistics summary's 2x2 card pane.
+/// Inputs: `contentWidth` — the width both blocks share, in logical pixels.
+/// Returns: `double`.
+/// Side effects: None.
+/// Notes: No right-hand cap, unlike [settingsLeftPaneWidth], because none can
+/// bind: under [useStatsSideBySide] the pane grows at 0.34 of the width while
+/// the chart grows at 0.66, so [statsChartMinWidth] is met exactly at the gate
+/// and only more comfortably above it.
+double statsSummaryPaneWidth(double contentWidth) =>
+    (contentWidth * 0.34).clamp(statsSummaryPaneMinWidth, 360.0);
+
+/// Purpose: Report whether the ranking sort controls fit on a single row.
+/// Inputs: `contentWidth` — the width the filter panel gets, in logical pixels.
+/// Returns: `bool`.
+/// Side effects: None.
+/// Notes: A separate, larger threshold than the filter dropdowns' own pairing,
+/// because this row carries a segmented button on each side of the dropdown
+/// rather than two equal halves. Below it the score source keeps its own line,
+/// which is the layout every viewport had before 1.5.5.
+bool useRankingSortRow(double contentWidth) =>
+    contentWidth >=
+    rankingScoreSourceWidth +
+        rankingFilterMinWidth +
+        rankingDirectionWidth +
+        2 * listTileGap;

@@ -1,9 +1,11 @@
 # lib/shared/utils/detail_layout.dart
 
-Small shared utility module for the anime detail page's adaptive layout: the
-`detailCoverAspectRatio` and `detailLeftPaneHeaderBudget` constants, plus three pure helpers used
-by `anime_detail_page.dart` (see
+Small shared utility module for the adaptive layout of the two anime pages that split into a fixed
+left pane and a scrolling right one: four aspect-ratio and budget constants, plus four pure helpers
+used by `anime_detail_page.dart` (see
 [../../features/anime/views/anime_detail_page.md](../../features/anime/views/anime_detail_page.md))
+and, since 1.5.5, `anime_edit_page.dart` (see
+[../../features/anime/views/anime_edit_page.md](../../features/anime/views/anime_edit_page.md))
 to decide whether to split the page into two panes and to size that split.
 
 **The split decision itself no longer lives here.** The three thresholds that used to be
@@ -17,7 +19,7 @@ The module deliberately depends on nothing but `dart:core` and its sibling `adap
 it holds no Flutter imports, and `useDetailTwoPane` takes two doubles rather than a `Size` for
 exactly that reason — so every helper is directly unit-testable
 (`test/detail_layout_test.dart`), and the rendered result is covered separately at real device
-geometries by `test/detail_layout_ui_test.dart`.
+geometries by `test/detail_layout_ui_test.dart` and `test/anime_edit_two_pane_ui_test.dart`.
 
 ## Declarations
 
@@ -26,12 +28,15 @@ geometries by `test/detail_layout_ui_test.dart`.
 | [`useDetailTwoPane`](#usedetailtwopane) | top-level function | A | Report whether the anime detail page should use its two-pane layout. |
 | [`detailLeftPaneWidth`](#detailleftpanewidth) | top-level function | A | Return the width of the detail page's fixed left pane. |
 | [`detailCoverSize`](#detailcoversize) | top-level function | A | Return the cover image size for the detail page's left pane. |
+| [`editCoverSize`](#editcoversize) | top-level function | A | Return the cover picker size for the edit page's left pane. |
 
-The two constants are plain declarations without `/// Purpose:` comments and are not indexed as
+The four constants are plain declarations without `/// Purpose:` comments and are not indexed as
 separate rows. `detailCoverAspectRatio` (180/260) preserves the cover proportions the
 single-column layout has always used, and `detailLeftPaneHeaderBudget` (220.0) is the vertical
 space reserved below the cover for the Japanese title, the chip row, the progress bar and its
-label.
+label. `editCoverAspectRatio` (120/170) and `editLeftPaneFieldBudget` (200.0) are the edit page's
+equivalents, the budget covering two 56 dp text fields, the 12 between them, the 16 under the
+cover, 16 of bottom padding and 44 of slack for a validation error under the title.
 
 ## Documentation
 
@@ -116,3 +121,29 @@ label.
   room relative to its width than a near-square one, so height-only sizing produced a tall, thin
   cover. The left pane is still a `SingleChildScrollView`, so unusually long content or an extreme
   text scale scrolls rather than overflowing.
+
+### `({double width, double height}) editCoverSize(double paneWidth, double paneHeight)` <a id="editcoversize"></a>
+- **Kind:** top-level function
+- **Source:** `lib/shared/utils/detail_layout.dart` (approx. line 82)
+- **Purpose:** Return the cover picker size for the edit page's left pane.
+- **Inputs:** `paneWidth`, `paneHeight` — the left pane's size in logical pixels.
+- **Returns:** A record of the cover `width` and `height`.
+- **Side effects:** None.
+- **Algorithm:** `paneHeight - editLeftPaneFieldBudget`, clamped to 140–320; the width is that
+  height times `editCoverAspectRatio`, re-derived from `paneWidth - 32` if it would overflow.
+- **Usage:**
+  ```dart
+  final cover = editCoverSize(paneWidth, constraints.maxHeight);
+  ```
+  (from `_AnimeEditPageState.build`'s two-pane branch, passed to `_buildCoverPicker`)
+- **Notes:** **This is what makes the edit page's left pane non-scrolling.** The user asked for the
+  cover and the two title fields to stay put while the rest of the form scrolls, so the cover takes
+  the height left over rather than a fixed 120 × 170 — the column then fits by construction instead
+  of by hope. Between the clamps the assembled column runs 296 to 476 logical pixels, against the
+  424 a pane has at the 480 dp minimum height `canSplitLayout` admits;
+  `test/detail_layout_test.dart` asserts that across the whole range. The pane is nonetheless
+  wrapped in the standard `SingleChildScrollView` + `ConstrainedBox(minHeight:)` recipe as a guard
+  for the one case the arithmetic cannot cover: a soft keyboard shrinking the body below 296. It
+  degrades to a scroll rather than an overflow stripe, and does not scroll in practice.
+  Simpler than [`detailCoverSize`](#detailcoversize) — no half-pane cap — because what sits below
+  this cover is two fixed-height text fields rather than a wrapping title and rows of chips.

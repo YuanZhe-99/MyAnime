@@ -3,12 +3,14 @@
 全应用范围的自适应布局策略：决定布局是否可以拆分的 `splitMinWidth`、`splitMinHeight`、`splitMinAspect` 三个
 阈值，以及一旦可以拆分后决定列表分成几列的 `listTileMinWidth`、`listTileGap`、`listMaxColumns`、
 `listColumnsAuto` 四个常量，外加为外壳侧边导航栏与设置详情栏而设的 `navRailMinWidth`、`navRailWidth`
-与 `settingsRightPaneMinWidth`。在它们之上是九个纯函数。
+与 `settingsRightPaneMinWidth`，以及为统计页而设的 `statsSummaryPaneMinWidth`、`statsChartMinWidth`、
+`rankingFilterMinWidth`、`rankingScoreSourceWidth` 与 `rankingDirectionWidth`。在它们之上是十二个纯函数。
 
 该模块刻意只依赖 `dart:core`——它不含任何 Flutter 导入，`canSplitLayout` 接收两个 double 而非一个 `Size` 正是
 出于这个原因——因此每个辅助函数都可直接进行单元测试（`test/adaptive_layout_test.dart`），而渲染结果则由
 `test/list_columns_ui_test.dart`、`test/detail_layout_ui_test.dart`、`test/kana_layout_ui_test.dart`、
-`test/settings_two_pane_ui_test.dart` 与 `test/shell_nav_ui_test.dart` 在真实设备几何下单独覆盖。
+`test/settings_two_pane_ui_test.dart`、`test/shell_nav_ui_test.dart`、
+`test/statistics_layout_ui_test.dart` 与 `test/anime_edit_two_pane_ui_test.dart` 在真实设备几何下单独覆盖。
 
 这些数字的推导过程、折叠屏设备表格以及与 Google 规范的调和见
 [../../../adaptive-layout.md](../../../adaptive-layout.md)。本页记录的是声明本身。
@@ -17,7 +19,8 @@
 `canSplitLayout` 的单行委托；`home_page.dart`、`management_page.dart` 与 `statistics_page.dart` 用于各自的列表
 列数；以及 `anime_storage.dart` 与 `app_settings.dart` 在校验存储的偏好时使用 `listColumnsAuto` 与
 `listMaxColumns`；`shell_scaffold.dart` 使用 `useNavigationRail`；`kana_page.dart` 以自己的最小宽度使用
-`columnCapacity`；以及 `settings_page.dart` 使用 `settingsLeftPaneWidth`。
+`columnCapacity`；`settings_page.dart` 使用 `settingsLeftPaneWidth`；以及 `statistics_page.dart` 再次使用
+`useStatsSideBySide`、`statsSummaryPaneWidth` 与 `useRankingSortRow`。
 
 ## 声明
 
@@ -32,8 +35,11 @@
 | [`listColumnCount`](#listcolumncount) | 顶层函数 | A | 返回列表实际应当渲染的列数。 |
 | [`listRowCount`](#listrowcount) | 顶层函数 | A | 返回在某个列数下一组条目需要多少行。 |
 | [`settingsLeftPaneWidth`](#settingsleftpanewidth) | 顶层函数 | A | 返回设置页固定左栏的宽度。 |
+| [`useStatsSideBySide`](#usestatssidebyside) | 顶层函数 | A | 报告统计摘要是否放得进趋势图旁边。 |
+| [`statsSummaryPaneWidth`](#statssummarypanewidth) | 顶层函数 | A | 返回统计摘要 2×2 卡片栏的宽度。 |
+| [`useRankingSortRow`](#userankingsortrow) | 顶层函数 | A | 报告排行的排序控件是否放得下一行。 |
 
-十个常量是没有 `/// Purpose:` 注释的普通声明，不作为独立行编入索引。
+十五个常量是没有 `/// Purpose:` 注释的普通声明，不作为独立行编入索引。
 
 ## 文档
 
@@ -236,3 +242,66 @@
   一张封面加一列文字。那个上限只在手动调整过的桌面窗口以及最窄的展开态折叠屏上生效——Z Fold 5 扣除导航栏后
   只剩 578，此时是左栏让出宽度，而不是让详情栏变得无法使用。那里的设置行确实很挤，标题会在下拉框旁边换行；
   这是为了让设置页的门控继续沿用那一条共享的 `canSplitLayout`、而不是长出自己的阈值所接受的代价。
+
+### `bool useStatsSideBySide(double contentWidth)` <a id="usestatssidebyside"></a>
+- **种类：** 顶层函数
+- **来源：** `lib/shared/utils/adaptive_layout.dart`（约第 219 行）
+- **用途：** 报告统计摘要是否放得进趋势图旁边。
+- **输入：** `contentWidth`——统计页 body 获得的宽度，即 [`shellContentWidth`](#shellcontentwidth) 减去页面
+  自身 32 的内边距。
+- **返回：** `bool`。
+- **副作用：** 无。
+- **算法：** `contentWidth >= statsSummaryPaneMinWidth + statsChartMinWidth + listTileGap`
+  ——260 + 380 + 12 = 652。
+- **用法：**
+  ```dart
+  final summaryBesideChart =
+      canSplitLayout(screen.width, screen.height) &&
+      useStatsSideBySide(contentWidth) &&
+      _trendData.isNotEmpty;
+  ```
+  （出自 `_StatisticsPageState.build`）
+- **备注：** 这是加在 `canSplitLayout` **之上**的一道宽度底线，绝不是取代它——调用方必须同时检查两者，这与
+  假名表所用的是同一道双重门控。仅有拆分规则会放行 Z Fold 5、Z Fold 6 与 Z Fold 7 竖持，而这三者都会让图表
+  只剩 215 到 245 逻辑像素。它们保持堆叠布局，且无需为此设立自己的断点。
+
+### `double statsSummaryPaneWidth(double contentWidth)` <a id="statssummarypanewidth"></a>
+- **种类：** 顶层函数
+- **来源：** `lib/shared/utils/adaptive_layout.dart`（约第 231 行）
+- **用途：** 返回统计摘要 2×2 卡片栏的宽度。
+- **输入：** `contentWidth`——两块内容共享的宽度。
+- **返回：** `double`。
+- **副作用：** 无。
+- **算法：** `(contentWidth * 0.34).clamp(statsSummaryPaneMinWidth, 360)`。
+- **用法：**
+  ```dart
+  SizedBox(
+    width: statsSummaryPaneWidth(contentWidth),
+    child: _buildSummaryCards(theme, l10n, grouped, 2),
+  ),
+  ```
+  （出自 `_StatisticsPageState.build`）
+- **备注：** 与 [`settingsLeftPaneWidth`](#settingsleftpanewidth) 不同，这里没有右侧上限，因为任何上限都不可能
+  生效：在 [`useStatsSideBySide`](#usestatssidebyside) 之上，栏宽按宽度的 0.34 增长而图表按 0.66 增长，因此
+  `statsChartMinWidth` 在门控处恰好被满足，往上只会更宽裕。`test/adaptive_layout_test.dart` 对整个区间断言了
+  这一点，而不是用第二个钳制去防守它。
+
+### `bool useRankingSortRow(double contentWidth)` <a id="userankingsortrow"></a>
+- **种类：** 顶层函数
+- **来源：** `lib/shared/utils/adaptive_layout.dart`（约第 243 行）
+- **用途：** 报告排行的排序控件是否放得下一行。
+- **输入：** `contentWidth`——排行筛选面板获得的宽度，即它 `LayoutBuilder` 的 `constraints.maxWidth`。
+- **返回：** `bool`。
+- **副作用：** 无。
+- **算法：**
+  `rankingScoreSourceWidth + rankingFilterMinWidth + rankingDirectionWidth + 2 * listTileGap`
+  ——200 + 280 + 170 + 24 = 674。
+- **用法：**
+  ```dart
+  final oneSortRow = useRankingSortRow(constraints.maxWidth);
+  ```
+  （出自 `_StatisticsPageState._buildRankingFilters`）
+- **备注：** 这是一个与筛选下拉框自身配对（在 `rankingFilterMinWidth` 上直接调用 `columnCapacity`，即 572）
+  分开且更大的阈值。这一行是一个下拉框两侧各有一个分段按钮，而非两个等分的一半，因此同一个数字无法描述它。
+  在其之下，评分来源保留它一直以来的那一行。**刻意只看宽度**——把控件打包到一行问的是它们放不放得下，而不是
+  窗口有没有分两栏的形状；若按拆分来解读，就会把手机横持排除在外，而那里面板要花掉 412 逻辑像素中的 244。

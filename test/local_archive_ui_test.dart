@@ -31,7 +31,10 @@ void main() {
       expect(archiveSourceLabel(ArchiveSource.dvd, l10n), 'DVD');
       expect(archiveSourceLabel(ArchiveSource.web, l10n), 'WEB');
       expect(archiveSourceLabel(ArchiveSource.tv, l10n), 'TV');
-      expect(archiveSourceLabel(ArchiveSource.other, l10n), l10n.animeArchiveOther);
+      expect(
+        archiveSourceLabel(ArchiveSource.other, l10n),
+        l10n.animeArchiveOther,
+      );
 
       expect(archiveResolutionLabel(ArchiveResolution.uhd2160p, l10n), '2160p');
       expect(archiveResolutionLabel(ArchiveResolution.fhd1080p, l10n), '1080p');
@@ -80,7 +83,13 @@ void main() {
   /// Returns: The loaded `AppLocalizations` for assertions.
   /// Side effects: Scrolls the form's `ListView` and expands the section.
   /// Notes: The section sits below the fold in a lazily-built `ListView`, so it
-  /// must be scrolled into existence before it can be found or tapped.
+  /// must be scrolled into existence before it can be found or tapped. The
+  /// scrollable is addressed through the `ListView` rather than as the first
+  /// `Scrollable` on the page, because the default 800 x 600 test viewport
+  /// passes `canSplitLayout`: since 1.5.5 the edit page renders two panes, and
+  /// the first `Scrollable` is now the left pane's, which holds only the cover
+  /// and the two titles. Every text field contributes a `Scrollable` of its own
+  /// too, so positional indexing either way is not a stable way to name it.
   Future<AppLocalizations> openArchiveSection(WidgetTester tester) async {
     await tester.pumpWidget(wrap(const AnimeEditPage()));
     await tester.pumpAndSettle();
@@ -89,7 +98,12 @@ void main() {
     await tester.scrollUntilVisible(
       find.text(l10n.animeLocalArchive),
       200,
-      scrollable: find.byType(Scrollable).first,
+      scrollable: find
+          .descendant(
+            of: find.byType(ListView),
+            matching: find.byType(Scrollable),
+          )
+          .first,
     );
     await tester.pumpAndSettle();
     return l10n;

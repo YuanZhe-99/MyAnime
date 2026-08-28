@@ -57,16 +57,18 @@
 | [`_StatisticsPageState._quarterTrendEntry`](#_quartertrendentry) | 方法（`_StatisticsPageState`） | A | 构建一个季度的趋势条目（已跟踪/已完成/弃看计数）。 |
 | [`_StatisticsPageState._yearTrendEntry`](#_yeartrendentry) | 方法（`_StatisticsPageState`） | A | 构建一个年份的趋势条目（已跟踪/已完成/弃看计数）。 |
 | [`_StatisticsPageState._focusedTrendIndex`](#_focusedtrendindex) | 方法（`_StatisticsPageState`） | A | 定位匹配当前所选摘要周期的趋势数据索引（如有）。 |
-| `_StatisticsPageState.build` | 方法（`_StatisticsPageState`，组件构建） | B | 构建页面脚手架：范围/视图切换、摘要或排名正文，以及分享操作。 |
-| `_StatisticsPageState._buildSummaryCard` | 方法（组件辅助） | B | 渲染一个给定颜色的摘要计数卡片（标签 + 计数）。 |
+| [`_StatisticsPageState.build`](#statisticspagestate_build) | 方法（`_StatisticsPageState`，组件构建） | A | 构建页面脚手架，并决定摘要是放在图表旁边还是其上方。 |
+| [`_StatisticsPageState._buildSummaryCard`](#statisticspagestate_buildsummarycard) | 方法（`_StatisticsPageState`） | A | 构建一张状态摘要卡片。 |
+| [`_StatisticsPageState._buildSummaryCards`](#statisticspagestate_buildsummarycards) | 方法（`_StatisticsPageState`） | A | 按所要求的形状构建四张状态摘要卡片。 |
 | `_StatisticsPageState._buildRankingView` | 方法（组件辅助） | B | 渲染排名视图：过滤器控件后跟排名动画列表。 |
-| `_StatisticsPageState._buildRankingFilters` | 方法（组件辅助） | B | 渲染排名视图的时间/类型/评分来源/排序字段/方向过滤器控件。 |
+| [`_StatisticsPageState._buildRankingFilters`](#statisticspagestate_buildrankingfilters) | 方法（`_StatisticsPageState`） | A | 构建排行视图的筛选与排序面板。 |
+| [`_StatisticsPageState._buildRankingFilterBody`](#statisticspagestate_buildrankingfilterbody) | 方法（`_StatisticsPageState`） | A | 按已定下的配对方案装配排行筛选面板。 |
 | `_StatisticsPageState._buildRankingRangeButton` | 方法（组件辅助） | B | 为自定义排名时间过滤器渲染一个季度范围按钮（起始或结束）。 |
 | `_StatisticsPageState._showActions` | 方法（组件辅助） | B | 展示某个动画的长按操作面板并重新加载。 |
 | `_StatisticsPageState._buildRankingTile` | 方法（组件辅助） | B | 渲染一个带排名、封面缩略图、标题和分数的排名动画行。 |
 | `_StatisticsPageState._buildCoverThumbnail` | 方法（组件辅助） | B | 渲染动画的封面图像缩略图，没有则占位符。 |
 | `_StatisticsPageState._coverPlaceholder` | 方法（组件辅助） | B | 渲染缺失封面缩略图时显示的占位图标。 |
-| `_StatisticsPageState._buildTrendChart` | 方法（组件辅助） | B | 渲染可滚动趋势条形图，数据来自 `_trendData`。 |
+| [`_StatisticsPageState._buildTrendChart`](#statisticspagestate_buildtrendchart) | 方法（`_StatisticsPageState`） | A | 构建带标题与图例的趋势条形图。 |
 | `_StatisticsPageState._buildYAxisStub` | 方法（组件辅助） | B | 渲染趋势图固定的左侧 Y 轴标签列。 |
 | `_StatisticsPageState._buildBarChart` | 方法（组件辅助） | B | 渲染趋势图的可滚动 `fl_chart` 条形图主体。 |
 | `_StatisticsPageState._legendDot` | 方法（组件辅助） | B | 渲染一个彩色点加标签的图例条目。 |
@@ -644,3 +646,135 @@
 标题，并提供编辑与删除。行本身仍然截断为单行，而这正是该面板存在的原因。
 
 读取该偏好正是本页在 1.5.3 变成 `ConsumerStatefulWidget` 的原因；此前它完全不持有 Riverpod 状态。
+
+### `Widget build(BuildContext context)` <a id="statisticspagestate_build"></a>
+- **种类：** `_StatisticsPageState` 的方法（组件构建）
+- **来源：** `lib/features/anime/views/statistics_page.dart`（约第 1559 行）
+- **用途：** 构建页面脚手架，并决定摘要是否放在图表旁边。
+- **输入：** `context`。
+- **返回：** 该页面的控件树。
+- **副作用：** 创建 UI 控件；下拉时 `RefreshIndicator` 会重新执行 `_load`。
+- **算法：**
+  1. 把 `contentWidth` 算作 `shellContentWidth(screen.width) - 32`，并算出列表列数。
+  2. 由三个缺一不可的条件算出 `summaryBesideChart`：
+     `canSplitLayout(screen.width, screen.height) && useStatsSideBySide(contentWidth) &&
+     _trendData.isNotEmpty`。
+  3. 在排行视图中转交 `_buildRankingView`。
+  4. 否则先渲染周期导航条，然后要么是一个由 2 × 2 卡片网格与 `Expanded` 图表组成的 `Row`，要么是原本那一行
+     四张卡片再跟一张整宽图表。
+- **用法：**
+  ```dart
+  GoRoute(path: '/stats', builder: (context, state) => const StatisticsPage()),
+  ```
+  （出自 `lib/app/router.dart` 中的 `appRouter`）
+- **备注：** 这道三段式门控在 [../../../../adaptive-layout.md](../../../../adaptive-layout.md) 中有完整记述。
+  简言之：拆分规则问窗口有没有这个形状；宽度底线问卡片拿走自己那一栏之后图表是否还读得下去——而这一点仅靠
+  拆分规则并不保证，因为 Z Fold 5 能通过它，却会让图表只剩约 215 逻辑像素；数据检查之所以存在，是因为空图表
+  渲染为 `SizedBox.shrink()`，会让卡片旁边只剩空白的另一半。
+
+  这里挂在 `canSplitLayout` 而非只看宽度上，是为与详情页、设置页和假名页保持一致而作出的刻意选择。它的代价是
+  手机横持于 915 × 412 时保持堆叠布局，尽管它是所有视口里高度最少的一个。
+
+### `Widget _buildSummaryCard(ThemeData theme, String label, int count, Color color)` <a id="statisticspagestate_buildsummarycard"></a>
+- **种类：** `_StatisticsPageState` 的方法
+- **来源：** `lib/features/anime/views/statistics_page.dart`（约第 1766 行）
+- **用途：** 构建一张状态摘要卡片。
+- **输入：** `theme`、`label`、`count`、`color`。
+- **返回：** `Widget`——一张未经包裹的 `Card`。
+- **副作用：** 无。
+- **算法：** 一张 `Card`，内含 `headlineSmall` 的计数以及其下 `labelSmall` 的标签。
+- **用法：**
+  ```dart
+  Expanded(child: cards[0]),
+  ```
+  （出自同一文件的 `_buildSummaryCards`）
+- **备注：** 1.5.5 之前它返回的是被自己的 `Expanded` 包住的卡片。现在返回裸卡片，因为有两种布局要消费它们——
+  一行四张，以及 2 × 2 网格——各自提供自己的 `Expanded`。两者的间距都仍来自 `Card` 自带的 4 dp 外边距，因此
+  原本那个单行布局分毫未变。
+
+### `Widget _buildSummaryCards(ThemeData theme, AppLocalizations l10n, Map<AnimeViewingStatus, List<Anime>> grouped, int columns)` <a id="statisticspagestate_buildsummarycards"></a>
+- **种类：** `_StatisticsPageState` 的方法
+- **来源：** `lib/features/anime/views/statistics_page.dart`（约第 1802 行）
+- **用途：** 按所要求的形状构建四张状态摘要卡片。
+- **输入：** `theme`、`l10n`、`grouped`——按观看状态分组的番剧；`columns`——图表上方整宽一行时为 4，图表旁边
+  的网格时为 2。
+- **返回：** `Widget`。
+- **副作用：** 无。
+- **算法：** 先经由 `_buildSummaryCard` 造出四张卡片，然后返回一行四个 `Expanded` 卡片，或者一个由两行、每行
+  两张组成的 `Column`。
+- **用法：**
+  ```dart
+  SizedBox(
+    width: statsSummaryPaneWidth(contentWidth),
+    child: _buildSummaryCards(theme, l10n, grouped, 2),
+  ),
+  ```
+  （出自同一文件的 `build`）
+- **备注：** 两种形状共用一个构建器，因此四张卡片、它们的颜色与顺序不可能在两种布局之间走样。双列时该网格高约
+  160 逻辑像素，而图表约 268，这正是承载它们的那一行使用 `CrossAxisAlignment.start` 而不是拉伸的原因。
+
+### `Widget _buildTrendChart(ThemeData theme, AppLocalizations l10n, {bool padded = true})` <a id="statisticspagestate_buildtrendchart"></a>
+- **种类：** `_StatisticsPageState` 的方法
+- **来源：** `lib/features/anime/views/statistics_page.dart`（约第 2295 行）
+- **用途：** 构建带标题与图例的趋势条形图。
+- **输入：** `theme`、`l10n`；`padded`——是否施加页面自身的水平内边距。
+- **返回：** `Widget`；无可作图的数据时返回 `SizedBox.shrink()`。
+- **副作用：** 无。
+- **算法：** 标题行、图例，然后是一个 200 dp 的 `SizedBox`，内含普通条形图，或在超过八个周期时是一条固定 y 轴
+  加上一个水平滚动的条形图。
+- **用法：**
+  ```dart
+  Expanded(child: _buildTrendChart(theme, l10n, padded: false)),
+  ```
+  （出自同一文件 `build` 的摘要与图表并排分支）
+- **备注：** 只有当图表位于摘要行内部时 `padded` 才为假，那时页面内边距由外层的行为两块内容一次性提供。嵌入它
+  的调用方还必须自行检查 `_trendData.isNotEmpty`：空图表会坍缩为无，而在 `Row` 里那会让卡片旁边只剩空白的
+  另一半，而不是退回整宽。
+
+### `Widget _buildRankingFilters(ThemeData theme, AppLocalizations l10n)` <a id="statisticspagestate_buildrankingfilters"></a>
+- **种类：** `_StatisticsPageState` 的方法
+- **来源：** `lib/features/anime/views/statistics_page.dart`（约第 1911 行）
+- **用途：** 构建排行视图的筛选与排序面板。
+- **输入：** `theme`、`l10n`。
+- **返回：** `Widget`。
+- **副作用：** 无。
+- **算法：** 一个 `LayoutBuilder`，在其中定下两处配对判定——
+  `columnCapacity(width, minItemWidth: rankingFilterMinWidth, maxColumns: 2) >= 2` 与
+  `useRankingSortRow(width)`——然后转交
+  [`_buildRankingFilterBody`](#statisticspagestate_buildrankingfilterbody)。
+- **用法：**
+  ```dart
+  _buildRankingFilters(theme, l10n),
+  ```
+  （出自同一文件的 `_buildRankingView`）
+- **备注：** 四个整宽控件堆成一列，在第一个排行条目之上要花掉约 244 逻辑像素——在 Z Fold 8 横持上超过 body 的
+  三分之一，在手机横持上则是 412 中的 244。两处配对以各自的最小宽度经由共用算式把它收回。572 以下一切照旧，
+  因此手机竖持的布局未受触动。这里的 `constraints.maxWidth` 已经就是内容宽度，因为它位于 `_buildRankingView`
+  自己那 16 dp 的内边距之内——无需读取 `MediaQuery`。
+
+  两处判定都**只看宽度**，刻意不用 `canSplitLayout`：把控件打包到一行问的是它们放不放得下，而不是窗口有没有
+  分两栏的形状。
+
+### `Widget _buildRankingFilterBody(ThemeData theme, AppLocalizations l10n, {required bool pairFilters, required bool oneSortRow})` <a id="statisticspagestate_buildrankingfilterbody"></a>
+- **种类：** `_StatisticsPageState` 的方法
+- **来源：** `lib/features/anime/views/statistics_page.dart`（约第 1938 行）
+- **用途：** 按已定下的配对方案装配排行筛选面板。
+- **输入：** `theme`、`l10n`；`pairFilters`、`oneSortRow`。
+- **返回：** `Widget`。
+- **副作用：** 每个控件的变更回调都会 `setState`。
+- **算法：** 先把五个控件建成局部变量，然后装配：时间与类型要么配对进一个 `Row`，要么堆叠；周期导航条或自定义
+  区间块整宽置于其下；评分来源、排序依据与升降序要么共处一个 `Row`，要么回到它们原本占据的两行。
+- **用法：**
+  ```dart
+  return _buildRankingFilterBody(
+    theme,
+    l10n,
+    pairFilters: pairFilters,
+    oneSortRow: oneSortRow,
+  );
+  ```
+  （出自同一文件的 `_buildRankingFilters`）
+- **备注：** 从 `_buildRankingFilters` 中拆出，使布局判定在顶部一次性做完，而本方法只负责装配。周期导航条与
+  自定义区间按钮在两种形状下都保持整宽：它们本身就是宽控件，把它们与一个下拉框配对恰恰就是本面板要避免的那种
+  拥挤。自定义区间按钮自己的宽窄判定在 1.5.5 之前带着内联的 `constraints.maxWidth < 560`，现在问的是与其上方
+  筛选行同一个 `columnCapacity` 问题。

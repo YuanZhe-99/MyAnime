@@ -1576,6 +1576,17 @@ class _StatisticsPageState extends ConsumerState<StatisticsPage> {
       contentWidth: contentWidth,
       preference: settings.statsListColumns,
     );
+    // Three conditions, all necessary. The split rule asks whether the window
+    // has the shape for two blocks side by side; the width floor asks whether
+    // the chart would still be readable once the cards have taken their pane,
+    // which the split rule alone does not guarantee — a Z Fold 5 passes it and
+    // would leave the chart about 215 logical pixels. The trend data has to be
+    // there at all, because an empty chart renders nothing and would strand the
+    // cards in a narrow pane beside a blank half.
+    final summaryBesideChart =
+        canSplitLayout(screen.width, screen.height) &&
+        useStatsSideBySide(contentWidth) &&
+        _trendData.isNotEmpty;
 
     return Scaffold(
       appBar: AppBar(
@@ -1699,41 +1710,34 @@ class _StatisticsPageState extends ConsumerState<StatisticsPage> {
                   ),
                 ),
 
-              // Summary cards
-              Padding(
-                padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
-                child: Row(
-                  children: [
-                    _buildSummaryCard(
-                      theme,
-                      l10n.statsWatching,
-                      grouped[AnimeViewingStatus.watching]!.length,
-                      theme.colorScheme.primary,
-                    ),
-                    _buildSummaryCard(
-                      theme,
-                      l10n.statsCompleted,
-                      grouped[AnimeViewingStatus.completed]!.length,
-                      Colors.green,
-                    ),
-                    _buildSummaryCard(
-                      theme,
-                      l10n.statsDropped,
-                      grouped[AnimeViewingStatus.dropped]!.length,
-                      Colors.red,
-                    ),
-                    _buildSummaryCard(
-                      theme,
-                      l10n.statsNotStarted,
-                      grouped[AnimeViewingStatus.notStarted]!.length,
-                      theme.colorScheme.outline,
-                    ),
-                  ],
+              // Summary numbers beside the trend chart when there is room for
+              // both, otherwise stacked above it as they always were.
+              if (summaryBesideChart)
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      SizedBox(
+                        width: statsSummaryPaneWidth(contentWidth),
+                        child: _buildSummaryCards(theme, l10n, grouped, 2),
+                      ),
+                      const SizedBox(width: listTileGap),
+                      Expanded(
+                        child: _buildTrendChart(theme, l10n, padded: false),
+                      ),
+                    ],
+                  ),
+                )
+              else ...[
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
+                  child: _buildSummaryCards(theme, l10n, grouped, 4),
                 ),
-              ),
 
-              // Trend chart
-              _buildTrendChart(theme, l10n),
+                // Trend chart
+                _buildTrendChart(theme, l10n),
+              ],
 
               const Divider(height: 32),
 
@@ -1746,43 +1750,109 @@ class _StatisticsPageState extends ConsumerState<StatisticsPage> {
     );
   }
 
-  /// Purpose: Provide the internal build summary card helper for this file.
+  /// Purpose: Build one status summary card.
   /// Inputs: `theme`, `label`, `count`, `color`.
-  /// Returns: `Widget`.
+  /// Returns: `Widget` — a bare `Card`, unwrapped.
   /// Side effects: None.
-  /// Notes: Internal helper used within this file only.
+  /// Notes: Returns the card rather than an `Expanded` around it because two
+  /// layouts consume these now: one row of four when the summary sits above the
+  /// trend chart, and a 2x2 grid when it sits beside it. Both wrap each card in
+  /// their own `Expanded`, and spacing comes from the `Card`'s own 4 dp margin
+  /// in both, so the original single-row layout is unchanged to the pixel.
   Widget _buildSummaryCard(
     ThemeData theme,
     String label,
     int count,
     Color color,
   ) {
-    return Expanded(
-      child: Card(
-        child: Padding(
-          padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 4),
-          child: Column(
-            children: [
-              Text(
-                '$count',
-                style: theme.textTheme.headlineSmall?.copyWith(
-                  color: color,
-                  fontWeight: FontWeight.bold,
-                ),
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 4),
+        child: Column(
+          children: [
+            Text(
+              '$count',
+              style: theme.textTheme.headlineSmall?.copyWith(
+                color: color,
+                fontWeight: FontWeight.bold,
               ),
-              const SizedBox(height: 4),
-              Text(
-                label,
-                style: theme.textTheme.labelSmall?.copyWith(
-                  color: theme.colorScheme.onSurfaceVariant,
-                ),
-                textAlign: TextAlign.center,
-                overflow: TextOverflow.ellipsis,
+            ),
+            const SizedBox(height: 4),
+            Text(
+              label,
+              style: theme.textTheme.labelSmall?.copyWith(
+                color: theme.colorScheme.onSurfaceVariant,
               ),
-            ],
-          ),
+              textAlign: TextAlign.center,
+              overflow: TextOverflow.ellipsis,
+            ),
+          ],
         ),
       ),
+    );
+  }
+
+  /// Purpose: Build the four status summary cards in the requested shape.
+  /// Inputs: `theme`, `l10n`, `grouped` — anime by viewing status; `columns` —
+  /// 4 for the full-width row above the chart, 2 for the grid beside it.
+  /// Returns: `Widget`.
+  /// Side effects: None.
+  /// Notes: One builder for both shapes so the four cards, their colours and
+  /// their order cannot drift between the two layouts. At two columns the grid
+  /// is about 160 logical pixels tall against the chart's 268, which is why the
+  /// row that holds them aligns to the top rather than stretching.
+  Widget _buildSummaryCards(
+    ThemeData theme,
+    AppLocalizations l10n,
+    Map<AnimeViewingStatus, List<Anime>> grouped,
+    int columns,
+  ) {
+    final cards = [
+      _buildSummaryCard(
+        theme,
+        l10n.statsWatching,
+        grouped[AnimeViewingStatus.watching]!.length,
+        theme.colorScheme.primary,
+      ),
+      _buildSummaryCard(
+        theme,
+        l10n.statsCompleted,
+        grouped[AnimeViewingStatus.completed]!.length,
+        Colors.green,
+      ),
+      _buildSummaryCard(
+        theme,
+        l10n.statsDropped,
+        grouped[AnimeViewingStatus.dropped]!.length,
+        Colors.red,
+      ),
+      _buildSummaryCard(
+        theme,
+        l10n.statsNotStarted,
+        grouped[AnimeViewingStatus.notStarted]!.length,
+        theme.colorScheme.outline,
+      ),
+    ];
+
+    if (columns >= 4) {
+      return Row(children: [for (final card in cards) Expanded(child: card)]);
+    }
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Row(
+          children: [
+            Expanded(child: cards[0]),
+            Expanded(child: cards[1]),
+          ],
+        ),
+        Row(
+          children: [
+            Expanded(child: cards[2]),
+            Expanded(child: cards[3]),
+          ],
+        ),
+      ],
     );
   }
 
@@ -1841,34 +1911,189 @@ class _StatisticsPageState extends ConsumerState<StatisticsPage> {
     );
   }
 
-  /// Purpose: Provide the internal build ranking filters helper for this file.
+  /// Purpose: Build the ranking view's filter and sort panel.
   /// Inputs: `theme`, `l10n`.
   /// Returns: `Widget`.
   /// Side effects: None.
-  /// Notes: Internal helper used within this file only.
+  /// Notes: Four full-width controls stacked in a column cost about 244 logical
+  /// pixels above the first ranked tile — on a Z Fold 8 in landscape that is
+  /// more than a third of the body. Two independent pairings reclaim it, each
+  /// through the shared arithmetic at its own minimum: the two filter dropdowns
+  /// share a row from 572 up, and the three sort controls share one from 674 up
+  /// (`useRankingSortRow`). Below 572 nothing changes, so the phone layout is
+  /// untouched. `constraints.maxWidth` is already the content width here,
+  /// because this sits inside `_buildRankingView`'s own 16 dp padding.
   Widget _buildRankingFilters(ThemeData theme, AppLocalizations l10n) {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final width = constraints.maxWidth;
+        final pairFilters =
+            columnCapacity(
+              width,
+              minItemWidth: rankingFilterMinWidth,
+              maxColumns: 2,
+            ) >=
+            2;
+        final oneSortRow = useRankingSortRow(width);
+        return _buildRankingFilterBody(
+          theme,
+          l10n,
+          pairFilters: pairFilters,
+          oneSortRow: oneSortRow,
+        );
+      },
+    );
+  }
+
+  /// Purpose: Build the ranking filter panel at a decided set of pairings.
+  /// Inputs: `theme`, `l10n`; `pairFilters` — put the time and type dropdowns
+  /// on one row; `oneSortRow` — put the score source, sort field and direction
+  /// on one row.
+  /// Returns: `Widget`.
+  /// Side effects: None.
+  /// Notes: Split from [_buildRankingFilters] so the layout decisions are made
+  /// once, at the top, and this method only assembles. The period navigator and
+  /// the custom-range buttons stay full width below the filter row in both
+  /// shapes: both are wide controls in their own right, and pairing them with a
+  /// dropdown would be the cramped layout this panel exists to avoid.
+  Widget _buildRankingFilterBody(
+    ThemeData theme,
+    AppLocalizations l10n, {
+    required bool pairFilters,
+    required bool oneSortRow,
+  }) {
+    final timeFilter = DropdownButtonFormField<_RankingTimeFilter>(
+      initialValue: _rankingTimeFilter,
+      decoration: InputDecoration(
+        labelText: l10n.statsRankingTimeFilter,
+        border: const OutlineInputBorder(),
+      ),
+      items: _RankingTimeFilter.values
+          .map(
+            (filter) => DropdownMenuItem(
+              value: filter,
+              child: Text(_rankingTimeFilterLabel(filter, l10n)),
+            ),
+          )
+          .toList(),
+      onChanged: (value) {
+        if (value != null) {
+          setState(() => _rankingTimeFilter = value);
+        }
+      },
+    );
+    final typeFilter = DropdownButtonFormField<AnimeType?>(
+      initialValue: _rankingTypeFilter,
+      decoration: InputDecoration(
+        labelText: l10n.statsRankingTypeFilter,
+        border: const OutlineInputBorder(),
+      ),
+      items: [
+        DropdownMenuItem<AnimeType?>(
+          value: null,
+          child: Text(l10n.statsRankingAllTypes),
+        ),
+        ...AnimeType.values.map(
+          (type) => DropdownMenuItem<AnimeType?>(
+            value: type,
+            child: Text(_typeLabel(type, l10n)),
+          ),
+        ),
+      ],
+      onChanged: (value) => setState(() => _rankingTypeFilter = value),
+    );
+    final scoreSource = SegmentedButton<_RankingScoreSource>(
+      segments: [
+        ButtonSegment(
+          value: _RankingScoreSource.personal,
+          icon: const Icon(Icons.person_outline, size: 18),
+          label: Text(l10n.statsRankingScoreSourcePersonal),
+        ),
+        ButtonSegment(
+          value: _RankingScoreSource.external,
+          icon: const Icon(Icons.travel_explore, size: 18),
+          label: Text(l10n.statsRankingScoreSourceExternal),
+        ),
+      ],
+      selected: {_rankingScoreSource},
+      onSelectionChanged: (value) {
+        setState(() => _rankingScoreSource = value.first);
+      },
+    );
+    final sortField = _rankingScoreSource == _RankingScoreSource.personal
+        ? DropdownButtonFormField<AnimeRatingField>(
+            initialValue: _rankingSortField,
+            decoration: InputDecoration(
+              labelText: l10n.statsRankingSortBy,
+              border: const OutlineInputBorder(),
+            ),
+            items: AnimeRatingField.values
+                .map(
+                  (field) => DropdownMenuItem(
+                    value: field,
+                    child: Text(_ratingFieldLabel(field, l10n)),
+                  ),
+                )
+                .toList(),
+            onChanged: (value) {
+              if (value != null) {
+                setState(() => _rankingSortField = value);
+              }
+            },
+          )
+        : DropdownButtonFormField<String?>(
+            initialValue: _rankingExternalSource,
+            decoration: InputDecoration(
+              labelText: l10n.statsRankingExternalSource,
+              border: const OutlineInputBorder(),
+            ),
+            items: [
+              DropdownMenuItem<String?>(
+                value: null,
+                child: Text(l10n.statsRankingExternalAverage),
+              ),
+              ..._rankingExternalSources.map(
+                (source) => DropdownMenuItem<String?>(
+                  value: source,
+                  child: Text(source),
+                ),
+              ),
+            ],
+            onChanged: (value) {
+              setState(() => _rankingExternalSource = value);
+            },
+          );
+    final direction = SegmentedButton<bool>(
+      segments: [
+        ButtonSegment(
+          value: true,
+          icon: const Icon(Icons.south),
+          label: Text(l10n.statsRankingDescShort),
+        ),
+        ButtonSegment(
+          value: false,
+          icon: const Icon(Icons.north),
+          label: Text(l10n.statsRankingAscShort),
+        ),
+      ],
+      selected: {_rankingDescending},
+      onSelectionChanged: (value) {
+        setState(() => _rankingDescending = value.first);
+      },
+    );
+
     return Column(
       children: [
-        DropdownButtonFormField<_RankingTimeFilter>(
-          initialValue: _rankingTimeFilter,
-          decoration: InputDecoration(
-            labelText: l10n.statsRankingTimeFilter,
-            border: const OutlineInputBorder(),
-          ),
-          items: _RankingTimeFilter.values
-              .map(
-                (filter) => DropdownMenuItem(
-                  value: filter,
-                  child: Text(_rankingTimeFilterLabel(filter, l10n)),
-                ),
-              )
-              .toList(),
-          onChanged: (value) {
-            if (value != null) {
-              setState(() => _rankingTimeFilter = value);
-            }
-          },
-        ),
+        if (pairFilters)
+          Row(
+            children: [
+              Expanded(child: timeFilter),
+              const SizedBox(width: listTileGap),
+              Expanded(child: typeFilter),
+            ],
+          )
+        else
+          timeFilter,
         if (_rankingTimeFilter == _RankingTimeFilter.quarter ||
             _rankingTimeFilter == _RankingTimeFilter.year)
           Padding(
@@ -1908,7 +2133,16 @@ class _StatisticsPageState extends ConsumerState<StatisticsPage> {
           const SizedBox(height: 8),
           LayoutBuilder(
             builder: (context, constraints) {
-              final isNarrow = constraints.maxWidth < 560;
+              // The same minimum, and the same shared arithmetic, as the filter
+              // dropdowns above: two of these buttons carry a label and a
+              // quarter each, so they need the room a dropdown does.
+              final isNarrow =
+                  columnCapacity(
+                    constraints.maxWidth,
+                    minItemWidth: rankingFilterMinWidth,
+                    maxColumns: 2,
+                  ) <
+                  2;
               final startButton = _buildRankingRangeButton(
                 onPressed: _pickRankingRangeStart,
                 icon: Icons.date_range,
@@ -1946,114 +2180,28 @@ class _StatisticsPageState extends ConsumerState<StatisticsPage> {
           ),
         ],
         const SizedBox(height: 12),
-        DropdownButtonFormField<AnimeType?>(
-          initialValue: _rankingTypeFilter,
-          decoration: InputDecoration(
-            labelText: l10n.statsRankingTypeFilter,
-            border: const OutlineInputBorder(),
+        if (!pairFilters) ...[typeFilter, const SizedBox(height: 12)],
+        if (oneSortRow)
+          Row(
+            children: [
+              scoreSource,
+              const SizedBox(width: listTileGap),
+              Expanded(child: sortField),
+              const SizedBox(width: listTileGap),
+              direction,
+            ],
+          )
+        else ...[
+          scoreSource,
+          const SizedBox(height: 12),
+          Row(
+            children: [
+              Expanded(child: sortField),
+              const SizedBox(width: 12),
+              direction,
+            ],
           ),
-          items: [
-            DropdownMenuItem<AnimeType?>(
-              value: null,
-              child: Text(l10n.statsRankingAllTypes),
-            ),
-            ...AnimeType.values.map(
-              (type) => DropdownMenuItem<AnimeType?>(
-                value: type,
-                child: Text(_typeLabel(type, l10n)),
-              ),
-            ),
-          ],
-          onChanged: (value) => setState(() => _rankingTypeFilter = value),
-        ),
-        const SizedBox(height: 12),
-        SegmentedButton<_RankingScoreSource>(
-          segments: [
-            ButtonSegment(
-              value: _RankingScoreSource.personal,
-              icon: const Icon(Icons.person_outline, size: 18),
-              label: Text(l10n.statsRankingScoreSourcePersonal),
-            ),
-            ButtonSegment(
-              value: _RankingScoreSource.external,
-              icon: const Icon(Icons.travel_explore, size: 18),
-              label: Text(l10n.statsRankingScoreSourceExternal),
-            ),
-          ],
-          selected: {_rankingScoreSource},
-          onSelectionChanged: (value) {
-            setState(() => _rankingScoreSource = value.first);
-          },
-        ),
-        const SizedBox(height: 12),
-        Row(
-          children: [
-            Expanded(
-              child: _rankingScoreSource == _RankingScoreSource.personal
-                  ? DropdownButtonFormField<AnimeRatingField>(
-                      initialValue: _rankingSortField,
-                      decoration: InputDecoration(
-                        labelText: l10n.statsRankingSortBy,
-                        border: const OutlineInputBorder(),
-                      ),
-                      items: AnimeRatingField.values
-                          .map(
-                            (field) => DropdownMenuItem(
-                              value: field,
-                              child: Text(_ratingFieldLabel(field, l10n)),
-                            ),
-                          )
-                          .toList(),
-                      onChanged: (value) {
-                        if (value != null) {
-                          setState(() => _rankingSortField = value);
-                        }
-                      },
-                    )
-                  : DropdownButtonFormField<String?>(
-                      initialValue: _rankingExternalSource,
-                      decoration: InputDecoration(
-                        labelText: l10n.statsRankingExternalSource,
-                        border: const OutlineInputBorder(),
-                      ),
-                      items: [
-                        DropdownMenuItem<String?>(
-                          value: null,
-                          child: Text(l10n.statsRankingExternalAverage),
-                        ),
-                        ..._rankingExternalSources.map(
-                          (source) => DropdownMenuItem<String?>(
-                            value: source,
-                            child: Text(source),
-                          ),
-                        ),
-                      ],
-                      onChanged: (value) {
-                        setState(() => _rankingExternalSource = value);
-                      },
-                    ),
-            ),
-            const SizedBox(width: 12),
-            SegmentedButton<bool>(
-              segments: [
-                ButtonSegment(
-                  value: true,
-                  icon: const Icon(Icons.south),
-                  label: Text(l10n.statsRankingDescShort),
-                ),
-                ButtonSegment(
-                  value: false,
-                  icon: const Icon(Icons.north),
-                  label: Text(l10n.statsRankingAscShort),
-                ),
-              ],
-              selected: {_rankingDescending},
-              onSelectionChanged: (value) {
-                setState(() => _rankingDescending = value.first);
-              },
-            ),
-          ],
-        ),
+        ],
       ],
     );
   }
@@ -2225,12 +2373,21 @@ class _StatisticsPageState extends ConsumerState<StatisticsPage> {
     );
   }
 
-  /// Purpose: Provide the internal build trend chart helper for this file.
-  /// Inputs: `theme`, `l10n`.
-  /// Returns: `Widget`.
+  /// Purpose: Build the trend bar chart with its title and legend.
+  /// Inputs: `theme`, `l10n`; `padded` — whether to apply the page's own
+  /// horizontal padding.
+  /// Returns: `Widget`; `SizedBox.shrink()` when there is nothing to plot.
   /// Side effects: None.
-  /// Notes: Internal helper used within this file only.
-  Widget _buildTrendChart(ThemeData theme, AppLocalizations l10n) {
+  /// Notes: `padded` is false only when the chart sits inside the summary row,
+  /// which supplies the page padding once for both blocks. Callers that embed
+  /// it must also check `_trendData.isNotEmpty` themselves — an empty chart
+  /// collapses to nothing, and inside a `Row` that leaves the cards beside a
+  /// blank half rather than falling back to full width.
+  Widget _buildTrendChart(
+    ThemeData theme,
+    AppLocalizations l10n, {
+    bool padded = true,
+  }) {
     final data = _trendData;
     if (data.isEmpty) return const SizedBox.shrink();
 
@@ -2239,7 +2396,9 @@ class _StatisticsPageState extends ConsumerState<StatisticsPage> {
     final focusedIndex = _focusedTrendIndex(data);
 
     return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
+      padding: padded
+          ? const EdgeInsets.fromLTRB(16, 8, 16, 0)
+          : EdgeInsets.zero,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [

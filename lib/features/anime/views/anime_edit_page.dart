@@ -5,6 +5,7 @@ import 'package:intl/intl.dart';
 import '../../../app/flavor.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../../shared/services/image_service.dart';
+import '../../../shared/utils/detail_layout.dart';
 import '../models/anime.dart';
 import '../services/anime_search_service.dart';
 import '../services/anime_storage.dart';
@@ -502,412 +503,492 @@ class _AnimeEditPageState extends State<AnimeEditPage> {
       ),
       body: Form(
         key: _formKey,
-        child: ListView(
-          padding: const EdgeInsets.all(16),
-          children: [
-            // Cover image
-            Center(
-              child: GestureDetector(
-                onTap: _pickCoverImage,
-                child: Container(
-                  width: 120,
-                  height: 170,
-                  decoration: BoxDecoration(
-                    color: Theme.of(
-                      context,
-                    ).colorScheme.surfaceContainerHighest,
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: _coverImage != null
-                      ? FutureBuilder<dynamic>(
-                          future: ImageService.resolve(_coverImage!),
-                          builder: (context, snap) {
-                            if (snap.hasData) {
-                              final file = snap.data!;
-                              if (file.existsSync()) {
-                                return ClipRRect(
-                                  borderRadius: BorderRadius.circular(8),
-                                  child: Image.file(
-                                    file,
-                                    fit: BoxFit.cover,
-                                    width: 120,
-                                    height: 170,
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            final screen = MediaQuery.sizeOf(context);
+            final titleFields = _buildTitleFields(l10n);
+            final detailFields = _buildDetailFields(l10n);
+
+            if (!useDetailTwoPane(screen.width, screen.height)) {
+              return ListView(
+                padding: const EdgeInsets.all(16),
+                children: [
+                  _buildCoverPicker(width: 120, height: 170),
+                  const SizedBox(height: 16),
+                  ...titleFields,
+                  const SizedBox(height: 12),
+                  ...detailFields,
+                ],
+              );
+            }
+
+            final paneWidth = detailLeftPaneWidth(constraints.maxWidth);
+            final cover = editCoverSize(paneWidth, constraints.maxHeight);
+            return Row(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                SizedBox(
+                  width: paneWidth,
+                  child: LayoutBuilder(
+                    builder: (context, paneConstraints) =>
+                        SingleChildScrollView(
+                          child: ConstrainedBox(
+                            constraints: BoxConstraints(
+                              minHeight: paneConstraints.maxHeight,
+                            ),
+                            child: Padding(
+                              padding: const EdgeInsets.all(16),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  _buildCoverPicker(
+                                    width: cover.width,
+                                    height: cover.height,
                                   ),
-                                );
-                              }
-                            }
-                            return const Icon(
-                              Icons.add_photo_alternate,
-                              size: 40,
-                            );
-                          },
-                        )
-                      : const Icon(Icons.add_photo_alternate, size: 40),
+                                  const SizedBox(height: 16),
+                                  ...titleFields,
+                                ],
+                              ),
+                            ),
+                          ),
+                        ),
+                  ),
                 ),
-              ),
-            ),
-            const SizedBox(height: 16),
+                const VerticalDivider(width: 1),
+                Expanded(
+                  child: ListView(
+                    padding: const EdgeInsets.all(16),
+                    children: detailFields,
+                  ),
+                ),
+              ],
+            );
+          },
+        ),
+      ),
+    );
+  }
 
-            // Title
-            TextFormField(
-              controller: _titleController,
+  /// Purpose: Build the cover picker at an explicit size.
+  /// Inputs: `width`, `height` — the picker box in logical pixels.
+  /// Returns: `Widget`.
+  /// Side effects: Reads the cover file through `ImageService.resolve`; tapping
+  /// opens the image picker.
+  /// Notes: The size is a parameter because the two-pane layout sizes the
+  /// picker from the height its left pane has left over, while the
+  /// single-column layout keeps the original fixed 120x170 box. Mirrors
+  /// `anime_detail_page._buildCover`.
+  Widget _buildCoverPicker({required double width, required double height}) {
+    return Center(
+      child: GestureDetector(
+        onTap: _pickCoverImage,
+        child: Container(
+          width: width,
+          height: height,
+          decoration: BoxDecoration(
+            color: Theme.of(context).colorScheme.surfaceContainerHighest,
+            borderRadius: BorderRadius.circular(8),
+          ),
+          child: _coverImage != null
+              ? FutureBuilder<dynamic>(
+                  future: ImageService.resolve(_coverImage!),
+                  builder: (context, snap) {
+                    if (snap.hasData) {
+                      final file = snap.data!;
+                      if (file.existsSync()) {
+                        return ClipRRect(
+                          borderRadius: BorderRadius.circular(8),
+                          child: Image.file(
+                            file,
+                            fit: BoxFit.cover,
+                            width: width,
+                            height: height,
+                          ),
+                        );
+                      }
+                    }
+                    return const Icon(Icons.add_photo_alternate, size: 40);
+                  },
+                )
+              : const Icon(Icons.add_photo_alternate, size: 40),
+        ),
+      ),
+    );
+  }
+
+  /// Purpose: Build the two title fields that share the left pane with the cover.
+  /// Inputs: `l10n`.
+  /// Returns: `List<Widget>`.
+  /// Side effects: None.
+  /// Notes: Separate from [_buildDetailFields] because the two-pane layout puts
+  /// exactly these beside the cover and everything else in the scrolling pane.
+  /// The title's validator accepts an empty value when the Japanese title is
+  /// filled in, so the two have to stay together wherever they render.
+  List<Widget> _buildTitleFields(AppLocalizations l10n) {
+    return [
+      // Title
+      TextFormField(
+        controller: _titleController,
+        decoration: InputDecoration(
+          labelText: l10n.animeTitle,
+          border: const OutlineInputBorder(),
+        ),
+        validator: (v) {
+          if (v != null && v.trim().isNotEmpty) return null;
+          // Allow empty title if Japanese title is provided
+          if (_titleJaController.text.trim().isNotEmpty) return null;
+          return l10n.animeFieldRequired;
+        },
+      ),
+      const SizedBox(height: 12),
+
+      // Japanese title
+      TextFormField(
+        controller: _titleJaController,
+        decoration: InputDecoration(
+          labelText: l10n.animeTitleJa,
+          border: const OutlineInputBorder(),
+        ),
+      ),
+    ];
+  }
+
+  /// Purpose: Build every form field below the two titles.
+  /// Inputs: `l10n`.
+  /// Returns: `List<Widget>`.
+  /// Side effects: None.
+  /// Notes: These are the scrolling pane's children in the two-pane layout and
+  /// the tail of the single `ListView` otherwise. Both panes stay inside the one
+  /// `Form`, so `_save`'s `validate()` still reaches the season field from here
+  /// and the title field from [_buildTitleFields].
+  List<Widget> _buildDetailFields(AppLocalizations l10n) {
+    return [
+      // Season
+      TextFormField(
+        controller: _seasonController,
+        decoration: InputDecoration(
+          labelText: l10n.animeSeason,
+          hintText: l10n.animeSeasonHint,
+          border: const OutlineInputBorder(),
+        ),
+        validator: (v) =>
+            (v == null || v.trim().isEmpty) ? l10n.animeFieldRequired : null,
+      ),
+      const SizedBox(height: 12),
+
+      // Episode range
+      Row(
+        children: [
+          Expanded(
+            child: TextFormField(
+              controller: _startEpController,
               decoration: InputDecoration(
-                labelText: l10n.animeTitle,
+                labelText: l10n.animeStartEp,
                 border: const OutlineInputBorder(),
               ),
-              validator: (v) {
-                if (v != null && v.trim().isNotEmpty) return null;
-                // Allow empty title if Japanese title is provided
-                if (_titleJaController.text.trim().isNotEmpty) return null;
-                return l10n.animeFieldRequired;
-              },
+              keyboardType: TextInputType.number,
             ),
-            const SizedBox(height: 12),
-
-            // Japanese title
-            TextFormField(
-              controller: _titleJaController,
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: TextFormField(
+              controller: _endEpController,
               decoration: InputDecoration(
-                labelText: l10n.animeTitleJa,
+                labelText: l10n.animeEndEp,
                 border: const OutlineInputBorder(),
               ),
+              keyboardType: TextInputType.number,
             ),
-            const SizedBox(height: 12),
+          ),
+        ],
+      ),
+      const SizedBox(height: 12),
 
-            // Season
-            TextFormField(
-              controller: _seasonController,
-              decoration: InputDecoration(
-                labelText: l10n.animeSeason,
-                hintText: l10n.animeSeasonHint,
-                border: const OutlineInputBorder(),
+      // Type override
+      DropdownButtonFormField<AnimeType?>(
+        initialValue: _manualType,
+        decoration: InputDecoration(
+          labelText: l10n.animeType,
+          border: const OutlineInputBorder(),
+        ),
+        items: [
+          DropdownMenuItem<AnimeType?>(
+            value: null,
+            child: Text(l10n.animeTypeAuto),
+          ),
+          ...AnimeType.values.map(
+            (t) => DropdownMenuItem(value: t, child: Text(_typeLabel(t, l10n))),
+          ),
+        ],
+        onChanged: (v) => setState(() => _manualType = v),
+      ),
+      const SizedBox(height: 12),
+
+      // Air day of week
+      DropdownButtonFormField<int?>(
+        initialValue: _airDayOfWeek,
+        decoration: InputDecoration(
+          labelText: l10n.animeAirDay,
+          border: const OutlineInputBorder(),
+        ),
+        items: [
+          const DropdownMenuItem<int?>(value: null, child: Text('-')),
+          for (var i = 1; i <= 7; i++)
+            DropdownMenuItem(value: i, child: Text(_dayName(i))),
+        ],
+        onChanged: (v) => setState(() => _airDayOfWeek = v),
+      ),
+      const SizedBox(height: 12),
+
+      // Air time (supports 25:00 format)
+      TextFormField(
+        controller: _airTimeController,
+        decoration: InputDecoration(
+          labelText: l10n.animeAirTime,
+          hintText: '23:30',
+          helperText: l10n.animeAirTimeHelper,
+          border: const OutlineInputBorder(),
+        ),
+      ),
+      const SizedBox(height: 12),
+
+      // First air date
+      ListTile(
+        contentPadding: EdgeInsets.zero,
+        title: Text(l10n.animeFirstAirDate),
+        subtitle: Text(
+          _firstAirDate != null
+              ? DateFormat.yMMMd().format(_firstAirDate!)
+              : '-',
+        ),
+        trailing: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            IconButton(
+              icon: const Icon(Icons.calendar_today),
+              onPressed: _pickFirstAirDate,
+            ),
+            if (_firstAirDate != null)
+              IconButton(
+                icon: const Icon(Icons.clear),
+                onPressed: () => setState(() => _firstAirDate = null),
               ),
-              validator: (v) => (v == null || v.trim().isEmpty)
-                  ? l10n.animeFieldRequired
-                  : null,
+          ],
+        ),
+      ),
+      const SizedBox(height: 12),
+
+      // Info URL
+      TextFormField(
+        controller: _infoUrlController,
+        decoration: InputDecoration(
+          labelText: l10n.animeInfoUrl,
+          hintText: 'https://',
+          border: const OutlineInputBorder(),
+          prefixIcon: const Icon(Icons.info_outline),
+        ),
+        keyboardType: TextInputType.url,
+      ),
+      const SizedBox(height: 12),
+
+      // Watch URL
+      TextFormField(
+        controller: _watchUrlController,
+        decoration: InputDecoration(
+          labelText: l10n.animeWatchUrl,
+          hintText: 'https://',
+          border: const OutlineInputBorder(),
+          prefixIcon: const Icon(Icons.link),
+          suffixIcon: AppFlavor.isFull
+              ? IconButton(
+                  icon: const Icon(Icons.search),
+                  tooltip: l10n.searchWatchUrl,
+                  onPressed: _searchWatchUrl,
+                )
+              : null,
+        ),
+        keyboardType: TextInputType.url,
+      ),
+      const SizedBox(height: 12),
+
+      // Notes
+      Card(
+        margin: EdgeInsets.zero,
+        child: ExpansionTile(
+          title: Text(l10n.animeRating),
+          subtitle: Text(l10n.animeRatingAutoHint),
+          childrenPadding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+          children: [
+            _buildRatingField(
+              controller: _ratingOverallController,
+              label: l10n.animeRatingOverall,
+              helperText: l10n.animeRatingOverallHelper,
             ),
             const SizedBox(height: 12),
-
-            // Episode range
             Row(
               children: [
                 Expanded(
-                  child: TextFormField(
-                    controller: _startEpController,
+                  child: _buildRatingField(
+                    controller: _ratingVisualController,
+                    label: l10n.animeRatingVisual,
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: _buildRatingField(
+                    controller: _ratingStoryController,
+                    label: l10n.animeRatingStory,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            Row(
+              children: [
+                Expanded(
+                  child: _buildRatingField(
+                    controller: _ratingCharacterController,
+                    label: l10n.animeRatingCharacter,
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: _buildRatingField(
+                    controller: _ratingMusicController,
+                    label: l10n.animeRatingMusic,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            _buildRatingField(
+              controller: _ratingEnjoymentController,
+              label: l10n.animeRatingEnjoyment,
+            ),
+          ],
+        ),
+      ),
+      const SizedBox(height: 12),
+
+      // Local archive
+      Card(
+        margin: EdgeInsets.zero,
+        child: ExpansionTile(
+          title: Text(l10n.animeLocalArchive),
+          subtitle: Text(l10n.animeLocalArchiveHint),
+          childrenPadding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+          children: [
+            SwitchListTile(
+              contentPadding: EdgeInsets.zero,
+              title: Text(l10n.animeLocalArchiveArchived),
+              value: _archived,
+              onChanged: (v) => setState(() => _archived = v),
+            ),
+            const SizedBox(height: 12),
+            Row(
+              children: [
+                Expanded(
+                  child: DropdownButtonFormField<ArchiveSource?>(
+                    initialValue: _archiveSource,
+                    isExpanded: true,
                     decoration: InputDecoration(
-                      labelText: l10n.animeStartEp,
+                      labelText: l10n.animeArchiveSource,
+                      border: const OutlineInputBorder(),
+                    ),
+                    items: [
+                      const DropdownMenuItem<ArchiveSource?>(
+                        value: null,
+                        child: Text('-'),
+                      ),
+                      ...ArchiveSource.values.map(
+                        (s) => DropdownMenuItem(
+                          value: s,
+                          child: Text(archiveSourceLabel(s, l10n)),
+                        ),
+                      ),
+                    ],
+                    onChanged: (v) => setState(() => _archiveSource = v),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: DropdownButtonFormField<ArchiveResolution?>(
+                    initialValue: _archiveResolution,
+                    isExpanded: true,
+                    decoration: InputDecoration(
+                      labelText: l10n.animeArchiveResolution,
+                      border: const OutlineInputBorder(),
+                    ),
+                    items: [
+                      const DropdownMenuItem<ArchiveResolution?>(
+                        value: null,
+                        child: Text('-'),
+                      ),
+                      ...ArchiveResolution.values.map(
+                        (r) => DropdownMenuItem(
+                          value: r,
+                          child: Text(archiveResolutionLabel(r, l10n)),
+                        ),
+                      ),
+                    ],
+                    onChanged: (v) => setState(() => _archiveResolution = v),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                SizedBox(
+                  width: 110,
+                  child: TextFormField(
+                    controller: _archiveCopiesController,
+                    decoration: InputDecoration(
+                      labelText: l10n.animeArchiveCopies,
                       border: const OutlineInputBorder(),
                     ),
                     keyboardType: TextInputType.number,
+                    validator: (value) {
+                      final text = value?.trim() ?? '';
+                      if (text.isEmpty) return null;
+                      final copies = int.tryParse(text);
+                      if (copies == null || copies < 1) {
+                        return l10n.animeArchiveCopiesInvalid;
+                      }
+                      return null;
+                    },
                   ),
                 ),
                 const SizedBox(width: 12),
                 Expanded(
                   child: TextFormField(
-                    controller: _endEpController,
+                    controller: _archiveLocationController,
                     decoration: InputDecoration(
-                      labelText: l10n.animeEndEp,
+                      labelText: l10n.animeArchiveLocation,
+                      hintText: l10n.animeArchiveLocationHint,
                       border: const OutlineInputBorder(),
                     ),
-                    keyboardType: TextInputType.number,
                   ),
                 ),
               ],
             ),
-            const SizedBox(height: 12),
-
-            // Type override
-            DropdownButtonFormField<AnimeType?>(
-              initialValue: _manualType,
-              decoration: InputDecoration(
-                labelText: l10n.animeType,
-                border: const OutlineInputBorder(),
-              ),
-              items: [
-                DropdownMenuItem<AnimeType?>(
-                  value: null,
-                  child: Text(l10n.animeTypeAuto),
-                ),
-                ...AnimeType.values.map(
-                  (t) => DropdownMenuItem(
-                    value: t,
-                    child: Text(_typeLabel(t, l10n)),
-                  ),
-                ),
-              ],
-              onChanged: (v) => setState(() => _manualType = v),
-            ),
-            const SizedBox(height: 12),
-
-            // Air day of week
-            DropdownButtonFormField<int?>(
-              initialValue: _airDayOfWeek,
-              decoration: InputDecoration(
-                labelText: l10n.animeAirDay,
-                border: const OutlineInputBorder(),
-              ),
-              items: [
-                const DropdownMenuItem<int?>(value: null, child: Text('-')),
-                for (var i = 1; i <= 7; i++)
-                  DropdownMenuItem(value: i, child: Text(_dayName(i))),
-              ],
-              onChanged: (v) => setState(() => _airDayOfWeek = v),
-            ),
-            const SizedBox(height: 12),
-
-            // Air time (supports 25:00 format)
-            TextFormField(
-              controller: _airTimeController,
-              decoration: InputDecoration(
-                labelText: l10n.animeAirTime,
-                hintText: '23:30',
-                helperText: l10n.animeAirTimeHelper,
-                border: const OutlineInputBorder(),
-              ),
-            ),
-            const SizedBox(height: 12),
-
-            // First air date
-            ListTile(
-              contentPadding: EdgeInsets.zero,
-              title: Text(l10n.animeFirstAirDate),
-              subtitle: Text(
-                _firstAirDate != null
-                    ? DateFormat.yMMMd().format(_firstAirDate!)
-                    : '-',
-              ),
-              trailing: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  IconButton(
-                    icon: const Icon(Icons.calendar_today),
-                    onPressed: _pickFirstAirDate,
-                  ),
-                  if (_firstAirDate != null)
-                    IconButton(
-                      icon: const Icon(Icons.clear),
-                      onPressed: () => setState(() => _firstAirDate = null),
-                    ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 12),
-
-            // Info URL
-            TextFormField(
-              controller: _infoUrlController,
-              decoration: InputDecoration(
-                labelText: l10n.animeInfoUrl,
-                hintText: 'https://',
-                border: const OutlineInputBorder(),
-                prefixIcon: const Icon(Icons.info_outline),
-              ),
-              keyboardType: TextInputType.url,
-            ),
-            const SizedBox(height: 12),
-
-            // Watch URL
-            TextFormField(
-              controller: _watchUrlController,
-              decoration: InputDecoration(
-                labelText: l10n.animeWatchUrl,
-                hintText: 'https://',
-                border: const OutlineInputBorder(),
-                prefixIcon: const Icon(Icons.link),
-                suffixIcon: AppFlavor.isFull
-                    ? IconButton(
-                        icon: const Icon(Icons.search),
-                        tooltip: l10n.searchWatchUrl,
-                        onPressed: _searchWatchUrl,
-                      )
-                    : null,
-              ),
-              keyboardType: TextInputType.url,
-            ),
-            const SizedBox(height: 12),
-
-            // Notes
-            Card(
-              margin: EdgeInsets.zero,
-              child: ExpansionTile(
-                title: Text(l10n.animeRating),
-                subtitle: Text(l10n.animeRatingAutoHint),
-                childrenPadding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
-                children: [
-                  _buildRatingField(
-                    controller: _ratingOverallController,
-                    label: l10n.animeRatingOverall,
-                    helperText: l10n.animeRatingOverallHelper,
-                  ),
-                  const SizedBox(height: 12),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: _buildRatingField(
-                          controller: _ratingVisualController,
-                          label: l10n.animeRatingVisual,
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: _buildRatingField(
-                          controller: _ratingStoryController,
-                          label: l10n.animeRatingStory,
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 12),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: _buildRatingField(
-                          controller: _ratingCharacterController,
-                          label: l10n.animeRatingCharacter,
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: _buildRatingField(
-                          controller: _ratingMusicController,
-                          label: l10n.animeRatingMusic,
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 12),
-                  _buildRatingField(
-                    controller: _ratingEnjoymentController,
-                    label: l10n.animeRatingEnjoyment,
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 12),
-
-            // Local archive
-            Card(
-              margin: EdgeInsets.zero,
-              child: ExpansionTile(
-                title: Text(l10n.animeLocalArchive),
-                subtitle: Text(l10n.animeLocalArchiveHint),
-                childrenPadding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
-                children: [
-                  SwitchListTile(
-                    contentPadding: EdgeInsets.zero,
-                    title: Text(l10n.animeLocalArchiveArchived),
-                    value: _archived,
-                    onChanged: (v) => setState(() => _archived = v),
-                  ),
-                  const SizedBox(height: 12),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: DropdownButtonFormField<ArchiveSource?>(
-                          initialValue: _archiveSource,
-                          isExpanded: true,
-                          decoration: InputDecoration(
-                            labelText: l10n.animeArchiveSource,
-                            border: const OutlineInputBorder(),
-                          ),
-                          items: [
-                            const DropdownMenuItem<ArchiveSource?>(
-                              value: null,
-                              child: Text('-'),
-                            ),
-                            ...ArchiveSource.values.map(
-                              (s) => DropdownMenuItem(
-                                value: s,
-                                child: Text(archiveSourceLabel(s, l10n)),
-                              ),
-                            ),
-                          ],
-                          onChanged: (v) => setState(() => _archiveSource = v),
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: DropdownButtonFormField<ArchiveResolution?>(
-                          initialValue: _archiveResolution,
-                          isExpanded: true,
-                          decoration: InputDecoration(
-                            labelText: l10n.animeArchiveResolution,
-                            border: const OutlineInputBorder(),
-                          ),
-                          items: [
-                            const DropdownMenuItem<ArchiveResolution?>(
-                              value: null,
-                              child: Text('-'),
-                            ),
-                            ...ArchiveResolution.values.map(
-                              (r) => DropdownMenuItem(
-                                value: r,
-                                child: Text(archiveResolutionLabel(r, l10n)),
-                              ),
-                            ),
-                          ],
-                          onChanged: (v) =>
-                              setState(() => _archiveResolution = v),
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 12),
-                  Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      SizedBox(
-                        width: 110,
-                        child: TextFormField(
-                          controller: _archiveCopiesController,
-                          decoration: InputDecoration(
-                            labelText: l10n.animeArchiveCopies,
-                            border: const OutlineInputBorder(),
-                          ),
-                          keyboardType: TextInputType.number,
-                          validator: (value) {
-                            final text = value?.trim() ?? '';
-                            if (text.isEmpty) return null;
-                            final copies = int.tryParse(text);
-                            if (copies == null || copies < 1) {
-                              return l10n.animeArchiveCopiesInvalid;
-                            }
-                            return null;
-                          },
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: TextFormField(
-                          controller: _archiveLocationController,
-                          decoration: InputDecoration(
-                            labelText: l10n.animeArchiveLocation,
-                            hintText: l10n.animeArchiveLocationHint,
-                            border: const OutlineInputBorder(),
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 12),
-
-            // Notes
-            TextFormField(
-              controller: _notesController,
-              decoration: InputDecoration(
-                labelText: l10n.animeNotes,
-                border: const OutlineInputBorder(),
-              ),
-              maxLines: 3,
-            ),
-            const SizedBox(height: 24),
           ],
         ),
       ),
-    );
+      const SizedBox(height: 12),
+
+      // Notes
+      TextFormField(
+        controller: _notesController,
+        decoration: InputDecoration(
+          labelText: l10n.animeNotes,
+          border: const OutlineInputBorder(),
+        ),
+        maxLines: 3,
+      ),
+      const SizedBox(height: 24),
+    ];
   }
 
   /// Purpose: Provide the internal build rating field helper for this file.
