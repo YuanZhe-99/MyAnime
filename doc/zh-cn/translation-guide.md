@@ -122,6 +122,12 @@
 | relevance | 相关度 | 结果与查询的模糊匹配得分，用作默认排序 |
 | refresh (metadata) | 刷新（资料库信息） | 按已保存的来源 URL 回源重新抓取；zh-TW 用「重新整理」 |
 | background update | 后台更新 | 应用打开时自动进行的资料刷新与探索；zh-TW 用「背景更新」，ja 用「バックグラウンド更新」 |
+| split (layout) | 分栏 | 布局拆成左右两栏或多列；不要译成「分割」 |
+| column count | 列数 | 列表的多列列数；zh-TW 用「欄數」 |
+| window size class | 窗口尺寸等级 | Material 的 compact/medium/expanded 断点分级 |
+| foldable | 折叠屏 | zh-TW 用「摺疊螢幕」，ja 用「折りたたみ」 |
+| aspect ratio | 宽高比 | 拆分判据中的宽除以高 |
+${new_rows}
 | update proposal | 更新建议 | 已下载但等待用户确认的核心字段改动，绝不自动应用 |
 | discovery | 探索 | 为资料不全的记录发起的全源搜索，区别于「刷新」 |
 | confidence threshold | 置信度阈值 | 决定一条搜索结果是否值得提议的相关度下限 |

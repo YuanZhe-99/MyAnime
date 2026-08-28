@@ -59,3 +59,27 @@ model/quarter logic and [`../architecture.md`](../architecture.md) for how these
   - cover thumbnails
   - image export/share for the current filtered ranking (see
     [`share-and-import.md`](share-and-import.md))
+
+## List layout and row actions
+
+All three tabs share two behaviours added in 1.5.3.
+
+**Multi-column lists.** Given a window that is wide enough and square enough to split — the same
+rule the detail page uses, derived in [`../adaptive-layout.md`](../adaptive-layout.md) — the lists
+that have always been a single column fill the width instead, left to right then top to bottom. An
+app-bar column button offers **Auto** (as many columns as fit, up to four) or a pinned count of 1
+to 4; it is hidden entirely when only one column fits, so it never appears on a phone or on a
+folded cover screen. **Each of the three tabs remembers its own count**, device-locally, in
+`storage_config.json`. A foldable unfolding widens the window without restarting the app, so the
+count follows immediately; folding back clamps it to one column without forgetting the choice.
+
+Management's swipe gestures are the one thing that changes shape: swipe-right-to-edit and
+swipe-left-to-delete stay exactly as they were at one column, and are dropped above it, because a
+horizontal drag inside one narrow cell is ambiguous. Nothing is lost — the long-press sheet carries
+both actions.
+
+**Long-press row actions.** Every row in every tab truncates the anime title to one line, which
+makes long names unreadable in place. Long-pressing a row — or right-clicking it on desktop — opens
+a bottom sheet showing every stored title in full, selectable and free to wrap, with **Edit** and
+**Delete** beneath. Delete goes through the same confirmation, and the same five-minute "don't ask
+again" window, as deleting from the detail page.

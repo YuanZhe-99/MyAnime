@@ -157,6 +157,9 @@ feature area:
 - **State management:** `flutter_riverpod`; no Provider or Bloc for normal changes.
 - **Navigation:** `go_router` with a `ShellRoute` and the five bottom tabs listed above.
 - **Visual system:** Material 3 via `flex_color_scheme`.
+- **Responsive layout:** one shared rule decides when the UI may split into panes or columns, and
+  how many columns a list gets — `shared/utils/adaptive_layout.dart`, derived in
+  [`adaptive-layout.md`](adaptive-layout.md). Do not add a new inline width breakpoint.
 - **File I/O:** should go through `AnimeStorage.getAppDir()` so custom storage paths (see
   `storage_config.json` in [`data-formats.md`](data-formats.md)) work consistently.
 - **JSON formatting:** output is pretty-printed with `JsonEncoder.withIndent('  ')` everywhere data

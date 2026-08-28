@@ -7,13 +7,13 @@ import 'package:path_provider/path_provider.dart';
 
 import '../../../shared/services/auto_sync_service.dart';
 import '../../../shared/services/reminder_service.dart';
+import '../../../shared/utils/adaptive_layout.dart';
 import '../../../shared/utils/calendar_preferences.dart';
 import '../models/anime.dart';
 
 class AnimeStorage {
   static const _dataFileName = 'anime_data.json';
   static const _configFileName = 'storage_config.json';
-
 
   /// Custom storage directory path override.
   static String? _customPath;
@@ -500,4 +500,82 @@ class AnimeStorage {
     }
     await writeConfig(config);
   }
+
+  /// Purpose: Read a stored list column preference.
+  /// Inputs: `key` — the `storage_config.json` key for one module.
+  /// Returns: `Future<int>` — `listColumnsAuto` when unset or malformed.
+  /// Side effects: Reads `storage_config.json`.
+  /// Notes: Internal helper shared by the three per-module accessors; the
+  /// preference is clamped again at render time against what the width fits.
+  static Future<int> _getListColumns(String key) async {
+    final config = await readConfig();
+    final value = config[key];
+    if (value is! int || value < 1 || value > listMaxColumns) {
+      return listColumnsAuto;
+    }
+    return value;
+  }
+
+  /// Purpose: Persist a list column preference for one module.
+  /// Inputs: `key`, `columns`.
+  /// Returns: None.
+  /// Side effects: Writes `storage_config.json`.
+  /// Notes: The default `listColumnsAuto` is removed from config rather than
+  /// stored, matching how `setWeekStartDay` handles its default.
+  static Future<void> _setListColumns(String key, int columns) async {
+    final config = await readConfig();
+    if (columns >= 1 && columns <= listMaxColumns) {
+      config[key] = columns;
+    } else {
+      config.remove(key);
+    }
+    await writeConfig(config);
+  }
+
+  /// Purpose: Read the home module's list column preference.
+  /// Inputs: None.
+  /// Returns: `Future<int>` — defaults to `listColumnsAuto`.
+  /// Side effects: Reads `storage_config.json`.
+  /// Notes: None.
+  static Future<int> getHomeListColumns() => _getListColumns('homeListColumns');
+
+  /// Purpose: Persist the home module's list column preference.
+  /// Inputs: `columns`.
+  /// Returns: None.
+  /// Side effects: Writes `storage_config.json`.
+  /// Notes: None.
+  static Future<void> setHomeListColumns(int columns) =>
+      _setListColumns('homeListColumns', columns);
+
+  /// Purpose: Read the management module's list column preference.
+  /// Inputs: None.
+  /// Returns: `Future<int>` — defaults to `listColumnsAuto`.
+  /// Side effects: Reads `storage_config.json`.
+  /// Notes: None.
+  static Future<int> getManageListColumns() =>
+      _getListColumns('manageListColumns');
+
+  /// Purpose: Persist the management module's list column preference.
+  /// Inputs: `columns`.
+  /// Returns: None.
+  /// Side effects: Writes `storage_config.json`.
+  /// Notes: None.
+  static Future<void> setManageListColumns(int columns) =>
+      _setListColumns('manageListColumns', columns);
+
+  /// Purpose: Read the statistics module's list column preference.
+  /// Inputs: None.
+  /// Returns: `Future<int>` — defaults to `listColumnsAuto`.
+  /// Side effects: Reads `storage_config.json`.
+  /// Notes: None.
+  static Future<int> getStatsListColumns() =>
+      _getListColumns('statsListColumns');
+
+  /// Purpose: Persist the statistics module's list column preference.
+  /// Inputs: `columns`.
+  /// Returns: None.
+  /// Side effects: Writes `storage_config.json`.
+  /// Notes: None.
+  static Future<void> setStatsListColumns(int columns) =>
+      _setListColumns('statsListColumns', columns);
 }

@@ -691,6 +691,17 @@ class AppLocalizationsEn extends AppLocalizations {
   String get commonCancel => 'Cancel';
 
   @override
+  String get listColumns => 'Columns';
+
+  @override
+  String get listColumnsAuto => 'Auto';
+
+  @override
+  String listColumnsCount(int count) {
+    return '$count columns';
+  }
+
+  @override
   String get settingsTheme => 'Theme';
 
   @override

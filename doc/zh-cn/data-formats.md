@@ -201,6 +201,7 @@ enum AnimeType {
 | 主页日历布局 | `storage_config.json` | 否 | 设备特有的本地 vs 日式日历标签偏好 |
 | 主页日历时间基准 | `storage_config.json` | 否 | 设备特有的 JST vs 本地日期网格偏好；动画日程时间戳仍基于 JST |
 | 主页日历视图格式 | `storage_config.json` | 否 | 设备特有的上次使用的日历视图（`homeCalendarFormat`：`twoWeeks` 或 `week`；缺省表示默认的整月） |
+| 列表列数（分模块） | `storage_config.json` | 否 | 设备特有的首页、管理与统计列表列数偏好（`homeListColumns` / `manageListColumns` / `statsListColumns`：1–4；缺省表示自动，即填满宽度所允许的列数） |
 | 存储路径覆盖 | `storage_config.json` | 否 | 设备特有路径 |
 | 自动备份启用 | `storage_config.json` | 否 | 设备特有配置 |
 | 备份保留天数 | `storage_config.json` | 否 | 设备特有配置 |
@@ -222,7 +223,7 @@ enum AnimeType {
 
 ### `storage_config.json`
 
-保存上表中除 WebDAV 配置外的每个设备本地偏好：主题模式、语言区域、日历周起始/布局/时间基准/视图格式偏好、存储路径覆盖、自动备份启用 + 保留天数（`backupRetentionDays`）、提醒设置、API 服务器启用/监听地址/端口/凭据、托盘/开机自启偏好，以及后台资料更新设置（`metadataAutoUpdate`、`metadataPrefetchCovers`）。此文件的任何内容都不被同步——它刻意设备特有，而这正是网络策略应有的归宿：接有线网的桌面与走流量套餐的手机本就该不同。
+保存上表中除 WebDAV 配置外的每个设备本地偏好：主题模式、语言区域、日历周起始/布局/时间基准/视图格式偏好、存储路径覆盖、自动备份启用 + 保留天数（`backupRetentionDays`）、提醒设置、API 服务器启用/监听地址/端口/凭据、托盘/开机自启偏好，以及后台资料更新设置（`metadataAutoUpdate`、`metadataPrefetchCovers`）与分模块的列表列数（`homeListColumns`、`manageListColumns`、`statsListColumns`）。此文件的任何内容都不被同步——它刻意设备特有，而这正是网络策略应有的归宿：接有线网的桌面与走流量套餐的手机本就该不同。
 
 ### `webdav_config.json`
 

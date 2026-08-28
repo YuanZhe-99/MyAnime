@@ -17,6 +17,9 @@
 | [`AppSettingsNotifier.setHomeCalendarLayout`](#appsettingsnotifier-sethomecalendarlayout) | 方法（`AppSettingsNotifier`） | A | 更新主页日历日名布局并持久化它。 |
 | [`AppSettingsNotifier.setHomeCalendarTimeBasis`](#appsettingsnotifier-sethomecalendartimebasis) | 方法（`AppSettingsNotifier`） | A | 更新主页日历日期网格使用 JST 还是本地日期，并持久化它。 |
 | [`AppSettingsNotifier.setHomeCalendarFormat`](#appsettingsnotifier-sethomecalendarformat) | 方法（`AppSettingsNotifier`） | A | 更新记住的主页日历视图格式并持久化它。 |
+| `AppSettingsNotifier.setHomeListColumns` | 方法（`AppSettingsNotifier`） | B | 更新并持久化记住的首页列表列数偏好。 |
+| `AppSettingsNotifier.setManageListColumns` | 方法（`AppSettingsNotifier`） | B | 更新并持久化记住的管理列表列数偏好。 |
+| `AppSettingsNotifier.setStatsListColumns` | 方法（`AppSettingsNotifier`） | B | 更新并持久化记住的统计列表列数偏好。 |
 | [`AppSettings.new`](#appsettings-new) | 构造函数（`AppSettings`） | A | 创建 `AppSettings` 实例。 |
 | [`AppSettings.effectiveWeekStartDay`](#appsettings-effectiveweekstartday) | getter（`AppSettings`） | A | 返回应应用于日历的周起始日。 |
 | [`AppSettings.copyWith`](#appsettings-copywith) | 方法（`AppSettings`） | A | 用所选字段创建副本。 |
@@ -252,3 +255,15 @@
   ```
   （来自 `AppSettingsNotifier.setThemeMode`，同一文件）
 - **备注：** 意图是清除语言区域时，总是把 `clearLocale: true` 与 `locale: null` 一起传——只传 `locale: null` 在 `??` 模式下与"无变更"无法区分。
+
+## 列表列数偏好
+
+`AppSettings` 在 1.5.3 中新增了三个字段——`homeListColumns`、`manageListColumns` 和 `statsListColumns`——每个
+数据浏览模块一个，均为 `int`，默认值 `listColumnsAuto`（`0`，意为"填满宽度所允许的列数"）。它们遵循与
+`homeCalendarFormat` 相同的形态：在 `_loadPersisted` 中加载，通过 `AnimeStorage` 以发后不理的方式写入，并且没有
+设置页控件——各模块应用栏上的列数按钮是唯一的写入方。
+
+它们是带 `0` 哨兵值的普通非空 `int` 而非可空字段，因此 `copyWith` 不需要 `locale` 所需的那种 `clearX` 逃生舱。
+存储的值永远只是用户所选；把它钳制到当前宽度所能容纳的范围发生在渲染时的
+[`listColumnCount`](../utils/adaptive_layout.md#listcolumncount) 中，因此在桌面端设定的偏好能在被带到折叠状态
+的手机上存活下来。见 [`../../../adaptive-layout.md`](../../../adaptive-layout.md)。

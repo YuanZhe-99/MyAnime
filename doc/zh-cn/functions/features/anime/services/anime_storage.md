@@ -38,6 +38,14 @@
 | [`setMetadataUpdatePolicy`](#setmetadataupdatepolicy) | 静态方法（`AnimeStorage`） | A | 持久化后台资料更新策略。 |
 | [`getMetadataPrefetchCovers`](#getmetadataprefetchcovers) | 静态方法（`AnimeStorage`） | A | 读取是否预下载候选封面。 |
 | [`setMetadataPrefetchCovers`](#setmetadataprefetchcovers) | 静态方法（`AnimeStorage`） | A | 持久化是否预下载候选封面。 |
+| `_getListColumns` | 静态方法（`AnimeStorage`） | B | 读取某个模块存储的列表列数偏好。 |
+| `_setListColumns` | 静态方法（`AnimeStorage`） | B | 持久化某个模块的列表列数偏好。 |
+| `getHomeListColumns` | 静态方法（`AnimeStorage`） | B | 读取首页模块的列表列数偏好。 |
+| `setHomeListColumns` | 静态方法（`AnimeStorage`） | B | 持久化首页模块的列表列数偏好。 |
+| `getManageListColumns` | 静态方法（`AnimeStorage`） | B | 读取管理模块的列表列数偏好。 |
+| `setManageListColumns` | 静态方法（`AnimeStorage`） | B | 持久化管理模块的列表列数偏好。 |
+| `getStatsListColumns` | 静态方法（`AnimeStorage`） | B | 读取统计模块的列表列数偏好。 |
+| `setStatsListColumns` | 静态方法（`AnimeStorage`） | B | 持久化统计模块的列表列数偏好。 |
 
 ## 文档
 

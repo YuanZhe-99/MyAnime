@@ -82,6 +82,7 @@ declarations are handled elsewhere in this doc set.
 | `_StatisticsPageState._buildRankingView` | method (widget helper) | B | Render the ranking view: filter controls followed by the ranked anime list. |
 | `_StatisticsPageState._buildRankingFilters` | method (widget helper) | B | Render the ranking view's time/type/score-source/sort-field/order filter controls. |
 | `_StatisticsPageState._buildRankingRangeButton` | method (widget helper) | B | Render one quarter-range button (start or end) for the custom ranking time filter. |
+| `_StatisticsPageState._showActions` | method (widget helper) | B | Show the long-press action sheet for one anime and reload. |
 | `_StatisticsPageState._buildRankingTile` | method (widget helper) | B | Render one ranked anime row with rank, cover thumbnail, title, and score. |
 | `_StatisticsPageState._buildCoverThumbnail` | method (widget helper) | B | Render an anime's cover-image thumbnail, or a placeholder if it has none. |
 | `_StatisticsPageState._coverPlaceholder` | method (widget helper) | B | Render the placeholder icon shown for a missing cover thumbnail. |
@@ -796,3 +797,31 @@ declarations are handled elsewhere in this doc set.
 - **Notes:** The `all` scope has no single focused period by design (it shows the whole timeline
   at the user-chosen granularity), so it always returns `null` regardless of `data`'s contents.
 
+
+## List layout and row actions
+
+Since 1.5.3 this page's list can render in multiple columns, and every row carries a long-press
+action sheet.
+
+`build` reads `MediaQuery.sizeOf(context)`, asks
+[`canSplitLayout`](../../../shared/utils/adaptive_layout.md#cansplitlayout) whether this viewport
+may split at all, and passes the result of
+[`listColumnCount`](../../../shared/utils/adaptive_layout.md#listcolumncount) — the stored
+preference clamped to what the width fits — down to the list builders. The tiles are laid out left
+to right then top to bottom by
+[`adaptiveTileRows` / `adaptiveTileRow`](../../../shared/widgets/adaptive_tile_grid.md), and the
+app bar carries a
+[`listColumnsButton`](../../../shared/widgets/adaptive_tile_grid.md#listcolumnsbutton) that is
+hidden whenever only one column fits. The preference is one of three independent values on
+`AppSettings`, persisted in `storage_config.json`, so each of the three modules remembers its own.
+Folding or unfolding a device changes the window size without restarting the activity, so the
+column count follows on the next frame. The rule and its derivation are in
+[`../../../../adaptive-layout.md`](../../../../adaptive-layout.md).
+
+Long-pressing a row — or right-clicking it on desktop — opens
+[`showAnimeActionsSheet`](../../../shared/widgets/anime_actions_sheet.md), which shows every stored
+title in full, untruncated, plus edit and delete. The rows themselves still truncate to one line,
+which is exactly why the sheet exists.
+
+Reading that preference is why this page became a `ConsumerStatefulWidget` in 1.5.3; it previously
+held no Riverpod state at all.

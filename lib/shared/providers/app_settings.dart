@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:table_calendar/table_calendar.dart';
 
 import '../../features/anime/services/anime_storage.dart';
+import '../utils/adaptive_layout.dart';
 import '../utils/calendar_preferences.dart';
 
 /// Purpose: Parse a stored home calendar layout string.
@@ -70,6 +71,9 @@ class AppSettingsNotifier extends StateNotifier<AppSettings> {
     final homeCalendarFormat = _parseHomeCalendarFormat(
       await AnimeStorage.getHomeCalendarFormat(),
     );
+    final homeListColumns = await AnimeStorage.getHomeListColumns();
+    final manageListColumns = await AnimeStorage.getManageListColumns();
+    final statsListColumns = await AnimeStorage.getStatsListColumns();
 
     final themeMode = switch (modeStr) {
       'light' => ThemeMode.light,
@@ -90,6 +94,9 @@ class AppSettingsNotifier extends StateNotifier<AppSettings> {
       homeCalendarLayout: homeCalendarLayout,
       homeCalendarTimeBasis: homeCalendarTimeBasis,
       homeCalendarFormat: homeCalendarFormat,
+      homeListColumns: homeListColumns,
+      manageListColumns: manageListColumns,
+      statsListColumns: statsListColumns,
     );
   }
 
@@ -171,6 +178,36 @@ class AppSettingsNotifier extends StateNotifier<AppSettings> {
       format == CalendarFormat.month ? null : format.name,
     );
   }
+
+  /// Purpose: Update the remembered home list column preference.
+  /// Inputs: `columns` — `listColumnsAuto` or a pinned count.
+  /// Returns: None.
+  /// Side effects: Persists the selected column count.
+  /// Notes: Stored per module, so the three data-browsing tabs are independent.
+  void setHomeListColumns(int columns) {
+    state = state.copyWith(homeListColumns: columns);
+    AnimeStorage.setHomeListColumns(columns);
+  }
+
+  /// Purpose: Update the remembered management list column preference.
+  /// Inputs: `columns` — `listColumnsAuto` or a pinned count.
+  /// Returns: None.
+  /// Side effects: Persists the selected column count.
+  /// Notes: None.
+  void setManageListColumns(int columns) {
+    state = state.copyWith(manageListColumns: columns);
+    AnimeStorage.setManageListColumns(columns);
+  }
+
+  /// Purpose: Update the remembered statistics list column preference.
+  /// Inputs: `columns` — `listColumnsAuto` or a pinned count.
+  /// Returns: None.
+  /// Side effects: Persists the selected column count.
+  /// Notes: None.
+  void setStatsListColumns(int columns) {
+    state = state.copyWith(statsListColumns: columns);
+    AnimeStorage.setStatsListColumns(columns);
+  }
 }
 
 class AppSettings {
@@ -181,8 +218,17 @@ class AppSettings {
   final HomeCalendarTimeBasis homeCalendarTimeBasis;
   final CalendarFormat homeCalendarFormat;
 
+  /// Column preference for the home list: `listColumnsAuto` or a pinned count.
+  final int homeListColumns;
+
+  /// Column preference for the management list.
+  final int manageListColumns;
+
+  /// Column preference for the statistics lists.
+  final int statsListColumns;
+
   /// Purpose: Create a app settings instance.
-  /// Inputs: `themeMode`, `locale`, `weekStartDay`, `homeCalendarLayout`, `homeCalendarTimeBasis`, `homeCalendarFormat`.
+  /// Inputs: `themeMode`, `locale`, `weekStartDay`, `homeCalendarLayout`, `homeCalendarTimeBasis`, `homeCalendarFormat`, `homeListColumns`, `manageListColumns`, `statsListColumns`.
   /// Returns: A new `AppSettings` instance.
   /// Side effects: None.
   /// Notes: `weekStartDay` stores the local-calendar preference; Japanese layout uses Sunday effectively.
@@ -193,6 +239,9 @@ class AppSettings {
     this.homeCalendarLayout = HomeCalendarLayout.local,
     this.homeCalendarTimeBasis = HomeCalendarTimeBasis.jst,
     this.homeCalendarFormat = CalendarFormat.month,
+    this.homeListColumns = listColumnsAuto,
+    this.manageListColumns = listColumnsAuto,
+    this.statsListColumns = listColumnsAuto,
   });
 
   /// Purpose: Return the week start day that should be applied to calendars.
@@ -206,7 +255,7 @@ class AppSettings {
       : weekStartDay;
 
   /// Purpose: Create a copy with selected fields replaced.
-  /// Inputs: `themeMode`, `locale`, `weekStartDay`, `homeCalendarLayout`, `homeCalendarTimeBasis`, `homeCalendarFormat`, `clearLocale`.
+  /// Inputs: `themeMode`, `locale`, `weekStartDay`, `homeCalendarLayout`, `homeCalendarTimeBasis`, `homeCalendarFormat`, `homeListColumns`, `manageListColumns`, `statsListColumns`, `clearLocale`.
   /// Returns: `AppSettings`.
   /// Side effects: None.
   /// Notes: None.
@@ -217,6 +266,9 @@ class AppSettings {
     HomeCalendarLayout? homeCalendarLayout,
     HomeCalendarTimeBasis? homeCalendarTimeBasis,
     CalendarFormat? homeCalendarFormat,
+    int? homeListColumns,
+    int? manageListColumns,
+    int? statsListColumns,
     bool clearLocale = false,
   }) {
     return AppSettings(
@@ -227,6 +279,9 @@ class AppSettings {
       homeCalendarTimeBasis:
           homeCalendarTimeBasis ?? this.homeCalendarTimeBasis,
       homeCalendarFormat: homeCalendarFormat ?? this.homeCalendarFormat,
+      homeListColumns: homeListColumns ?? this.homeListColumns,
+      manageListColumns: manageListColumns ?? this.manageListColumns,
+      statsListColumns: statsListColumns ?? this.statsListColumns,
     );
   }
 }

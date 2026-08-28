@@ -3,12 +3,17 @@ import 'dart:typed_data';
 
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../l10n/app_localizations.dart';
+import '../../../shared/providers/app_settings.dart';
 import '../../../shared/services/auto_sync_service.dart';
 import '../../../shared/services/image_service.dart';
 import '../../../shared/services/share_service.dart';
+import '../../../shared/utils/adaptive_layout.dart';
+import '../../../shared/widgets/adaptive_tile_grid.dart';
+import '../../../shared/widgets/anime_actions_sheet.dart';
 import '../models/anime.dart';
 import '../services/anime_search_service.dart';
 import '../services/anime_storage.dart';
@@ -26,7 +31,7 @@ enum _RankingScoreSource { personal, external }
 
 enum _SummarySharePriority { recent, oldest }
 
-class StatisticsPage extends StatefulWidget {
+class StatisticsPage extends ConsumerStatefulWidget {
   /// Purpose: Create a statistics page instance.
   /// Inputs: None.
   /// Returns: A new `StatisticsPage` instance.
@@ -40,10 +45,10 @@ class StatisticsPage extends StatefulWidget {
   /// Side effects: None.
   /// Notes: Flutter lifecycle override.
   @override
-  State<StatisticsPage> createState() => _StatisticsPageState();
+  ConsumerState<StatisticsPage> createState() => _StatisticsPageState();
 }
 
-class _StatisticsPageState extends State<StatisticsPage> {
+class _StatisticsPageState extends ConsumerState<StatisticsPage> {
   List<Anime> _allAnime = [];
   _StatsView _view = _StatsView.summary;
   _TimeScope _scope = _TimeScope.quarter;
@@ -868,8 +873,7 @@ class _StatisticsPageState extends State<StatisticsPage> {
     final displayName = isRanking
         ? 'myanime_ranking'
         : switch (_scope) {
-            _TimeScope.quarter =>
-              'myanime_${_selectedYear}_Q$_selectedQuarter',
+            _TimeScope.quarter => 'myanime_${_selectedYear}_Q$_selectedQuarter',
             _TimeScope.year => 'myanime_$_selectedYearOnly',
             _TimeScope.all => 'myanime_all',
           };
@@ -1558,11 +1562,32 @@ class _StatisticsPageState extends State<StatisticsPage> {
     final grouped = _groupedAnime;
     final isRanking = _view == _StatsView.ranking;
     final rankedAnime = isRanking ? _rankingAnime : const <Anime>[];
+    final settings = ref.watch(appSettingsProvider);
+    final screen = MediaQuery.sizeOf(context);
+    // The lists sit inside the page's 16dp horizontal padding.
+    final contentWidth = screen.width - 32;
+    final capacity = canSplitLayout(screen.width, screen.height)
+        ? listColumnCapacity(contentWidth)
+        : 1;
+    final columns = listColumnCount(
+      screenWidth: screen.width,
+      screenHeight: screen.height,
+      contentWidth: contentWidth,
+      preference: settings.statsListColumns,
+    );
 
     return Scaffold(
       appBar: AppBar(
         title: Text(l10n.statsTitle),
         actions: [
+          listColumnsButton(
+            context,
+            preference: settings.statsListColumns,
+            capacity: capacity,
+            onChanged: (value) => ref
+                .read(appSettingsProvider.notifier)
+                .setStatsListColumns(value),
+          ),
           IconButton(
             icon: const Icon(Icons.ios_share),
             tooltip: l10n.statsShare,
@@ -1633,7 +1658,7 @@ class _StatisticsPageState extends State<StatisticsPage> {
             ),
 
             if (isRanking) ...[
-              _buildRankingView(theme, l10n, rankedAnime),
+              _buildRankingView(theme, l10n, rankedAnime, columns),
             ] else ...[
               // Period navigation (quarter/year only)
               if (_scope != _TimeScope.all)
@@ -1710,7 +1735,7 @@ class _StatisticsPageState extends State<StatisticsPage> {
               const Divider(height: 32),
 
               // Anime lists by status
-              ..._buildGroupedLists(grouped, theme, l10n),
+              ..._buildGroupedLists(grouped, theme, l10n, columns),
             ],
           ],
         ),
@@ -1767,6 +1792,7 @@ class _StatisticsPageState extends State<StatisticsPage> {
     ThemeData theme,
     AppLocalizations l10n,
     List<Anime> rankedAnime,
+    int columns,
   ) {
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
@@ -1801,9 +1827,10 @@ class _StatisticsPageState extends State<StatisticsPage> {
               child: Center(child: Text(l10n.statsRankingEmpty)),
             )
           else
-            ...List.generate(
-              rankedAnime.length,
-              (index) =>
+            ...adaptiveTileRows(
+              columns: columns,
+              itemCount: rankedAnime.length,
+              itemBuilder: (index) =>
                   _buildRankingTile(rankedAnime[index], index + 1, theme, l10n),
             ),
         ],
@@ -2064,6 +2091,8 @@ class _StatisticsPageState extends State<StatisticsPage> {
       margin: const EdgeInsets.only(bottom: 8),
       clipBehavior: Clip.antiAlias,
       child: InkWell(
+        onLongPress: () => _showActions(anime),
+        onSecondaryTap: () => _showActions(anime),
         onTap: () async {
           await context.push('/anime/detail/${anime.id}');
           await _load();
@@ -2495,10 +2524,22 @@ class _StatisticsPageState extends State<StatisticsPage> {
   /// Returns: `List<Widget>`.
   /// Side effects: None.
   /// Notes: Internal helper used within this file only.
+  /// Purpose: Show the long-press action sheet for one anime and reload.
+  /// Inputs: `anime`.
+  /// Returns: None.
+  /// Side effects: Shows a modal sheet; may edit or delete the anime and
+  /// reloads the page when it did.
+  /// Notes: Internal helper used within this file only.
+  Future<void> _showActions(Anime anime) async {
+    final changed = await showAnimeActionsSheet(context, anime);
+    if (changed && mounted) await _load();
+  }
+
   List<Widget> _buildGroupedLists(
     Map<AnimeViewingStatus, List<Anime>> grouped,
     ThemeData theme,
     AppLocalizations l10n,
+    int columns,
   ) {
     final order = [
       (
@@ -2524,65 +2565,77 @@ class _StatisticsPageState extends State<StatisticsPage> {
       return ExpansionTile(
         title: Text('$label (${list.length})'),
         initiallyExpanded: initiallyExpanded && list.isNotEmpty,
-        children: list.map((anime) {
-          final watchedCount = anime.episodeStatuses.values
-              .where((s) => s == EpisodeStatus.watched)
-              .length;
-          final totalEps =
-              (anime.endEpisode ?? anime.startEpisode) - anime.startEpisode + 1;
-          final progress = totalEps > 0 ? watchedCount / totalEps : 0.0;
+        children: adaptiveTileRows(
+          columns: columns,
+          itemCount: list.length,
+          itemBuilder: (listIndex) {
+            final anime = list[listIndex];
+            final watchedCount = anime.episodeStatuses.values
+                .where((s) => s == EpisodeStatus.watched)
+                .length;
+            final totalEps =
+                (anime.endEpisode ?? anime.startEpisode) -
+                anime.startEpisode +
+                1;
+            final progress = totalEps > 0 ? watchedCount / totalEps : 0.0;
 
-          return ListTile(
-            leading: anime.coverImage != null
-                ? FutureBuilder<File>(
-                    future: ImageService.resolve(anime.coverImage!),
-                    builder: (context, snap) {
-                      if (snap.hasData && snap.data!.existsSync()) {
-                        return ClipRRect(
-                          borderRadius: BorderRadius.circular(4),
-                          child: Image.file(
-                            snap.data!,
+            return GestureDetector(
+              onSecondaryTapUp: (_) => _showActions(anime),
+              child: ListTile(
+                leading: anime.coverImage != null
+                    ? FutureBuilder<File>(
+                        future: ImageService.resolve(anime.coverImage!),
+                        builder: (context, snap) {
+                          if (snap.hasData && snap.data!.existsSync()) {
+                            return ClipRRect(
+                              borderRadius: BorderRadius.circular(4),
+                              child: Image.file(
+                                snap.data!,
+                                width: 40,
+                                height: 56,
+                                fit: BoxFit.cover,
+                              ),
+                            );
+                          }
+                          return const SizedBox(
                             width: 40,
                             height: 56,
-                            fit: BoxFit.cover,
-                          ),
-                        );
-                      }
-                      return const SizedBox(
+                            child: Icon(Icons.movie),
+                          );
+                        },
+                      )
+                    : const SizedBox(
                         width: 40,
                         height: 56,
                         child: Icon(Icons.movie),
-                      );
-                    },
-                  )
-                : const SizedBox(
-                    width: 40,
-                    height: 56,
-                    child: Icon(Icons.movie),
-                  ),
-            title: Text(
-              anime.displayTitle,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-            ),
-            subtitle: Row(
-              children: [
-                Text('$watchedCount/$totalEps'),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: LinearProgressIndicator(
-                    value: progress,
-                    backgroundColor: theme.colorScheme.surfaceContainerHighest,
-                  ),
+                      ),
+                title: Text(
+                  anime.displayTitle,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                 ),
-              ],
-            ),
-            onTap: () async {
-              await context.push('/anime/detail/${anime.id}');
-              await _load();
-            },
-          );
-        }).toList(),
+                subtitle: Row(
+                  children: [
+                    Text('$watchedCount/$totalEps'),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: LinearProgressIndicator(
+                        value: progress,
+                        backgroundColor:
+                            theme.colorScheme.surfaceContainerHighest,
+                      ),
+                    ),
+                  ],
+                ),
+                onLongPress: () => _showActions(anime),
+                onTap: () async {
+                  await context.push('/anime/detail/${anime.id}');
+                  await _load();
+                },
+              ),
+            );
+          },
+        ),
       );
     }).toList();
   }

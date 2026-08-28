@@ -41,7 +41,8 @@ underlying episode air-date logic this page consumes.
 | `_calendarWeekdayLabel` | method (`_HomePageState`) | B | Format one weekday-row label (Japanese single-character or localized). |
 | `_startingDayOfWeek` | method (`_HomePageState`) | B | Convert a week-start weekday into `TableCalendar`'s enum. |
 | `_calendarTimeNote` | method (`_HomePageState`) | B | Localize the explanatory note for the current time basis. |
-| `_buildEpisodeTile` | method (widget helper) | B | Render one episode row (cover, title, air date, watch toggle). |
+| `_showActions` | method (`_HomePageState`) | B | Show the long-press action sheet for one anime and reload. |
+| `_buildEpisodeTile` | method (widget helper) | B | Render one episode row (cover, title, air date, watch toggle, long-press actions). |
 | `_AiringEpisode.new` | constructor (`_AiringEpisode`) | B | Pair an anime with one of its episode numbers. |
 
 ## Documentation
@@ -264,3 +265,28 @@ underlying episode air-date logic this page consumes.
 - **Notes:** Structurally identical to `ManagementPage._showAddOptions`
   ([`management_page.md`](management_page.md#_showaddoptions)), except this page does not jump the
   calendar to any particular date afterward (management's version jumps to the new anime's quarter).
+
+## List layout and row actions
+
+Since 1.5.3 this page's list can render in multiple columns, and every row carries a long-press
+action sheet.
+
+`build` reads `MediaQuery.sizeOf(context)`, asks
+[`canSplitLayout`](../../../shared/utils/adaptive_layout.md#cansplitlayout) whether this viewport
+may split at all, and passes the result of
+[`listColumnCount`](../../../shared/utils/adaptive_layout.md#listcolumncount) — the stored
+preference clamped to what the width fits — down to the list builders. The tiles are laid out left
+to right then top to bottom by
+[`adaptiveTileRows` / `adaptiveTileRow`](../../../shared/widgets/adaptive_tile_grid.md), and the
+app bar carries a
+[`listColumnsButton`](../../../shared/widgets/adaptive_tile_grid.md#listcolumnsbutton) that is
+hidden whenever only one column fits. The preference is one of three independent values on
+`AppSettings`, persisted in `storage_config.json`, so each of the three modules remembers its own.
+Folding or unfolding a device changes the window size without restarting the activity, so the
+column count follows on the next frame. The rule and its derivation are in
+[`../../../../adaptive-layout.md`](../../../../adaptive-layout.md).
+
+Long-pressing a row — or right-clicking it on desktop — opens
+[`showAnimeActionsSheet`](../../../shared/widgets/anime_actions_sheet.md), which shows every stored
+title in full, untruncated, plus edit and delete. The rows themselves still truncate to one line,
+which is exactly why the sheet exists.

@@ -221,6 +221,11 @@
   "commonDontAskMinutes": "5分間確認しない",
   "commonCancel": "キャンセル",
 
+  "listColumns": "列数",
+  "listColumnsAuto": "自動",
+  "listColumnsCount": "{count} 列",
+  "@listColumnsCount": { "placeholders": { "count": { "type": "int" } } },
+
   "settingsTheme": "テーマ",
   "settingsThemeSystem": "システム",
   "settingsThemeLight": "ライト",

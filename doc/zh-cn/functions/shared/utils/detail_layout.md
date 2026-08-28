@@ -1,8 +1,10 @@
 # lib/shared/utils/detail_layout.dart
 
-番剧详情页自适应布局的小型共享工具模块：`detailTwoPaneMinWidth`、`detailTwoPaneMinHeight`、`detailTwoPaneMinAspect`、`detailCoverAspectRatio` 和 `detailLeftPaneHeaderBudget` 常量，以及三个被 `anime_detail_page.dart`（见 [../../features/anime/views/anime_detail_page.md](../../features/anime/views/anime_detail_page.md)）用于判断是否把页面拆成双栏、并为该拆分定尺寸的纯辅助函数。
+番剧详情页自适应布局的小型共享工具模块：`detailCoverAspectRatio` 和 `detailLeftPaneHeaderBudget` 常量，以及三个被 `anime_detail_page.dart`（见 [../../features/anime/views/anime_detail_page.md](../../features/anime/views/anime_detail_page.md)）用于判断是否把页面拆成双栏、并为该拆分定尺寸的纯辅助函数。
 
-本模块刻意只依赖 `dart:core`——不含任何 Flutter 导入，`useDetailTwoPane` 接收两个 double 而非 `Size` 正是出于此因——因此每个辅助函数都可直接单元测试（`test/detail_layout_test.dart`），渲染结果则由 `test/detail_layout_ui_test.dart` 在真实设备几何尺寸下单独覆盖。
+**拆分判定本身已不在此处。** 原先的 `detailTwoPaneMinWidth`、`detailTwoPaneMinHeight` 和 `detailTwoPaneMinAspect` 三个阈值已于 1.5.3 迁往 [adaptive_layout.md](adaptive_layout.md)，因为首页、管理与统计模块中的多列列表开始共用同一条规则；`useDetailTwoPane` 现在是转发到 `canSplitLayout` 的单行委托。留在此处的是真正属于本页面的尺寸计算——左栏有多宽，以及其中的封面能有多大。
+
+本模块刻意只依赖 `dart:core` 及其同级的 `adaptive_layout.dart`——不含任何 Flutter 导入，`useDetailTwoPane` 接收两个 double 而非 `Size` 正是出于此因——因此每个辅助函数都可直接单元测试（`test/detail_layout_test.dart`），渲染结果则由 `test/detail_layout_ui_test.dart` 在真实设备几何尺寸下单独覆盖。
 
 ## 声明
 
@@ -12,21 +14,20 @@
 | [`detailLeftPaneWidth`](#detailleftpanewidth) | 顶层函数 | A | 返回详情页固定左栏的宽度。 |
 | [`detailCoverSize`](#detailcoversize) | 顶层函数 | A | 返回详情页左栏封面图的尺寸。 |
 
-五个常量是没有 `/// Purpose:` 注释的普通声明，不作为单独行索引。`detailCoverAspectRatio`（180/260）保持单栏布局一直使用的封面比例，`detailLeftPaneHeaderBudget`（220.0）是封面下方为日文标题、标签行、进度条及其标签预留的纵向空间。
+两个常量是没有 `/// Purpose:` 注释的普通声明，不作为单独行索引。`detailCoverAspectRatio`（180/260）保持单栏布局一直使用的封面比例，`detailLeftPaneHeaderBudget`（220.0）是封面下方为日文标题、标签行、进度条及其标签预留的纵向空间。
 
 ## 文档
 
 ### `bool useDetailTwoPane(double width, double height)` <a id="usedetailtwopane"></a>
 - **种类：** 顶层函数
-- **来源：** `lib/shared/utils/detail_layout.dart`（约第 33 行）
+- **来源：** `lib/shared/utils/detail_layout.dart`（约第 21 行）
 - **用途：** 判断视口的形状与尺寸是否适合详情页的双栏布局。
 - **输入：** `width`、`height` — 视口的逻辑像素尺寸，读自 `MediaQuery.sizeOf(context)`。
-- **返回：** `bool` — 三个条件全部满足时为 `true`。
+- **返回：** `bool` — `canSplitLayout` 返回什么就返回什么。
 - **副作用：** 无。
-- **算法：** 三项彼此独立、必须全部通过的检查：
-  1. `width >= detailTwoPaneMinWidth`（600.0）
-  2. `height >= detailTwoPaneMinHeight`（480.0）
-  3. `width / height >= detailTwoPaneMinAspect`（0.82）
+- **算法：** `=> canSplitLayout(width, height)`。三个阈值及其各自背后的推理记录于
+  [adaptive_layout.md](adaptive_layout.md)，散文形式的说明见
+  [../../../adaptive-layout.md](../../../adaptive-layout.md)。
 - **用法：**
   ```dart
   final screen = MediaQuery.sizeOf(context);
@@ -35,19 +36,19 @@
   }
   ```
   （出自 `_AnimeDetailPageState.build`，`lib/features/anime/views/anime_detail_page.dart`）
-- **备注：** **宽高比检查是承重的那一项，也是本规则不是单纯宽度断点的原因。** Galaxy Z Fold 8 展开后是 4:3 的**横向**面板（2448 × 1848 px），因此竖屏时为 3:4——相对高度比它所取代的近方形 Fold 7 更窄，尽管它更新。于是同一台设备在同一宽度下需要两个不同答案：横屏拆分，竖屏保持原本的单栏。阈值 0.82 位于 Fold 8 竖屏的 0.755 与 Fold 7 / Fold 8 Ultra 竖屏的 0.90 之间空隙的中段，两侧各留约 9% 余量。
+- **备注：** 保留这层包装而不是在调用点直接替换，是为了让详情页继续用自己的词汇称呼这个判定，也让既有测试和
+  本页保留原有名称。`test/adaptive_layout_test.dart` 断言这两个函数在每一处固定的设备几何上都一致，因此该委托
+  不会悄悄漂移。
 
-  宽度下限是通常的 Material 3 *medium* / Android `sw600dp` 阈值。即便取显示尺寸可选范围中较密的一端，每块展开的折叠屏也至少高出 59 dp，而每块折叠状态的封面屏（约 356–416 dp）都远在其下。
+  简要地说，便于定位：宽 >= 600、高 >= 480 且 宽/高 >= 0.82 时拆分。宽高比检查是承重的那一项——Galaxy Z Fold 8
+  展开后是 4:3 的**横向**面板，因此横屏拆分、竖屏保持单栏，而近方形的 Fold 7 与 Fold 8 Ultra 两种方向都拆分。
 
-  高度下限之所以存在，是因为仅凭宽高比检查会放行**又宽又矮**的视口：没有它，折叠状态的 Z Fold 8 封面屏旋转到横向（约 657 × 416 dp）和普通手机横屏（约 915 × 412 dp）都会被拆成两个逼仄的栏。
-
-  由于该规则针对形状而非设备类别，4:3 或 16:10 的平板竖屏同样保持单栏、横屏拆分，与 Fold 8 完全一致。
-
-  该判断读取 `MediaQuery.sizeOf(context)` 而非用于给两栏定尺寸的 `LayoutBuilder` 约束：以 `Scaffold` body 度量会从高度中扣掉应用栏并抬高比值，使 Z Fold 8 竖屏读作 0.80，几乎不留阈值余量。
+  该判断读取 `MediaQuery.sizeOf(context)` 而非用于给两栏定尺寸的 `LayoutBuilder` 约束：以 `Scaffold` body 度量
+  会从高度中扣掉应用栏并抬高比值，使 Z Fold 8 竖屏读作 0.80，几乎不留阈值余量。
 
 ### `double detailLeftPaneWidth(double totalWidth)` <a id="detailleftpanewidth"></a>
 - **种类：** 顶层函数
-- **来源：** `lib/shared/utils/detail_layout.dart`（约第 48 行）
+- **来源：** `lib/shared/utils/detail_layout.dart`（约第 30 行）
 - **用途：** 为承载从封面到观看进度的固定左栏定宽。
 - **输入：** `totalWidth` — 视口完整宽度的逻辑像素。
 - **返回：** `double` — `totalWidth * 0.36`，钳制到 `[260.0, 420.0]`。
@@ -62,7 +63,7 @@
 
 ### `({double width, double height}) detailCoverSize(double paneWidth, double paneHeight)` <a id="detailcoversize"></a>
 - **种类：** 顶层函数
-- **来源：** `lib/shared/utils/detail_layout.dart`（约第 66 行）
+- **来源：** `lib/shared/utils/detail_layout.dart`（约第 48 行）
 - **用途：** 让封面图填满左栏富余的高度，同时不把其下方的头部内容挤出屏幕。
 - **输入：** `paneWidth`、`paneHeight` — 左栏的逻辑像素尺寸。
 - **返回：** 含封面 `width` 与 `height` 的记录。

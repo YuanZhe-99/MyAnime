@@ -1,11 +1,16 @@
 import 'dart:io';
 
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../app/flavor.dart';
 import '../../../l10n/app_localizations.dart';
+import '../../../shared/providers/app_settings.dart';
 import '../../../shared/services/auto_sync_service.dart';
+import '../../../shared/utils/adaptive_layout.dart';
+import '../../../shared/widgets/adaptive_tile_grid.dart';
+import '../../../shared/widgets/anime_actions_sheet.dart';
 import '../../../shared/widgets/import_bundle_dialog.dart';
 import '../../../shared/services/image_service.dart';
 import '../../../shared/widgets/delete_confirm.dart';
@@ -14,7 +19,7 @@ import '../services/anime_storage.dart';
 import '../services/metadata_update_service.dart';
 import 'quarter_picker_dialog.dart';
 
-class ManagementPage extends StatefulWidget {
+class ManagementPage extends ConsumerStatefulWidget {
   /// Purpose: Create a management page instance.
   /// Inputs: None.
   /// Returns: A new `ManagementPage` instance.
@@ -28,10 +33,10 @@ class ManagementPage extends StatefulWidget {
   /// Side effects: None.
   /// Notes: Flutter lifecycle override.
   @override
-  State<ManagementPage> createState() => _ManagementPageState();
+  ConsumerState<ManagementPage> createState() => _ManagementPageState();
 }
 
-class _ManagementPageState extends State<ManagementPage> {
+class _ManagementPageState extends ConsumerState<ManagementPage> {
   List<Anime> _allAnime = [];
   String _searchQuery = '';
   _ArchiveFilter _archiveFilter = _ArchiveFilter.all;
@@ -167,8 +172,8 @@ class _ManagementPageState extends State<ManagementPage> {
   /// Notes: Internal helper used within this file only. Anime without a firstAirDate — shown on the "Other" page.
   List<Anime> get _otherAnime {
     return _applyArchiveFilter(
-      _allAnime,
-    ).where((a) => a.firstAirDate == null).toList()
+        _allAnime,
+      ).where((a) => a.firstAirDate == null).toList()
       ..sort((a, b) => a.displayTitle.compareTo(b.displayTitle));
   }
 
@@ -311,9 +316,7 @@ class _ManagementPageState extends State<ManagementPage> {
     } else {
       final result = await showImportBundleFlow(context);
       await _load();
-      if (result != null &&
-          result.importedIds.isNotEmpty &&
-          mounted) {
+      if (result != null && result.importedIds.isNotEmpty && mounted) {
         await context.push('/anime/detail/${result.importedIds.first}');
         await _load();
         _jumpToAnimeQuarter(result.importedIds.first);
@@ -408,6 +411,17 @@ class _ManagementPageState extends State<ManagementPage> {
     final l10n = AppLocalizations.of(context)!;
     final theme = Theme.of(context);
     final isSearching = _searchQuery.isNotEmpty;
+    final settings = ref.watch(appSettingsProvider);
+    final screen = MediaQuery.sizeOf(context);
+    final capacity = canSplitLayout(screen.width, screen.height)
+        ? listColumnCapacity(screen.width)
+        : 1;
+    final columns = listColumnCount(
+      screenWidth: screen.width,
+      screenHeight: screen.height,
+      contentWidth: screen.width,
+      preference: settings.manageListColumns,
+    );
 
     return Scaffold(
       appBar: AppBar(
@@ -426,6 +440,14 @@ class _ManagementPageState extends State<ManagementPage> {
                 child: const Icon(Icons.cloud_download_outlined),
               ),
             ),
+          listColumnsButton(
+            context,
+            preference: settings.manageListColumns,
+            capacity: capacity,
+            onChanged: (value) => ref
+                .read(appSettingsProvider.notifier)
+                .setManageListColumns(value),
+          ),
           PopupMenuButton<_ArchiveFilter>(
             icon: Icon(
               _archiveFilter == _ArchiveFilter.all
@@ -461,8 +483,8 @@ class _ManagementPageState extends State<ManagementPage> {
         ),
       ),
       body: isSearching
-          ? _buildSearchResults(theme, l10n)
-          : _buildQuarterView(theme, l10n),
+          ? _buildSearchResults(theme, l10n, columns)
+          : _buildQuarterView(theme, l10n, columns),
       floatingActionButton: FloatingActionButton(
         onPressed: () => _showAddOptions(context),
         tooltip: l10n.animeAdd,
@@ -476,7 +498,11 @@ class _ManagementPageState extends State<ManagementPage> {
   /// Returns: `Widget`.
   /// Side effects: May perform network or file-system operations.
   /// Notes: Internal helper used within this file only.
-  Widget _buildSearchResults(ThemeData theme, AppLocalizations l10n) {
+  Widget _buildSearchResults(
+    ThemeData theme,
+    AppLocalizations l10n,
+    int columns,
+  ) {
     final results = _searchResults();
     if (results.isEmpty) {
       return Center(
@@ -490,8 +516,13 @@ class _ManagementPageState extends State<ManagementPage> {
     }
     return ListView.builder(
       padding: const EdgeInsets.only(bottom: 80),
-      itemCount: results.length,
-      itemBuilder: (context, i) => _buildAnimeTile(results[i], theme, l10n),
+      itemCount: listRowCount(results.length, columns),
+      itemBuilder: (context, row) => adaptiveTileRow(
+        rowIndex: row,
+        columns: columns,
+        itemCount: results.length,
+        itemBuilder: (i) => _buildAnimeTile(results[i], theme, l10n, columns),
+      ),
     );
   }
 
@@ -500,7 +531,11 @@ class _ManagementPageState extends State<ManagementPage> {
   /// Returns: `Widget`.
   /// Side effects: None.
   /// Notes: Internal helper used within this file only.
-  Widget _buildQuarterView(ThemeData theme, AppLocalizations l10n) {
+  Widget _buildQuarterView(
+    ThemeData theme,
+    AppLocalizations l10n,
+    int columns,
+  ) {
     return Column(
       children: [
         // Quarter navigation
@@ -581,9 +616,14 @@ class _ManagementPageState extends State<ManagementPage> {
                 }
                 return ListView.builder(
                   padding: const EdgeInsets.only(bottom: 80),
-                  itemCount: animeList.length,
-                  itemBuilder: (context, i) =>
-                      _buildAnimeTile(animeList[i], theme, l10n),
+                  itemCount: listRowCount(animeList.length, columns),
+                  itemBuilder: (context, row) => adaptiveTileRow(
+                    rowIndex: row,
+                    columns: columns,
+                    itemCount: animeList.length,
+                    itemBuilder: (i) =>
+                        _buildAnimeTile(animeList[i], theme, l10n, columns),
+                  ),
                 );
               }
 
@@ -603,11 +643,14 @@ class _ManagementPageState extends State<ManagementPage> {
 
               return ListView.builder(
                 padding: const EdgeInsets.only(bottom: 80),
-                itemCount: animeList.length,
-                itemBuilder: (context, i) {
-                  final anime = animeList[i];
-                  return _buildAnimeTile(anime, theme, l10n);
-                },
+                itemCount: listRowCount(animeList.length, columns),
+                itemBuilder: (context, row) => adaptiveTileRow(
+                  rowIndex: row,
+                  columns: columns,
+                  itemCount: animeList.length,
+                  itemBuilder: (i) =>
+                      _buildAnimeTile(animeList[i], theme, l10n, columns),
+                ),
               );
             },
           ),
@@ -616,12 +659,28 @@ class _ManagementPageState extends State<ManagementPage> {
     );
   }
 
+  /// Purpose: Show the long-press action sheet for one anime and reload.
+  /// Inputs: `anime`.
+  /// Returns: None.
+  /// Side effects: Shows a modal sheet; may edit or delete the anime and
+  /// reloads the page when it did.
+  /// Notes: Internal helper used within this file only.
+  Future<void> _showActions(Anime anime) async {
+    final changed = await showAnimeActionsSheet(context, anime);
+    if (changed && mounted) await _load();
+  }
+
   /// Purpose: Provide the internal build anime tile helper for this file.
-  /// Inputs: `anime`, `theme`, `l10n`.
+  /// Inputs: `anime`, `theme`, `l10n`, `columns`.
   /// Returns: `Widget`.
   /// Side effects: None.
   /// Notes: Internal helper used within this file only.
-  Widget _buildAnimeTile(Anime anime, ThemeData theme, AppLocalizations l10n) {
+  Widget _buildAnimeTile(
+    Anime anime,
+    ThemeData theme,
+    AppLocalizations l10n,
+    int columns,
+  ) {
     final watchedCount = anime.episodeStatuses.values
         .where((s) => s == EpisodeStatus.watched)
         .length;
@@ -630,30 +689,8 @@ class _ManagementPageState extends State<ManagementPage> {
     final progress = totalEps > 0 ? watchedCount / totalEps : 0.0;
     final dayStr = _dayLabel(anime.airDayOfWeek);
 
-    return Dismissible(
-      key: ValueKey(anime.id),
-      background: Container(
-        color: theme.colorScheme.primaryContainer,
-        alignment: Alignment.centerLeft,
-        padding: const EdgeInsets.only(left: 20),
-        child: Icon(Icons.edit, color: theme.colorScheme.primary),
-      ),
-      secondaryBackground: Container(
-        color: theme.colorScheme.errorContainer,
-        alignment: Alignment.centerRight,
-        padding: const EdgeInsets.only(right: 20),
-        child: Icon(Icons.delete, color: theme.colorScheme.error),
-      ),
-      confirmDismiss: (direction) async {
-        if (direction == DismissDirection.startToEnd) {
-          await context.push('/anime/edit/${anime.id}');
-          await _load();
-          return false;
-        } else {
-          await _deleteAnime(anime);
-          return false;
-        }
-      },
+    final tile = GestureDetector(
+      onSecondaryTapUp: (_) => _showActions(anime),
       child: ListTile(
         leading: anime.coverImage != null
             ? FutureBuilder<File>(
@@ -695,11 +732,44 @@ class _ManagementPageState extends State<ManagementPage> {
             ),
           ],
         ),
+        onLongPress: () => _showActions(anime),
         onTap: () async {
           await context.push('/anime/detail/${anime.id}');
           await _load();
         },
       ),
+    );
+
+    // Swipe-to-edit and swipe-to-delete only make sense while a row spans the
+    // full width. In a multi-column grid a horizontal drag inside one narrow
+    // cell is ambiguous, so the long-press sheet carries both actions instead.
+    if (columns > 1) return tile;
+
+    return Dismissible(
+      key: ValueKey(anime.id),
+      background: Container(
+        color: theme.colorScheme.primaryContainer,
+        alignment: Alignment.centerLeft,
+        padding: const EdgeInsets.only(left: 20),
+        child: Icon(Icons.edit, color: theme.colorScheme.primary),
+      ),
+      secondaryBackground: Container(
+        color: theme.colorScheme.errorContainer,
+        alignment: Alignment.centerRight,
+        padding: const EdgeInsets.only(right: 20),
+        child: Icon(Icons.delete, color: theme.colorScheme.error),
+      ),
+      confirmDismiss: (direction) async {
+        if (direction == DismissDirection.startToEnd) {
+          await context.push('/anime/edit/${anime.id}');
+          await _load();
+          return false;
+        } else {
+          await _deleteAnime(anime);
+          return false;
+        }
+      },
+      child: tile,
     );
   }
 }

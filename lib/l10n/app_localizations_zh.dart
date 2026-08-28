@@ -641,6 +641,17 @@ class AppLocalizationsZh extends AppLocalizations {
   String get commonCancel => '取消';
 
   @override
+  String get listColumns => '列数';
+
+  @override
+  String get listColumnsAuto => '自动';
+
+  @override
+  String listColumnsCount(int count) {
+    return '$count 列';
+  }
+
+  @override
   String get settingsTheme => '主题';
 
   @override
@@ -2143,6 +2154,17 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
 
   @override
   String get commonCancel => '取消';
+
+  @override
+  String get listColumns => '欄數';
+
+  @override
+  String get listColumnsAuto => '自動';
+
+  @override
+  String listColumnsCount(int count) {
+    return '$count 欄';
+  }
 
   @override
   String get settingsTheme => '主題';

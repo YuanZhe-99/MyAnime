@@ -26,7 +26,8 @@
 | `_calendarWeekdayLabel` | 方法（`_HomePageState`） | B | 格式化一个星期行标签（日式单字符或本地化）。 |
 | `_startingDayOfWeek` | 方法（`_HomePageState`） | B | 把周起始星期转换为 `TableCalendar` 的枚举。 |
 | `_calendarTimeNote` | 方法（`_HomePageState`） | B | 本地化当前时间基准的解释性说明。 |
-| `_buildEpisodeTile` | 方法（组件辅助） | B | 渲染一个剧集行（封面、标题、播出日期、观看切换）。 |
+| `_showActions` | 方法（`_HomePageState`） | B | 展示某个动画的长按操作面板并重新加载。 |
+| `_buildEpisodeTile` | 方法（组件辅助） | B | 渲染一个剧集行（封面、标题、播出日期、观看切换、长按操作）。 |
 | `_AiringEpisode.new` | 构造函数（`_AiringEpisode`） | B | 把一部动画与它的一个集编号配对。 |
 
 ## 文档
@@ -199,3 +200,22 @@
   ```
   （`_HomePageState.build`，同一文件）
 - **备注：** 与 `ManagementPage._showAddOptions`（[`management_page.md`](management_page.md#_showaddoptions)）结构相同，只是本页之后不把日历跳到任何特定日期（管理版的跳转到新动画的季度）。
+
+## 列表布局与行操作
+
+自 1.5.3 起，本页的列表可以渲染为多列，并且每一行都带有长按操作面板。
+
+`build` 读取 `MediaQuery.sizeOf(context)`，向
+[`canSplitLayout`](../../../shared/utils/adaptive_layout.md#cansplitlayout) 询问该视口是否可以拆分，并把
+[`listColumnCount`](../../../shared/utils/adaptive_layout.md#listcolumncount) 的结果——被宽度容量钳制后的存储
+偏好——向下传给列表构建器。条目由
+[`adaptiveTileRows` / `adaptiveTileRow`](../../../shared/widgets/adaptive_tile_grid.md) 按从左到右、然后从上到下
+排布，应用栏中带有一个
+[`listColumnsButton`](../../../shared/widgets/adaptive_tile_grid.md#listcolumnsbutton)，当只容得下一列时它会被
+隐藏。该偏好是 `AppSettings` 上三个彼此独立的值之一，持久化在 `storage_config.json` 中，因此三个模块各自记住
+自己的设置。折叠或展开设备只改变窗口尺寸而不重启 activity，因此列数在下一帧即跟进。规则及其推导见
+[`../../../../adaptive-layout.md`](../../../../adaptive-layout.md)。
+
+长按某一行——在桌面端为右键点击——会打开
+[`showAnimeActionsSheet`](../../../shared/widgets/anime_actions_sheet.md)，它完整、不截断地展示每一个已存储的
+标题，并提供编辑与删除。行本身仍然截断为单行，而这正是该面板存在的原因。

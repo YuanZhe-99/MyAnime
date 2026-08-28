@@ -221,6 +221,11 @@
   "commonDontAskMinutes": "5分鐘內不再詢問",
   "commonCancel": "取消",
 
+  "listColumns": "欄數",
+  "listColumnsAuto": "自動",
+  "listColumnsCount": "{count} 欄",
+  "@listColumnsCount": { "placeholders": { "count": { "type": "int" } } },
+
   "settingsTheme": "主題",
   "settingsThemeSystem": "跟隨系統",
   "settingsThemeLight": "淺色",

@@ -1199,6 +1199,24 @@ abstract class AppLocalizations {
   /// **'Cancel'**
   String get commonCancel;
 
+  /// No description provided for @listColumns.
+  ///
+  /// In en, this message translates to:
+  /// **'Columns'**
+  String get listColumns;
+
+  /// No description provided for @listColumnsAuto.
+  ///
+  /// In en, this message translates to:
+  /// **'Auto'**
+  String get listColumnsAuto;
+
+  /// No description provided for @listColumnsCount.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} columns'**
+  String listColumnsCount(int count);
+
   /// No description provided for @settingsTheme.
   ///
   /// In en, this message translates to:

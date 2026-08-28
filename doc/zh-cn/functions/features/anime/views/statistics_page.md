@@ -62,6 +62,7 @@
 | `_StatisticsPageState._buildRankingView` | 方法（组件辅助） | B | 渲染排名视图：过滤器控件后跟排名动画列表。 |
 | `_StatisticsPageState._buildRankingFilters` | 方法（组件辅助） | B | 渲染排名视图的时间/类型/评分来源/排序字段/方向过滤器控件。 |
 | `_StatisticsPageState._buildRankingRangeButton` | 方法（组件辅助） | B | 为自定义排名时间过滤器渲染一个季度范围按钮（起始或结束）。 |
+| `_StatisticsPageState._showActions` | 方法（组件辅助） | B | 展示某个动画的长按操作面板并重新加载。 |
 | `_StatisticsPageState._buildRankingTile` | 方法（组件辅助） | B | 渲染一个带排名、封面缩略图、标题和分数的排名动画行。 |
 | `_StatisticsPageState._buildCoverThumbnail` | 方法（组件辅助） | B | 渲染动画的封面图像缩略图，没有则占位符。 |
 | `_StatisticsPageState._coverPlaceholder` | 方法（组件辅助） | B | 渲染缺失封面缩略图时显示的占位图标。 |
@@ -619,3 +620,24 @@
   ```
   （来自 `_scrollTrendToFocused` 和 `_buildTrendChart`，同一文件）
 - **备注：** `all` 范围按设计没有单一聚焦周期（它以用户选择的粒度显示完整时间线），因此无论 `data` 内容如何总是返回 `null`。
+
+## 列表布局与行操作
+
+自 1.5.3 起，本页的列表可以渲染为多列，并且每一行都带有长按操作面板。
+
+`build` 读取 `MediaQuery.sizeOf(context)`，向
+[`canSplitLayout`](../../../shared/utils/adaptive_layout.md#cansplitlayout) 询问该视口是否可以拆分，并把
+[`listColumnCount`](../../../shared/utils/adaptive_layout.md#listcolumncount) 的结果——被宽度容量钳制后的存储
+偏好——向下传给列表构建器。条目由
+[`adaptiveTileRows` / `adaptiveTileRow`](../../../shared/widgets/adaptive_tile_grid.md) 按从左到右、然后从上到下
+排布，应用栏中带有一个
+[`listColumnsButton`](../../../shared/widgets/adaptive_tile_grid.md#listcolumnsbutton)，当只容得下一列时它会被
+隐藏。该偏好是 `AppSettings` 上三个彼此独立的值之一，持久化在 `storage_config.json` 中，因此三个模块各自记住
+自己的设置。折叠或展开设备只改变窗口尺寸而不重启 activity，因此列数在下一帧即跟进。规则及其推导见
+[`../../../../adaptive-layout.md`](../../../../adaptive-layout.md)。
+
+长按某一行——在桌面端为右键点击——会打开
+[`showAnimeActionsSheet`](../../../shared/widgets/anime_actions_sheet.md)，它完整、不截断地展示每一个已存储的
+标题，并提供编辑与删除。行本身仍然截断为单行，而这正是该面板存在的原因。
+
+读取该偏好正是本页在 1.5.3 变成 `ConsumerStatefulWidget` 的原因；此前它完全不持有 Riverpod 状态。

@@ -32,6 +32,7 @@ about to change, verify against the code, then fix the docs in the same commit.
 | Backup, restore, blob store | `doc/en-us/backup-restore.md` |
 | Files on disk, what syncs, `storage_config.json` keys | `doc/en-us/data-formats.md` |
 | Per-feature behavior | `doc/en-us/features/*.md` |
+| When the UI splits into panes or columns; foldable rules | `doc/en-us/adaptive-layout.md` |
 | Merge algorithm details | `doc/en-us/algorithms/three-way-merge.md` |
 | Worked end-to-end scenarios | `doc/en-us/examples/*.md` |
 | Windows/macOS/iOS/Android specifics, `file_picker` pin, Gradle/AGP state | `doc/en-us/platform-notes.md` |

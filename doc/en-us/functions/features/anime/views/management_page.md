@@ -39,7 +39,8 @@ for the quarter-placement rules this page's grouping relies on.
 | `_ManagementPageState.build` | method (`_ManagementPageState`, widget build) | B | Build the page scaffold (search field, quarter view, FAB). |
 | `_buildSearchResults` | method (widget helper) | B | Render the global search results list. |
 | `_buildQuarterView` | method (widget helper) | B | Render the quarter navigation row and swipeable `PageView`. |
-| `_buildAnimeTile` | method (widget helper) | B | Render one anime row with swipe-to-edit/delete actions. |
+| `_showActions` | method (`_ManagementPageState`) | B | Show the long-press action sheet for one anime and reload. |
+| `_buildAnimeTile` | method (widget helper) | B | Render one anime row; swipe-to-edit/delete at one column, long-press actions always. |
 | `_Quarter.new` | constructor (`_Quarter`) | B | Pair a year and quarter number. |
 
 ## Documentation
@@ -301,3 +302,31 @@ for the quarter-placement rules this page's grouping relies on.
 - **Notes:** The per-cell counts shown in the picker come from `airsInQuarter` (a quarter's full
   potential membership), while `_animeForQuarter` used elsewhere applies the same filter — so the
   counts always match what the corresponding page actually shows.
+
+## List layout and row actions
+
+Since 1.5.3 this page's list can render in multiple columns, and every row carries a long-press
+action sheet.
+
+`build` reads `MediaQuery.sizeOf(context)`, asks
+[`canSplitLayout`](../../../shared/utils/adaptive_layout.md#cansplitlayout) whether this viewport
+may split at all, and passes the result of
+[`listColumnCount`](../../../shared/utils/adaptive_layout.md#listcolumncount) — the stored
+preference clamped to what the width fits — down to the list builders. The tiles are laid out left
+to right then top to bottom by
+[`adaptiveTileRows` / `adaptiveTileRow`](../../../shared/widgets/adaptive_tile_grid.md), and the
+app bar carries a
+[`listColumnsButton`](../../../shared/widgets/adaptive_tile_grid.md#listcolumnsbutton) that is
+hidden whenever only one column fits. The preference is one of three independent values on
+`AppSettings`, persisted in `storage_config.json`, so each of the three modules remembers its own.
+Folding or unfolding a device changes the window size without restarting the activity, so the
+column count follows on the next frame. The rule and its derivation are in
+[`../../../../adaptive-layout.md`](../../../../adaptive-layout.md).
+
+Long-pressing a row — or right-clicking it on desktop — opens
+[`showAnimeActionsSheet`](../../../shared/widgets/anime_actions_sheet.md), which shows every stored
+title in full, untruncated, plus edit and delete. The rows themselves still truncate to one line,
+which is exactly why the sheet exists.
+
+Reading that preference is why this page became a `ConsumerStatefulWidget` in 1.5.3; it previously
+held no Riverpod state at all.

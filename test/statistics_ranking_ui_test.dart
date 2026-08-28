@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:my_anime/features/anime/views/statistics_page.dart';
 import 'package:my_anime/l10n/app_localizations.dart';
@@ -90,11 +91,13 @@ void main() {
     addTearDown(tester.view.reset);
     await tester.runAsync(() async {
       await tester.pumpWidget(
-        MaterialApp(
-          localizationsDelegates: AppLocalizations.localizationsDelegates,
-          supportedLocales: AppLocalizations.supportedLocales,
-          locale: const Locale('en'),
-          home: const StatisticsPage(),
+        const ProviderScope(
+          child: MaterialApp(
+            localizationsDelegates: AppLocalizations.localizationsDelegates,
+            supportedLocales: AppLocalizations.supportedLocales,
+            locale: Locale('en'),
+            home: StatisticsPage(),
+          ),
         ),
       );
       for (var i = 0; i < 3; i++) {

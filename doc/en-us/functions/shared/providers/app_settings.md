@@ -25,6 +25,9 @@ management conventions (Riverpod, no Provider/Bloc) and
 | [`AppSettingsNotifier.setHomeCalendarLayout`](#appsettingsnotifier-sethomecalendarlayout) | method (`AppSettingsNotifier`) | A | Update the home calendar day-name layout and persist it. |
 | [`AppSettingsNotifier.setHomeCalendarTimeBasis`](#appsettingsnotifier-sethomecalendartimebasis) | method (`AppSettingsNotifier`) | A | Update whether the home calendar date grid uses JST or local dates, and persist it. |
 | [`AppSettingsNotifier.setHomeCalendarFormat`](#appsettingsnotifier-sethomecalendarformat) | method (`AppSettingsNotifier`) | A | Update the remembered home calendar view format and persist it. |
+| `AppSettingsNotifier.setHomeListColumns` | method (`AppSettingsNotifier`) | B | Update the remembered home list column preference and persist it. |
+| `AppSettingsNotifier.setManageListColumns` | method (`AppSettingsNotifier`) | B | Update the remembered management list column preference and persist it. |
+| `AppSettingsNotifier.setStatsListColumns` | method (`AppSettingsNotifier`) | B | Update the remembered statistics list column preference and persist it. |
 | [`AppSettings.new`](#appsettings-new) | constructor (`AppSettings`) | A | Create an `AppSettings` instance. |
 | [`AppSettings.effectiveWeekStartDay`](#appsettings-effectiveweekstartday) | getter (`AppSettings`) | A | Return the week start day that should be applied to calendars. |
 | [`AppSettings.copyWith`](#appsettings-copywith) | method (`AppSettings`) | A | Create a copy with selected fields replaced. |
@@ -334,3 +337,18 @@ separate rows.
 - **Notes:** Always pass `clearLocale: true` alongside `locale: null` when the intent is to clear
   the locale — passing only `locale: null` is indistinguishable from "no change" under the `??`
   pattern.
+
+## List column preferences
+
+`AppSettings` carries three more fields added in 1.5.3 — `homeListColumns`, `manageListColumns`
+and `statsListColumns` — one per data-browsing module, each an `int` defaulting to
+`listColumnsAuto` (`0`, meaning "fill whatever the width allows"). They follow the same shape as
+`homeCalendarFormat`: loaded in `_loadPersisted`, written fire-and-forget through `AnimeStorage`,
+and with no settings-page control — the app-bar column button on each module is the only writer.
+
+They are plain non-nullable `int`s with a `0` sentinel rather than nullable fields, so `copyWith`
+needs no `clearX` escape hatch of the kind `locale` requires. The stored value is only ever what
+the user picked; clamping it to what the current width can fit happens at render time in
+[`listColumnCount`](../utils/adaptive_layout.md#listcolumncount), so a preference set on a desktop
+survives being carried onto a folded phone. See
+[`../../../adaptive-layout.md`](../../../adaptive-layout.md).

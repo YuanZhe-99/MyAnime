@@ -644,6 +644,17 @@ class AppLocalizationsJa extends AppLocalizations {
   String get commonCancel => 'キャンセル';
 
   @override
+  String get listColumns => '列数';
+
+  @override
+  String get listColumnsAuto => '自動';
+
+  @override
+  String listColumnsCount(int count) {
+    return '$count 列';
+  }
+
+  @override
   String get settingsTheme => 'テーマ';
 
   @override

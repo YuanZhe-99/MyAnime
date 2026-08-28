@@ -1,16 +1,23 @@
 # lib/shared/utils/detail_layout.dart
 
 Small shared utility module for the anime detail page's adaptive layout: the
-`detailTwoPaneMinWidth`, `detailTwoPaneMinHeight`, `detailTwoPaneMinAspect`,
 `detailCoverAspectRatio` and `detailLeftPaneHeaderBudget` constants, plus three pure helpers used
 by `anime_detail_page.dart` (see
 [../../features/anime/views/anime_detail_page.md](../../features/anime/views/anime_detail_page.md))
 to decide whether to split the page into two panes and to size that split.
 
-The module deliberately depends on nothing but `dart:core` — it holds no Flutter imports, and
-`useDetailTwoPane` takes two doubles rather than a `Size` for exactly that reason — so every helper
-is directly unit-testable (`test/detail_layout_test.dart`), and the rendered result is covered
-separately at real device geometries by `test/detail_layout_ui_test.dart`.
+**The split decision itself no longer lives here.** The three thresholds that used to be
+`detailTwoPaneMinWidth`, `detailTwoPaneMinHeight` and `detailTwoPaneMinAspect` moved to
+[adaptive_layout.md](adaptive_layout.md) in 1.5.3, when the multi-column lists in the home,
+management and statistics modules started sharing the same rule; `useDetailTwoPane` is now a
+one-line delegate to `canSplitLayout`. What stays here is the sizing that is genuinely specific to
+this page — how wide the left pane is and how large the cover inside it can be.
+
+The module deliberately depends on nothing but `dart:core` and its sibling `adaptive_layout.dart` —
+it holds no Flutter imports, and `useDetailTwoPane` takes two doubles rather than a `Size` for
+exactly that reason — so every helper is directly unit-testable
+(`test/detail_layout_test.dart`), and the rendered result is covered separately at real device
+geometries by `test/detail_layout_ui_test.dart`.
 
 ## Declarations
 
@@ -20,7 +27,7 @@ separately at real device geometries by `test/detail_layout_ui_test.dart`.
 | [`detailLeftPaneWidth`](#detailleftpanewidth) | top-level function | A | Return the width of the detail page's fixed left pane. |
 | [`detailCoverSize`](#detailcoversize) | top-level function | A | Return the cover image size for the detail page's left pane. |
 
-The five constants are plain declarations without `/// Purpose:` comments and are not indexed as
+The two constants are plain declarations without `/// Purpose:` comments and are not indexed as
 separate rows. `detailCoverAspectRatio` (180/260) preserves the cover proportions the
 single-column layout has always used, and `detailLeftPaneHeaderBudget` (220.0) is the vertical
 space reserved below the cover for the Japanese title, the chip row, the progress bar and its
@@ -30,17 +37,16 @@ label.
 
 ### `bool useDetailTwoPane(double width, double height)` <a id="usedetailtwopane"></a>
 - **Kind:** top-level function
-- **Source:** `lib/shared/utils/detail_layout.dart` (approx. line 33)
+- **Source:** `lib/shared/utils/detail_layout.dart` (approx. line 21)
 - **Purpose:** Decide whether the viewport is the right shape and size for the detail page's
   two-pane layout.
 - **Inputs:** `width`, `height` — the viewport size in logical pixels, read from
   `MediaQuery.sizeOf(context)`.
-- **Returns:** `bool` — `true` when all three conditions hold.
+- **Returns:** `bool` — whatever `canSplitLayout` returns.
 - **Side effects:** None.
-- **Algorithm:** Three independent tests, all of which must pass:
-  1. `width >= detailTwoPaneMinWidth` (600.0)
-  2. `height >= detailTwoPaneMinHeight` (480.0)
-  3. `width / height >= detailTwoPaneMinAspect` (0.82)
+- **Algorithm:** `=> canSplitLayout(width, height)`. The three thresholds and the reasoning behind
+  each of them are documented on [adaptive_layout.md](adaptive_layout.md) and, in prose, in
+  [../../../adaptive-layout.md](../../../adaptive-layout.md).
 - **Usage:**
   ```dart
   final screen = MediaQuery.sizeOf(context);
@@ -49,24 +55,15 @@ label.
   }
   ```
   (from `_AnimeDetailPageState.build`, `lib/features/anime/views/anime_detail_page.dart`)
-- **Notes:** **The aspect test is the load-bearing one, and it is why this is not a plain width
-  breakpoint.** The Galaxy Z Fold 8 unfolds to a 4:3 *landscape* panel (2448 × 1848 px), so in
-  portrait it is 3:4 — narrower relative to its height than the near-square Fold 7 it replaced,
-  despite being newer. One device therefore needs two different answers at one width: split in
-  landscape, keep the original single column in portrait. The threshold 0.82 sits near the middle
-  of the gap between the Fold 8's portrait 0.755 and the Fold 7 / Fold 8 Ultra's portrait 0.90,
-  with roughly 9% margin on each side.
+- **Notes:** The wrapper is kept rather than replaced at the call site so the detail page keeps
+  naming the decision in its own vocabulary, and so the existing tests and this page keep their
+  names. `test/adaptive_layout_test.dart` asserts the two functions agree across every pinned
+  device geometry, so the delegation cannot silently drift.
 
-  The width floor is the usual Material 3 *medium* / Android `sw600dp` threshold. Every unfolded
-  foldable clears it by at least 59 dp even at the denser end of the plausible display-size range,
-  and every folded cover screen (roughly 356–416 dp) sits well below it.
-
-  The height floor exists because the aspect test alone admits *wide and short* viewports: without
-  it, a folded Z Fold 8 cover screen rotated to landscape (~657 × 416 dp) and an ordinary phone in
-  landscape (~915 × 412 dp) would both split into two cramped panes.
-
-  Because the rule is about shape rather than device class, a 4:3 or 16:10 tablet in portrait also
-  stays single-column and splits in landscape, exactly like the Fold 8.
+  Briefly, for orientation: split when width >= 600, height >= 480, and width / height >= 0.82.
+  The aspect test is the load-bearing one — a Galaxy Z Fold 8 unfolds to a 4:3 *landscape* panel,
+  so it splits in landscape and keeps the single column in portrait, while the near-square Fold 7
+  and Fold 8 Ultra split in both.
 
   The decision reads `MediaQuery.sizeOf(context)` rather than the `LayoutBuilder` constraints the
   panes are sized from: measuring the `Scaffold` body would subtract the app bar from the height
@@ -75,7 +72,7 @@ label.
 
 ### `double detailLeftPaneWidth(double totalWidth)` <a id="detailleftpanewidth"></a>
 - **Kind:** top-level function
-- **Source:** `lib/shared/utils/detail_layout.dart` (approx. line 48)
+- **Source:** `lib/shared/utils/detail_layout.dart` (approx. line 30)
 - **Purpose:** Size the fixed left pane that holds the cover through the watch progress.
 - **Inputs:** `totalWidth` — the full viewport width in logical pixels.
 - **Returns:** `double` — `totalWidth * 0.36`, clamped to `[260.0, 420.0]`.
@@ -94,7 +91,7 @@ label.
 
 ### `({double width, double height}) detailCoverSize(double paneWidth, double paneHeight)` <a id="detailcoversize"></a>
 - **Kind:** top-level function
-- **Source:** `lib/shared/utils/detail_layout.dart` (approx. line 66)
+- **Source:** `lib/shared/utils/detail_layout.dart` (approx. line 48)
 - **Purpose:** Size the cover image so it fills the height the left pane has spare without pushing
   the header below it off screen.
 - **Inputs:** `paneWidth`, `paneHeight` — the left pane's size in logical pixels.

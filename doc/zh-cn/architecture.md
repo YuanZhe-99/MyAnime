@@ -125,6 +125,8 @@ WebDAV 同步引擎、备份引擎、ZIP 传输引擎和自动同步调度器**�
 - **状态管理：** `flutter_riverpod`；常规变更不用 Provider 或 Bloc。
 - **导航：** `go_router`，带 `ShellRoute` 和上面列出的五个底部标签。
 - **视觉体系：** 基于 `flex_color_scheme` 的 Material 3。
+- **响应式布局：** 一条共享规则决定界面何时可以拆成分栏或多列，以及列表分成几列——
+  `shared/utils/adaptive_layout.dart`，推导见 [`adaptive-layout.md`](adaptive-layout.md)。不要新增内联的宽度断点。
 - **文件 I/O：** 应通过 `AnimeStorage.getAppDir()`，使自定义存储路径（见 [`data-formats.md`](data-formats.md) 中的 `storage_config.json`）一致工作。
 - **JSON 格式化：** 所有写入磁盘的数据都用 `JsonEncoder.withIndent('  ')` 美化打印——这对同步很重要，因为它让未变化的文件命中原始相等快速路径（见 [`sync.md`](sync.md)）。
 - **时间戳：** 动画模型的时间戳使用 UTC，通常为 `DateTime.now().toUtc()`。本地时间的 `modifiedAt` 值会破坏同步冲突检测，因为三方合并要跨不同时区的设备比较 `modifiedAt`。

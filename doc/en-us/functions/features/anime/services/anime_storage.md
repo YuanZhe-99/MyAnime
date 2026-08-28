@@ -47,6 +47,14 @@ notifies `AutoSyncService`/`ReminderService` after every save. See
 | [`setMetadataUpdatePolicy`](#setmetadataupdatepolicy) | static method (`AnimeStorage`) | A | Persist the background metadata-update policy. |
 | [`getMetadataPrefetchCovers`](#getmetadataprefetchcovers) | static method (`AnimeStorage`) | A | Read whether candidate covers are prefetched. |
 | [`setMetadataPrefetchCovers`](#setmetadataprefetchcovers) | static method (`AnimeStorage`) | A | Persist whether candidate covers are prefetched. |
+| `_getListColumns` | static method (`AnimeStorage`) | B | Read a stored list column preference. |
+| `_setListColumns` | static method (`AnimeStorage`) | B | Persist a list column preference for one module. |
+| `getHomeListColumns` | static method (`AnimeStorage`) | B | Read the home module's list column preference. |
+| `setHomeListColumns` | static method (`AnimeStorage`) | B | Persist the home module's list column preference. |
+| `getManageListColumns` | static method (`AnimeStorage`) | B | Read the management module's list column preference. |
+| `setManageListColumns` | static method (`AnimeStorage`) | B | Persist the management module's list column preference. |
+| `getStatsListColumns` | static method (`AnimeStorage`) | B | Read the statistics module's list column preference. |
+| `setStatsListColumns` | static method (`AnimeStorage`) | B | Persist the statistics module's list column preference. |
 
 ## Documentation
 

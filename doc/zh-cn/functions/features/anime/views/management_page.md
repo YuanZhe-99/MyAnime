@@ -30,7 +30,8 @@
 | `_ManagementPageState.build` | 方法（`_ManagementPageState`，组件构建） | B | 构建页面脚手架（搜索字段、季度视图、FAB）。 |
 | `_buildSearchResults` | 方法（组件辅助） | B | 渲染全局搜索结果列表。 |
 | `_buildQuarterView` | 方法（组件辅助） | B | 渲染季度导航行和可滑动的 `PageView`。 |
-| `_buildAnimeTile` | 方法（组件辅助） | B | 渲染一个带滑动编辑/删除操作的动画行。 |
+| `_showActions` | 方法（`_ManagementPageState`） | B | 展示某个动画的长按操作面板并重新加载。 |
+| `_buildAnimeTile` | 方法（组件辅助） | B | 渲染一个动画行；单列时可滑动编辑/删除，长按操作则始终可用。 |
 | `_Quarter.new` | 构造函数（`_Quarter`） | B | 把年和季度编号配对。 |
 
 ## 文档
@@ -247,3 +248,24 @@
   ```
   （`_buildQuarterView`，点击导航行中的季度标签）
 - **备注：** 选择器中显示的逐格计数来自 `airsInQuarter`（季度的完整潜在成员资格），而别处使用的 `_animeForQuarter` 应用相同过滤——因此计数总是与对应页面实际显示的内容匹配。
+
+## 列表布局与行操作
+
+自 1.5.3 起，本页的列表可以渲染为多列，并且每一行都带有长按操作面板。
+
+`build` 读取 `MediaQuery.sizeOf(context)`，向
+[`canSplitLayout`](../../../shared/utils/adaptive_layout.md#cansplitlayout) 询问该视口是否可以拆分，并把
+[`listColumnCount`](../../../shared/utils/adaptive_layout.md#listcolumncount) 的结果——被宽度容量钳制后的存储
+偏好——向下传给列表构建器。条目由
+[`adaptiveTileRows` / `adaptiveTileRow`](../../../shared/widgets/adaptive_tile_grid.md) 按从左到右、然后从上到下
+排布，应用栏中带有一个
+[`listColumnsButton`](../../../shared/widgets/adaptive_tile_grid.md#listcolumnsbutton)，当只容得下一列时它会被
+隐藏。该偏好是 `AppSettings` 上三个彼此独立的值之一，持久化在 `storage_config.json` 中，因此三个模块各自记住
+自己的设置。折叠或展开设备只改变窗口尺寸而不重启 activity，因此列数在下一帧即跟进。规则及其推导见
+[`../../../../adaptive-layout.md`](../../../../adaptive-layout.md)。
+
+长按某一行——在桌面端为右键点击——会打开
+[`showAnimeActionsSheet`](../../../shared/widgets/anime_actions_sheet.md)，它完整、不截断地展示每一个已存储的
+标题，并提供编辑与删除。行本身仍然截断为单行，而这正是该面板存在的原因。
+
+读取该偏好正是本页在 1.5.3 变成 `ConsumerStatefulWidget` 的原因；此前它完全不持有 Riverpod 状态。

@@ -10,8 +10,11 @@ import 'package:url_launcher/url_launcher.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../../shared/providers/app_settings.dart';
 import '../../../shared/services/auto_sync_service.dart';
+import '../../../shared/widgets/adaptive_tile_grid.dart';
+import '../../../shared/widgets/anime_actions_sheet.dart';
 import '../../../shared/widgets/import_bundle_dialog.dart';
 import '../../../shared/services/image_service.dart';
+import '../../../shared/utils/adaptive_layout.dart';
 import '../../../shared/utils/calendar_preferences.dart';
 import '../../../shared/utils/jst_time.dart';
 import '../models/anime.dart';
@@ -269,9 +272,7 @@ class _HomePageState extends ConsumerState<HomePage> {
     } else {
       final result = await showImportBundleFlow(context);
       await _load();
-      if (result != null &&
-          result.importedIds.isNotEmpty &&
-          mounted) {
+      if (result != null && result.importedIds.isNotEmpty && mounted) {
         await context.push('/anime/detail/${result.importedIds.first}');
         await _load();
       }
@@ -309,8 +310,31 @@ class _HomePageState extends ConsumerState<HomePage> {
     final unwatched = _getUnwatchedEpisodes();
     final unwatchedEpisodeCount = _countUnwatchedAiredEpisodes();
 
+    final screen = MediaQuery.sizeOf(context);
+    final capacity = canSplitLayout(screen.width, screen.height)
+        ? listColumnCapacity(screen.width)
+        : 1;
+    final columns = listColumnCount(
+      screenWidth: screen.width,
+      screenHeight: screen.height,
+      contentWidth: screen.width,
+      preference: settings.homeListColumns,
+    );
+
     return Scaffold(
-      appBar: AppBar(title: Text(l10n.appTitle)),
+      appBar: AppBar(
+        title: Text(l10n.appTitle),
+        actions: [
+          listColumnsButton(
+            context,
+            preference: settings.homeListColumns,
+            capacity: capacity,
+            onChanged: (value) => ref
+                .read(appSettingsProvider.notifier)
+                .setHomeListColumns(value),
+          ),
+        ],
+      ),
       body: RefreshIndicator(
         onRefresh: _load,
         child: ListView(
@@ -341,8 +365,11 @@ class _HomePageState extends ConsumerState<HomePage> {
                   ),
                 ),
               ),
-              ...selectedEvents.map(
-                (ep) => _buildEpisodeTile(ep, theme, l10n, settings),
+              ...adaptiveTileRows(
+                columns: columns,
+                itemCount: selectedEvents.length,
+                itemBuilder: (i) =>
+                    _buildEpisodeTile(selectedEvents[i], theme, l10n, settings),
               ),
             ],
 
@@ -357,8 +384,11 @@ class _HomePageState extends ConsumerState<HomePage> {
                   ),
                 ),
               ),
-              ...unwatched.map(
-                (ep) => _buildEpisodeTile(ep, theme, l10n, settings),
+              ...adaptiveTileRows(
+                columns: columns,
+                itemCount: unwatched.length,
+                itemBuilder: (i) =>
+                    _buildEpisodeTile(unwatched[i], theme, l10n, settings),
               ),
             ],
 
@@ -610,6 +640,17 @@ class _HomePageState extends ConsumerState<HomePage> {
     };
   }
 
+  /// Purpose: Show the long-press action sheet for one anime and reload.
+  /// Inputs: `anime`.
+  /// Returns: None.
+  /// Side effects: Shows a modal sheet; may edit or delete the anime and
+  /// reloads the page when it did.
+  /// Notes: Internal helper used within this file only.
+  Future<void> _showActions(Anime anime) async {
+    final changed = await showAnimeActionsSheet(context, anime);
+    if (changed && mounted) await _load();
+  }
+
   /// Purpose: Provide the internal build episode tile helper for this file.
   /// Inputs: `ep`, `theme`, `l10n`, `settings`.
   /// Returns: `Widget`.
@@ -634,93 +675,97 @@ class _HomePageState extends ConsumerState<HomePage> {
         ? DateFormat.MMMd(_calendarDateLocale(settings, l10n)).format(airDate)
         : '';
 
-    return Opacity(
-      opacity: isSkipped ? 0.5 : 1.0,
-      child: ListTile(
-        leading: ep.anime.coverImage != null
-            ? FutureBuilder<File>(
-                future: ImageService.resolve(ep.anime.coverImage!),
-                builder: (context, snap) {
-                  if (snap.hasData && snap.data!.existsSync()) {
-                    return ClipRRect(
-                      borderRadius: BorderRadius.circular(4),
-                      child: Image.file(
-                        snap.data!,
-                        width: 40,
-                        height: 56,
-                        fit: BoxFit.cover,
-                      ),
+    return GestureDetector(
+      onSecondaryTapUp: (_) => _showActions(ep.anime),
+      child: Opacity(
+        opacity: isSkipped ? 0.5 : 1.0,
+        child: ListTile(
+          leading: ep.anime.coverImage != null
+              ? FutureBuilder<File>(
+                  future: ImageService.resolve(ep.anime.coverImage!),
+                  builder: (context, snap) {
+                    if (snap.hasData && snap.data!.existsSync()) {
+                      return ClipRRect(
+                        borderRadius: BorderRadius.circular(4),
+                        child: Image.file(
+                          snap.data!,
+                          width: 40,
+                          height: 56,
+                          fit: BoxFit.cover,
+                        ),
+                      );
+                    }
+                    return const SizedBox(
+                      width: 40,
+                      height: 56,
+                      child: Icon(Icons.movie),
                     );
-                  }
-                  return const SizedBox(
-                    width: 40,
-                    height: 56,
-                    child: Icon(Icons.movie),
-                  );
-                },
-              )
-            : const SizedBox(width: 40, height: 56, child: Icon(Icons.movie)),
-        title: Text(
-          ep.anime.displayTitle,
-          maxLines: 1,
-          overflow: TextOverflow.ellipsis,
-        ),
-        subtitle: Row(
-          children: [
-            Text('${l10n.animeEpisodeShort(ep.episode)}  $airStr'),
-            if (isSkipped) ...[
-              const SizedBox(width: 6),
-              Icon(
-                Icons.skip_next,
-                size: 16,
-                color: theme.colorScheme.tertiary,
-              ),
-              const SizedBox(width: 2),
-              Text(
-                l10n.animeSkipped,
-                style: theme.textTheme.bodySmall?.copyWith(
+                  },
+                )
+              : const SizedBox(width: 40, height: 56, child: Icon(Icons.movie)),
+          title: Text(
+            ep.anime.displayTitle,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+          ),
+          subtitle: Row(
+            children: [
+              Text('${l10n.animeEpisodeShort(ep.episode)}  $airStr'),
+              if (isSkipped) ...[
+                const SizedBox(width: 6),
+                Icon(
+                  Icons.skip_next,
+                  size: 16,
                   color: theme.colorScheme.tertiary,
                 ),
-              ),
+                const SizedBox(width: 2),
+                Text(
+                  l10n.animeSkipped,
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: theme.colorScheme.tertiary,
+                  ),
+                ),
+              ],
             ],
-          ],
-        ),
-        trailing: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            if (ep.anime.watchUrl != null)
+          ),
+          trailing: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              if (ep.anime.watchUrl != null)
+                IconButton(
+                  icon: Icon(
+                    Icons.open_in_browser,
+                    color: theme.colorScheme.tertiary,
+                  ),
+                  tooltip: l10n.animeOpenUrl,
+                  onPressed: () => launchUrl(
+                    Uri.parse(ep.anime.watchUrl!),
+                    mode: LaunchMode.externalApplication,
+                  ),
+                ),
               IconButton(
                 icon: Icon(
-                  Icons.open_in_browser,
-                  color: theme.colorScheme.tertiary,
+                  isSkipped
+                      ? Icons.skip_next
+                      : isWatched
+                      ? Icons.check_circle
+                      : Icons.radio_button_unchecked,
+                  color: isSkipped
+                      ? theme.colorScheme.tertiary
+                      : isWatched
+                      ? theme.colorScheme.primary
+                      : null,
                 ),
-                tooltip: l10n.animeOpenUrl,
-                onPressed: () => launchUrl(
-                  Uri.parse(ep.anime.watchUrl!),
-                  mode: LaunchMode.externalApplication,
-                ),
+                onPressed: () => _toggleWatched(ep),
               ),
-            IconButton(
-              icon: Icon(
-                isSkipped
-                    ? Icons.skip_next
-                    : isWatched
-                    ? Icons.check_circle
-                    : Icons.radio_button_unchecked,
-                color: isSkipped
-                    ? theme.colorScheme.tertiary
-                    : isWatched
-                    ? theme.colorScheme.primary
-                    : null,
-              ),
-              onPressed: () => _toggleWatched(ep),
-            ),
-          ],
+            ],
+          ),
+          onLongPress: () => _showActions(ep.anime),
+          onTap: () async {
+            await context.push('/anime/detail/${ep.anime.id}');
+            await _load();
+          },
         ),
-        onTap: () async {
-          await context.push('/anime/detail/${ep.anime.id}');
-          await _load();
-        },
       ),
     );
   }

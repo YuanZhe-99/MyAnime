@@ -227,6 +227,11 @@
   "commonDontAskMinutes": "Don't ask for 5 minutes",
   "commonCancel": "Cancel",
 
+  "listColumns": "Columns",
+  "listColumnsAuto": "Auto",
+  "listColumnsCount": "{count} columns",
+  "@listColumnsCount": { "placeholders": { "count": { "type": "int" } } },
+
   "settingsTheme": "Theme",
   "settingsThemeSystem": "System",
   "settingsThemeLight": "Light",

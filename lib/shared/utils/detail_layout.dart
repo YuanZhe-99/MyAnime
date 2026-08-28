@@ -1,14 +1,4 @@
-/// Minimum viewport width, in logical pixels, before the anime detail page may
-/// use its two-pane layout.
-const detailTwoPaneMinWidth = 600.0;
-
-/// Minimum viewport height, in logical pixels, before the anime detail page may
-/// use its two-pane layout.
-const detailTwoPaneMinHeight = 480.0;
-
-/// Minimum viewport width-to-height ratio before the anime detail page may use
-/// its two-pane layout.
-const detailTwoPaneMinAspect = 0.82;
+import 'adaptive_layout.dart';
 
 /// Width-to-height ratio of the detail page cover image.
 const detailCoverAspectRatio = 180 / 260;
@@ -21,21 +11,14 @@ const detailLeftPaneHeaderBudget = 220.0;
 /// Inputs: `width`, `height` — the viewport size in logical pixels.
 /// Returns: `bool`.
 /// Side effects: None.
-/// Notes: Three independent conditions, because none of them alone is enough.
-/// The aspect test is the load-bearing one: it keeps a viewport that is
-/// meaningfully taller than it is wide on the original single-column layout, so
-/// a Galaxy Z Fold 8 splits in landscape (4:3) but not in portrait (3:4), while
-/// the near-square Fold 7 and Fold 8 Ultra split in both orientations. The width
-/// floor is the usual `sw600dp` tablet threshold. The height floor exists
-/// because the aspect test alone admits wide, short viewports — a folded cover
-/// screen or an ordinary phone held in landscape would otherwise split into two
-/// cramped panes.
-bool useDetailTwoPane(double width, double height) {
-  if (width < detailTwoPaneMinWidth) return false;
-  if (height < detailTwoPaneMinHeight) return false;
-  if (height <= 0) return false;
-  return width / height >= detailTwoPaneMinAspect;
-}
+/// Notes: Delegates to [canSplitLayout], which is the app-wide "when to split"
+/// rule shared with the multi-column lists in the home, management and
+/// statistics modules. The thresholds and the reasoning behind each of them
+/// live in `lib/shared/utils/adaptive_layout.dart` and, in prose, in
+/// `doc/en-us/adaptive-layout.md`. This wrapper exists so the detail page keeps
+/// naming the decision in its own vocabulary.
+bool useDetailTwoPane(double width, double height) =>
+    canSplitLayout(width, height);
 
 /// Purpose: Return the width of the detail page's fixed left pane.
 /// Inputs: `totalWidth` — the full viewport width in logical pixels.

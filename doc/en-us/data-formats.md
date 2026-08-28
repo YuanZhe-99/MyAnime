@@ -260,6 +260,7 @@ migrates data files, backups, and images.
 | Home calendar layout | `storage_config.json` | No | Device-specific local-vs-Japanese calendar label preference |
 | Home calendar time basis | `storage_config.json` | No | Device-specific JST-vs-local date grid preference; anime schedule timestamps remain JST-based |
 | Home calendar view format | `storage_config.json` | No | Device-specific last-used calendar view (`homeCalendarFormat`: `twoWeeks` or `week`; absent means the default full month) |
+| List column count, per module | `storage_config.json` | No | Device-specific column preference for the home, management and statistics lists (`homeListColumns` / `manageListColumns` / `statsListColumns`: 1–4; absent means auto, i.e. fill whatever the width allows) |
 | Storage path override | `storage_config.json` | No | Device-specific path |
 | Auto-backup enabled | `storage_config.json` | No | Device-specific config |
 | Backup retention days | `storage_config.json` | No | Device-specific config |
@@ -286,7 +287,8 @@ Holds every device-local preference from the table above that isn't WebDAV confi
 mode, locale, calendar week-start/layout/time-basis/view-format preferences, storage path override,
 auto-backup enabled + retention days (`backupRetentionDays`), reminder settings, API server
 enabled/listen address/port/credentials, tray/launch-at-startup preferences, and the background
-metadata-update settings (`metadataAutoUpdate`, `metadataPrefetchCovers`). None of this file is
+metadata-update settings (`metadataAutoUpdate`, `metadataPrefetchCovers`), and the per-module list
+column counts (`homeListColumns`, `manageListColumns`, `statsListColumns`). None of this file is
 synced — it is intentionally device-specific, which is the right home for a network policy that
 should differ between a desktop on Ethernet and a phone on a data plan.
 
