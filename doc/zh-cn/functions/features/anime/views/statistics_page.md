@@ -16,6 +16,9 @@
 | `_StatisticsPageState._scrollTrendToEnd` | 方法（`_StatisticsPageState`） | B | 在下一帧后把趋势图的滚动位置跳到其最后一条。 |
 | [`_StatisticsPageState._scrollTrendToFocused`](#_scrolltrendtofocused) | 方法（`_StatisticsPageState`） | A | 滚动趋势图，使当前聚焦的季度/年条目居中。 |
 | [`_StatisticsPageState._filteredAnime`](#_filteredanime) | getter（`_StatisticsPageState`） | A | 摘要视图当前时间范围（季度/年/全部）的动画列表。 |
+| [`_StatisticsPageState._rankingScoreOf`](#_rankingscoreof) | 方法（`_StatisticsPageState`） | A | 返回排名应据以排序某部动画的分数。 |
+| [`_StatisticsPageState._rankingScoreLabel`](#_rankingscorelabel) | 方法（`_StatisticsPageState`） | A | 标注排名当前所依据的分数。 |
+| `_StatisticsPageState._rankingExternalSources` | getter（`_StatisticsPageState`） | B | 列出已加载动画可据以排名的资料库来源。 |
 | [`_StatisticsPageState._rankingAnime`](#_rankinganime) | getter（`_StatisticsPageState`） | A | 当前排名视图的过滤并排序动画列表。 |
 | [`_StatisticsPageState._rankingShareEntries`](#_rankingshareentries) | 方法（`_StatisticsPageState`） | A | 把排序后的排名列表转换为带 1 基排名的分享图像条目。 |
 | [`_StatisticsPageState._shareRanking`](#_shareranking) | 方法（`_StatisticsPageState`） | A | 为当前过滤器/排序/方向生成并分享排名图像，可选行数限制。 |
@@ -57,7 +60,7 @@
 | `_StatisticsPageState.build` | 方法（`_StatisticsPageState`，组件构建） | B | 构建页面脚手架：范围/视图切换、摘要或排名正文，以及分享操作。 |
 | `_StatisticsPageState._buildSummaryCard` | 方法（组件辅助） | B | 渲染一个给定颜色的摘要计数卡片（标签 + 计数）。 |
 | `_StatisticsPageState._buildRankingView` | 方法（组件辅助） | B | 渲染排名视图：过滤器控件后跟排名动画列表。 |
-| `_StatisticsPageState._buildRankingFilters` | 方法（组件辅助） | B | 渲染排名视图的时间/类型/排序字段/方向过滤器控件。 |
+| `_StatisticsPageState._buildRankingFilters` | 方法（组件辅助） | B | 渲染排名视图的时间/类型/评分来源/排序字段/方向过滤器控件。 |
 | `_StatisticsPageState._buildRankingRangeButton` | 方法（组件辅助） | B | 为自定义排名时间过滤器渲染一个季度范围按钮（起始或结束）。 |
 | `_StatisticsPageState._buildRankingTile` | 方法（组件辅助） | B | 渲染一个带排名、封面缩略图、标题和分数的排名动画行。 |
 | `_StatisticsPageState._buildCoverThumbnail` | 方法（组件辅助） | B | 渲染动画的封面图像缩略图，没有则占位符。 |
@@ -134,6 +137,38 @@
   （来自 `_shareStatistics`，同一文件，第 799 行）
 - **备注：** 同时支撑摘要分组列表（`_groupedAnime`）和摘要分享/导出流程；本身不应用任何观看状态过滤器。`airsInQuarter` 考虑什么（多 cour 跨度、`manualType` 覆盖等）见 [`../../../../features/anime-tracking.md`](../../../../features/anime-tracking.md)。
 
+### `double? _rankingScoreOf(Anime anime)` <a id="_rankingscoreof"></a>
+- **种类：** `_StatisticsPageState` 的方法
+- **来源：** `lib/features/anime/views/statistics_page.dart`（第 209 行）
+- **用途：** 在当前所选的评分来源下，返回排名视图应据以排序某部动画的分数。
+- **输入：** `anime`。
+- **返回：** `double?` — 该动画没有可据以排名的分数时为 `null`。
+- **副作用：** 无。
+- **算法：** 对 `_rankingScoreSource` 做 switch：
+  - `personal` → `anime.rating?.scoreFor(_rankingSortField)`。
+  - `external` → 没有 `externalMeta` 时为 `null`；否则 `_rankingExternalSource` 为 `null` 时取 `averageNormalizedScore`，否则取 `normalizedScoreFor(_rankingExternalSource!)`（见 [`../models/anime.md`](../models/anime.md)）。
+- **用法：**
+  ```dart
+  return _rankingScoreOf(anime) != null;
+  ```
+  （来自 `_rankingAnime` 的过滤谓词；其比较器、`_rankingShareEntries` 和 `_buildRankingTile` 也使用）
+- **备注：** 这是每一次排名读取都必经的唯一缝合点，这正是其意义所在：在它出现之前，同一个表达式在四处调用点重复，其中三处带 `!`，默默依赖过滤器已经先跑过。`null` 在两边含义不同——用户未评分，与从未从资料库抓取过——但两者都意味着"无法排名"，因此过滤器与比较器共用一个方法，而不是各自去判断来源。外部分数返回时已重定基到 0-10，因此采用其他量表的来源仍能正确比较。`LocalApiServer._rankingScoreFor` 与之完全对应（见 [`../../../shared/services/local_api_server.md`](../../../shared/services/local_api_server.md)）；改一处就要改另一处，否则 API 与界面对"这个排名意味着什么"会给出不同答案。
+
+### `String _rankingScoreLabel(AppLocalizations l10n)` <a id="_rankingscorelabel"></a>
+- **种类：** `_StatisticsPageState` 的方法
+- **来源：** `lib/features/anime/views/statistics_page.dart`（第 231 行）
+- **用途：** 命名排名当前所依据的分数。
+- **输入：** `l10n`。
+- **返回：** `String`。
+- **副作用：** 无。
+- **算法：** 个人来源取 `_ratingFieldLabel(_rankingSortField, l10n)`；否则原样取 `_rankingExternalSource`，为空时回退到 `l10n.statsRankingExternalAverage`。
+- **用法：**
+  ```dart
+  sortLabel: _rankingScoreLabel(l10n),
+  ```
+  （来自 `_shareRanking`；`_buildRankingTile` 的分数说明文字也使用）
+- **备注：** 与 `_rankingScoreOf` 配对，使说明文字和分享图片始终命名排序实际使用的那个分数。资料库来源名原样显示，因为它们是专有名词（`bangumi.tv`、`AniList`），在应用其他任何地方也都不翻译。由于 `ShareService.generateRankingShareBytes` 的 `sortLabel` 就是普通 `String`，加入评分来源无需改动分享渲染器的签名。
+
 ### `List<Anime> get _rankingAnime` <a id="_rankinganime"></a>
 - **种类：** `_StatisticsPageState` 的 getter
 - **来源：** `lib/features/anime/views/statistics_page.dart`（第 199 行）
@@ -142,14 +177,14 @@
 - **返回：** `List<Anime>`。
 - **副作用：** 无。
 - **算法：**
-  1. 过滤 `_allAnime`，保留通过 `_matchesRankingTimeFilter`、匹配 `_rankingTypeFilter`（设置时，经 `anime.effectiveType`）、且 `anime.rating?.scoreFor(_rankingSortField)` 非 null 的动画。
+  1. 过滤 `_allAnime`，保留通过 `_matchesRankingTimeFilter`、匹配 `_rankingTypeFilter`（设置时，经 `anime.effectiveType`）、且 [`_rankingScoreOf`](#_rankingscoreof) 非 null 的动画。
   2. 按该分数排序过滤后的列表——`_rankingDescending` 时降序，否则升序——平局按 `displayTitle` 升序打破。
 - **用法：**
   ```dart
   final rankedAnime = isRanking ? _rankingAnime : const <Anime>[];
   ```
   （来自 `build`，同一文件，第 1492 行；`_shareRanking` 和 `_shareStatistics` 也使用）
-- **备注：** 对所选 `AnimeRatingField` 没有分数的动画被完全排除，而不是显示空白分数。
+- **备注：** 没有分数的动画被完全排除，而不是显示空白分数。被排除的是哪些动画取决于所选的评分来源：按用户自己的评分排名会剔除全部未评分的，按资料库排名则剔除全部从未抓取过的——因此两种来源列出的确实是不同的动画，而不只是同一份列表换个顺序。
 
 ### `List<RankingShareEntry> _rankingShareEntries(List<Anime> rankedAnime)` <a id="_rankingshareentries"></a>
 - **种类：** `_StatisticsPageState` 的方法
@@ -158,13 +193,13 @@
 - **输入：** `rankedAnime` — 预期已预过滤/预排序（即 `_rankingAnime`）。
 - **返回：** `List<RankingShareEntry>`。
 - **副作用：** 无。
-- **算法：** 对 `rankedAnime` 做 `List.generate`，每个包装为 `RankingShareEntry(anime, rank: index + 1, score: anime.rating!.scoreFor(_rankingSortField)!)`。
+- **算法：** 对 `rankedAnime` 做 `List.generate`，每个包装为 `RankingShareEntry(anime, rank: index + 1, score: _rankingScoreOf(anime)!)`。
 - **用法：**
   ```dart
   var entries = _rankingShareEntries(rankedAnime);
   ```
   （来自 `_shareRanking`，同一文件，第 249 行）
-- **备注：** 假设 `rankedAnime` 中每部动画对 `_rankingSortField` 已有非 null 分数——由 `_rankingAnime` 的过滤器保证——否则会抛出。
+- **备注：** 假设 `rankedAnime` 中每部动画在当前评分来源下已有非 null 分数——由 `_rankingAnime` 的过滤器保证——否则会抛出。
 
 ### `Future<void> _shareRanking()` <a id="_shareranking"></a>
 - **种类：** `_StatisticsPageState` 的方法
@@ -294,7 +329,7 @@
       entries: entries,
       title: l10n.statsRanking,
       subtitle: subtitle,
-      sortLabel: _ratingFieldLabel(_rankingSortField, l10n),
+      sortLabel: _rankingScoreLabel(l10n),
       orderLabel: _rankingDescending ? l10n.statsRankingDescending : l10n.statsRankingAscending,
       l10n: l10n,
       progress: progress,

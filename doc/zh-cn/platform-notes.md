@@ -60,6 +60,7 @@
 
 - 动画 API 条目 JSON 包含派生的 `status`（`completed`、`watching`、`dropped` 或 `notStarted`）、进度计数、URL、封面路径、备注、修改时间戳和可选的评分摘要，同时保留旧字段以向后兼容。
 - `/anime/ranking` 过滤器包括 全部/季度/年/范围、动画类型、评分字段、排序方向和结果限制。
+- `/anime/ranking` 另接受 `scoreSource=personal|external`（默认 `personal`），在 `external` 下还可用可选的 `externalSource=<名称>` 锁定单一资料库，而不是对所有给该番打过分的来源取平均。两者都会在 `sort` 中回显。默认值使每个既有客户端的答案保持不变；带 `externalSource` 却不带 `scoreSource=external` 会返回 `400`。
 - 季过滤器包括 `current`、`YYYYQn`、`unassigned` 和 `all`；`all` 可以对返回行抽样，同时保持总数准确。
 - API 日期序列化把从 JST 派生的剧集日期转换为带尾部 `Z` 的 UTC 字符串。
 

@@ -28,6 +28,7 @@ server the app runs for other local/LAN tools to call, e.g. the desktop web dash
 | [`_handleHistory`](#handlehistory) | static method (route handler) | A | `GET /anime/history`: season-filtered anime listing (same shape as list). |
 | [`_handleRanking`](#handleranking) | static method (route handler) | A | `GET /anime/ranking`: delegate to `buildRankingSnapshotForQuery`. |
 | [`buildRankingSnapshotForQuery`](#buildrankingsnapshotforquery) | static method | A | Pure ranking computation, shared with tests. |
+| [`_rankingScoreFor`](#rankingscorefor) | static method | A | Return the score `/anime/ranking` should sort one anime by. |
 | [`_filterBySeason`](#filterbyseason) | static method | A | Parse `?season=` and filter/sample the anime list. |
 | [`_parseRankingQuery`](#parserankingquery) | static method | A | Parse all `/anime/ranking` query parameters into `_RankingQuery`. |
 | [`_parseQuarterId`](#parsequarterid) | static method | A | Parse a `YYYYQn` identifier (or `current`). |
@@ -274,19 +275,41 @@ server the app runs for other local/LAN tools to call, e.g. the desktop web dash
 - **Side effects:** None (pure function over its inputs).
 - **Algorithm:**
   1. `_parseRankingQuery(queryParameters)`; propagate any parse error immediately.
-  2. Filter `animes` to those matching `_matchesRankingQuery` **and** having a non-null score for
-     the requested `field` (unrated anime are excluded from ranking entirely).
+  2. Filter `animes` to those matching `_matchesRankingQuery` **and** having a non-null
+     [`_rankingScoreFor`](#rankingscorefor) (anime with no score are excluded from ranking
+     entirely).
   3. Sort by score (descending or ascending per `query.descending`), breaking ties by
      `displayTitle` for a stable order.
   4. Take the first `query.limit` entries; build each row as `{rank, score, ...anime JSON}`
      (1-based rank, `_animeToJson` spread in).
   5. Assemble the final map: `total` (post-filter, pre-limit count), `filters`
-     (`_rankingFiltersToJson`), `sort` (`{field, order}`), `limit`, `data` (the ranked rows).
+     (`_rankingFiltersToJson`), `sort` (`{field, scoreSource, order}`, plus `externalSource`
+     when one is pinned), `limit`, `data` (the ranked rows).
 - **Usage:** Called by `_handleRanking`; also intended to be called directly from unit tests
   (per its own doc comment: "Shared by the route handler and tests so ranking semantics stay
   verifiable").
 - **Notes:** `total` reflects the number of anime that matched the filter and had a score — it is
   not the count after applying `limit`.
+
+### `static double? _rankingScoreFor(Anime anime, _RankingQuery query)` <a id="rankingscorefor"></a>
+- **Kind:** static method of `LocalApiServer`.
+- **Source:** `lib/shared/services/local_api_server.dart` (line 449).
+- **Purpose:** Return the score `/anime/ranking` should sort one anime by, under the query's
+  selected score source.
+- **Inputs:** `anime`; `query` — the parsed ranking query.
+- **Returns:** `double?` — `null` when this anime has no score to rank by.
+- **Side effects:** None.
+- **Algorithm:** Switch on `query.scoreSource`: `personal` returns
+  `anime.rating?.scoreFor(query.field)`; `external` returns `null` without `externalMeta`,
+  otherwise `averageNormalizedScore`, or `normalizedScoreFor(query.externalSource!)` when a source
+  is pinned.
+- **Usage:** Called by `buildRankingSnapshotForQuery` for the filter predicate, the comparator, and
+  each row's `score` field.
+- **Notes:** Deliberately mirrors `_StatisticsPageState._rankingScoreOf` (see
+  [`../../features/anime/views/statistics_page.md`](../../features/anime/views/statistics_page.md)).
+  The duplication is the cost of the API not importing a page's private state; the two must be
+  changed together, or the API and the UI answer "what does this ranking mean" differently — which
+  is exactly what `buildRankingSnapshotForQuery` was factored out to keep verifiable.
 
 ### `static List<Anime> _filterBySeason(List<Anime> animes, Request request, {bool sample = true})` <a id="filterbyseason"></a>
 - **Kind:** static method of `LocalApiServer`.
@@ -320,7 +343,8 @@ server the app runs for other local/LAN tools to call, e.g. the desktop web dash
   `_RankingQuery`, or return a descriptive error.
 - **Inputs:** `queryParameters` — the raw HTTP query string map. Recognized keys include `time`
   (`all`/`quarter`/`year`/`range`), `season` (for `time=quarter`), `year` (for `time=year`),
-  `start`/`end` (for `time=range`, as `YYYYQn`), `type`, `field`, `order`, `limit`.
+  `start`/`end` (for `time=range`, as `YYYYQn`), `type`, `field`, `scoreSource`
+  (`personal`/`external`), `externalSource`, `order`, `limit`.
 - **Returns:** A record `(query: _RankingQuery?, error: String?)`.
 - **Side effects:** None.
 - **Algorithm:** Validate `time` against the four allowed literal values (empty defaults to
@@ -334,6 +358,11 @@ server the app runs for other local/LAN tools to call, e.g. the desktop web dash
   `buildRankingSnapshotForQuery`) and directly by any test exercising ranking query parsing.
 - **Notes:** Every error string returned here is what `_handleRanking` surfaces verbatim as the
   `400` response body, so its wording is part of the API's stable error contract.
+
+  `scoreSource` defaults to `personal`, so every client written before the database score source
+  existed keeps its previous answer. `externalSource` without `scoreSource=external` is rejected
+  rather than ignored — silently ignoring it would return a personal-rating ranking to a caller
+  that plainly asked for one source's database score.
 
 ### `static (int, int)? _parseQuarterId(String? value, {bool allowCurrent})` <a id="parsequarterid"></a>
 - **Kind:** static method of `LocalApiServer`.

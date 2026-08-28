@@ -671,6 +671,20 @@ class AnimeExternalRating {
   bool get hasAnyData =>
       score != null || votes != null || rank != null || extraJson.isNotEmpty;
 
+  /// Purpose: Return this source's score rebased onto a 0-10 scale.
+  /// Inputs: None.
+  /// Returns: `double?`.
+  /// Side effects: None.
+  /// Notes: Every supported source is already normalized onto [scoreMax], which
+  /// defaults to 10, but `scoreMax` is stored per entry — so anything comparing
+  /// scores across sources must divide through rather than read [score] raw.
+  /// Returns `null` when there is no score, or when `scoreMax` is unusable.
+  double? get normalizedScore {
+    final value = score;
+    if (value == null || scoreMax <= 0) return null;
+    return value / scoreMax * 10;
+  }
+
   /// Purpose: Create a copy with extra json.
   /// Inputs: `extraJson`.
   /// Returns: `AnimeExternalRating`.
@@ -886,6 +900,44 @@ class AnimeExternalMeta {
     }
     return null;
   }
+
+  /// Purpose: Return one source's score rebased onto a 0-10 scale.
+  /// Inputs: `source`.
+  /// Returns: `double?`.
+  /// Side effects: None.
+  /// Notes: `null` when the source was never fetched or reported no score.
+  double? normalizedScoreFor(String source) =>
+      ratingFor(source)?.normalizedScore;
+
+  /// Purpose: Return the mean of every external score this record holds.
+  /// Inputs: None.
+  /// Returns: `double?`.
+  /// Side effects: None.
+  /// Notes: Averages the 0-10 normalized scores, so sources reporting on
+  /// different scales still combine correctly. Returns `null` when no source
+  /// supplied a score.
+  double? get averageNormalizedScore {
+    var total = 0.0;
+    var count = 0;
+    for (final rating in ratings) {
+      final value = rating.normalizedScore;
+      if (value == null) continue;
+      total += value;
+      count++;
+    }
+    return count == 0 ? null : total / count;
+  }
+
+  /// Purpose: List the sources that actually supplied a score.
+  /// Inputs: None.
+  /// Returns: `List<String>`.
+  /// Side effects: None.
+  /// Notes: Drives the ranking view's source picker, which must only offer
+  /// sources the data can actually rank by.
+  List<String> get scoredSources => [
+    for (final rating in ratings)
+      if (rating.normalizedScore != null) rating.source,
+  ];
 
   /// Purpose: Fold freshly fetched metadata into this record.
   /// Inputs: `other`, `refreshedAt`.

@@ -11,6 +11,27 @@ from the shared image card this page's Share action produces — see
 [`../../../../features/anime-tracking.md`](../../../../features/anime-tracking.md) for the episode
 air-date/rollover and schedule-shift semantics this page exposes controls for.
 
+
+## Layout
+
+The page renders in one of two layouts, chosen per frame from the viewport size by
+`useDetailTwoPane` in [`../../../shared/utils/detail_layout.md`](../../../shared/utils/detail_layout.md):
+
+- **Single column** — one `ListView`: cover, then the info block (Japanese title, chips, progress
+  bar, `watched / total`, the rating / database / archive cards, notes, prev-next season), then the
+  episode list. This is the original layout, unchanged.
+- **Two panes** — a `Row`. The left pane is fixed-width and full-height, holding the cover through
+  the watch-progress label, with the cover sized by `detailCoverSize` from whatever height is left
+  over. The right pane is an independently scrolling `ListView` holding everything from the cards
+  down, including the episode list.
+
+Both layouts are assembled from the same four builders — `_buildCover`, `_buildHeaderChildren`,
+`_buildDetailChildren`, `_buildEpisodeChildren` — so there is exactly one copy of each section's
+widget code. The split between `_buildHeaderChildren` and `_buildDetailChildren` *is* the pane
+boundary: move a section across that seam and it changes column. Each entry in
+`_buildDetailChildren` carries its own leading `SizedBox(height: 12)`, which is what lets the same
+list read correctly whether it follows the progress bar or opens the right pane.
+
 ## Declarations
 
 | Declaration | Kind | Tier | Purpose |
@@ -23,7 +44,11 @@ air-date/rollover and schedule-shift semantics this page exposes controls for.
 | [`_shiftFromEpisode`](#_shiftfromepisode) | method (`_AnimeDetailPageState`) | A | Shift an episode's broadcast week by a delta and persist it. |
 | [`_resetSchedule`](#_resetschedule) | method (`_AnimeDetailPageState`) | A | Clear all per-episode week offsets back to the original schedule. |
 | [`_delete`](#_delete) | method (`_AnimeDetailPageState`) | A | Confirm and delete this anime record. |
-| `_AnimeDetailPageState.build` | method (`_AnimeDetailPageState`, widget build) | B | Build the detail page scaffold (cover, info, episode list). |
+| `_AnimeDetailPageState.build` | method (`_AnimeDetailPageState`, widget build) | B | Build the detail page scaffold, choosing the single-column or two-pane layout. |
+| `_buildCover` | method (widget helper) | B | Build the cover image block at an explicit size. |
+| `_buildHeaderChildren` | method (widget helper) | B | Build the header block: Japanese title, chips, and watch progress. |
+| `_buildDetailChildren` | method (widget helper) | B | Build the cards below the progress bar, plus season navigation. |
+| `_buildEpisodeChildren` | method (widget helper) | B | Build the episode list header and one row per tracked episode. |
 | [`_toggleAllWatched`](#_toggleallwatched) | method (`_AnimeDetailPageState`) | A | Mark every tracked episode watched, or all unwatched if already complete. |
 | `_buildAbandonOrResume` | method (widget helper) | B | Render the "Abandon"/"Resume" action button for the episode list header. |
 | [`_refreshableUrls`](#_refreshableurls) | method (`_AnimeDetailPageState`) | A | List the source pages this anime can be refreshed from. |
@@ -233,7 +258,7 @@ air-date/rollover and schedule-shift semantics this page exposes controls for.
 - **Returns:** `Widget`.
 - **Side effects:** None.
 - **Algorithm:** A card headed by the source icon, the section title, and the localized `refreshedAt` date; then a label/value row for each supplied field (format, status, duration, last air date, studios, genres, alternate titles); then, when any rating has a score, a divider, the "external ratings" heading, an explanatory line, and one chip per source showing `source score/max · votes`.
-- **Notes:** Sits directly above the personal rating card and is styled to read as a separate block on purpose — the explanatory line under the ratings heading exists so nobody mistakes an external score for their own. The card itself is **not** flavor-gated: displaying already-synced data is not a network feature, and a store build can legitimately receive this data through WebDAV sync or an imported share file.
+- **Notes:** Sits directly below the personal rating card and is styled to read as a separate block on purpose — the explanatory line under the ratings heading exists so nobody mistakes an external score for their own. The card itself is **not** flavor-gated: displaying already-synced data is not a network feature, and a store build can legitimately receive this data through WebDAV sync or an imported share file.
 
 ### `Future<void> _abandonAnime()` <a id="_abandonanime"></a>
 - **Kind:** method of `_AnimeDetailPageState`

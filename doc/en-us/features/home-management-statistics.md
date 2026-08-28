@@ -47,7 +47,13 @@ model/quarter logic and [`../architecture.md`](../architecture.md) for how these
 - A separate **Ranking** view for rating-based ranking, supporting:
   - all/quarter/year/custom-quarter-range filters
   - type filtering
-  - overall or sub-score sorting (see `AnimeRatingField` in [`../data-formats.md`](../data-formats.md))
+  - a score source: the user's own rating, or the database (remote) score — averaged across every
+    source that scored the anime, or pinned to one source such as bangumi.tv. The two sources list
+    different anime, not the same list reordered: ranking by your own rating drops everything
+    unrated, and ranking by the database drops everything never fetched from one
+  - overall or sub-score sorting for your own rating (see `AnimeRatingField` in
+    [`../data-formats.md`](../data-formats.md)); the sub-score picker is replaced by the source
+    picker under the database source, since an external database reports a single scalar
   - ascending/descending order
   - direct quarter/year pickers
   - cover thumbnails

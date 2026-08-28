@@ -88,6 +88,10 @@ controlled from Settings.
   rating summary, while preserving older fields for backward compatibility.
 - `/anime/ranking` filters include all/quarter/year/range, anime type, rating field, sort order,
   and result limit.
+- `/anime/ranking` also takes `scoreSource=personal|external` (default `personal`) and, with
+  `external`, an optional `externalSource=<name>` to pin one database instead of averaging every
+  source that scored the anime. Both are echoed back in `sort`. The default keeps every existing
+  client's answer unchanged; `externalSource` without `scoreSource=external` is a `400`.
 - Season filters include `current`, `YYYYQn`, `unassigned`, and `all`; `all` may sample returned
   rows while still keeping full counts accurate.
 - API date serialization converts JST-derived episode dates to UTC strings with a trailing `Z`.

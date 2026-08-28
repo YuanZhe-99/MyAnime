@@ -635,4 +635,127 @@ void main() {
     expect(metaJson['format'], 'TV');
     expect(metaJson['futureMetric'], 42);
   });
+
+  test('external scores are rebased onto ten before they are compared', () {
+    // scoreMax is stored per entry, so a source on another scale must not be
+    // read raw — that would rank a 7/10 above an 85/100.
+    const tenPoint = AnimeExternalRating(source: 'bangumi.tv', score: 7);
+    const hundredPoint = AnimeExternalRating(
+      source: 'MyAnimeList',
+      score: 85,
+      scoreMax: 100,
+    );
+    expect(tenPoint.normalizedScore, closeTo(7, 0.001));
+    expect(hundredPoint.normalizedScore, closeTo(8.5, 0.001));
+    expect(
+      const AnimeExternalRating(source: 'AniList').normalizedScore,
+      isNull,
+    );
+    expect(
+      const AnimeExternalRating(
+        source: 'AniList',
+        score: 8,
+        scoreMax: 0,
+      ).normalizedScore,
+      isNull,
+    );
+  });
+
+  test('external meta averages only the sources that reported a score', () {
+    const meta = AnimeExternalMeta(
+      ratings: [
+        AnimeExternalRating(source: 'bangumi.tv', score: 7),
+        AnimeExternalRating(source: 'MyAnimeList', score: 85, scoreMax: 100),
+        AnimeExternalRating(source: 'AniList', votes: 100),
+      ],
+    );
+    expect(meta.averageNormalizedScore, closeTo(7.75, 0.001));
+    expect(meta.normalizedScoreFor('bangumi.tv'), closeTo(7, 0.001));
+    expect(meta.normalizedScoreFor('AniList'), isNull);
+    expect(meta.normalizedScoreFor('nowhere.example'), isNull);
+    expect(meta.scoredSources, ['bangumi.tv', 'MyAnimeList']);
+    expect(const AnimeExternalMeta().averageNormalizedScore, isNull);
+  });
+
+  test('local API ranking can rank by database score instead of own rating', () {
+    final ownRatingOnly = Anime.create(
+      title: 'Mine',
+      endEpisode: 12,
+      firstAirDate: DateTime(2026, 4, 1),
+      rating: const AnimeRating(overall: 10),
+    );
+    final databaseOnly = Anime.create(
+      title: 'Database',
+      endEpisode: 12,
+      firstAirDate: DateTime(2026, 4, 1),
+      externalMeta: const AnimeExternalMeta(
+        ratings: [AnimeExternalRating(source: 'bangumi.tv', score: 7)],
+      ),
+    );
+    final both = Anime.create(
+      title: 'Both',
+      endEpisode: 12,
+      firstAirDate: DateTime(2026, 4, 1),
+      rating: const AnimeRating(overall: 1),
+      externalMeta: const AnimeExternalMeta(
+        ratings: [
+          AnimeExternalRating(source: 'bangumi.tv', score: 9),
+          AnimeExternalRating(source: 'MyAnimeList', score: 70, scoreMax: 100),
+        ],
+      ),
+    );
+
+    // Averaged across sources: Both is (9 + 7) / 2 = 8, ahead of Database's 7.
+    // The anime with only a personal rating drops out entirely.
+    final averaged = LocalApiServer.buildRankingSnapshotForQuery(
+      [ownRatingOnly, databaseOnly, both],
+      {'scoreSource': 'external'},
+    );
+    expect(averaged.error, isNull);
+    expect(averaged.data!['total'], 2);
+    expect(
+      (averaged.data!['data'] as List).map((row) => row['title']).toList(),
+      ['Both', 'Database'],
+    );
+    expect((averaged.data!['sort'] as Map)['scoreSource'], 'external');
+
+    // Pinned to one source, Both scores 7.0 and ties with Database, so the
+    // title tiebreak decides.
+    final pinned = LocalApiServer.buildRankingSnapshotForQuery(
+      [ownRatingOnly, databaseOnly, both],
+      {'scoreSource': 'external', 'externalSource': 'MyAnimeList'},
+    );
+    expect(pinned.error, isNull);
+    expect(pinned.data!['total'], 1);
+    expect((pinned.data!['data'] as List).first['score'], closeTo(7, 0.001));
+    expect((pinned.data!['sort'] as Map)['externalSource'], 'MyAnimeList');
+
+    // Default is unchanged, so existing API clients keep their old answer.
+    final personal = LocalApiServer.buildRankingSnapshotForQuery(
+      [ownRatingOnly, databaseOnly, both],
+      const {},
+    );
+    expect(personal.data!['total'], 2);
+    expect(
+      (personal.data!['data'] as List).map((row) => row['title']).toList(),
+      ['Mine', 'Both'],
+    );
+    expect((personal.data!['sort'] as Map)['scoreSource'], 'personal');
+    expect((personal.data!['sort'] as Map).containsKey('externalSource'), isFalse);
+  });
+
+  test('pinning a database source without selecting one is rejected', () {
+    final result = LocalApiServer.buildRankingSnapshotForQuery(
+      const [],
+      {'externalSource': 'bangumi.tv'},
+    );
+    expect(result.error, 'externalSource requires scoreSource=external');
+    expect(
+      LocalApiServer.buildRankingSnapshotForQuery(
+        const [],
+        {'scoreSource': 'nonsense'},
+      ).error,
+      'invalid scoreSource',
+    );
+  });
 }

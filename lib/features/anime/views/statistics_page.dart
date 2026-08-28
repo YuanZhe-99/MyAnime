@@ -10,6 +10,7 @@ import '../../../shared/services/auto_sync_service.dart';
 import '../../../shared/services/image_service.dart';
 import '../../../shared/services/share_service.dart';
 import '../models/anime.dart';
+import '../services/anime_search_service.dart';
 import '../services/anime_storage.dart';
 import 'quarter_picker_dialog.dart';
 
@@ -20,6 +21,8 @@ enum _TimeScope { quarter, year, all }
 enum _TrendGranularity { quarter, year }
 
 enum _RankingTimeFilter { all, quarter, year, custom }
+
+enum _RankingScoreSource { personal, external }
 
 enum _SummarySharePriority { recent, oldest }
 
@@ -48,6 +51,8 @@ class _StatisticsPageState extends State<StatisticsPage> {
   _RankingTimeFilter _rankingTimeFilter = _RankingTimeFilter.all;
   AnimeType? _rankingTypeFilter;
   AnimeRatingField _rankingSortField = AnimeRatingField.overall;
+  _RankingScoreSource _rankingScoreSource = _RankingScoreSource.personal;
+  String? _rankingExternalSource;
   bool _rankingDescending = true;
 
   // For quarter scope
@@ -191,6 +196,69 @@ class _StatisticsPageState extends State<StatisticsPage> {
     }
   }
 
+  /// Purpose: Return the score the ranking should sort one anime by.
+  /// Inputs: `anime`.
+  /// Returns: `double?` — `null` when this anime has no score to rank by.
+  /// Side effects: None.
+  /// Notes: The single seam every ranking read goes through, so the two score
+  /// sources cannot drift apart. A `null` means different things on each side —
+  /// unrated by the user, versus never fetched from a database — but both mean
+  /// "cannot be ranked", which is why the filter and the comparator share this
+  /// one method instead of testing each source themselves. External scores come
+  /// back rebased onto 0-10 so a source reporting on another scale still
+  /// compares correctly.
+  double? _rankingScoreOf(Anime anime) {
+    switch (_rankingScoreSource) {
+      case _RankingScoreSource.personal:
+        return anime.rating?.scoreFor(_rankingSortField);
+      case _RankingScoreSource.external:
+        final meta = anime.externalMeta;
+        if (meta == null) return null;
+        final source = _rankingExternalSource;
+        return source == null
+            ? meta.averageNormalizedScore
+            : meta.normalizedScoreFor(source);
+    }
+  }
+
+  /// Purpose: Label the score the ranking is currently sorted by.
+  /// Inputs: `l10n`.
+  /// Returns: `String`.
+  /// Side effects: None.
+  /// Notes: Used by the ranking tile's score caption and as the share image's
+  /// sort label, so both always name the same thing the sort actually used.
+  /// Database source names are shown verbatim because they are proper nouns
+  /// (`bangumi.tv`, `AniList`) and are not translated anywhere else either.
+  String _rankingScoreLabel(AppLocalizations l10n) {
+    switch (_rankingScoreSource) {
+      case _RankingScoreSource.personal:
+        return _ratingFieldLabel(_rankingSortField, l10n);
+      case _RankingScoreSource.external:
+        return _rankingExternalSource ?? l10n.statsRankingExternalAverage;
+    }
+  }
+
+  /// Purpose: List the database sources the loaded anime can be ranked by.
+  /// Inputs: None.
+  /// Returns: `List<String>` — deduplicated, in the app's source order.
+  /// Side effects: None.
+  /// Notes: Ordered by `AnimeSearchSource.all` so the picker reads the same way
+  /// as the search dialog, with any unrecognized source appended rather than
+  /// dropped — a record synced from a newer build may name a source this build
+  /// does not know.
+  List<String> get _rankingExternalSources {
+    final present = <String>{};
+    for (final anime in _allAnime) {
+      present.addAll(anime.externalMeta?.scoredSources ?? const []);
+    }
+    final ordered = [
+      for (final source in AnimeSearchSource.all)
+        if (present.remove(source)) source,
+    ];
+    final rest = present.toList()..sort();
+    return [...ordered, ...rest];
+  }
+
   /// Purpose: Provide the internal ranking anime helper for this file.
   /// Inputs: None.
   /// Returns: `List<Anime>`.
@@ -203,12 +271,12 @@ class _StatisticsPageState extends State<StatisticsPage> {
           anime.effectiveType != _rankingTypeFilter) {
         return false;
       }
-      return anime.rating?.scoreFor(_rankingSortField) != null;
+      return _rankingScoreOf(anime) != null;
     }).toList();
 
     filtered.sort((a, b) {
-      final aScore = a.rating!.scoreFor(_rankingSortField)!;
-      final bScore = b.rating!.scoreFor(_rankingSortField)!;
+      final aScore = _rankingScoreOf(a)!;
+      final bScore = _rankingScoreOf(b)!;
       final scoreCompare = _rankingDescending
           ? bScore.compareTo(aScore)
           : aScore.compareTo(bScore);
@@ -229,7 +297,7 @@ class _StatisticsPageState extends State<StatisticsPage> {
       return RankingShareEntry(
         anime: anime,
         rank: index + 1,
-        score: anime.rating!.scoreFor(_rankingSortField)!,
+        score: _rankingScoreOf(anime)!,
       );
     });
   }
@@ -270,7 +338,7 @@ class _StatisticsPageState extends State<StatisticsPage> {
         entries: entries,
         title: l10n.statsRanking,
         subtitle: subtitle,
-        sortLabel: _ratingFieldLabel(_rankingSortField, l10n),
+        sortLabel: _rankingScoreLabel(l10n),
         orderLabel: _rankingDescending
             ? l10n.statsRankingDescending
             : l10n.statsRankingAscending,
@@ -1869,27 +1937,71 @@ class _StatisticsPageState extends State<StatisticsPage> {
           onChanged: (value) => setState(() => _rankingTypeFilter = value),
         ),
         const SizedBox(height: 12),
+        SegmentedButton<_RankingScoreSource>(
+          segments: [
+            ButtonSegment(
+              value: _RankingScoreSource.personal,
+              icon: const Icon(Icons.person_outline, size: 18),
+              label: Text(l10n.statsRankingScoreSourcePersonal),
+            ),
+            ButtonSegment(
+              value: _RankingScoreSource.external,
+              icon: const Icon(Icons.travel_explore, size: 18),
+              label: Text(l10n.statsRankingScoreSourceExternal),
+            ),
+          ],
+          selected: {_rankingScoreSource},
+          onSelectionChanged: (value) {
+            setState(() => _rankingScoreSource = value.first);
+          },
+        ),
+        const SizedBox(height: 12),
         Row(
           children: [
             Expanded(
-              child: DropdownButtonFormField<AnimeRatingField>(
-                initialValue: _rankingSortField,
-                decoration: InputDecoration(
-                  labelText: l10n.statsRankingSortBy,
-                  border: const OutlineInputBorder(),
-                ),
-                items: AnimeRatingField.values
-                    .map(
-                      (field) => DropdownMenuItem(
-                        value: field,
-                        child: Text(_ratingFieldLabel(field, l10n)),
+              child: _rankingScoreSource == _RankingScoreSource.personal
+                  ? DropdownButtonFormField<AnimeRatingField>(
+                      initialValue: _rankingSortField,
+                      decoration: InputDecoration(
+                        labelText: l10n.statsRankingSortBy,
+                        border: const OutlineInputBorder(),
                       ),
+                      items: AnimeRatingField.values
+                          .map(
+                            (field) => DropdownMenuItem(
+                              value: field,
+                              child: Text(_ratingFieldLabel(field, l10n)),
+                            ),
+                          )
+                          .toList(),
+                      onChanged: (value) {
+                        if (value != null) {
+                          setState(() => _rankingSortField = value);
+                        }
+                      },
                     )
-                    .toList(),
-                onChanged: (value) {
-                  if (value != null) setState(() => _rankingSortField = value);
-                },
-              ),
+                  : DropdownButtonFormField<String?>(
+                      initialValue: _rankingExternalSource,
+                      decoration: InputDecoration(
+                        labelText: l10n.statsRankingExternalSource,
+                        border: const OutlineInputBorder(),
+                      ),
+                      items: [
+                        DropdownMenuItem<String?>(
+                          value: null,
+                          child: Text(l10n.statsRankingExternalAverage),
+                        ),
+                        ..._rankingExternalSources.map(
+                          (source) => DropdownMenuItem<String?>(
+                            value: source,
+                            child: Text(source),
+                          ),
+                        ),
+                      ],
+                      onChanged: (value) {
+                        setState(() => _rankingExternalSource = value);
+                      },
+                    ),
             ),
             const SizedBox(width: 12),
             SegmentedButton<bool>(
@@ -1945,8 +2057,8 @@ class _StatisticsPageState extends State<StatisticsPage> {
     ThemeData theme,
     AppLocalizations l10n,
   ) {
-    final sortScore = anime.rating!.scoreFor(_rankingSortField)!;
-    final overallScore = anime.rating!.effectiveOverall;
+    final sortScore = _rankingScoreOf(anime)!;
+    final overallScore = anime.rating?.effectiveOverall;
 
     return Card(
       margin: const EdgeInsets.only(bottom: 8),
@@ -2022,7 +2134,7 @@ class _StatisticsPageState extends State<StatisticsPage> {
                     ),
                   ),
                   Text(
-                    _ratingFieldLabel(_rankingSortField, l10n),
+                    _rankingScoreLabel(l10n),
                     style: theme.textTheme.labelSmall?.copyWith(
                       color: theme.colorScheme.onSurfaceVariant,
                     ),

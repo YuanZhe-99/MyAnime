@@ -2,6 +2,16 @@
 
 `AnimeDetailPage` 是一部被跟踪动画的读/操作页：封面、元数据徽章、评分摘要、本地存档摘要、上一季/下一季导航，以及带日程偏移控件的逐集观看状态列表。它通过 `AnimeStorage`（[`../services/anime_storage.md`](../services/anime_storage.md)）读写，并操作 `Anime`/`AnimeRating`/`AnimeLocalArchive` 模型（[`../models/anime.md`](../models/anime.md)），存档枚举通过 [`archive_labels.md`](archive_labels.md) 渲染。存档卡片仅供展示，且刻意不出现在本页分享操作生成的分享图片卡片中——见 [`../../../../features/share-and-import.md`](../../../../features/share-and-import.md)。本页为剧集播出日期/回卷和日程偏移语义暴露的控件见 [`../../../../features/anime-tracking.md`](../../../../features/anime-tracking.md)。
 
+
+## 布局
+
+页面以两种布局之一渲染，每帧由 [`../../../shared/utils/detail_layout.md`](../../../shared/utils/detail_layout.md) 中的 `useDetailTwoPane` 依视口尺寸选定：
+
+- **单栏** — 一个 `ListView`：封面，然后是信息块（日文标题、标签、进度条、`已看 / 总数`、评分／资料库／存档卡片、备注、上下季导航），最后是剧集列表。这就是原本的布局，未作改动。
+- **双栏** — 一个 `Row`。左栏定宽且占满高度，容纳从封面到观看进度标签的内容，封面尺寸由 `detailCoverSize` 按剩余高度算出。右栏是独立滚动的 `ListView`，容纳从卡片往下的全部内容，包括剧集列表。
+
+两种布局都由同样四个构建函数拼装——`_buildCover`、`_buildHeaderChildren`、`_buildDetailChildren`、`_buildEpisodeChildren`——因此每个区块的组件代码只有一份。`_buildHeaderChildren` 与 `_buildDetailChildren` 之间的分界**就是**分栏边界：把某个区块移过这条缝，它就会换栏。`_buildDetailChildren` 中每一项都自带前置的 `SizedBox(height: 12)`，正是这一点让同一份列表无论跟在进度条之后还是作为右栏开头都能正确呈现。
+
 ## 声明
 
 | 声明 | 种类 | Tier | 用途 |
@@ -14,7 +24,11 @@
 | [`_shiftFromEpisode`](#_shiftfromepisode) | 方法（`_AnimeDetailPageState`） | A | 把一集的播出周偏移一个增量并持久化它。 |
 | [`_resetSchedule`](#_resetschedule) | 方法（`_AnimeDetailPageState`） | A | 清除所有逐集周偏移，恢复到原始日程。 |
 | [`_delete`](#_delete) | 方法（`_AnimeDetailPageState`） | A | 确认并删除这条动画记录。 |
-| `_AnimeDetailPageState.build` | 方法（`_AnimeDetailPageState`，组件构建） | B | 构建详情页脚手架（封面、信息、剧集列表）。 |
+| `_AnimeDetailPageState.build` | 方法（`_AnimeDetailPageState`，组件构建） | B | 构建详情页脚手架，并在单栏与双栏布局之间取舍。 |
+| `_buildCover` | 方法（组件辅助） | B | 按明确尺寸构建封面图块。 |
+| `_buildHeaderChildren` | 方法（组件辅助） | B | 构建头部块：日文标题、标签与观看进度。 |
+| `_buildDetailChildren` | 方法（组件辅助） | B | 构建进度条下方的卡片，以及季度导航。 |
+| `_buildEpisodeChildren` | 方法（组件辅助） | B | 构建剧集列表表头及每一集一行。 |
 | [`_toggleAllWatched`](#_toggleallwatched) | 方法（`_AnimeDetailPageState`） | A | 把每个被跟踪剧集标记为已看，已完整时则全部标记为未看。 |
 | `_buildAbandonOrResume` | 方法（组件辅助） | B | 渲染剧集列表页头的"放弃"/"恢复"操作按钮。 |
 | [`_refreshableUrls`](#_refreshableurls) | 方法（`_AnimeDetailPageState`） | A | 列出这部番剧可用于刷新的来源页面。 |
@@ -193,7 +207,7 @@
 - **返回：** `Widget`。
 - **副作用：** 无。
 - **算法：** 卡片顶部是来源图标、区块标题与本地化的 `refreshedAt` 日期；随后为每个已提供字段渲染一行标签/值（作品形式、播出状态、时长、完结日期、制作公司、类型标签、别名）；最后，当任一评分有分值时，加一条分隔线、「外部评分」标题、一行说明文字，以及每个来源一个显示 `来源 评分/满分 · 票数` 的 chip。
-- **备注：** 它刻意紧邻个人评分卡片上方，并在视觉上作为独立区块呈现——评分标题下的说明文字存在的意义，就是让人不会把外部评分误认成自己的评分。卡片本身**不**做 flavor 门禁：展示已经同步过来的数据不属于网络功能，而商店构建完全可能通过 WebDAV 同步或导入的分享文件正当地拿到这些数据。
+- **备注：** 它刻意紧邻个人评分卡片下方，并在视觉上作为独立区块呈现——评分标题下的说明文字存在的意义，就是让人不会把外部评分误认成自己的评分。卡片本身**不**做 flavor 门禁：展示已经同步过来的数据不属于网络功能，而商店构建完全可能通过 WebDAV 同步或导入的分享文件正当地拿到这些数据。
 
 ### `Future<void> _abandonAnime()` <a id="_abandonanime"></a>
 - **种类：** `_AnimeDetailPageState` 的方法

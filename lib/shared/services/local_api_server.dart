@@ -13,6 +13,8 @@ import '../utils/jst_time.dart';
 
 enum _ApiRankingTime { all, quarter, year, range }
 
+enum _ApiRankingScoreSource { personal, external }
+
 class _RankingQuery {
   final _ApiRankingTime time;
   final int? year;
@@ -23,11 +25,13 @@ class _RankingQuery {
   final int? endQuarter;
   final AnimeType? type;
   final AnimeRatingField field;
+  final _ApiRankingScoreSource scoreSource;
+  final String? externalSource;
   final bool descending;
   final int limit;
 
   /// Purpose: Create parsed API ranking query options.
-  /// Inputs: `time`, `year`, `quarter`, `startYear`, `startQuarter`, `endYear`, `endQuarter`, `type`, `field`, `descending`, `limit`.
+  /// Inputs: `time`, `year`, `quarter`, `startYear`, `startQuarter`, `endYear`, `endQuarter`, `type`, `field`, `scoreSource`, `externalSource`, `descending`, `limit`.
   /// Returns: A new `_RankingQuery` instance.
   /// Side effects: None.
   /// Notes: Internal value object used by `/anime/ranking`.
@@ -41,6 +45,8 @@ class _RankingQuery {
     this.endQuarter,
     this.type,
     required this.field,
+    this.scoreSource = _ApiRankingScoreSource.personal,
+    this.externalSource,
     required this.descending,
     required this.limit,
   });
@@ -391,12 +397,12 @@ class LocalApiServer {
     final query = parsed.query!;
     final ranked = animes.where((anime) {
       if (!_matchesRankingQuery(anime, query)) return false;
-      return anime.rating?.scoreFor(query.field) != null;
+      return _rankingScoreFor(anime, query) != null;
     }).toList();
 
     ranked.sort((a, b) {
-      final aScore = a.rating!.scoreFor(query.field)!;
-      final bScore = b.rating!.scoreFor(query.field)!;
+      final aScore = _rankingScoreFor(a, query)!;
+      final bScore = _rankingScoreFor(b, query)!;
       final scoreCompare = query.descending
           ? bScore.compareTo(aScore)
           : aScore.compareTo(bScore);
@@ -409,7 +415,7 @@ class LocalApiServer {
       final anime = limited[index];
       return {
         'rank': index + 1,
-        'score': anime.rating!.scoreFor(query.field),
+        'score': _rankingScoreFor(anime, query),
         ..._animeToJson(anime),
       };
     });
@@ -420,6 +426,9 @@ class LocalApiServer {
         'filters': _rankingFiltersToJson(query),
         'sort': {
           'field': query.field.name,
+          'scoreSource': query.scoreSource.name,
+          if (query.externalSource != null)
+            'externalSource': query.externalSource,
           'order': query.descending ? 'desc' : 'asc',
         },
         'limit': query.limit,
@@ -427,6 +436,28 @@ class LocalApiServer {
       },
       error: null,
     );
+  }
+
+  /// Purpose: Return the score `/anime/ranking` should sort one anime by.
+  /// Inputs: `anime`, `query`.
+  /// Returns: `double?` — `null` when this anime has no score to rank by.
+  /// Side effects: None.
+  /// Notes: Mirrors the statistics page's `_rankingScoreOf` seam. Both exist so
+  /// the API and the UI cannot answer "what does this ranking mean" differently;
+  /// change one and change the other. External scores are rebased onto 0-10, so
+  /// a source reporting on another scale still compares correctly.
+  static double? _rankingScoreFor(Anime anime, _RankingQuery query) {
+    switch (query.scoreSource) {
+      case _ApiRankingScoreSource.personal:
+        return anime.rating?.scoreFor(query.field);
+      case _ApiRankingScoreSource.external:
+        final meta = anime.externalMeta;
+        if (meta == null) return null;
+        final source = query.externalSource;
+        return source == null
+            ? meta.averageNormalizedScore
+            : meta.normalizedScoreFor(source);
+    }
   }
 
   /// Purpose: Parse `?season=` query param and filter anime list.
@@ -534,6 +565,30 @@ class LocalApiServer {
     final field = _parseRatingFieldParam(queryParameters['field']);
     if (field.error != null) return (query: null, error: field.error);
 
+    final scoreSourceValue = (queryParameters['scoreSource'] ?? 'personal')
+        .trim();
+    final scoreSource = switch (scoreSourceValue) {
+      '' || 'personal' => _ApiRankingScoreSource.personal,
+      'external' => _ApiRankingScoreSource.external,
+      _ => null,
+    };
+    if (scoreSource == null) {
+      return (query: null, error: 'invalid scoreSource');
+    }
+
+    final externalSourceText = queryParameters['externalSource']?.trim();
+    final externalSource =
+        externalSourceText == null || externalSourceText.isEmpty
+        ? null
+        : externalSourceText;
+    if (externalSource != null &&
+        scoreSource != _ApiRankingScoreSource.external) {
+      return (
+        query: null,
+        error: 'externalSource requires scoreSource=external',
+      );
+    }
+
     final orderValue = (queryParameters['order'] ?? 'desc').trim();
     final descending = switch (orderValue) {
       '' || 'desc' => true,
@@ -563,6 +618,8 @@ class LocalApiServer {
         endQuarter: endQuarter,
         type: type.value,
         field: field.value!,
+        scoreSource: scoreSource,
+        externalSource: externalSource,
         descending: descending,
         limit: limit,
       ),

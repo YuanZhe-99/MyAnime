@@ -48,12 +48,16 @@ every view under `lib/features/anime/views/`.
 | [`AnimeLocalArchive.fromJson`](#animelocalarchive-fromjson) | factory constructor | A | Parse an archive record from JSON, routing unparseable values into `extraJson`. |
 | [`AnimeExternalRating(...)`](#animeexternalrating-new) | constructor (`AnimeExternalRating`) | A | Create one external database's score, with the URL it came from. |
 | `hasAnyData` | getter (`AnimeExternalRating`) | B | Whether there's a score, votes, rank, or preserved `extraJson`. |
+| [`normalizedScore`](#normalizedscore) | getter (`AnimeExternalRating`) | A | This source's score rebased onto a 0-10 scale. |
 | [`withExtraJson`](#withextrajson-animeexternalrating) | method (`AnimeExternalRating`) | B | Copy with `extraJson` replaced. |
 | [`toJson`](#tojson-animeexternalrating) | method (`AnimeExternalRating`) | A | Serialize to one entry of `externalMeta.ratings`. |
 | [`AnimeExternalRating.fromJson`](#animeexternalrating-fromjson) | factory constructor | A | Parse one rating entry, routing unparseable values into `extraJson`. |
 | [`AnimeExternalMeta(...)`](#animeexternalmeta-new) | constructor (`AnimeExternalMeta`) | A | Create a public-metadata record pulled from external databases. |
 | `hasAnyData` | getter (`AnimeExternalMeta`) | B | Whether there's anything worth persisting. |
 | [`ratingFor`](#ratingfor) | method (`AnimeExternalMeta`) | A | Look up this record's rating for one source. |
+| [`normalizedScoreFor`](#normalizedscorefor) | method (`AnimeExternalMeta`) | A | One source's score rebased onto a 0-10 scale. |
+| [`averageNormalizedScore`](#averagenormalizedscore) | getter (`AnimeExternalMeta`) | A | The mean of every external score this record holds. |
+| `scoredSources` | getter (`AnimeExternalMeta`) | B | The sources that actually supplied a score. |
 | [`mergedWith`](#mergedwith) | method (`AnimeExternalMeta`) | A | Fold freshly fetched metadata into this record. |
 | [`withExtraJson`](#withextrajson-animeexternalmeta) | method (`AnimeExternalMeta`) | B | Copy with `extraJson` replaced. |
 | [`toJson`](#tojson-animeexternalmeta) | method (`AnimeExternalMeta`) | A | Serialize to the JSON shape stored under `Anime.externalMeta`. |
@@ -496,6 +500,32 @@ has 63 rows — the `AnimeData` default constructor has no doc comment at all in
 - **Returns:** `AnimeExternalRating?` — `null` when the source has never been fetched.
 - **Side effects:** None.
 - **Notes:** `ratings` is a list rather than a map because JSON arrays round-trip more predictably and the list is never longer than the number of supported sources.
+
+### `double? get normalizedScore` (`AnimeExternalRating`) <a id="normalizedscore"></a>
+- **Kind:** getter of `AnimeExternalRating`
+- **Source:** `lib/features/anime/models/anime.dart` (line 682)
+- **Purpose:** Return this source's score rebased onto a 0-10 scale.
+- **Returns:** `double?` — `score / scoreMax * 10`, or `null` when there is no score or `scoreMax` is unusable.
+- **Side effects:** None.
+- **Notes:** Every supported source is already normalized onto `scoreMax` when it is stored, and `scoreMax` defaults to 10 — but it is stored **per entry**, so anything comparing scores across sources has to divide through rather than read `score` raw. Reading it raw would rank a bangumi.tv 7/10 above a MyAnimeList 85/100. The `scoreMax <= 0` guard is what keeps a malformed or newer-build entry from producing an infinity that would sort to the top of a ranking.
+
+### `double? normalizedScoreFor(String source)` <a id="normalizedscorefor"></a>
+- **Kind:** method of `AnimeExternalMeta`
+- **Source:** `lib/features/anime/models/anime.dart` (line 909)
+- **Purpose:** Return one source's score rebased onto a 0-10 scale.
+- **Inputs:** `source` — a source name, e.g. `AnimeSearchSource.bangumi`.
+- **Returns:** `double?` — `null` when the source was never fetched or reported no score.
+- **Side effects:** None.
+- **Notes:** Delegates to [`ratingFor`](#ratingfor) and [`normalizedScore`](#normalizedscore), so an absent source and a source that answered without a number are the same answer to a caller that just wants something to rank by.
+
+### `double? get averageNormalizedScore` <a id="averagenormalizedscore"></a>
+- **Kind:** getter of `AnimeExternalMeta`
+- **Source:** `lib/features/anime/models/anime.dart` (line 919)
+- **Purpose:** Return the mean of every external score this record holds.
+- **Returns:** `double?` — `null` when no source supplied a score.
+- **Side effects:** None.
+- **Algorithm:** Sum every non-null `normalizedScore` and divide by how many there were; entries without a score are skipped rather than counted as zero.
+- **Notes:** Averaging the *normalized* scores is what makes the result meaningful when a record mixes a 10-point and a 100-point source. It is the default for the Ranking view's database score source (see [`../views/statistics_page.md`](../views/statistics_page.md)), with a specific source selectable instead — the average is the more robust default because which sources a record happens to carry varies per anime, while a pinned source silently drops every anime that lacks it.
 
 ### `AnimeExternalMeta mergedWith(AnimeExternalMeta other, {DateTime? refreshedAt})` <a id="mergedwith"></a>
 - **Kind:** method of `AnimeExternalMeta`

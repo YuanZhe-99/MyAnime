@@ -1111,6 +1111,21 @@ class AppLocalizationsEn extends AppLocalizations {
   String get statsRankingSortBy => 'Sort by';
 
   @override
+  String get statsRankingScoreSource => 'Score source';
+
+  @override
+  String get statsRankingScoreSourcePersonal => 'My rating';
+
+  @override
+  String get statsRankingScoreSourceExternal => 'Database';
+
+  @override
+  String get statsRankingExternalSource => 'Database source';
+
+  @override
+  String get statsRankingExternalAverage => 'Average of all sources';
+
+  @override
   String get statsRankingDescending => 'High to low';
 
   @override

@@ -1057,6 +1057,21 @@ class AppLocalizationsJa extends AppLocalizations {
   String get statsRankingSortBy => '並び替え';
 
   @override
+  String get statsRankingScoreSource => '評価ソース';
+
+  @override
+  String get statsRankingScoreSourcePersonal => '自分の評価';
+
+  @override
+  String get statsRankingScoreSourceExternal => 'データベース';
+
+  @override
+  String get statsRankingExternalSource => 'データベースソース';
+
+  @override
+  String get statsRankingExternalAverage => '全ソースの平均';
+
+  @override
   String get statsRankingDescending => '高い順';
 
   @override

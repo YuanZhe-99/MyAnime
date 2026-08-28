@@ -9,6 +9,7 @@ import '../../../app/flavor.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../../shared/services/image_service.dart';
 import '../../../shared/services/share_service.dart';
+import '../../../shared/utils/detail_layout.dart';
 import '../../../shared/widgets/delete_confirm.dart';
 import '../models/anime.dart';
 import '../services/anime_search_service.dart';
@@ -230,254 +231,372 @@ class _AnimeDetailPageState extends State<AnimeDetailPage> {
           ),
         ],
       ),
-      body: ListView(
-        children: [
-          // Cover image (portrait)
-          if (anime.coverImage != null)
-            Padding(
-              padding: const EdgeInsets.only(top: 16),
-              child: Center(
-                child: FutureBuilder<File>(
-                  future: ImageService.resolve(anime.coverImage!),
-                  builder: (context, snap) {
-                    if (snap.hasData && snap.data!.existsSync()) {
-                      return ClipRRect(
-                        borderRadius: BorderRadius.circular(8),
-                        child: Image.file(
-                          snap.data!,
-                          height: 260,
-                          width: 180,
-                          fit: BoxFit.cover,
-                        ),
-                      );
-                    }
-                    return const SizedBox.shrink();
-                  },
-                ),
-              ),
-            ),
+      body: LayoutBuilder(
+        builder: (context, constraints) {
+          final screen = MediaQuery.sizeOf(context);
+          final headerChildren = _buildHeaderChildren(
+            anime,
+            theme,
+            l10n,
+            totalEps,
+            watchedCount,
+          );
+          final detailChildren = _buildDetailChildren(anime, theme, l10n);
+          final episodeChildren = _buildEpisodeChildren(anime, theme, l10n);
 
-          // Info section
-          Padding(
-            padding: const EdgeInsets.all(16),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+          if (!useDetailTwoPane(screen.width, screen.height)) {
+            return ListView(
               children: [
-                if (anime.titleJa != null && anime.titleJa!.isNotEmpty)
-                  Text(
-                    anime.titleJa!,
-                    style: theme.textTheme.bodyMedium?.copyWith(
-                      color: theme.colorScheme.onSurfaceVariant,
-                    ),
+                if (anime.coverImage != null)
+                  _buildCover(anime, width: 180, height: 260),
+                Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [...headerChildren, ...detailChildren],
                   ),
-                const SizedBox(height: 8),
-                Wrap(
-                  spacing: 8,
-                  runSpacing: 4,
-                  children: [
-                    Chip(label: Text(anime.season)),
-                    Chip(label: Text(_typeLabel(anime.effectiveType, l10n))),
-                    if (anime.airDayOfWeek != null)
-                      Chip(
-                        avatar: const Icon(Icons.today, size: 16),
-                        label: Text(_dayName(anime.airDayOfWeek!, l10n)),
-                      ),
-                    if (anime.airTime != null)
-                      Chip(
-                        avatar: const Icon(Icons.schedule, size: 16),
-                        label: Text(anime.airTime!),
-                      ),
-                    if (anime.infoUrl != null)
-                      ActionChip(
-                        avatar: const Icon(Icons.info_outline, size: 16),
-                        label: Text(l10n.animeOpenInfoUrl),
-                        onPressed: () => launchUrl(
-                          Uri.parse(anime.infoUrl!),
-                          mode: LaunchMode.externalApplication,
-                        ),
-                      ),
-                    // Online lookups are a full-build feature; store builds
-                    // must never reach AnimeSearchService.
-                    if (AppFlavor.isFull && _refreshableUrls(anime).isNotEmpty)
-                      ActionChip(
-                        avatar: _refreshingMeta
-                            ? const SizedBox(
-                                width: 14,
-                                height: 14,
-                                child: CircularProgressIndicator(
-                                  strokeWidth: 2,
-                                ),
-                              )
-                            : const Icon(Icons.sync, size: 16),
-                        label: Text(l10n.animeRefreshMeta),
-                        onPressed: _refreshingMeta
-                            ? null
-                            : () => _refreshExternalMeta(anime),
-                      ),
-                    if (anime.watchUrl != null)
-                      ActionChip(
-                        avatar: const Icon(Icons.open_in_browser, size: 16),
-                        label: Text(l10n.animeOpenUrl),
-                        onPressed: () => launchUrl(
-                          Uri.parse(anime.watchUrl!),
-                          mode: LaunchMode.externalApplication,
-                        ),
-                      ),
-                  ],
                 ),
-                const SizedBox(height: 8),
-                LinearProgressIndicator(
-                  value: totalEps > 0 ? watchedCount / totalEps : 0,
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  '$watchedCount / $totalEps ${l10n.animeEpisodes}',
-                  style: theme.textTheme.bodySmall,
-                ),
-                if (anime.rating?.effectiveOverall != null) ...[
-                  const SizedBox(height: 12),
-                  _buildRatingCard(anime.rating!, theme, l10n),
-                ],
-                if (anime.externalMeta?.hasAnyData == true) ...[
-                  const SizedBox(height: 12),
-                  _buildExternalMetaCard(anime.externalMeta!, theme, l10n),
-                ],
-                if (anime.localArchive?.hasAnyData == true) ...[
-                  const SizedBox(height: 12),
-                  _buildLocalArchiveCard(anime.localArchive!, theme, l10n),
-                ],
-                if (anime.notes != null && anime.notes!.isNotEmpty) ...[
-                  const SizedBox(height: 12),
-                  Text(anime.notes!, style: theme.textTheme.bodyMedium),
-                ],
+                ...episodeChildren,
+              ],
+            );
+          }
 
-                // Prev/Next season navigation
-                if (_prevSeasonId != null || _nextSeasonId != null) ...[
-                  const SizedBox(height: 12),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
+          final paneWidth = detailLeftPaneWidth(constraints.maxWidth);
+          final cover = detailCoverSize(paneWidth, constraints.maxHeight);
+          return Row(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              SizedBox(
+                width: paneWidth,
+                child: SingleChildScrollView(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      if (_prevSeasonId != null)
-                        TextButton.icon(
-                          icon: const Icon(Icons.arrow_back, size: 16),
-                          label: Text(l10n.animePrevSeason),
-                          onPressed: () =>
-                              context.go('/anime/detail/$_prevSeasonId'),
+                      if (anime.coverImage != null)
+                        _buildCover(
+                          anime,
+                          width: cover.width,
+                          height: cover.height,
                         ),
-                      if (_prevSeasonId != null && _nextSeasonId != null)
-                        const SizedBox(width: 16),
-                      if (_nextSeasonId != null)
-                        TextButton.icon(
-                          icon: const Icon(Icons.arrow_forward, size: 16),
-                          label: Text(l10n.animeNextSeason),
-                          onPressed: () =>
-                              context.go('/anime/detail/$_nextSeasonId'),
+                      Padding(
+                        padding: const EdgeInsets.all(16),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: headerChildren,
                         ),
+                      ),
                     ],
                   ),
-                ],
-              ],
-            ),
-          ),
-
-          const Divider(),
-
-          // Episode list
-          Padding(
-            padding: const EdgeInsets.fromLTRB(16, 8, 16, 4),
-            child: Row(
-              children: [
-                Text(
-                  l10n.animeEpisodeList,
-                  style: theme.textTheme.titleSmall?.copyWith(
-                    color: theme.colorScheme.primary,
-                  ),
                 ),
-                const Spacer(),
-                if (anime.episodeWeekOffsets.isNotEmpty)
-                  IconButton(
-                    icon: const Icon(Icons.restart_alt, size: 20),
-                    tooltip: l10n.animeResetSchedule,
-                    onPressed: () => _resetSchedule(),
-                  ),
-                if (anime.endEpisode != null)
-                  _buildAbandonOrResume(anime, l10n),
-                TextButton(
-                  onPressed: () => _toggleAllWatched(),
-                  child: Text(
-                    anime.isCompleted
-                        ? l10n.animeMarkAllUnwatched
-                        : l10n.animeMarkAllWatched,
-                  ),
-                ),
-              ],
-            ),
-          ),
-          ...List.generate(
-            anime.endEpisode != null
-                ? anime.endEpisode! - anime.startEpisode + 1
-                : 0,
-            (i) {
-              final ep = anime.startEpisode + i;
-              final status =
-                  anime.episodeStatuses[ep] ?? EpisodeStatus.unwatched;
-              final airDate = anime.getEpisodeCalendarDate(ep);
-              final airStr = airDate != null
-                  ? DateFormat.MMMd().format(airDate)
-                  : '';
-
-              return ListTile(
-                dense: true,
-                leading: _statusIcon(status, theme),
-                title: Text(l10n.animeEpisodeShort(ep)),
-                subtitle: airStr.isNotEmpty ? Text(airStr) : null,
-                trailing: Row(
-                  mainAxisSize: MainAxisSize.min,
+              ),
+              const VerticalDivider(width: 1),
+              Expanded(
+                child: ListView(
                   children: [
-                    SizedBox(
-                      width: 32,
-                      height: 32,
-                      child: IconButton(
-                        padding: EdgeInsets.zero,
-                        iconSize: 16,
-                        tooltip: l10n.animeShiftForward,
-                        icon: const Icon(Icons.keyboard_double_arrow_left),
-                        onPressed: () => _shiftFromEpisode(ep, -1),
-                      ),
-                    ),
-                    SizedBox(
-                      width: 32,
-                      height: 32,
-                      child: IconButton(
-                        padding: EdgeInsets.zero,
-                        iconSize: 16,
-                        tooltip: l10n.animeShiftBackward,
-                        icon: const Icon(Icons.keyboard_double_arrow_right),
-                        onPressed: () => _shiftFromEpisode(ep, 1),
-                      ),
-                    ),
-                    const SizedBox(width: 4),
-                    SizedBox(
-                      width: 36,
-                      child: Text(
-                        _statusLabel(status, l10n),
-                        style: theme.textTheme.bodySmall?.copyWith(
-                          color: _statusColor(status, theme),
+                    if (detailChildren.isNotEmpty)
+                      Padding(
+                        padding: const EdgeInsets.all(16),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: detailChildren,
                         ),
-                        textAlign: TextAlign.end,
                       ),
-                    ),
+                    ...episodeChildren,
                   ],
                 ),
-                onTap: () => _toggleEpisode(ep),
-              );
-            },
-          ),
-
-          const SizedBox(height: 24),
-        ],
+              ),
+            ],
+          );
+        },
       ),
     );
+  }
+
+  /// Purpose: Build the cover image block at an explicit size.
+  /// Inputs: `anime`, `width`, `height` — the cover box in logical pixels.
+  /// Returns: `Widget`.
+  /// Side effects: Reads the cover file through `ImageService.resolve`.
+  /// Notes: The size is a parameter because the two-pane layout sizes the cover
+  /// from the space its left pane has left over, while the single-column layout
+  /// keeps the original fixed 180x260 box. Callers guard on `coverImage`.
+  Widget _buildCover(
+    Anime anime, {
+    required double width,
+    required double height,
+  }) {
+    return Padding(
+      padding: const EdgeInsets.only(top: 16),
+      child: Center(
+        child: FutureBuilder<File>(
+          future: ImageService.resolve(anime.coverImage!),
+          builder: (context, snap) {
+            if (snap.hasData && snap.data!.existsSync()) {
+              return ClipRRect(
+                borderRadius: BorderRadius.circular(8),
+                child: Image.file(
+                  snap.data!,
+                  height: height,
+                  width: width,
+                  fit: BoxFit.cover,
+                ),
+              );
+            }
+            return const SizedBox.shrink();
+          },
+        ),
+      ),
+    );
+  }
+
+  /// Purpose: Build the header block: Japanese title, chips, and watch progress.
+  /// Inputs: `anime`, `theme`, `l10n`, `totalEps`, `watchedCount`.
+  /// Returns: `List<Widget>` for a `crossAxisAlignment.start` `Column`.
+  /// Side effects: None.
+  /// Notes: This is everything the two-pane layout keeps in its left pane, so
+  /// the split point between this and `_buildDetailChildren` is what decides
+  /// which column each section lands in.
+  List<Widget> _buildHeaderChildren(
+    Anime anime,
+    ThemeData theme,
+    AppLocalizations l10n,
+    int totalEps,
+    int watchedCount,
+  ) {
+    return [
+      if (anime.titleJa != null && anime.titleJa!.isNotEmpty)
+        Text(
+          anime.titleJa!,
+          style: theme.textTheme.bodyMedium?.copyWith(
+            color: theme.colorScheme.onSurfaceVariant,
+          ),
+        ),
+      const SizedBox(height: 8),
+      Wrap(
+        spacing: 8,
+        runSpacing: 4,
+        children: [
+          Chip(label: Text(anime.season)),
+          Chip(label: Text(_typeLabel(anime.effectiveType, l10n))),
+          if (anime.airDayOfWeek != null)
+            Chip(
+              avatar: const Icon(Icons.today, size: 16),
+              label: Text(_dayName(anime.airDayOfWeek!, l10n)),
+            ),
+          if (anime.airTime != null)
+            Chip(
+              avatar: const Icon(Icons.schedule, size: 16),
+              label: Text(anime.airTime!),
+            ),
+          if (anime.infoUrl != null)
+            ActionChip(
+              avatar: const Icon(Icons.info_outline, size: 16),
+              label: Text(l10n.animeOpenInfoUrl),
+              onPressed: () => launchUrl(
+                Uri.parse(anime.infoUrl!),
+                mode: LaunchMode.externalApplication,
+              ),
+            ),
+          // Online lookups are a full-build feature; store builds
+          // must never reach AnimeSearchService.
+          if (AppFlavor.isFull && _refreshableUrls(anime).isNotEmpty)
+            ActionChip(
+              avatar: _refreshingMeta
+                  ? const SizedBox(
+                      width: 14,
+                      height: 14,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    )
+                  : const Icon(Icons.sync, size: 16),
+              label: Text(l10n.animeRefreshMeta),
+              onPressed: _refreshingMeta
+                  ? null
+                  : () => _refreshExternalMeta(anime),
+            ),
+          if (anime.watchUrl != null)
+            ActionChip(
+              avatar: const Icon(Icons.open_in_browser, size: 16),
+              label: Text(l10n.animeOpenUrl),
+              onPressed: () => launchUrl(
+                Uri.parse(anime.watchUrl!),
+                mode: LaunchMode.externalApplication,
+              ),
+            ),
+        ],
+      ),
+      const SizedBox(height: 8),
+      LinearProgressIndicator(
+        value: totalEps > 0 ? watchedCount / totalEps : 0,
+      ),
+      const SizedBox(height: 4),
+      Text(
+        '$watchedCount / $totalEps ${l10n.animeEpisodes}',
+        style: theme.textTheme.bodySmall,
+      ),
+    ];
+  }
+
+  /// Purpose: Build the cards below the progress bar, plus season navigation.
+  /// Inputs: `anime`, `theme`, `l10n`.
+  /// Returns: `List<Widget>` for a `crossAxisAlignment.start` `Column`.
+  /// Side effects: None.
+  /// Notes: Everything here moves to the scrollable right pane in the two-pane
+  /// layout. Each entry keeps its leading `SizedBox(height: 12)` so the spacing
+  /// is identical whether it follows the progress bar or opens the right pane.
+  List<Widget> _buildDetailChildren(
+    Anime anime,
+    ThemeData theme,
+    AppLocalizations l10n,
+  ) {
+    return [
+      if (anime.rating?.effectiveOverall != null) ...[
+        const SizedBox(height: 12),
+        _buildRatingCard(anime.rating!, theme, l10n),
+      ],
+      if (anime.externalMeta?.hasAnyData == true) ...[
+        const SizedBox(height: 12),
+        _buildExternalMetaCard(anime.externalMeta!, theme, l10n),
+      ],
+      if (anime.localArchive?.hasAnyData == true) ...[
+        const SizedBox(height: 12),
+        _buildLocalArchiveCard(anime.localArchive!, theme, l10n),
+      ],
+      if (anime.notes != null && anime.notes!.isNotEmpty) ...[
+        const SizedBox(height: 12),
+        Text(anime.notes!, style: theme.textTheme.bodyMedium),
+      ],
+
+      // Prev/Next season navigation
+      if (_prevSeasonId != null || _nextSeasonId != null) ...[
+        const SizedBox(height: 12),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            if (_prevSeasonId != null)
+              TextButton.icon(
+                icon: const Icon(Icons.arrow_back, size: 16),
+                label: Text(l10n.animePrevSeason),
+                onPressed: () => context.go('/anime/detail/$_prevSeasonId'),
+              ),
+            if (_prevSeasonId != null && _nextSeasonId != null)
+              const SizedBox(width: 16),
+            if (_nextSeasonId != null)
+              TextButton.icon(
+                icon: const Icon(Icons.arrow_forward, size: 16),
+                label: Text(l10n.animeNextSeason),
+                onPressed: () => context.go('/anime/detail/$_nextSeasonId'),
+              ),
+          ],
+        ),
+      ],
+    ];
+  }
+
+  /// Purpose: Build the episode list header and one row per tracked episode.
+  /// Inputs: `anime`, `theme`, `l10n`.
+  /// Returns: `List<Widget>` for a scrolling list.
+  /// Side effects: None.
+  /// Notes: Returned flat rather than wrapped in a `Column` so the rows stay
+  /// direct `ListView` children in both layouts.
+  List<Widget> _buildEpisodeChildren(
+    Anime anime,
+    ThemeData theme,
+    AppLocalizations l10n,
+  ) {
+    return [
+      const Divider(),
+
+      // Episode list
+      Padding(
+        padding: const EdgeInsets.fromLTRB(16, 8, 16, 4),
+        child: Row(
+          children: [
+            Text(
+              l10n.animeEpisodeList,
+              style: theme.textTheme.titleSmall?.copyWith(
+                color: theme.colorScheme.primary,
+              ),
+            ),
+            const Spacer(),
+            if (anime.episodeWeekOffsets.isNotEmpty)
+              IconButton(
+                icon: const Icon(Icons.restart_alt, size: 20),
+                tooltip: l10n.animeResetSchedule,
+                onPressed: () => _resetSchedule(),
+              ),
+            if (anime.endEpisode != null) _buildAbandonOrResume(anime, l10n),
+            TextButton(
+              onPressed: () => _toggleAllWatched(),
+              child: Text(
+                anime.isCompleted
+                    ? l10n.animeMarkAllUnwatched
+                    : l10n.animeMarkAllWatched,
+              ),
+            ),
+          ],
+        ),
+      ),
+      ...List.generate(
+        anime.endEpisode != null
+            ? anime.endEpisode! - anime.startEpisode + 1
+            : 0,
+        (i) {
+          final ep = anime.startEpisode + i;
+          final status = anime.episodeStatuses[ep] ?? EpisodeStatus.unwatched;
+          final airDate = anime.getEpisodeCalendarDate(ep);
+          final airStr = airDate != null
+              ? DateFormat.MMMd().format(airDate)
+              : '';
+
+          return ListTile(
+            dense: true,
+            leading: _statusIcon(status, theme),
+            title: Text(l10n.animeEpisodeShort(ep)),
+            subtitle: airStr.isNotEmpty ? Text(airStr) : null,
+            trailing: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                SizedBox(
+                  width: 32,
+                  height: 32,
+                  child: IconButton(
+                    padding: EdgeInsets.zero,
+                    iconSize: 16,
+                    tooltip: l10n.animeShiftForward,
+                    icon: const Icon(Icons.keyboard_double_arrow_left),
+                    onPressed: () => _shiftFromEpisode(ep, -1),
+                  ),
+                ),
+                SizedBox(
+                  width: 32,
+                  height: 32,
+                  child: IconButton(
+                    padding: EdgeInsets.zero,
+                    iconSize: 16,
+                    tooltip: l10n.animeShiftBackward,
+                    icon: const Icon(Icons.keyboard_double_arrow_right),
+                    onPressed: () => _shiftFromEpisode(ep, 1),
+                  ),
+                ),
+                const SizedBox(width: 4),
+                SizedBox(
+                  width: 36,
+                  child: Text(
+                    _statusLabel(status, l10n),
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: _statusColor(status, theme),
+                    ),
+                    textAlign: TextAlign.end,
+                  ),
+                ),
+              ],
+            ),
+            onTap: () => _toggleEpisode(ep),
+          );
+        },
+      ),
+
+      const SizedBox(height: 24),
+    ];
   }
 
   /// Purpose: Provide the internal toggle all watched helper for this file.

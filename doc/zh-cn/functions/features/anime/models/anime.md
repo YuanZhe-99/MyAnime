@@ -34,12 +34,16 @@
 | [`AnimeLocalArchive.fromJson`](#animelocalarchive-fromjson) | 工厂构造函数 | A | 从 JSON 解析存档记录，无法解析的值转入 `extraJson`。 |
 | [`AnimeExternalRating(...)`](#animeexternalrating-new) | 构造函数（`AnimeExternalRating`） | A | 创建某个外部资料库的评分，并记住其来源 URL。 |
 | `hasAnyData` | getter（`AnimeExternalRating`） | B | 是否有评分、票数、排名或保留的 `extraJson`。 |
+| [`normalizedScore`](#normalizedscore) | getter（`AnimeExternalRating`） | A | 该来源重定基到 0-10 量表的分数。 |
 | [`withExtraJson`](#withextrajson-animeexternalrating) | 方法（`AnimeExternalRating`） | B | 替换 `extraJson` 的副本。 |
 | [`toJson`](#tojson-animeexternalrating) | 方法（`AnimeExternalRating`） | A | 序列化为 `externalMeta.ratings` 的一条记录。 |
 | [`AnimeExternalRating.fromJson`](#animeexternalrating-fromjson) | 工厂构造函数 | A | 解析一条评分记录，无法解析的值转入 `extraJson`。 |
 | [`AnimeExternalMeta(...)`](#animeexternalmeta-new) | 构造函数（`AnimeExternalMeta`） | A | 创建从外部资料库拉取的公开元数据记录。 |
 | `hasAnyData` | getter（`AnimeExternalMeta`） | B | 是否有任何值得持久化的内容。 |
 | [`ratingFor`](#ratingfor) | 方法（`AnimeExternalMeta`） | A | 查找本记录中某个来源的评分。 |
+| [`normalizedScoreFor`](#normalizedscorefor) | 方法（`AnimeExternalMeta`） | A | 某个来源重定基到 0-10 量表的分数。 |
+| [`averageNormalizedScore`](#averagenormalizedscore) | getter（`AnimeExternalMeta`） | A | 本记录所持全部外部分数的均值。 |
+| `scoredSources` | getter（`AnimeExternalMeta`） | B | 实际提供了分数的来源。 |
 | [`mergedWith`](#mergedwith) | 方法（`AnimeExternalMeta`） | A | 把新抓取的元数据折叠进本记录。 |
 | [`withExtraJson`](#withextrajson-animeexternalmeta) | 方法（`AnimeExternalMeta`） | B | 替换 `extraJson` 的副本。 |
 | [`toJson`](#tojson-animeexternalmeta) | 方法（`AnimeExternalMeta`） | A | 序列化为 `Anime.externalMeta` 下存储的 JSON 形态。 |
@@ -473,6 +477,32 @@
 - **返回：** `AnimeExternalRating?` —— 该来源从未被抓取过时返回 `null`。
 - **副作用：** 无。
 - **备注：** `ratings` 用列表而非映射，是因为 JSON 数组往返更可预测，且该列表绝不会长于所支持来源的数量。
+
+### `double? get normalizedScore`（`AnimeExternalRating`） <a id="normalizedscore"></a>
+- **种类：** `AnimeExternalRating` 的 getter
+- **来源：** `lib/features/anime/models/anime.dart`（第 682 行）
+- **用途：** 返回该来源重定基到 0-10 量表的分数。
+- **返回：** `double?` — `score / scoreMax * 10`，无分数或 `scoreMax` 不可用时为 `null`。
+- **副作用：** 无。
+- **备注：** 每个受支持的来源在存储时都已按 `scoreMax` 归一，且 `scoreMax` 默认为 10——但它是**逐条记录**存储的，因此任何跨来源比较分数的代码都必须除回去，而不能直接读 `score`。直接读会把 bangumi.tv 的 7/10 排在 MyAnimeList 的 85/100 之上。`scoreMax <= 0` 这道守卫的作用，是防止格式错误或来自更新构建的记录算出无穷大而排到排行榜顶端。
+
+### `double? normalizedScoreFor(String source)` <a id="normalizedscorefor"></a>
+- **种类：** `AnimeExternalMeta` 的方法
+- **来源：** `lib/features/anime/models/anime.dart`（第 909 行）
+- **用途：** 返回某个来源重定基到 0-10 量表的分数。
+- **输入：** `source` — 来源名，例如 `AnimeSearchSource.bangumi`。
+- **返回：** `double?` — 该来源从未抓取过或未报告分数时为 `null`。
+- **副作用：** 无。
+- **备注：** 委托给 [`ratingFor`](#ratingfor) 和 [`normalizedScore`](#normalizedscore)，因此对于只想拿到一个可排名数值的调用方来说，"来源不存在"和"来源回答了但没有数字"是同一个答案。
+
+### `double? get averageNormalizedScore` <a id="averagenormalizedscore"></a>
+- **种类：** `AnimeExternalMeta` 的 getter
+- **来源：** `lib/features/anime/models/anime.dart`（第 919 行）
+- **用途：** 返回本记录所持全部外部分数的均值。
+- **返回：** `double?` — 没有任何来源提供分数时为 `null`。
+- **副作用：** 无。
+- **算法：** 累加每个非 null 的 `normalizedScore` 并除以其个数；没有分数的记录被跳过，而不是按零计入。
+- **备注：** 对**归一后**的分数取平均，才使得一条记录同时混有 10 分制和 100 分制来源时结果仍有意义。它是排名视图资料库评分来源的默认值（见 [`../views/statistics_page.md`](../views/statistics_page.md)），也可改为指定单一来源——平均之所以是更稳健的默认，是因为一条记录恰好带有哪些来源因番而异，而锁定单一来源会静默剔除所有缺少该来源的动画。
 
 ### `AnimeExternalMeta mergedWith(AnimeExternalMeta other, {DateTime? refreshedAt})` <a id="mergedwith"></a>
 - **种类：** `AnimeExternalMeta` 的方法

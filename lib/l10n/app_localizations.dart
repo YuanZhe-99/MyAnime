@@ -1973,6 +1973,36 @@ abstract class AppLocalizations {
   /// **'Sort by'**
   String get statsRankingSortBy;
 
+  /// No description provided for @statsRankingScoreSource.
+  ///
+  /// In en, this message translates to:
+  /// **'Score source'**
+  String get statsRankingScoreSource;
+
+  /// No description provided for @statsRankingScoreSourcePersonal.
+  ///
+  /// In en, this message translates to:
+  /// **'My rating'**
+  String get statsRankingScoreSourcePersonal;
+
+  /// No description provided for @statsRankingScoreSourceExternal.
+  ///
+  /// In en, this message translates to:
+  /// **'Database'**
+  String get statsRankingScoreSourceExternal;
+
+  /// No description provided for @statsRankingExternalSource.
+  ///
+  /// In en, this message translates to:
+  /// **'Database source'**
+  String get statsRankingExternalSource;
+
+  /// No description provided for @statsRankingExternalAverage.
+  ///
+  /// In en, this message translates to:
+  /// **'Average of all sources'**
+  String get statsRankingExternalAverage;
+
   /// No description provided for @statsRankingDescending.
   ///
   /// In en, this message translates to:

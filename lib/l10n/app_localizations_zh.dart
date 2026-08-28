@@ -1051,6 +1051,21 @@ class AppLocalizationsZh extends AppLocalizations {
   String get statsRankingSortBy => '排序依据';
 
   @override
+  String get statsRankingScoreSource => '评分来源';
+
+  @override
+  String get statsRankingScoreSourcePersonal => '我的评分';
+
+  @override
+  String get statsRankingScoreSourceExternal => '资料库';
+
+  @override
+  String get statsRankingExternalSource => '资料库来源';
+
+  @override
+  String get statsRankingExternalAverage => '所有来源平均';
+
+  @override
   String get statsRankingDescending => '从高到低';
 
   @override
@@ -2538,6 +2553,21 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
 
   @override
   String get statsRankingSortBy => '排序依據';
+
+  @override
+  String get statsRankingScoreSource => '評分來源';
+
+  @override
+  String get statsRankingScoreSourcePersonal => '我的評分';
+
+  @override
+  String get statsRankingScoreSourceExternal => '資料庫';
+
+  @override
+  String get statsRankingExternalSource => '資料庫來源';
+
+  @override
+  String get statsRankingExternalAverage => '所有來源平均';
 
   @override
   String get statsRankingDescending => '從高到低';

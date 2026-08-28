@@ -36,6 +36,9 @@ declarations are handled elsewhere in this doc set.
 | `_StatisticsPageState._scrollTrendToEnd` | method (`_StatisticsPageState`) | B | Jump the trend chart's scroll position to its last entry after the next frame. |
 | [`_StatisticsPageState._scrollTrendToFocused`](#_scrolltrendtofocused) | method (`_StatisticsPageState`) | A | Scroll the trend chart so the currently focused quarter/year entry is centered. |
 | [`_StatisticsPageState._filteredAnime`](#_filteredanime) | getter (`_StatisticsPageState`) | A | Anime list for the summary view's current time scope (quarter/year/all). |
+| [`_StatisticsPageState._rankingScoreOf`](#_rankingscoreof) | method (`_StatisticsPageState`) | A | Return the score the ranking should sort one anime by. |
+| [`_StatisticsPageState._rankingScoreLabel`](#_rankingscorelabel) | method (`_StatisticsPageState`) | A | Label the score the ranking is currently sorted by. |
+| `_StatisticsPageState._rankingExternalSources` | getter (`_StatisticsPageState`) | B | List the database sources the loaded anime can be ranked by. |
 | [`_StatisticsPageState._rankingAnime`](#_rankinganime) | getter (`_StatisticsPageState`) | A | Filtered and sorted anime list for the current Ranking view. |
 | [`_StatisticsPageState._rankingShareEntries`](#_rankingshareentries) | method (`_StatisticsPageState`) | A | Convert a sorted ranking list into share-image entries with 1-based ranks. |
 | [`_StatisticsPageState._shareRanking`](#_shareranking) | method (`_StatisticsPageState`) | A | Generate and share a ranking image for the current filter/sort/order, optionally row-limited. |
@@ -77,7 +80,7 @@ declarations are handled elsewhere in this doc set.
 | `_StatisticsPageState.build` | method (`_StatisticsPageState`, widget build) | B | Build the page scaffold: scope/view switch, summary or ranking body, and the share action. |
 | `_StatisticsPageState._buildSummaryCard` | method (widget helper) | B | Render one summary count card (label + count) in a given color. |
 | `_StatisticsPageState._buildRankingView` | method (widget helper) | B | Render the ranking view: filter controls followed by the ranked anime list. |
-| `_StatisticsPageState._buildRankingFilters` | method (widget helper) | B | Render the ranking view's time/type/sort-field/order filter controls. |
+| `_StatisticsPageState._buildRankingFilters` | method (widget helper) | B | Render the ranking view's time/type/score-source/sort-field/order filter controls. |
 | `_StatisticsPageState._buildRankingRangeButton` | method (widget helper) | B | Render one quarter-range button (start or end) for the custom ranking time filter. |
 | `_StatisticsPageState._buildRankingTile` | method (widget helper) | B | Render one ranked anime row with rank, cover thumbnail, title, and score. |
 | `_StatisticsPageState._buildCoverThumbnail` | method (widget helper) | B | Render an anime's cover-image thumbnail, or a placeholder if it has none. |
@@ -170,6 +173,57 @@ declarations are handled elsewhere in this doc set.
   [`../../../../features/anime-tracking.md`](../../../../features/anime-tracking.md) for what
   `airsInQuarter` considers (multi-cour spans, `manualType` overrides, etc.).
 
+### `double? _rankingScoreOf(Anime anime)` <a id="_rankingscoreof"></a>
+- **Kind:** method of `_StatisticsPageState`
+- **Source:** `lib/features/anime/views/statistics_page.dart` (line 209)
+- **Purpose:** Return the score the Ranking view should sort one anime by, under the currently
+  selected score source.
+- **Inputs:** `anime`.
+- **Returns:** `double?` — `null` when this anime has no score to rank by.
+- **Side effects:** None.
+- **Algorithm:** Switch on `_rankingScoreSource`:
+  - `personal` → `anime.rating?.scoreFor(_rankingSortField)`.
+  - `external` → `null` when there is no `externalMeta`; otherwise
+    `averageNormalizedScore` when `_rankingExternalSource` is `null`, else
+    `normalizedScoreFor(_rankingExternalSource!)` (see
+    [`../models/anime.md`](../models/anime.md)).
+- **Usage:**
+  ```dart
+  return _rankingScoreOf(anime) != null;
+  ```
+  (from `_rankingAnime`'s filter predicate; also its comparator, `_rankingShareEntries`, and
+  `_buildRankingTile`)
+- **Notes:** This is the single seam every ranking read goes through, which is the point: before
+  it existed the same expression was repeated at four call sites, three of them with a `!` that
+  silently depended on the filter having run first. A `null` means different things on each side —
+  unrated by the user, versus never fetched from a database — but both mean "cannot be ranked", so
+  the filter and the comparator share one method rather than testing each source themselves.
+  External scores come back rebased onto 0-10, so a source reporting on another scale still
+  compares correctly. `LocalApiServer._rankingScoreFor` mirrors this exactly (see
+  [`../../../shared/services/local_api_server.md`](../../../shared/services/local_api_server.md));
+  change one and change the other, or the API and the UI start answering "what does this ranking
+  mean" differently.
+
+### `String _rankingScoreLabel(AppLocalizations l10n)` <a id="_rankingscorelabel"></a>
+- **Kind:** method of `_StatisticsPageState`
+- **Source:** `lib/features/anime/views/statistics_page.dart` (line 231)
+- **Purpose:** Name the score the ranking is currently sorted by.
+- **Inputs:** `l10n`.
+- **Returns:** `String`.
+- **Side effects:** None.
+- **Algorithm:** `_ratingFieldLabel(_rankingSortField, l10n)` for the personal source; otherwise
+  `_rankingExternalSource` verbatim, falling back to `l10n.statsRankingExternalAverage`.
+- **Usage:**
+  ```dart
+  sortLabel: _rankingScoreLabel(l10n),
+  ```
+  (from `_shareRanking`; also the score caption in `_buildRankingTile`)
+- **Notes:** Paired with `_rankingScoreOf` so the caption and the share image always name the same
+  thing the sort actually used. Database source names are shown verbatim because they are proper
+  nouns (`bangumi.tv`, `AniList`) and are not translated anywhere else in the app either. Because
+  `ShareService.generateRankingShareBytes` takes `sortLabel` as a plain `String`, adding the score
+  source needed no change to the share renderer's signature.
+
 ### `List<Anime> get _rankingAnime` <a id="_rankinganime"></a>
 - **Kind:** getter of `_StatisticsPageState`
 - **Source:** `lib/features/anime/views/statistics_page.dart` (line 199)
@@ -180,7 +234,7 @@ declarations are handled elsewhere in this doc set.
 - **Algorithm:**
   1. Filter `_allAnime`, keeping anime that pass `_matchesRankingTimeFilter`, match
      `_rankingTypeFilter` when set (via `anime.effectiveType`), and have a non-null
-     `anime.rating?.scoreFor(_rankingSortField)`.
+     [`_rankingScoreOf`](#_rankingscoreof).
   2. Sort the filtered list by that score — descending if `_rankingDescending`, else ascending —
      with ties broken by `displayTitle` ascending.
 - **Usage:**
@@ -188,8 +242,10 @@ declarations are handled elsewhere in this doc set.
   final rankedAnime = isRanking ? _rankingAnime : const <Anime>[];
   ```
   (from `build`, same file, line 1492; also used in `_shareRanking` and `_shareStatistics`)
-- **Notes:** Anime without a score for the selected `AnimeRatingField` are excluded entirely, not
-  shown with a blank score.
+- **Notes:** Anime without a score are excluded entirely, not shown with a blank score. Which
+  anime that removes depends on the selected score source: ranking by the user's own rating drops
+  anything unrated, while ranking by the database drops anything never fetched from one — so the
+  two sources genuinely list different anime, not merely the same list reordered.
 
 ### `List<RankingShareEntry> _rankingShareEntries(List<Anime> rankedAnime)` <a id="_rankingshareentries"></a>
 - **Kind:** method of `_StatisticsPageState`
@@ -200,14 +256,14 @@ declarations are handled elsewhere in this doc set.
 - **Returns:** `List<RankingShareEntry>`.
 - **Side effects:** None.
 - **Algorithm:** `List.generate` over `rankedAnime`, wrapping each as `RankingShareEntry(anime,
-  rank: index + 1, score: anime.rating!.scoreFor(_rankingSortField)!)`.
+  rank: index + 1, score: _rankingScoreOf(anime)!)`.
 - **Usage:**
   ```dart
   var entries = _rankingShareEntries(rankedAnime);
   ```
   (from `_shareRanking`, same file, line 249)
-- **Notes:** Assumes every anime in `rankedAnime` already has a non-null score for
-  `_rankingSortField` — guaranteed by `_rankingAnime`'s filter — and would throw otherwise.
+- **Notes:** Assumes every anime in `rankedAnime` already has a non-null score for the current
+  score source — guaranteed by `_rankingAnime`'s filter — and would throw otherwise.
 
 ### `Future<void> _shareRanking()` <a id="_shareranking"></a>
 - **Kind:** method of `_StatisticsPageState`
@@ -373,7 +429,7 @@ declarations are handled elsewhere in this doc set.
       entries: entries,
       title: l10n.statsRanking,
       subtitle: subtitle,
-      sortLabel: _ratingFieldLabel(_rankingSortField, l10n),
+      sortLabel: _rankingScoreLabel(l10n),
       orderLabel: _rankingDescending ? l10n.statsRankingDescending : l10n.statsRankingAscending,
       l10n: l10n,
       progress: progress,

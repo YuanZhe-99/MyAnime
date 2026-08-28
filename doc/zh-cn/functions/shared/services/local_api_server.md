@@ -24,6 +24,7 @@
 | [`_handleHistory`](#handlehistory) | 静态方法（路由处理器） | A | `GET /anime/history`：按季过滤的动画列表（与 list 形态相同）。 |
 | [`_handleRanking`](#handleranking) | 静态方法（路由处理器） | A | `GET /anime/ranking`：委托给 `buildRankingSnapshotForQuery`。 |
 | [`buildRankingSnapshotForQuery`](#buildrankingsnapshotforquery) | 静态方法 | A | 纯排名计算，与测试共享。 |
+| [`_rankingScoreFor`](#rankingscorefor) | 静态方法 | A | 返回 `/anime/ranking` 应据以排序某部动画的分数。 |
 | [`_filterBySeason`](#filterbyseason) | 静态方法 | A | 解析 `?season=` 并过滤/抽样动画列表。 |
 | [`_parseRankingQuery`](#parserankingquery) | 静态方法 | A | 把所有 `/anime/ranking` 查询参数解析为 `_RankingQuery`。 |
 | [`_parseQuarterId`](#parsequarterid) | 静态方法 | A | 解析 `YYYYQn` 标识符（或 `current`）。 |
@@ -191,12 +192,23 @@
 - **副作用：** 无（对其输入的纯函数）。
 - **算法：**
   1. `_parseRankingQuery(queryParameters)`；立即传播任何解析错误。
-  2. 把 `animes` 过滤为匹配 `_matchesRankingQuery` **且**对请求的 `field` 有非 null 分数的（未评分动画完全从排名中排除）。
+  2. 把 `animes` 过滤为匹配 `_matchesRankingQuery` **且** [`_rankingScoreFor`](#rankingscorefor) 非 null 的（没有分数的动画完全从排名中排除）。
   3. 按分数排序（按 `query.descending` 降序或升序），平局按 `displayTitle` 打破以保稳定顺序。
   4. 取前 `query.limit` 条；把每行构建为 `{rank, score, ...anime JSON}`（1 基排名，展开 `_animeToJson`）。
-  5. 组装最终映射：`total`（过滤后、限制前计数）、`filters`（`_rankingFiltersToJson`）、`sort`（`{field, order}`）、`limit`、`data`（排名行）。
+  5. 组装最终映射：`total`（过滤后、限制前计数）、`filters`（`_rankingFiltersToJson`）、`sort`（`{field, scoreSource, order}`，锁定来源时另有 `externalSource`）、`limit`、`data`（排名行）。
 - **用法：** 由 `_handleRanking` 调用；也意在由单元测试直接调用（按其自己的文档注释："由路由处理器和测试共享，使排名语义保持可验证"）。
 - **备注：** `total` 反映匹配过滤器且有分数的动画数——它不是应用 `limit` 后的计数。
+
+### `static double? _rankingScoreFor(Anime anime, _RankingQuery query)` <a id="rankingscorefor"></a>
+- **种类：** `LocalApiServer` 的静态方法。
+- **来源：** `lib/shared/services/local_api_server.dart`（第 449 行）。
+- **用途：** 在查询所选的评分来源下，返回 `/anime/ranking` 应据以排序某部动画的分数。
+- **输入：** `anime`；`query` — 解析后的排名查询。
+- **返回：** `double?` — 该动画没有可据以排名的分数时为 `null`。
+- **副作用：** 无。
+- **算法：** 对 `query.scoreSource` 做 switch：`personal` 返回 `anime.rating?.scoreFor(query.field)`；`external` 在没有 `externalMeta` 时返回 `null`，否则返回 `averageNormalizedScore`，锁定来源时返回 `normalizedScoreFor(query.externalSource!)`。
+- **用法：** 由 `buildRankingSnapshotForQuery` 在过滤谓词、比较器以及每行的 `score` 字段处调用。
+- **备注：** 刻意与 `_StatisticsPageState._rankingScoreOf` 对应（见 [`../../features/anime/views/statistics_page.md`](../../features/anime/views/statistics_page.md)）。这份重复是 API 不导入某个页面私有状态所付出的代价；两者必须一起改动，否则 API 与界面对"这个排名意味着什么"会给出不同答案——而这恰恰是当初把 `buildRankingSnapshotForQuery` 抽出来所要保持可验证的东西。
 
 ### `static List<Anime> _filterBySeason(List<Anime> animes, Request request, {bool sample = true})` <a id="filterbyseason"></a>
 - **种类：** `LocalApiServer` 的静态方法。
@@ -218,12 +230,14 @@
 - **种类：** `LocalApiServer` 的静态方法。
 - **来源：** `lib/shared/services/local_api_server.dart`（第 456 行）。
 - **用途：** 把每个 `/anime/ranking` 查询参数解析并校验为类型化的 `_RankingQuery`，或返回描述性错误。
-- **输入：** `queryParameters` — 原始 HTTP 查询字符串映射。识别的键包括 `time`（`all`/`quarter`/`year`/`range`）、`season`（`time=quarter` 用）、`year`（`time=year` 用）、`start`/`end`（`time=range` 用，作为 `YYYYQn`）、`type`、`field`、`order`、`limit`。
+- **输入：** `queryParameters` — 原始 HTTP 查询字符串映射。识别的键包括 `time`（`all`/`quarter`/`year`/`range`）、`season`（`time=quarter` 用）、`year`（`time=year` 用）、`start`/`end`（`time=range` 用，作为 `YYYYQn`）、`type`、`field`、`scoreSource`（`personal`/`external`）、`externalSource`、`order`、`limit`。
 - **返回：** 记录 `(query: _RankingQuery?, error: String?)`。
 - **副作用：** 无。
 - **算法：** 对照四个允许的字面值校验 `time`（空默认 `all`）；`quarter` 时经 `_parseQuarterId` 解析 `season`（默认 `current`）；`year` 时解析裸年字符串；`range` 时经 `_parseQuarterId` 解析 `start`/`end`；把 `type` 委托给 `_parseAnimeTypeParam`、`field` 委托给 `_parseRatingFieldParam`；解析 `order`（`desc`/`asc`，默认 desc）和 `limit`（正整数，带默认值和大概上限——精确默认/上限常量见源码）。任何解析失败用描述性 `error` 字符串和 null `query` 短路。
 - **用法：** 由 `_parseRankingQuery` 的两个调用方调用：`_handleRanking`（经 `buildRankingSnapshotForQuery`）和任何测试排名查询解析的测试直接调用。
 - **备注：** 这里返回的每个错误字符串都是 `_handleRanking` 原样浮出为 `400` 响应体的东西，因此其措辞是 API 稳定错误契约的一部分。
+
+  `scoreSource` 默认为 `personal`，因此在资料库评分来源出现之前写就的每个客户端都保持原有答案。带 `externalSource` 却不带 `scoreSource=external` 会被拒绝而非忽略——静默忽略会把个人评分排名返回给一个明确索要某来源资料库评分的调用方。
 
 ### `static (int, int)? _parseQuarterId(String? value, {bool allowCurrent})` <a id="parsequarterid"></a>
 - **种类：** `LocalApiServer` 的静态方法。
