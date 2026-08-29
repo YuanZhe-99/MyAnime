@@ -895,6 +895,7 @@ held no Riverpod state at all.
 - **Usage:**
   ```dart
   SizedBox(
+    key: const ValueKey('statsSummaryPane'),
     width: statsSummaryPaneWidth(contentWidth),
     child: _buildSummaryCards(theme, l10n, grouped, 2),
   ),
@@ -902,8 +903,11 @@ held no Riverpod state at all.
   (from `build`, same file)
 - **Notes:** One builder for both shapes so the four cards, their colours and their order cannot
   drift between the layouts. At two columns the grid is about 160 logical pixels tall against the
-  chart's 268, which is why the row that holds them uses `CrossAxisAlignment.start` rather than
-  stretching.
+  chart's 268, which is why the row that holds them uses `CrossAxisAlignment.center` rather than
+  stretching. It was `.start` until 1.5.6, which left a visible hole under the cards; because the
+  grid is the shorter child and is a plain `SizedBox` rather than an `Expanded`, the row's height
+  is the chart's and centring needs no measuring. The `ValueKey` is the handle
+  `test/statistics_layout_ui_test.dart` uses to compare the pane's rect against its row's.
 
 ### `Widget _buildTrendChart(ThemeData theme, AppLocalizations l10n, {bool padded = true})` <a id="statisticspagestate_buildtrendchart"></a>
 - **Kind:** method of `_StatisticsPageState`
@@ -959,7 +963,7 @@ held no Riverpod state at all.
 - **Side effects:** `setState` on every control's change callback.
 - **Algorithm:** Builds the five controls as locals, then assembles them: time and type either
   paired in a `Row` or stacked; the period navigator or custom-range block full width below them;
-  and the score source, sort field and direction either on one `Row` or on the two rows they used
+  and the sort field, score source and direction either on one `Row` or on the two rows they used
   to occupy.
 - **Usage:**
   ```dart
@@ -976,4 +980,9 @@ held no Riverpod state at all.
   in both shapes: both are wide controls in their own right, and pairing them with a dropdown would
   be the cramped layout the panel exists to avoid. The custom-range buttons' own narrow/wide
   decision carried an inline `constraints.maxWidth < 560` until 1.5.5 and now asks the same
-  `columnCapacity` question the filter row above it asks.
+  `columnCapacity` question the filter row above it asks. **On the one-row shape the sort field
+  leads**, so its outlined left edge aligns with the time dropdown's on the row above and the two
+  segmented buttons group at the right; 1.5.5 led with the score source instead. The order is not
+  carried into the stacked shape, where the score source keeps its own line above the sort field:
+  there is nothing to align to there, and putting the score source below the dropdown it controls
+  would mean reading "sort by X" before learning what X is drawn from.

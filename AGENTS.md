@@ -170,6 +170,8 @@ When the user confirms:
      `VersionInfoProductVersion=X.Y.Z`
    - `installer.iss` output filenames stay derived from `{#SetupSetting("AppVersion")}` for both x64
      and ARM64
+   - `lib/features/anime/services/anime_search_service.dart`: the `_userAgent` literal
+     `'MyAnime/X.Y.Z (anime tracker)'`, which goes out on every search request
    - Never hand-edit the settings-page version display; it reads `PackageInfo.fromPlatform()`
 2. If MSIX ever diverges from the other locations, realign at the next bump rather than making a
    version-only edit.

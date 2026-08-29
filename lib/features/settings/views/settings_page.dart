@@ -316,6 +316,35 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
     }
   }
 
+  /// Purpose: Build the background-update policy picker.
+  /// Inputs: `l10n`.
+  /// Returns: `Widget` — a `DropdownButton`.
+  /// Side effects: Persists the choice through `_setMetadataPolicy` when the
+  /// user picks one.
+  /// Notes: Sits on its tile's title row rather than in `trailing`, so the row
+  /// description can run the full width beneath it. `style` is pinned to
+  /// `bodyMedium` because `ListTile` styles its `title` slot larger than its
+  /// `trailing` one, and the label should read the same size it always has.
+  Widget _buildMetaPolicyDropdown(AppLocalizations l10n) {
+    return DropdownButton<MetadataUpdatePolicy>(
+      alignment: AlignmentDirectional.centerEnd,
+      value: _metaPolicy,
+      underline: const SizedBox.shrink(),
+      style: Theme.of(context).textTheme.bodyMedium,
+      items: [
+        for (final policy in MetadataUpdatePolicy.values)
+          DropdownMenuItem(
+            alignment: AlignmentDirectional.centerEnd,
+            value: policy,
+            child: Text(_metadataPolicyLabel(policy, l10n)),
+          ),
+      ],
+      onChanged: (policy) {
+        if (policy != null) _setMetadataPolicy(policy);
+      },
+    );
+  }
+
   /// Purpose: Return a localized weekday label for settings controls.
   /// Inputs: `weekday`, `l10n`.
   /// Returns: `String`.
@@ -950,7 +979,19 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
           if (AppFlavor.isFull) ...[
             ListTile(
               leading: const Icon(Icons.cloud_sync_outlined),
-              title: Text(l10n.settingsMetaAutoUpdate),
+              // The policy dropdown rides the title row rather than the tile's
+              // `trailing` slot. `trailing` shares its horizontal band with the
+              // title *and* the subtitle, which left the description a narrow
+              // ragged column beside it — six wrapped lines in the two-pane
+              // settings layout. On the title row it costs the title alone, and
+              // the description gets the full width, running under the dropdown.
+              title: Row(
+                children: [
+                  Expanded(child: Text(l10n.settingsMetaAutoUpdate)),
+                  const SizedBox(width: 8),
+                  _buildMetaPolicyDropdown(l10n),
+                ],
+              ),
               subtitle: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -968,22 +1009,6 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
                 ],
               ),
               isThreeLine: true,
-              trailing: DropdownButton<MetadataUpdatePolicy>(
-                alignment: AlignmentDirectional.centerEnd,
-                value: _metaPolicy,
-                underline: const SizedBox.shrink(),
-                items: [
-                  for (final policy in MetadataUpdatePolicy.values)
-                    DropdownMenuItem(
-                      alignment: AlignmentDirectional.centerEnd,
-                      value: policy,
-                      child: Text(_metadataPolicyLabel(policy, l10n)),
-                    ),
-                ],
-                onChanged: (policy) {
-                  if (policy != null) _setMetadataPolicy(policy);
-                },
-              ),
             ),
             if (_metaPolicy != MetadataUpdatePolicy.off)
               SwitchListTile(

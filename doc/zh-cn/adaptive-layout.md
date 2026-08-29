@@ -1,7 +1,7 @@
 # 自适应布局
 
-这是全应用范围内关于**布局何时可以拆分**的规则——拆成动画详情页与设置页的两栏，或拆成三个数据浏览模块与
-假名页的多列——以及一旦可以拆分后**分几列**。另有一条更窄的规则决定**导航放在哪里**。两者都位于
+这是全应用范围内关于**布局何时可以拆分**的规则——拆成动画详情页与设置页的两栏，或拆成三个数据浏览模块、
+假名页与资料库更新审阅页的多列——以及一旦可以拆分后**分几列**。另有一条更窄的规则决定**导航放在哪里**。两者都位于
 [`lib/shared/utils/adaptive_layout.dart`](functions/shared/utils/adaptive_layout.md)，该模块刻意只导入
 `dart:core`，因此每一个判定都可以在没有控件树的情况下直接进行单元测试。
 
@@ -90,6 +90,7 @@ int columnCapacity(
 | 假名表 | `330` | 2 | 五列表格要为行标签花掉 44，因此 330 每格约留 57——与同一张表在手机单列下所得持平。 |
 | 假名规则卡 | `320` | 2 | 段落式卡片；第三列会让行宽低于舒适的阅读尺度。 |
 | 排行筛选下拉框 | `280` | 2 | 一个 `OutlineInputBorder` 下拉框，其最长的本地化标签是日文；再窄标签就会在箭头之前被截断。它也管着其下方的自定义区间按钮。 |
+| 资料库更新卡片 | `360` | 4 | 一张提案卡自身要花 24 的内边距，卡内每一行变更还要花 24 给复选框、8 给间距、固定的 84 给字段标签。360 给带删除线的旧值、箭头与新值留下约 220，足以把常见的一对值保持在一行内。 |
 
 `listColumnCount` 把门控与容量合起来：`canSplitLayout` 为假时返回 1，否则在用户偏好为 `listColumnsAuto` 时
 返回容量，再否则返回被钳制到容量的偏好值。钳制而非拒绝，正是让在桌面端设定的偏好能在被带到折叠状态的手机上
@@ -141,6 +142,11 @@ Z Fold 7 竖持都能通过它，却会让图表只剩 215 到 245 dp。它们�
 
 第三个条件不是防御性的冗余。空图表渲染为 `SizedBox.shrink()`，没有它的话卡片会挤在 260 dp 的栏里、旁边是空白的
 另一半，而不会退回它们的整宽一行。
+
+**这个 2 × 2 网格是相对图表上下居中的，而不是吊在它顶端。** 1.5.5 让这一行按起始对齐，于是卡片下方留出一块显眼
+的空洞：网格高约 160 逻辑像素，而图表块约 268。由于网格是较矮的那个子控件，并且是一个普通的 `SizedBox` 而非
+`Expanded`，这一行的高度**就是**图表的高度，因此 `CrossAxisAlignment.center` 就是全部的修复——不需要
+`IntrinsicHeight`，也不需要任何测量。`test/statistics_layout_ui_test.dart` 通过比较该栏与其所在行的矩形把它钉住。
 
 | 视口 | 拆分 | 内容宽 | 数字与图表并排 | 栏宽 | 图表 |
 |---|---|---|---|---|---|
@@ -214,6 +220,7 @@ bool useNavigationRail(double screenWidth) => screenWidth >= navRailMinWidth; //
 | `anime_edit_page.dart` | 是 | 经由 `useDetailTwoPane`，与详情页相同。封面与两个标题字段固定在左侧；其下的一切在右侧滚动。 |
 | `statistics_page.dart`（摘要） | 是 | 先由 `canSplitLayout` 门控，再由 `useStatsSideBySide` 门控；见上文。 |
 | `statistics_page.dart`（排行筛选） | 否——只看宽度 | 把控件打包到一行是排布问题，不是分栏问题。 |
+| `metadata_updates_page.dart` | 是 | 先由 `canSplitLayout` 门控，再由 `metaUpdateCardMinWidth` 上的 `columnCapacity` 门控。它被推到外壳**之外**，因此量的是原始窗口——不用 `shellContentWidth`，也不用 `shellListBottomInset`。 |
 | `shell_scaffold.dart` | 否——`useNavigationRail` | 只看宽度；见上文。 |
 
 **1.5.3 在此记录的那条 `kana_page.dart` 例外已经解除。** 它曾为规则卡的双列 `Wrap` 带着自己内联的
@@ -227,17 +234,32 @@ bool useNavigationRail(double screenWidth) => screenWidth >= navRailMinWidth; //
 一个问题——在 `rankingFilterMinWidth` 上调用 `columnCapacity`——这把阈值从 560 移到 572，此外别无改变。把它并入
 之后，那句结论便成立了：**`lib/` 中的每一处宽度判定现在都经由 `adaptive_layout.dart`。**
 
+**1.5.6 发现的一个完全没有规则的页面。** 上面那句结论说的是已经存在的判定，而 `metadata_updates_page.dart`
+一条也没有：没有 `LayoutBuilder`，没有 `MediaQuery`，也没有任何断点——提案卡永远只有一列，被拉伸到窗口有多宽
+就多宽，在展开的折叠屏上每一行都是好几百逻辑像素的空白。它现在以自己的最小宽度采用与假名表格相同的双重门控。
+有两点使它不同于上表中它上方的页面：它被推到外壳**之外**，因此量的是原始窗口，绝不能去减一条并不存在的侧边导航
+栏，也不能为并不存在的底部栏预留空间；以及它保留了 `ListView.builder`，因此用 `adaptiveTileRow` 而不是
+`adaptiveTileRows` 来组行——后者会把每一个 tile 都实例化出来，从而丢掉列表的虚拟化。
+
 ### 排行筛选面板为何分道
 
 排行面板的两处配对都**只看宽度**，且刻意不用 `canSplitLayout`：
 
 - 时间与类型两个下拉框从面板宽 572 dp 起共处一行（`columnCapacity`，最小宽度 280）；
-- 评分来源、排序依据与升降序从 674 dp 起共处一行（`useRankingSortRow`，即 `200 + 280 + 170` 再加两个间距——
-  一个下拉框两侧各有一个分段按钮，而非两个等分的一半，这正是它要单独设一个更大阈值的原因）。
+- 排序依据、评分来源与升降序从 674 dp 起共处一行（`useRankingSortRow`，即 `200 + 280 + 170` 再加两个间距——
+  一个下拉框加两个分段按钮，而非两个等分的一半，这正是它要单独设一个更大阈值的原因）。
 
 把控件打包到一行问的是它们放不放得下，而不是窗口有没有分两栏的形状。若按拆分来解读，就会把手机横持排除在外，
 而那里面板要花掉 412 dp 中的 244——按比例算是全应用最糟的情形，也正是配对帮助最大的那个。572 以下一切照旧，
 因此手机竖持的布局与从前分毫不差。
+
+**排序行内部的顺序在 1.5.6 变了，阈值没有变。** 1.5.5 由评分来源领头，于是一个胶囊按钮落在「时间」下拉框那条
+描边的左缘之下，整行读起来像是一个下拉框被两个胶囊夹在中间。现在由排序依据领头，因此它与上方的下拉框左对齐，
+两个分段按钮成组靠右。`useRankingSortRow` 是一个和，对顺序视而不见，仍是 674。
+
+**这个一行内的顺序不会带进堆叠形态**——在那里评分来源仍然独占排序依据与升降序之上的一行。674 以下没有东西可以
+对齐（排序依据本来就从左缘开始），而把评分来源放到它所控制的下拉框下方，会让人先读到「按 X 排序」，才知道 X 是
+自己的评分还是某个资料库。
 
 | 视口 | 面板宽 | 筛选行 | 排序行 | 面板高 |
 |---|---|---|---|---|
@@ -267,8 +289,9 @@ Fold 8 在其两个方向上给出两个不同的答案，而那个行为——�
   还断言 `useDetailTwoPane` 与 `canSplitLayout` 仍然一致，使这条委托无法悄然走样。
 - `test/detail_layout_test.dart`——详情页的栏宽与封面尺寸。
 - `test/list_columns_ui_test.dart`、`test/detail_layout_ui_test.dart`、`test/kana_layout_ui_test.dart`、
-  `test/settings_two_pane_ui_test.dart` 与 `test/shell_nav_ui_test.dart`——在同样的几何下，通过真实页面驱动
-  出来的渲染结果。
+  `test/settings_two_pane_ui_test.dart`、`test/statistics_layout_ui_test.dart`、
+  `test/metadata_updates_layout_ui_test.dart` 与 `test/shell_nav_ui_test.dart`——在同样的几何下，通过真实页面
+  驱动出来的渲染结果。
 
 `flutter_test` 把其默认字体的每一个字形都渲染成一个完整的 em 方块，这会把一个标签的宽度抬高到其真实宽度的约
 两倍半。这正是 `settings_two_pane_ui_test.dart` 以简体中文运行的原因：英文选项标签会在测试环境——且仅在测试

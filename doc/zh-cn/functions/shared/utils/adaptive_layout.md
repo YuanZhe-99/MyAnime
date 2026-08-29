@@ -4,13 +4,15 @@
 阈值，以及一旦可以拆分后决定列表分成几列的 `listTileMinWidth`、`listTileGap`、`listMaxColumns`、
 `listColumnsAuto` 四个常量，外加为外壳侧边导航栏与设置详情栏而设的 `navRailMinWidth`、`navRailWidth`
 与 `settingsRightPaneMinWidth`，以及为统计页而设的 `statsSummaryPaneMinWidth`、`statsChartMinWidth`、
-`rankingFilterMinWidth`、`rankingScoreSourceWidth` 与 `rankingDirectionWidth`。在它们之上是十二个纯函数。
+`rankingFilterMinWidth`、`rankingScoreSourceWidth` 与 `rankingDirectionWidth`，以及为资料库更新审阅页而设的
+`metaUpdateCardMinWidth`。在它们之上是十二个纯函数。
 
 该模块刻意只依赖 `dart:core`——它不含任何 Flutter 导入，`canSplitLayout` 接收两个 double 而非一个 `Size` 正是
 出于这个原因——因此每个辅助函数都可直接进行单元测试（`test/adaptive_layout_test.dart`），而渲染结果则由
 `test/list_columns_ui_test.dart`、`test/detail_layout_ui_test.dart`、`test/kana_layout_ui_test.dart`、
 `test/settings_two_pane_ui_test.dart`、`test/shell_nav_ui_test.dart`、
-`test/statistics_layout_ui_test.dart` 与 `test/anime_edit_two_pane_ui_test.dart` 在真实设备几何下单独覆盖。
+`test/statistics_layout_ui_test.dart`、`test/anime_edit_two_pane_ui_test.dart` 与
+`test/metadata_updates_layout_ui_test.dart` 在真实设备几何下单独覆盖。
 
 这些数字的推导过程、折叠屏设备表格以及与 Google 规范的调和见
 [../../../adaptive-layout.md](../../../adaptive-layout.md)。本页记录的是声明本身。
@@ -19,8 +21,9 @@
 `canSplitLayout` 的单行委托；`home_page.dart`、`management_page.dart` 与 `statistics_page.dart` 用于各自的列表
 列数；以及 `anime_storage.dart` 与 `app_settings.dart` 在校验存储的偏好时使用 `listColumnsAuto` 与
 `listMaxColumns`；`shell_scaffold.dart` 使用 `useNavigationRail`；`kana_page.dart` 以自己的最小宽度使用
-`columnCapacity`；`settings_page.dart` 使用 `settingsLeftPaneWidth`；以及 `statistics_page.dart` 再次使用
-`useStatsSideBySide`、`statsSummaryPaneWidth` 与 `useRankingSortRow`。
+`columnCapacity`；`settings_page.dart` 使用 `settingsLeftPaneWidth`；`metadata_updates_page.dart` 使用
+`canSplitLayout`、在 `metaUpdateCardMinWidth` 上的 `columnCapacity` 与 `listRowCount`；以及
+`statistics_page.dart` 再次使用 `useStatsSideBySide`、`statsSummaryPaneWidth` 与 `useRankingSortRow`。
 
 ## 声明
 
@@ -39,7 +42,7 @@
 | [`statsSummaryPaneWidth`](#statssummarypanewidth) | 顶层函数 | A | 返回统计摘要 2×2 卡片栏的宽度。 |
 | [`useRankingSortRow`](#userankingsortrow) | 顶层函数 | A | 报告排行的排序控件是否放得下一行。 |
 
-十五个常量是没有 `/// Purpose:` 注释的普通声明，不作为独立行编入索引。
+十六个常量是没有 `/// Purpose:` 注释的普通声明，不作为独立行编入索引。
 
 ## 文档
 
@@ -302,6 +305,7 @@
   ```
   （出自 `_StatisticsPageState._buildRankingFilters`）
 - **备注：** 这是一个与筛选下拉框自身配对（在 `rankingFilterMinWidth` 上直接调用 `columnCapacity`，即 572）
-  分开且更大的阈值。这一行是一个下拉框两侧各有一个分段按钮，而非两个等分的一半，因此同一个数字无法描述它。
+  分开且更大的阈值。这一行是一个排序依据下拉框后跟两个分段按钮，而非两个等分的一半，因此同一个数字无法描述它。
+  它是一个和，因此与三者的排列顺序无关：1.5.6 把下拉框挪到行首，并没有让阈值移动。
   在其之下，评分来源保留它一直以来的那一行。**刻意只看宽度**——把控件打包到一行问的是它们放不放得下，而不是
   窗口有没有分两栏的形状；若按拆分来解读，就会把手机横持排除在外，而那里面板要花掉 412 逻辑像素中的 244。

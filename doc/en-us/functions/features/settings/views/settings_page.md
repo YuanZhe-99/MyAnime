@@ -44,6 +44,7 @@ lead to (`../../../shared/views/webdav_config_page.md`, `backup_page.md` in this
 | [`_loadMetadataSettings`](#loadmetadatasettings) | method (`_SettingsPageState`) | A | Load the background metadata-update preferences. |
 | [`_setMetadataPolicy`](#setmetadatapolicy) | method (`_SettingsPageState`) | A | Persist a new policy and start or stop the service. |
 | [`_metadataPolicyLabel`](#metadatapolicylabel) | method (`_SettingsPageState`) | A | Localize a background-update policy option. |
+| [`_buildMetaPolicyDropdown`](#buildmetapolicydropdown) | method (`_SettingsPageState`) | A | Build the background-update policy picker. |
 | [`_weekdayLabel`](#weekdaylabel) | method (`_SettingsPageState`) | A | Map a weekday number to its localized short label. |
 | `_isDesktop` | getter (`_SettingsPageState`) | B | Report whether the app is running on a desktop platform. |
 | [`_exportData`](#exportdata) | method (`_SettingsPageState`) | A | Export anime data as a ZIP or Markdown file to a user-chosen folder. |
@@ -237,6 +238,20 @@ lead to (`../../../shared/views/webdav_config_page.md`, `backup_page.md` in this
   check also passes on a wired desktop connection — and because it detects the link type, not
   whether the link is metered. See
   [`../../../../platform-notes.md`](../../../../platform-notes.md).
+
+### `Widget _buildMetaPolicyDropdown(AppLocalizations l10n)` <a id="buildmetapolicydropdown"></a>
+- **Kind:** method of `_SettingsPageState`
+- **Purpose:** Build the background-update policy picker.
+- **Returns:** `Widget` — a `DropdownButton<MetadataUpdatePolicy>`.
+- **Side effects:** Persists the choice through `_setMetadataPolicy`.
+- **Notes:** Sits on its tile's **title row**, not in the tile's `trailing` slot. `trailing` shares
+  its horizontal band with the title *and* the subtitle, which confined the row's description to a
+  narrow ragged column beside the dropdown — six wrapped lines in the two-pane settings layout. On
+  the title row it costs the title alone, and the description gets the full tile width, running
+  under the dropdown. `Expanded` on the title text is what lets the title wrap rather than overflow
+  when the pane is at its narrowest, and `style` is pinned to `bodyMedium` because `ListTile` styles
+  its `title` slot larger than its `trailing` one. `test/settings_two_pane_ui_test.dart` pins the
+  result by asserting the description's right edge runs past the dropdown's left edge.
 
 ### `String _weekdayLabel(int weekday, AppLocalizations l10n)` <a id="weekdaylabel"></a>
 - **Kind:** method of `_SettingsPageState`

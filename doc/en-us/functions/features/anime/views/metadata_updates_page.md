@@ -20,6 +20,10 @@ for the service behind it.
 - **Batch actions skip `needsManualPick` entries.** A batch must never guess between candidates the
   service itself could not separate; the count of skipped entries is shown in the first
   confirmation.
+- **The cards flow into columns on a wide window, and the page measures the raw window to decide.**
+  It is pushed outside the shell, so there is no navigation rail to subtract and no bottom bar to
+  reserve for — `shellContentWidth` and `shellListBottomInset` would both be wrong here. See
+  [`../../../../adaptive-layout.md`](../../../../adaptive-layout.md).
 
 ## Declarations
 
@@ -44,6 +48,7 @@ for the service behind it.
 | `_weekdayLabel` | method | B | Localize a weekday. |
 | `build` | method | B | Build the screen. |
 | `_buildEmpty` | method | B | Render the empty state. |
+| [`_buildProposalList`](#_buildproposallist) | method | A | Lay the proposal cards out in one column or in several. |
 | [`_buildProposalCard`](#_buildproposalcard) | method | A | Render one proposal. |
 | `_buildChangeRow` | method | B | Render one field's checkbox and values. |
 | [`_buildThumbnail`](#_buildthumbnail) | method | A | Render the candidate's cover. |
@@ -79,6 +84,21 @@ for the service behind it.
   a fetched synopsis is truncated to 120 characters so one long value cannot dominate the card.
   Null and blank render as a localized "(empty)" rather than as nothing, so a fill-a-blank proposal
   reads as a change.
+
+### `Widget _buildProposalList(ThemeData, AppLocalizations)` <a id="_buildproposallist"></a>
+- **Kind:** method
+- **Purpose:** Decide the column count and build the scrolling list at it.
+- **Returns:** `Widget` — a `ListView.builder`.
+- **Side effects:** None.
+- **Algorithm:** The double gate the kana page uses. `canSplitLayout(screen.width, screen.height)`
+  asks whether the window has the shape for more than one column; `columnCapacity` at
+  `metaUpdateCardMinWidth` over `constraints.maxWidth - 24` (the list's own `EdgeInsets.all(12)`,
+  both sides) asks whether the cards would still be readable in it. One column on either failure.
+- **Notes:** Measures `MediaQuery.sizeOf` directly rather than `shellContentWidth`, because the
+  route is pushed outside the shell. Composes rows with `adaptiveTileRow`, not `adaptiveTileRows`:
+  the latter materializes every tile and would throw away the `ListView.builder` virtualization a
+  long update list depends on. At one column the card is returned untouched, so the phone tree is
+  exactly what it was before 1.5.6.
 
 ### `Widget _buildProposalCard(_Proposal, ThemeData, AppLocalizations)` <a id="_buildproposalcard"></a>
 - **Notes:** A `needsManualPick` entry renders an explanation instead of a field list and offers

@@ -705,13 +705,17 @@
 - **用法：**
   ```dart
   SizedBox(
+    key: const ValueKey('statsSummaryPane'),
     width: statsSummaryPaneWidth(contentWidth),
     child: _buildSummaryCards(theme, l10n, grouped, 2),
   ),
   ```
   （出自同一文件的 `build`）
 - **备注：** 两种形状共用一个构建器，因此四张卡片、它们的颜色与顺序不可能在两种布局之间走样。双列时该网格高约
-  160 逻辑像素，而图表约 268，这正是承载它们的那一行使用 `CrossAxisAlignment.start` 而不是拉伸的原因。
+  160 逻辑像素，而图表约 268，这正是承载它们的那一行使用 `CrossAxisAlignment.center` 而不是拉伸的原因。
+  1.5.6 之前它是 `.start`，在卡片下方留出一块显眼的空洞；由于网格是较矮的那个子控件、且是普通的 `SizedBox`
+  而非 `Expanded`，这一行的高度就是图表的高度，居中不需要任何测量。那个 `ValueKey` 是
+  `test/statistics_layout_ui_test.dart` 用来比较该栏与其所在行矩形的抓手。
 
 ### `Widget _buildTrendChart(ThemeData theme, AppLocalizations l10n, {bool padded = true})` <a id="statisticspagestate_buildtrendchart"></a>
 - **种类：** `_StatisticsPageState` 的方法
@@ -763,7 +767,7 @@
 - **返回：** `Widget`。
 - **副作用：** 每个控件的变更回调都会 `setState`。
 - **算法：** 先把五个控件建成局部变量，然后装配：时间与类型要么配对进一个 `Row`，要么堆叠；周期导航条或自定义
-  区间块整宽置于其下；评分来源、排序依据与升降序要么共处一个 `Row`，要么回到它们原本占据的两行。
+  区间块整宽置于其下；排序依据、评分来源与升降序要么共处一个 `Row`，要么回到它们原本占据的两行。
 - **用法：**
   ```dart
   return _buildRankingFilterBody(
@@ -777,4 +781,7 @@
 - **备注：** 从 `_buildRankingFilters` 中拆出，使布局判定在顶部一次性做完，而本方法只负责装配。周期导航条与
   自定义区间按钮在两种形状下都保持整宽：它们本身就是宽控件，把它们与一个下拉框配对恰恰就是本面板要避免的那种
   拥挤。自定义区间按钮自己的宽窄判定在 1.5.5 之前带着内联的 `constraints.maxWidth < 560`，现在问的是与其上方
-  筛选行同一个 `columnCapacity` 问题。
+  筛选行同一个 `columnCapacity` 问题。**在一行形态下由排序依据领头**，因此它的描边左缘与上一行时间下拉框对齐，
+  两个分段按钮成组靠右；1.5.5 则是由评分来源领头。这个顺序不会带进堆叠形态——在那里评分来源仍然独占排序依据
+  之上的一行：那里没有东西可以对齐，而把评分来源放到它所控制的下拉框下方，会让人先读到「按 X 排序」，才知道
+  X 取自哪里。

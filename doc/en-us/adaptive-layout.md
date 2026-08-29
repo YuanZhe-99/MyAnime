@@ -1,9 +1,9 @@
 # Adaptive layout
 
 This is the app-wide rule for **when a layout may split** — into two panes on the anime detail page
-and the settings page, or into multiple columns in the three data-browsing modules and on the kana
-page — and, once it may, **how many columns** it gets. A second, narrower rule decides **where
-navigation lives**. Both live in
+and the settings page, or into multiple columns in the three data-browsing modules, on the kana page
+and on the metadata review page — and, once it may, **how many columns** it gets. A second,
+narrower rule decides **where navigation lives**. Both live in
 [`lib/shared/utils/adaptive_layout.dart`](functions/shared/utils/adaptive_layout.md), a module that
 deliberately imports nothing but `dart:core` so every decision is directly unit-testable without a
 widget tree.
@@ -103,6 +103,7 @@ breakpoint. Each caller brings the minimum its own content needs:
 | Kana tables | `330` | 2 | A five-column table spends 44 on its row label, so 330 leaves ≈ 57 per cell — level with what the same table gets on a phone in one column. |
 | Kana rule cards | `320` | 2 | Paragraph cards; a third column would fall below a comfortable reading measure. |
 | Ranking filter dropdowns | `280` | 2 | An `OutlineInputBorder` dropdown whose longest localized label is Japanese; narrower and the label truncates before the arrow. Also governs the custom-range buttons below them. |
+| Metadata update cards | `360` | 4 | A proposal card spends 24 on its own padding, and each change row inside it spends 24 on a checkbox, 8 on a gap and a fixed 84 on the field label. 360 leaves about 220 for the struck-through old value, the arrow and the new one, which keeps a typical pair on one line. |
 
 `listColumnCount` combines the gate with the capacity: one column when `canSplitLayout` is false,
 otherwise the capacity when the user's preference is `listColumnsAuto`, otherwise the preference
@@ -161,6 +162,13 @@ comfortably above it. That invariant is asserted across the whole range in
 The third condition is not defensive padding. An empty chart renders `SizedBox.shrink()`, so
 without it the cards would sit in a 260 dp pane beside a blank half rather than falling back to
 their full-width row.
+
+**The grid is centred against the chart, not hung off the top of it.** 1.5.5 aligned the row to the
+start, which left a visible hole under the cards: the 2 × 2 grid is about 160 logical pixels tall
+against the chart block's ~268. Because the grid is the shorter child and is a plain `SizedBox`
+rather than an `Expanded`, the row's height *is* the chart's, so `CrossAxisAlignment.center` is the
+whole fix — no `IntrinsicHeight`, no measuring. `test/statistics_layout_ui_test.dart` pins it by
+comparing the pane's rect against its row's.
 
 | Viewport | Splits | Content | Numbers beside chart | Pane | Chart |
 |---|---|---|---|---|---|
@@ -245,6 +253,7 @@ when the device unfolds" needs — no lifecycle work, and no state to save and r
 | `anime_edit_page.dart` | Yes | Through `useDetailTwoPane`, like the detail page. The cover and the two title fields are fixed on the left; everything below them scrolls on the right. |
 | `statistics_page.dart` (summary) | Yes | Gated by `canSplitLayout`, then by `useStatsSideBySide`; see above. |
 | `statistics_page.dart` (ranking filters) | No — width only | Pairing controls onto a row is a packing question, not a two-pane one. |
+| `metadata_updates_page.dart` | Yes | Gated by `canSplitLayout`, then by `columnCapacity` at `metaUpdateCardMinWidth`. Pushed **outside** the shell, so it measures the raw window — no `shellContentWidth`, no `shellListBottomInset`. |
 | `shell_scaffold.dart` | No — `useNavigationRail` | Width only; see above. |
 
 **The `kana_page.dart` exception recorded here in 1.5.3 is resolved.** It used to carry its own
@@ -263,19 +272,40 @@ same way — `columnCapacity` at `rankingFilterMinWidth` — which moves the thr
 and changes nothing else. With that folded in, the claim holds: **every width decision in `lib/`
 now goes through `adaptive_layout.dart`.**
 
+**A page with no rule at all, found in 1.5.6.** The claim above is about the decisions that exist,
+and `metadata_updates_page.dart` had none: no `LayoutBuilder`, no `MediaQuery`, no breakpoint of any
+kind — one column of proposal cards stretched to whatever the window was, which on an unfolded Fold
+is several hundred logical pixels of dead space per row. It now takes the same double gate as the
+kana tables at its own minimum. Two things make it unlike the pages above it in the table: it is
+pushed **outside** the shell, so it measures the raw window and must not subtract a navigation rail
+that is not there or reserve room for a bottom bar that is not either; and it keeps
+`ListView.builder`, so it composes rows with `adaptiveTileRow` rather than `adaptiveTileRows` —
+the latter materializes every tile and would throw the virtualization away.
+
 ### Where the ranking filter panel diverges
 
 The ranking panel's two pairings are **width-only**, and deliberately not `canSplitLayout`:
 
 - the time and type dropdowns share a row from 572 dp of panel width up (`columnCapacity` at 280);
-- the score source, sort field and direction share one from 674 dp up (`useRankingSortRow`, which
-  is `200 + 280 + 170` plus two gaps — a segmented button on each side of a dropdown, rather than
-  two equal halves, which is why it is a separate and larger threshold).
+- the sort field, score source and direction share one from 674 dp up (`useRankingSortRow`, which
+  is `200 + 280 + 170` plus two gaps — a dropdown and two segmented buttons, rather than two equal
+  halves, which is why it is a separate and larger threshold).
 
 Packing controls onto a line asks whether they fit, not whether the window has the shape for two
 panes. Reading it as a split would have excluded a phone in landscape, where the panel costs 244 of
 412 dp — proportionally the worst case in the app, and the one the pairing helps most. Below 572
 nothing changes, so the phone-in-portrait layout is exactly what it was.
+
+**The order inside the sort row changed in 1.5.6; the threshold did not.** 1.5.5 led with the score
+source, which put a pill button under the `時間` dropdown's outlined left edge and read as a
+dropdown sandwiched between two pills. The sort field now leads, so it left-aligns with the
+dropdown above it and the two segmented buttons group at the right. `useRankingSortRow` is a sum,
+so it is blind to the order and stays 674.
+
+**The one-row order is not carried into the stacked shape**, where the score source keeps its own
+line above the sort field and direction. There is nothing to align to below 674 — the sort field
+already starts at the left edge — and moving the score source below the dropdown it controls would
+mean reading "sort by X" before learning whether X is your own rating or a database.
 
 | Viewport | Panel width | Filter row | Sort row | Panel height |
 |---|---|---|---|---|
@@ -310,7 +340,8 @@ verbatim.
   still agree, so the delegation cannot silently drift.
 - `test/detail_layout_test.dart` — the detail page's pane and cover sizing.
 - `test/list_columns_ui_test.dart`, `test/detail_layout_ui_test.dart`,
-  `test/kana_layout_ui_test.dart`, `test/settings_two_pane_ui_test.dart` and
+  `test/kana_layout_ui_test.dart`, `test/settings_two_pane_ui_test.dart`,
+  `test/statistics_layout_ui_test.dart`, `test/metadata_updates_layout_ui_test.dart` and
   `test/shell_nav_ui_test.dart` — the rendered result, driven through the real pages at the same
   geometries.
 

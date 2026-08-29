@@ -4,18 +4,21 @@ This is the top-level index of the hand-written Function Explanation Layer docum
 `lib/` in the MyAnime repo. Each row links to a per-source-file page under `doc/en-us/functions/`
 mirroring the `lib/` tree (with `.dart` replaced by `.md`).
 
-**Totals:** the repo's `/// Purpose:` comment count is **862** (per the Function Explanation Layer
+**Totals:** the repo's `/// Purpose:` comment count is **864** (per the Function Explanation Layer
 convention in `AGENTS.md`, excluding generated `lib/l10n/` code — see [l10n/INDEX.md](l10n/INDEX.md)).
-The rows below sum to **852** documented declarations.
+The rows below sum to **862** documented declarations.
 
 | Tier | Count |
 |---|---|
-| Tier A (full entry: Purpose/Inputs/Returns/Side effects/Algorithm/Usage/Notes) | 544 |
+| Tier A (full entry: Purpose/Inputs/Returns/Side effects/Algorithm/Usage/Notes) | 554 |
 | Tier B (index row only) | 308 |
-| **Total** | **852** |
+| **Total** | **862** |
 
-**Known gap.** These two numbers do not match: 10 declarations carry a `/// Purpose:` comment in
-source but have no row here, so the index under-covers `lib/` by that much. The gap is not evenly
+**Known gap.** These two numbers do not match: 2 declarations carry a `/// Purpose:` comment in
+source but have no row here, so the index under-covers `lib/` by that much. It was 10 until 1.5.6,
+when `adaptive_layout.dart`'s row was found still reading `4 | 4` — the count it had in 1.5.3,
+before the module grew from the detail page's own helper into the app-wide policy. Its page has
+documented twelve declarations since 1.5.5; only this row had not followed. The gap is not evenly
 distributed and has not been audited file by file. Two individual files go the *other* way and
 carry one more row than their source's `Purpose:` count — see the note under the `features/`
 section below.
@@ -26,7 +29,8 @@ across five changed files, again in 1.5.2, which added 15 across one new file an
 ones, again in 1.5.3, which added 22 across three new files and six changed ones, and again
 in 1.5.4, which added 11 across three changed files and promoted three more rows from Tier B to
 Tier A without adding any file, and again in 1.5.5, which added 9 across four changed files and
-promoted five more rows from Tier B to Tier A, also without adding a file. The
+promoted five more rows from Tier B to Tier A, also without adding a file, and again in 1.5.6, which added 2 across two changed files and
+corrected `adaptive_layout.dart`'s long-stale row from 4 to 12. The
 pre-1.4.0 figures (682
 `Purpose:` comments and 685 documented declarations) had drifted far from both the source and this
 file's own per-file rows, which summed to 615 at the time. If you change these numbers, measure
@@ -72,7 +76,7 @@ convention (function/method/constructor/getter/setter); see that page for detail
 | `lib/features/anime/views/archive_labels.dart` | [features/anime/views/archive_labels.md](features/anime/views/archive_labels.md) | 3 | 3 |
 | `lib/features/anime/views/home_page.dart` | [features/anime/views/home_page.md](features/anime/views/home_page.md) | 23 | 9 |
 | `lib/features/anime/views/management_page.dart` | [features/anime/views/management_page.md](features/anime/views/management_page.md) | 27 | 12 |
-| `lib/features/anime/views/metadata_updates_page.dart` | [features/anime/views/metadata_updates_page.md](features/anime/views/metadata_updates_page.md) | 22 | 8 |
+| `lib/features/anime/views/metadata_updates_page.dart` | [features/anime/views/metadata_updates_page.md](features/anime/views/metadata_updates_page.md) | 23 | 9 |
 | `lib/features/anime/views/quarter_picker_dialog.dart` | [features/anime/views/quarter_picker_dialog.md](features/anime/views/quarter_picker_dialog.md) | 5 | 1 |
 | `lib/features/anime/views/statistics_page.dart` | [features/anime/views/statistics_page.md](features/anime/views/statistics_page.md) | 70 | 29 |
 
@@ -95,7 +99,7 @@ declarations (see each page's own note). As of 1.4.0 `_searchAnime1Single` does 
 | `lib/features/settings/views/backup_page.dart` | [features/settings/views/backup_page.md](features/settings/views/backup_page.md) | 16 | 7 |
 | `lib/features/settings/views/license_page.dart` | [features/settings/views/license_page.md](features/settings/views/license_page.md) | 2 | 0 |
 | `lib/features/settings/views/privacy_policy_page.dart` | [features/settings/views/privacy_policy_page.md](features/settings/views/privacy_policy_page.md) | 3 | 1 |
-| `lib/features/settings/views/settings_page.dart` | [features/settings/views/settings_page.md](features/settings/views/settings_page.md) | 27 | 19 |
+| `lib/features/settings/views/settings_page.dart` | [features/settings/views/settings_page.md](features/settings/views/settings_page.md) | 28 | 20 |
 
 ## l10n/
 
@@ -107,7 +111,7 @@ the 771 hand-documented declarations above).
 | Source file | Page | Declarations | Tier A count |
 |---|---|---|---|
 | `lib/shared/providers/app_settings.dart` | [shared/providers/app_settings.md](shared/providers/app_settings.md) | 17 | 14 |
-| `lib/shared/utils/adaptive_layout.dart` | [shared/utils/adaptive_layout.md](shared/utils/adaptive_layout.md) | 4 | 4 |
+| `lib/shared/utils/adaptive_layout.dart` | [shared/utils/adaptive_layout.md](shared/utils/adaptive_layout.md) | 12 | 12 |
 | `lib/shared/utils/calendar_preferences.dart` | [shared/utils/calendar_preferences.md](shared/utils/calendar_preferences.md) | 4 | 4 |
 | `lib/shared/utils/chinese_convert.dart` | [shared/utils/chinese_convert.md](shared/utils/chinese_convert.md) | 3 | 2 |
 | `lib/shared/utils/detail_layout.dart` | [shared/utils/detail_layout.md](shared/utils/detail_layout.md) | 3 | 3 |

@@ -6,6 +6,8 @@ import 'package:intl/intl.dart';
 
 import '../../../l10n/app_localizations.dart';
 import '../../../shared/services/image_service.dart';
+import '../../../shared/utils/adaptive_layout.dart';
+import '../../../shared/widgets/adaptive_tile_grid.dart';
 import '../models/anime.dart';
 import '../models/metadata_update.dart';
 import '../services/anime_storage.dart';
@@ -485,12 +487,7 @@ class _MetadataUpdatesPageState extends State<MetadataUpdatesPage> {
                 ? _buildEmpty(theme, l10n)
                 : Stack(
                     children: [
-                      ListView.builder(
-                        padding: const EdgeInsets.all(12),
-                        itemCount: _proposals.length,
-                        itemBuilder: (context, i) =>
-                            _buildProposalCard(_proposals[i], theme, l10n),
-                      ),
+                      _buildProposalList(theme, l10n),
                       if (_working)
                         const Positioned.fill(
                           child: ColoredBox(
@@ -503,6 +500,51 @@ class _MetadataUpdatesPageState extends State<MetadataUpdatesPage> {
           ),
         ],
       ),
+    );
+  }
+
+  /// Purpose: Lay the proposal cards out in one column or in several.
+  /// Inputs: `theme`, `l10n`.
+  /// Returns: `Widget` — a `ListView.builder`.
+  /// Side effects: None.
+  /// Notes: The same double gate the kana page uses. The app-wide
+  /// [canSplitLayout] asks whether the window has the shape for more than one
+  /// column; [columnCapacity] at [metaUpdateCardMinWidth] then asks whether the
+  /// cards would still be readable once it has them. This page is pushed
+  /// outside the shell, so it measures the raw window and must not use
+  /// `shellContentWidth` or `shellListBottomInset` — it has neither a
+  /// navigation rail nor a bottom bar to account for. [adaptiveTileRow] rather
+  /// than `adaptiveTileRows`, because the latter materializes every tile and
+  /// would throw away the `ListView.builder` virtualization a long update list
+  /// depends on; at one column the card is returned untouched, so the phone
+  /// tree is exactly what it was.
+  Widget _buildProposalList(ThemeData theme, AppLocalizations l10n) {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final screen = MediaQuery.sizeOf(context);
+        final columns = canSplitLayout(screen.width, screen.height)
+            ? columnCapacity(
+                // Less the list's own EdgeInsets.all(12), on both sides.
+                constraints.maxWidth - 24,
+                minItemWidth: metaUpdateCardMinWidth,
+              )
+            : 1;
+        return ListView.builder(
+          padding: const EdgeInsets.all(12),
+          itemCount: columns <= 1
+              ? _proposals.length
+              : listRowCount(_proposals.length, columns),
+          itemBuilder: (context, index) => columns <= 1
+              ? _buildProposalCard(_proposals[index], theme, l10n)
+              : adaptiveTileRow(
+                  rowIndex: index,
+                  columns: columns,
+                  itemCount: _proposals.length,
+                  itemBuilder: (i) =>
+                      _buildProposalCard(_proposals[i], theme, l10n),
+                ),
+        );
+      },
     );
   }
 

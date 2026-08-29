@@ -1716,9 +1716,10 @@ class _StatisticsPageState extends ConsumerState<StatisticsPage> {
                 Padding(
                   padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
                   child: Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
+                    crossAxisAlignment: CrossAxisAlignment.center,
                     children: [
                       SizedBox(
+                        key: const ValueKey('statsSummaryPane'),
                         width: statsSummaryPaneWidth(contentWidth),
                         child: _buildSummaryCards(theme, l10n, grouped, 2),
                       ),
@@ -1800,7 +1801,10 @@ class _StatisticsPageState extends ConsumerState<StatisticsPage> {
   /// Notes: One builder for both shapes so the four cards, their colours and
   /// their order cannot drift between the two layouts. At two columns the grid
   /// is about 160 logical pixels tall against the chart's 268, which is why the
-  /// row that holds them aligns to the top rather than stretching.
+  /// row that holds them centres them vertically rather than stretching. The
+  /// grid is the shorter child and is not `Expanded`, so the row's height is
+  /// the chart's: centring is all it takes to balance the two blocks, and the
+  /// hole the top alignment left under the cards in 1.5.5 closes.
   Widget _buildSummaryCards(
     ThemeData theme,
     AppLocalizations l10n,
@@ -2184,9 +2188,9 @@ class _StatisticsPageState extends ConsumerState<StatisticsPage> {
         if (oneSortRow)
           Row(
             children: [
-              scoreSource,
-              const SizedBox(width: listTileGap),
               Expanded(child: sortField),
+              const SizedBox(width: listTileGap),
+              scoreSource,
               const SizedBox(width: listTileGap),
               direction,
             ],

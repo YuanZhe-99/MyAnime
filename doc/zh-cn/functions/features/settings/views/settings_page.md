@@ -28,6 +28,7 @@
 | [`_loadMetadataSettings`](#loadmetadatasettings) | 方法（`_SettingsPageState`） | A | 加载后台资料更新偏好。 |
 | [`_setMetadataPolicy`](#setmetadatapolicy) | 方法（`_SettingsPageState`） | A | 持久化新策略并启动或停止服务。 |
 | [`_metadataPolicyLabel`](#metadatapolicylabel) | 方法（`_SettingsPageState`） | A | 本地化后台更新策略选项。 |
+| [`_buildMetaPolicyDropdown`](#buildmetapolicydropdown) | 方法（`_SettingsPageState`） | A | 构建后台更新策略选择器。 |
 | [`_weekdayLabel`](#weekdaylabel) | 方法（`_SettingsPageState`） | A | 把星期数字映射为其本地化短标签。 |
 | `_isDesktop` | getter（`_SettingsPageState`） | B | 报告应用是否运行在桌面平台。 |
 | [`_exportData`](#exportdata) | 方法（`_SettingsPageState`） | A | 把动画数据导出为 ZIP 或 Markdown 文件到用户选择的文件夹。 |
@@ -200,6 +201,17 @@
 - **备注：** `noCellular` 的文案写作「不使用蜂窝数据」而非「仅 Wi-Fi」，因为该检查在有线桌面连接下同样
   放行 —— 也因为它检测的是链路类型，而不是链路是否计费。见
   [`../../../../platform-notes.md`](../../../../platform-notes.md)。
+
+### `Widget _buildMetaPolicyDropdown(AppLocalizations l10n)` <a id="buildmetapolicydropdown"></a>
+- **种类：** `_SettingsPageState` 的方法
+- **用途：** 构建后台更新策略选择器。
+- **返回：** `Widget`——一个 `DropdownButton<MetadataUpdatePolicy>`。
+- **副作用：** 经由 `_setMetadataPolicy` 持久化所选项。
+- **备注：** 它位于所在 tile 的**标题行**上，而不在 tile 的 `trailing` 位。`trailing` 与标题**和**副标题共享同
+  一条水平带，这把该行的说明文字困在下拉框旁边一条又窄又参差的列里——在设置的双栏布局下会折成六行。放到标题行
+  上，它只占用标题的宽度，说明文字则获得整个 tile 的宽度，一直延伸到下拉框下方。标题文本外的 `Expanded` 是在
+  栏最窄时让标题换行而不是溢出的关键；`style` 被钉在 `bodyMedium`，因为 `ListTile` 给 `title` 位的字号大于
+  `trailing` 位。`test/settings_two_pane_ui_test.dart` 通过断言说明文字的右缘越过下拉框的左缘来把结果钉住。
 
 ### `String _weekdayLabel(int weekday, AppLocalizations l10n)` <a id="weekdaylabel"></a>
 - **种类：** `_SettingsPageState` 的方法

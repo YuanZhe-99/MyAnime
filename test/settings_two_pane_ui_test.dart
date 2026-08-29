@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:my_anime/features/anime/models/metadata_update.dart';
 import 'package:my_anime/features/settings/views/settings_page.dart';
 import 'package:my_anime/l10n/app_localizations.dart';
 import 'package:package_info_plus/package_info_plus.dart';
@@ -51,8 +52,8 @@ void main() {
     PackageInfo.setMockInitialValues(
       appName: 'MyAnime',
       packageName: 'com.example.my_anime',
-      version: '1.5.4',
-      buildNumber: '57',
+      version: '1.5.6',
+      buildNumber: '59',
       buildSignature: '',
     );
   });
@@ -97,6 +98,39 @@ void main() {
     await tester.tap(row);
     await tester.pumpAndSettle();
   }
+
+  testWidgets('the background-update description runs under its dropdown', (
+    tester,
+  ) async {
+    // Since 1.5.6 the policy dropdown rides the title row instead of the tile's
+    // `trailing` slot, so the description gets the tile's full width rather
+    // than the narrow column left beside the dropdown.
+    await pumpAt(tester, 933, 704);
+    const desc = '应用打开时，自动刷新已保存的资料库信息，并为资料不全的记录查找在线资料。';
+    final row = find.widgetWithText(ListTile, desc);
+    await tester.scrollUntilVisible(
+      row,
+      200,
+      scrollable: find.byType(Scrollable).first,
+    );
+    await tester.pumpAndSettle();
+
+    final tile = tester.getRect(row);
+    final text = tester.getRect(find.text(desc));
+    final dropdown = tester.getRect(
+      find.descendant(
+        of: row,
+        matching: find.byType(DropdownButton<MetadataUpdatePolicy>),
+      ),
+    );
+
+    // The dropdown is on the title row, above the description...
+    expect(dropdown.bottom, lessThanOrEqualTo(text.top));
+    // ...and the description now runs past its left edge, out to the tile.
+    expect(text.right, greaterThan(dropdown.left));
+    expect(text.right, greaterThan(tile.right - 32));
+    expect(tester.takeException(), isNull);
+  });
 
   testWidgets('a Z Fold 8 unfolded shows the placeholder until a pick', (
     tester,

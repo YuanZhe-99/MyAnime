@@ -70,6 +70,16 @@ const rankingScoreSourceWidth = 200.0;
 /// Width, in logical pixels, the ranking sort-direction segmented button needs.
 const rankingDirectionWidth = 170.0;
 
+/// Minimum width, in logical pixels, one metadata-update proposal card may
+/// occupy.
+///
+/// A card spends 24 on its own padding, and every change row inside it spends
+/// 24 on a checkbox, 8 on a gap and a fixed 84 on the field label. 360 leaves
+/// roughly 220 for the struck-through old value, the arrow and the new one,
+/// which keeps a typical pair on one line — the comparison is the whole point
+/// of the row, and a value that wraps costs more than a column gains.
+const metaUpdateCardMinWidth = 360.0;
+
 /// Purpose: Report whether a layout may split into panes or columns.
 /// Inputs: `width`, `height` — the viewport size in logical pixels.
 /// Returns: `bool`.
@@ -243,9 +253,11 @@ double statsSummaryPaneWidth(double contentWidth) =>
 /// Returns: `bool`.
 /// Side effects: None.
 /// Notes: A separate, larger threshold than the filter dropdowns' own pairing,
-/// because this row carries a segmented button on each side of the dropdown
-/// rather than two equal halves. Below it the score source keeps its own line,
-/// which is the layout every viewport had before 1.5.5.
+/// because this row carries a sort-field dropdown followed by two segmented
+/// buttons rather than two equal halves. It is a sum, so it is independent of
+/// the order the three sit in and did not move in 1.5.6 when the dropdown took
+/// the lead. Below it the score source keeps its own line, which is the layout
+/// every viewport had before 1.5.5.
 bool useRankingSortRow(double contentWidth) =>
     contentWidth >=
     rankingScoreSourceWidth +

@@ -16,6 +16,9 @@
   直接废掉第二道确认。
 - **批量操作跳过 `needsManualPick` 条目。** 批量操作绝不能在服务自己都无法分辨的候选之间猜测；被跳过的
   条目数会显示在第一道确认中。
+- **卡片在宽窗口上会流成多列，而该页依据原始窗口来判定。** 它被推到外壳之外，因此既没有侧边导航栏要减去，
+  也没有底部栏要预留——`shellContentWidth` 与 `shellListBottomInset` 在这里都是错的。见
+  [`../../../../adaptive-layout.md`](../../../../adaptive-layout.md)。
 
 ## 声明
 
@@ -40,6 +43,7 @@
 | `_weekdayLabel` | 方法 | B | 本地化星期。 |
 | `build` | 方法 | B | 构建界面。 |
 | `_buildEmpty` | 方法 | B | 渲染空状态。 |
+| [`_buildProposalList`](#_buildproposallist) | 方法 | A | 把建议卡片排成一列或多列。 |
 | [`_buildProposalCard`](#_buildproposalcard) | 方法 | A | 渲染一条建议。 |
 | `_buildChangeRow` | 方法 | B | 渲染单个字段的勾选框与取值。 |
 | [`_buildThumbnail`](#_buildthumbnail) | 方法 | A | 渲染候选的封面。 |
@@ -72,6 +76,18 @@
 - **备注：** 日期使用 `DateFormat.yMd()`，星期使用与设置页相同的名称，抓取到的简介截断到 120 字符，
   以免单个长值主导整张卡片。null 与空白渲染为本地化的「（空）」而不是什么都不显示，这样「填空白」类的
   建议读起来才像一次改动。
+
+### `Widget _buildProposalList(ThemeData, AppLocalizations)` <a id="_buildproposallist"></a>
+- **种类：** 方法
+- **用途：** 判定列数，并按该列数构建滚动列表。
+- **返回：** `Widget`——一个 `ListView.builder`。
+- **副作用：** 无。
+- **算法：** 与假名页相同的双重门控。`canSplitLayout(screen.width, screen.height)` 问窗口有没有多于一列的
+  形状；在 `constraints.maxWidth - 24`（列表自身 `EdgeInsets.all(12)` 的左右两侧）上、以
+  `metaUpdateCardMinWidth` 调用的 `columnCapacity` 则问卡片在其中是否仍然读得下去。任一不通过即为一列。
+- **备注：** 直接量 `MediaQuery.sizeOf` 而非 `shellContentWidth`，因为该路由被推到外壳之外。用
+  `adaptiveTileRow` 而非 `adaptiveTileRows` 组行：后者会把每一个 tile 都实例化出来，从而丢掉长更新列表所
+  依赖的 `ListView.builder` 虚拟化。一列时卡片原样返回，因此手机上的控件树与 1.5.6 之前分毫不差。
 
 ### `Widget _buildProposalCard(_Proposal, ThemeData, AppLocalizations)` <a id="_buildproposalcard"></a>
 - **备注：** `needsManualPick` 条目渲染一段说明而不是字段列表，且只提供「忽略」—— 没有东西可应用，因为

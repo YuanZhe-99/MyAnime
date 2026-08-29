@@ -354,4 +354,40 @@ void main() {
       expect(filterPairs(572), 2);
     });
   });
+
+  group('metadata update cards', () {
+    // The review page is pushed outside the shell, so it measures the raw
+    // window less its own EdgeInsets.all(12) — no navigation rail to subtract.
+    int cardColumns(double screenWidth) =>
+        columnCapacity(screenWidth - 24, minItemWidth: metaUpdateCardMinWidth);
+
+    test('an unfolded Fold 8 in landscape gets two columns', () {
+      expect(canSplitLayout(933, 704), isTrue); // Z Fold 8, unfolded landscape
+      expect(cardColumns(933), 2);
+    });
+
+    test('the same device in portrait is gated back to one', () {
+      // 704 x 933 fails the aspect test, so the capacity is never consulted.
+      expect(canSplitLayout(704, 933), isFalse); // Z Fold 8, unfolded portrait
+      expect(cardColumns(704), 1);
+    });
+
+    test('a folded cover screen and a phone stay single column', () {
+      expect(canSplitLayout(412, 915), isFalse); // ordinary phone, portrait
+      expect(cardColumns(412), 1);
+      expect(canSplitLayout(360, 780), isFalse); // Z Fold 7 cover screen
+      expect(cardColumns(360), 1);
+    });
+
+    test('a desktop window fills up to the shared ceiling', () {
+      expect(cardColumns(1600), 4); // 4 x 385, comfortably over the minimum
+      expect(cardColumns(3000), listMaxColumns);
+    });
+
+    test('the boundary sits where the arithmetic puts it', () {
+      // Two 360 dp cards plus one 12 dp gap, plus the list's own 24 dp padding.
+      expect(cardColumns(755), 1);
+      expect(cardColumns(756), 2);
+    });
+  });
 }

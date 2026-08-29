@@ -144,6 +144,12 @@ the transport, not whether it is billed:
 The UI is worded "don't use cellular data" rather than "Wi-Fi only" — that is exactly what the check
 does, on every platform including a wired desktop, and it does not promise more than it delivers.
 
+The picker sits on its settings row's **title line** rather than in the tile's trailing slot. A
+`ListTile`'s `trailing` shares its horizontal band with the title *and* the subtitle, and the
+caveats above are long: beside the dropdown they wrapped into a narrow ragged column — six lines in
+the two-pane settings layout. On the title line the dropdown costs the title alone, and the
+explanation runs the full width, under it.
+
 A second setting, `metadataPrefetchCovers`, controls whether candidate covers are downloaded ahead
 of time. It is **off by default**: covers are the only large data in this cache and everything else
 is plain text. With it off, the review screen streams thumbnails from the source URL, so the feature
@@ -171,6 +177,14 @@ exactly the users who had nothing yet.
 The diff is **recomputed against the stored record** every time the screen loads, never read from the
 cache. So a record edited since its proposal was made shows an accurate before/after, and one whose
 changes the user has since made by hand simply drops off the list.
+
+**The cards flow into columns on a wide window.** Until 1.5.6 this screen was the one page of its
+class with no layout rule at all, so a single column of cards stretched across an unfolded foldable
+or a desktop window with several hundred logical pixels of dead space per row. It now takes the
+app-wide split rule and then a 360 dp minimum per card — two columns on a Fold in landscape, one in
+portrait, four on a desktop. It is pushed **outside** the shell, so it measures the raw window: no
+navigation rail to subtract, no bottom bar to reserve for. See
+[`../adaptive-layout.md`](../adaptive-layout.md).
 
 
 ## The manual check

@@ -119,6 +119,18 @@ void main() {
     // The chart sits to the right of the cards, not under them.
     expect(trend.dx, greaterThan(watching.dx));
     expect(trend.dy, lessThan(notStarted.dy));
+
+    // The grid is the shorter of the two blocks, and since 1.5.6 it is centred
+    // against the chart rather than hung off the top of the row.
+    const paneKey = ValueKey('statsSummaryPane');
+    final pane = tester.getRect(find.byKey(paneKey));
+    final row = tester.getRect(
+      find.ancestor(of: find.byKey(paneKey), matching: find.byType(Row)).first,
+    );
+    expect(pane.height, lessThan(row.height));
+    expect(pane.center.dy, closeTo(row.center.dy, 0.5));
+    expect(pane.top, greaterThan(row.top));
+
     expect(tester.takeException(), isNull);
   });
 
@@ -165,7 +177,13 @@ void main() {
     expect(type.dy, closeTo(time.dy, 0.5));
     expect(type.dx, greaterThan(time.dx));
     expect(sortBy.dy, greaterThan(time.dy));
-    expect(myRating.dx, lessThan(sortBy.dx));
+    // Since 1.5.6 the sort dropdown leads the row, so it left-aligns with the
+    // Time dropdown above it and the two segmented buttons group to its right.
+    expect(sortBy.dx, closeTo(time.dx, 0.5));
+    // Only dx is compared: `sortBy` is the dropdown's floating label, which
+    // rides the top of its outline border, while `myRating` is centred in its
+    // button. Their dy differ by design even on one row.
+    expect(myRating.dx, greaterThan(sortBy.dx));
     expect(tester.takeException(), isNull);
   });
 
