@@ -114,6 +114,21 @@ which one it belongs in — see the rule in Section 1.
 | garbage collection (GC) | 垃圾回收（GC） | 指备份 blob 的引用计数回收 |
 | debounce | 防抖 | |
 | wake lock | 唤醒锁 | screen wake lock, `wakelock_plus` |
+| adaptive layout | 自适应布局 | |
+| window size class | 窗口尺寸类别 | Material 的 compact/medium/expanded 分级 |
+| breakpoint | 断点 | 布局阈值 |
+| viewport | 视口 | |
+| logical pixel (dp) | 逻辑像素（dp） | 与密度无关的布局单位 |
+| aspect ratio | 宽高比 | width / height |
+| foldable | 折叠屏设备 | |
+| cover screen | 外屏 | 折叠状态下的外部屏幕 |
+| split layout | 分栏布局 | |
+| pane | 窗格（pane） | 首次出现附英文原词 |
+| two-pane | 双栏 | 左右两个窗格的布局 |
+| navigation rail | 导航栏（NavigationRail） | Material 侧边导航；不译作「轨道」 |
+| bottom navigation bar | 底部导航栏 | |
+| content width | 内容宽度 | 扣除导航栏后页面内容实际获得的宽度 |
+| column capacity | 列容量 | 给定最小列宽时一行能容纳的列数 |
 
 ### 5.2 MyAnime-specific terms
 
