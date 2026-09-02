@@ -26,13 +26,15 @@
 | [`_delete`](#_delete) | 方法（`_AnimeDetailPageState`） | A | 确认并删除这条动画记录。 |
 | `_AnimeDetailPageState.build` | 方法（`_AnimeDetailPageState`，组件构建） | B | 构建详情页脚手架，并在单栏与双栏布局之间取舍。 |
 | `_buildCover` | 方法（组件辅助） | B | 按明确尺寸构建封面图块。 |
-| `_buildHeaderChildren` | 方法（组件辅助） | B | 构建头部块：日文标题、标签与观看进度。 |
+| `_buildHeaderChildren` | 方法（组件辅助） | B | 构建头部块：日文标题、标签（含 anime1.me 进度标签）与已看集数条。 |
 | `_buildDetailChildren` | 方法（组件辅助） | B | 构建进度条下方的卡片，以及季度导航。 |
 | `_buildEpisodeChildren` | 方法（组件辅助） | B | 构建剧集列表表头及每一集一行。 |
 | [`_toggleAllWatched`](#_toggleallwatched) | 方法（`_AnimeDetailPageState`） | A | 把每个被跟踪剧集标记为已看，已完整时则全部标记为未看。 |
 | `_buildAbandonOrResume` | 方法（组件辅助） | B | 渲染剧集列表页头的"放弃"/"恢复"操作按钮。 |
 | [`_refreshableUrls`](#_refreshableurls) | 方法（`_AnimeDetailPageState`） | A | 列出这部番剧可用于刷新的来源页面。 |
 | [`_refreshExternalMeta`](#_refreshexternalmeta) | 方法（`_AnimeDetailPageState`） | A | 从每个已记住的来源页面重新抓取外部元数据。 |
+| `_watchProgressChipLabel` | 方法（`_AnimeDetailPageState`） | B | 用已存的观看进度给 anime1.me 标签取文案，否则用「查看」提示。 |
+| [`_checkWatchProgress`](#_checkwatchprogress) | 方法（`_AnimeDetailPageState`） | A | 重新读取 anime1.me 为本记录 URL 列出的内容并存储。 |
 | [`_buildExternalMetaCard`](#_buildexternalmetacard) | 方法（组件辅助） | A | 渲染从外部资料库拉取的公开元数据。 |
 | `_buildRatingCard` | 方法（组件辅助） | B | 渲染用户自己的评分摘要卡片。 |
 | `_buildLocalArchiveCard` | 方法（组件辅助） | B | 渲染只读的本地存档摘要卡片。 |
@@ -250,3 +252,24 @@
   ```
   （`_buildAbandonOrResume`，没有剩余未看剧集但至少一个跳过时显示）
 - **备注：** `_buildAbandonOrResume` 一次最多显示放弃/恢复按钮之一——既有未看又有跳过剧集时放弃优先。
+
+### `Future<void> _checkWatchProgress(Anime anime)` <a id="_checkwatchprogress"></a>
+- **种类：** `_AnimeDetailPageState` 的方法
+- **来源：** `lib/features/anime/views/anime_detail_page.dart`（约第 816 行）
+- **用途：** 重新读取 anime1.me 当前为本记录观看链接列出的内容并存储。
+- **输入：** `anime`。
+- **返回：** `Future<void>`。
+- **副作用：** 经 `Anime1Service.fetchProgress` 至多三次 HTTP 请求；经 `AnimeStorage.patchExternalMeta` 写入；`setState` `_checkingProgress`；失败时显示 snack bar。
+- **算法：**
+  1. 没有观看链接则返回；打开标签上的转圈。
+  2. Await `Anime1Service.fetchProgress(url)`；`null` → snack bar `anime1ProgressUnknown`。
+  3. 否则经 `mergedWith(AnimeExternalMeta(watchProgress: …))` 把记录并入 `externalMeta`，用 `patchExternalMeta` 写入，并 `_load()`。
+  4. 任何异常 → snack bar `anime1ProgressFailed`；只要仍 mounted，转圈总会清除。
+- **用法：**
+  ```dart
+  onPressed: AppFlavor.isFull && !_checkingProgress
+      ? () => _checkWatchProgress(anime)
+      : null,
+  ```
+  （`_buildHeaderChildren`，anime1.me 标签——标签本身在每个 flavor 下都渲染）
+- **备注：** 与 `_refreshExternalMeta` 一样，这绝不修改 `modifiedAt`：进度是公开站点数据的缓存，不是用户编辑。标签文案来自 `_watchProgressChipLabel`，它读取 `Anime.validWatchProgress`，因此上次检查后被改过的 URL 会显示「查看」提示而不是过期的集数。

@@ -654,6 +654,17 @@ class _HomePageState extends ConsumerState<HomePage> {
     if (changed && mounted) await _load();
   }
 
+  /// Purpose: Report whether the watch site already lists this episode.
+  /// Inputs: `ep`.
+  /// Returns: `bool`.
+  /// Side effects: None.
+  /// Notes: Internal helper used within this file only. Reads the stored
+  /// anime1.me progress; false when nothing valid is stored.
+  bool _siteHasEpisode(_AiringEpisode ep) {
+    final latest = ep.anime.validWatchProgress?.latestEpisode;
+    return latest != null && latest >= ep.episode;
+  }
+
   /// Purpose: Provide the internal build episode tile helper for this file.
   /// Inputs: `ep`, `theme`, `l10n`, `settings`.
   /// Returns: `Widget`.
@@ -734,13 +745,21 @@ class _HomePageState extends ConsumerState<HomePage> {
           trailing: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
+              // When the watch site already lists this episode, the button
+              // turns primary and its tooltip says how far the site has got.
               if (ep.anime.watchUrl != null)
                 IconButton(
                   icon: Icon(
                     Icons.open_in_browser,
-                    color: theme.colorScheme.tertiary,
+                    color: _siteHasEpisode(ep)
+                        ? theme.colorScheme.primary
+                        : theme.colorScheme.tertiary,
                   ),
-                  tooltip: l10n.animeOpenUrl,
+                  tooltip: _siteHasEpisode(ep)
+                      ? l10n.anime1Ongoing(
+                          ep.anime.validWatchProgress!.latestEpisode!,
+                        )
+                      : l10n.animeOpenUrl,
                   onPressed: () => launchUrl(
                     Uri.parse(ep.anime.watchUrl!),
                     mode: LaunchMode.externalApplication,

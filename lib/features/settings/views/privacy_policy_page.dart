@@ -70,7 +70,7 @@ MyAnime!!!!! accesses the internet only in the following situations:
 
 • Searching for and refreshing anime information (full version only): When you actively search for anime, or refresh the database info on an anime you have already saved, the app sends requests to bangumi.tv, MyAnimeList (Jikan API), AniList (anilist.co), acgsecrets.hk, anime1.me and filmarks.com to retrieve publicly available anime information such as titles and alternate titles, summaries, cover art, episode counts, broadcast schedules, studios, genres, and those sites' public ratings. Only the search text or the saved source-page address is sent; none of your personal viewing data is included. This feature is not included in versions distributed through the App Store or Google Play.
 
-• Background database updates (full version only, since 1.5.0): While the app is open, it can also perform the requests described above automatically, without you pressing anything — refreshing the saved database info on anime you have already added, and looking up anime whose details are incomplete. The same sites, the same request contents, and the same limits apply: only a title or a saved source-page address is ever sent, and none of your personal viewing data is included. Any information found this way that would change one of your own fields is only proposed; nothing is written to your records until you confirm it.
+• Background database updates (full version only, since 1.5.0): While the app is open, it can also perform the requests described above automatically, without you pressing anything — refreshing the saved database info on anime you have already added, and looking up anime whose details are incomplete. The same sites, the same request contents, and the same limits apply: only a title or a saved source-page address is ever sent, and none of your personal viewing data is included. Any information found this way that would change one of your own fields is only proposed; nothing is written to your records until you confirm it. Since 1.5.7, for anime whose watch URL points at anime1.me, it also reads that site's public series list and the series page to record the newest episode the site lists; only the saved page address is sent.
 
 • Manual update checks (full version only, since 1.5.1): The "Available updates" screen has a Check for updates button that performs the same requests immediately, for as many of your anime as need checking. Because you asked for it explicitly, this one button works even when background updates are switched off, and it does not consult the Wi-Fi/cellular setting — it is the only way to check when background updates are off. It still refuses to run with no network connection, it shows its progress while it works, and you can stop it at any time. Nothing it finds is written to your records until you confirm it.
 
@@ -120,7 +120,7 @@ MyAnime!!!!! 仅在以下情况下访问互联网：
 
 • 搜索与刷新番剧信息（完整版专有）：当您主动搜索番剧，或刷新已保存番剧的资料库信息时，应用会向 bangumi.tv、MyAnimeList（Jikan API）、AniList（anilist.co）、acgsecrets.hk、anime1.me 和 filmarks.com 发送请求，以获取公开的番剧信息，如标题与别名、简介、封面、集数、放送排期、制作公司、类型标签，以及这些站点的公开评分。发送的只有搜索文本或已保存的来源页面地址，不包含您的任何个人观看数据。通过 App Store 或 Google Play 分发的版本不包含此功能。
 
-• 后台更新资料库信息（完整版专有，1.5.0 起）：在应用打开期间，它还可以在您不点击任何按钮的情况下自动执行上述请求——为您已添加的番剧刷新已保存的资料库信息，并为资料不全的番剧查找在线资料。站点、请求内容与限制完全相同：发送的始终只有一个标题或已保存的来源页面地址，不包含您的任何个人观看数据。以这种方式找到的、会改动您自己字段的信息只会被"建议"；在您确认之前，不会有任何内容被写入您的记录。
+• 后台更新资料库信息（完整版专有，1.5.0 起）：在应用打开期间，它还可以在您不点击任何按钮的情况下自动执行上述请求——为您已添加的番剧刷新已保存的资料库信息，并为资料不全的番剧查找在线资料。站点、请求内容与限制完全相同：发送的始终只有一个标题或已保存的来源页面地址，不包含您的任何个人观看数据。以这种方式找到的、会改动您自己字段的信息只会被"建议"；在您确认之前，不会有任何内容被写入您的记录。自 1.5.7 起，对于观看链接指向 anime1.me 的番剧，它还会读取该站点的公开作品列表与作品页面，以记录站点已更新到第几集；发送的只有已保存的页面地址。
 
 • 手动检查更新（完整版专有，1.5.1 起）：「可用更新」页面上有一个「检查更新」按钮，会立即对您所有需要检查的番剧执行上述相同的请求。由于这是您明确要求的操作，这一个按钮在**后台自动更新已关闭时同样有效**，也不受 Wi-Fi/蜂窝设置的限制——在后台更新关闭时，它是唯一的检查途径。没有网络连接时它仍会拒绝执行；执行期间会显示进度，您可以随时停止。它找到的任何内容在您确认之前都不会写入您的记录。
 
@@ -168,7 +168,7 @@ MyAnime!!!!! 不收集、上傳或分享任何個人資訊。應用程式不包�
 
 MyAnime!!!!! 僅在以下情況下存取網際網路：
 
-• 搜尋番劇資訊（完整版專有）：當您主動搜尋番劇時，應用程式會向 bangumi.tv、MyAnimeList（Jikan API）、acgsecrets.hk、anime1.me 和 filmarks.com 傳送請求，以取得公開的番劇資訊，如標題、簡介、封面和集數。透過 App Store 或 Google Play 分發的版本不包含此功能。
+• 搜尋番劇資訊（完整版專有）：當您主動搜尋番劇時，應用程式會向 bangumi.tv、MyAnimeList（Jikan API）、acgsecrets.hk、anime1.me 和 filmarks.com 傳送請求，以取得公開的番劇資訊，如標題、簡介、封面和集數。透過 App Store 或 Google Play 分發的版本不包含此功能。自 1.5.7 起，對於觀看連結指向 anime1.me 的番劇，應用程式也會在背景讀取該站點的公開作品列表與作品頁面，以記錄站點已更新到第幾集；傳送的只有已儲存的頁面位址。
 
 • WebDAV 同步：如果您啟用了 WebDAV 雲端同步，應用程式會將您的資料傳送到您自行設定的 WebDAV 伺服器。應用程式不會向其他任何伺服器傳送資料。
 
@@ -214,7 +214,7 @@ MyAnime!!!!! は以下の場合にのみインターネットにアクセスし�
 
 • アニメ情報の検索と更新（完全版のみ）：お客様がアニメを検索した際、または保存済みアニメのデータベース情報を更新した際、アプリは bangumi.tv、MyAnimeList（Jikan API）、AniList（anilist.co）、acgsecrets.hk、anime1.me、filmarks.com にリクエストを送信し、タイトルおよび別名、あらすじ、カバー画像、話数、放送スケジュール、制作会社、ジャンル、各サイトの公開評価などの公開情報を取得します。送信されるのは検索文字列または保存済みのソースページのアドレスのみで、お客様の視聴データは一切含まれません。App Store または Google Play で配信されるバージョンにはこの機能は含まれていません。
 
-• バックグラウンドでのデータベース情報の更新（完全版のみ、1.5.0 以降）：アプリの起動中、上記のリクエストを、お客様が何も操作しなくても自動的に実行することがあります。すでに追加済みのアニメについては保存されたデータベース情報を更新し、情報が不足しているアニメについては検索を行います。送信先のサイト、リクエストの内容、制限はいずれも同じです。送信されるのはタイトルまたは保存済みのソースページのアドレスのみで、お客様の視聴データは一切含まれません。この方法で見つかった情報のうち、お客様ご自身の項目を変更するものは「提案」されるだけであり、お客様が確認するまで記録に書き込まれることはありません。
+• バックグラウンドでのデータベース情報の更新（完全版のみ、1.5.0 以降）：アプリの起動中、上記のリクエストを、お客様が何も操作しなくても自動的に実行することがあります。すでに追加済みのアニメについては保存されたデータベース情報を更新し、情報が不足しているアニメについては検索を行います。送信先のサイト、リクエストの内容、制限はいずれも同じです。送信されるのはタイトルまたは保存済みのソースページのアドレスのみで、お客様の視聴データは一切含まれません。この方法で見つかった情報のうち、お客様ご自身の項目を変更するものは「提案」されるだけであり、お客様が確認するまで記録に書き込まれることはありません。1.5.7 以降は、視聴URLが anime1.me を指すアニメについて、同サイトの公開作品リストと作品ページも読み取り、サイトが公開している最新話を記録します。送信されるのは保存済みのページアドレスのみです。
 
 • 手動での更新確認（完全版のみ、1.5.1 以降）：「利用できる更新」画面には「更新を確認」ボタンがあり、確認が必要なアニメすべてに対して上記と同じリクエストを直ちに実行します。お客様が明示的に指示した操作であるため、このボタンはバックグラウンド更新をオフにしていても動作し、Wi-Fi/モバイル通信の設定も参照しません。バックグラウンド更新がオフのとき、これが唯一の確認手段だからです。ネットワークに接続されていない場合は実行を拒否します。実行中は進捗が表示され、いつでも停止できます。見つかった内容は、お客様が確認するまで記録に書き込まれることはありません。
 

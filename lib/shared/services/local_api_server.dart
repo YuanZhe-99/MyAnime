@@ -779,6 +779,9 @@ class LocalApiServer {
       'airTime': a.airTime,
       'infoUrl': a.infoUrl,
       'watchUrl': a.watchUrl,
+      'watchLatestEpisode': a.validWatchProgress?.latestEpisode,
+      'watchProgressCheckedAt': a.validWatchProgress?.checkedAt
+          ?.toIso8601String(),
       'coverImage': a.coverImage,
       'notes': a.notes,
       'isCompleted': a.isCompleted,

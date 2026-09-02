@@ -239,6 +239,47 @@ class AppLocalizationsEn extends AppLocalizations {
   String get searchWatchUrlEmpty => 'No matching watch URL found';
 
   @override
+  String get searchWatchUrlAliasHint =>
+      'Matched through aliases from bangumi.tv';
+
+  @override
+  String anime1Ongoing(int episode) {
+    return 'Updated to episode $episode';
+  }
+
+  @override
+  String anime1EpisodeRange(String range) {
+    return 'Episodes $range';
+  }
+
+  @override
+  String get anime1Movie => 'Movie';
+
+  @override
+  String get anime1Special => 'Special';
+
+  @override
+  String anime1Short(int episode) {
+    return 'up to $episode';
+  }
+
+  @override
+  String get anime1CheckProgress => 'Check anime1';
+
+  @override
+  String anime1ProgressLabel(String status) {
+    return 'anime1: $status';
+  }
+
+  @override
+  String get anime1ProgressUnknown => 'anime1: no episode info found';
+
+  @override
+  String anime1ProgressFailed(String error) {
+    return 'anime1 lookup failed: $error';
+  }
+
+  @override
   String get searchSort => 'Sort';
 
   @override

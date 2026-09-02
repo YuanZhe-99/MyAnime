@@ -40,7 +40,7 @@ for the quarter-placement rules this page's grouping relies on.
 | `_buildSearchResults` | method (widget helper) | B | Render the global search results list. |
 | `_buildQuarterView` | method (widget helper) | B | Render the quarter navigation row and swipeable `PageView`. |
 | `_showActions` | method (`_ManagementPageState`) | B | Show the long-press action sheet for one anime and reload. |
-| `_buildAnimeTile` | method (widget helper) | B | Render one anime row; swipe-to-edit/delete at one column, long-press actions always. |
+| `_buildAnimeTile` | method (widget helper) | B | Render one anime row (the subtitle appends the watch site's newest episode when stored); swipe-to-edit/delete at one column, long-press actions always. |
 | `_Quarter.new` | constructor (`_Quarter`) | B | Pair a year and quarter number. |
 
 ## Documentation

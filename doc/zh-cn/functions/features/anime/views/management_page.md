@@ -31,7 +31,7 @@
 | `_buildSearchResults` | 方法（组件辅助） | B | 渲染全局搜索结果列表。 |
 | `_buildQuarterView` | 方法（组件辅助） | B | 渲染季度导航行和可滑动的 `PageView`。 |
 | `_showActions` | 方法（`_ManagementPageState`） | B | 展示某个动画的长按操作面板并重新加载。 |
-| `_buildAnimeTile` | 方法（组件辅助） | B | 渲染一个动画行；单列时可滑动编辑/删除，长按操作则始终可用。 |
+| `_buildAnimeTile` | 方法（组件辅助） | B | 渲染一个动画行（有已存进度时副标题追加观看站点的最新一集）；单列时可滑动编辑/删除，长按操作则始终可用。 |
 | `_Quarter.new` | 构造函数（`_Quarter`） | B | 把年和季度编号配对。 |
 
 ## 文档

@@ -701,6 +701,9 @@ class _ManagementPageState extends ConsumerState<ManagementPage> {
         (anime.endEpisode ?? anime.startEpisode) - anime.startEpisode + 1;
     final progress = totalEps > 0 ? watchedCount / totalEps : 0.0;
     final dayStr = _dayLabel(anime.airDayOfWeek);
+    // The watch site's newest episode, when a valid check is stored.
+    final siteLatest = anime.validWatchProgress?.latestEpisode;
+    final siteStr = siteLatest == null ? '' : ' · ${l10n.anime1Short(siteLatest)}';
 
     final tile = GestureDetector(
       onSecondaryTapUp: (_) => _showActions(anime),
@@ -735,7 +738,7 @@ class _ManagementPageState extends ConsumerState<ManagementPage> {
         ),
         subtitle: Row(
           children: [
-            Text('$dayStr · $watchedCount/$totalEps'),
+            Text('$dayStr · $watchedCount/$totalEps$siteStr'),
             const SizedBox(width: 8),
             Expanded(
               child: LinearProgressIndicator(

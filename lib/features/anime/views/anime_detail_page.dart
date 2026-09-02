@@ -13,8 +13,10 @@ import '../../../shared/utils/detail_layout.dart';
 import '../../../shared/widgets/delete_confirm.dart';
 import '../models/anime.dart';
 import '../services/anime_search_service.dart';
+import '../services/anime1_service.dart';
 import '../services/anime_storage.dart';
 import '../services/metadata_update_service.dart';
+import 'anime1_labels.dart';
 import 'archive_labels.dart';
 
 class AnimeDetailPage extends StatefulWidget {
@@ -41,6 +43,7 @@ class _AnimeDetailPageState extends State<AnimeDetailPage> {
   String? _prevSeasonId;
   String? _nextSeasonId;
   bool _refreshingMeta = false;
+  bool _checkingProgress = false;
 
   /// Purpose: Initialize listeners, controllers, and first-load work for this state object.
   /// Inputs: None.
@@ -421,6 +424,22 @@ class _AnimeDetailPageState extends State<AnimeDetailPage> {
                 mode: LaunchMode.externalApplication,
               ),
             ),
+          // The stored progress is public site data and renders in every
+          // flavor; only the re-check (a network call) is a full-build action.
+          if (Anime1Service.isAnime1Url(anime.watchUrl))
+            ActionChip(
+              avatar: _checkingProgress
+                  ? const SizedBox(
+                      width: 14,
+                      height: 14,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    )
+                  : const Icon(Icons.update, size: 16),
+              label: Text(_watchProgressChipLabel(anime, l10n)),
+              onPressed: AppFlavor.isFull && !_checkingProgress
+                  ? () => _checkWatchProgress(anime)
+                  : null,
+            ),
         ],
       ),
       const SizedBox(height: 8),
@@ -786,6 +805,60 @@ class _AnimeDetailPageState extends State<AnimeDetailPage> {
       setState(() => _refreshingMeta = false);
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text(l10n.animeRefreshMetaFailed('$e'))),
+      );
+    }
+  }
+
+  /// Purpose: Label the anime1.me chip from the stored watch progress.
+  /// Inputs: `anime`, `l10n`.
+  /// Returns: `String`.
+  /// Side effects: None.
+  /// Notes: Internal helper used within this file only. Falls back to the
+  /// "check" prompt when nothing valid is stored — including when the watch
+  /// URL was edited after the last check.
+  String _watchProgressChipLabel(Anime anime, AppLocalizations l10n) {
+    final progress = anime.validWatchProgress;
+    final text = progress == null ? null : watchProgressLabel(l10n, progress);
+    return text == null
+        ? l10n.anime1CheckProgress
+        : l10n.anime1ProgressLabel(text);
+  }
+
+  /// Purpose: Re-read what anime1.me currently lists for this record's URL.
+  /// Inputs: `anime`.
+  /// Returns: None.
+  /// Side effects: Up to three HTTP requests, a write through
+  /// `AnimeStorage.patchExternalMeta`, and a snack bar on failure.
+  /// Notes: Internal helper used within this file only. Like
+  /// `_refreshExternalMeta`, this never bumps `modifiedAt` — the progress is a
+  /// cache of public site data, not a user edit. Callers gate on
+  /// `AppFlavor.isFull`.
+  Future<void> _checkWatchProgress(Anime anime) async {
+    final l10n = AppLocalizations.of(context)!;
+    final url = anime.watchUrl;
+    if (url == null) return;
+    setState(() => _checkingProgress = true);
+    try {
+      final progress = await Anime1Service.fetchProgress(url);
+      if (!mounted) return;
+      if (progress == null) {
+        setState(() => _checkingProgress = false);
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(l10n.anime1ProgressUnknown)));
+        return;
+      }
+      final merged = (anime.externalMeta ?? const AnimeExternalMeta())
+          .mergedWith(AnimeExternalMeta(watchProgress: progress));
+      await AnimeStorage.patchExternalMeta({anime.id: merged});
+      if (!mounted) return;
+      setState(() => _checkingProgress = false);
+      await _load();
+    } catch (e) {
+      if (!mounted) return;
+      setState(() => _checkingProgress = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(l10n.anime1ProgressFailed('$e'))),
       );
     }
   }

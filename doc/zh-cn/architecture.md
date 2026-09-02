@@ -87,6 +87,7 @@ lib/
       webdav_service.dart
     utils/
       chinese_convert.dart
+      chinese_convert_data.dart
       jst_time.dart
     views/webdav_config_page.dart
     widgets/
@@ -105,7 +106,7 @@ lib/
 - `test/local_archive_ui_test.dart` — 本地存档小节的渲染、archived 开关、片源下拉框，以及存档枚举标签辅助函数。
 - `test/widget_test.dart` — 基础组件冒烟覆盖。
 
-`tool/` 包含临时脚本（图标生成、搜索源校验），不在发布关键路径上。
+`tool/` 包含临时脚本（图标生成、搜索源校验、中文转换表生成器），不在发布关键路径上。
 
 ## 共享包（`myapps_data`）
 

@@ -236,6 +236,46 @@ class AppLocalizationsJa extends AppLocalizations {
   String get searchWatchUrlEmpty => '一致する視聴URLが見つかりません';
 
   @override
+  String get searchWatchUrlAliasHint => 'bangumi.tv の別名で照合';
+
+  @override
+  String anime1Ongoing(int episode) {
+    return '第$episode話まで更新';
+  }
+
+  @override
+  String anime1EpisodeRange(String range) {
+    return '第$range話';
+  }
+
+  @override
+  String get anime1Movie => '劇場版';
+
+  @override
+  String get anime1Special => '特別編';
+
+  @override
+  String anime1Short(int episode) {
+    return '$episode話まで';
+  }
+
+  @override
+  String get anime1CheckProgress => 'anime1 を確認';
+
+  @override
+  String anime1ProgressLabel(String status) {
+    return 'anime1: $status';
+  }
+
+  @override
+  String get anime1ProgressUnknown => 'anime1: 話数情報が見つかりません';
+
+  @override
+  String anime1ProgressFailed(String error) {
+    return 'anime1 の確認に失敗しました: $error';
+  }
+
+  @override
   String get searchSort => '並び替え';
 
   @override

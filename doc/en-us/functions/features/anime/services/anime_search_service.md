@@ -1,8 +1,10 @@
 # lib/features/anime/services/anime_search_service.dart
 
-`AnimeSearchService` queries or scrapes six external anime databases (`bangumi.tv`, MyAnimeList via
-Jikan v4, AniList, `acgsecrets.hk`, `filmarks.com`, and `anime1.me`) and returns normalized
-`AnimeSearchResult`s. It is a plain shared utility available in **full builds only** — it does not
+`AnimeSearchService` queries or scrapes five external anime databases (`bangumi.tv`, MyAnimeList via
+Jikan v4, AniList, `acgsecrets.hk`, and `filmarks.com`) and returns normalized
+`AnimeSearchResult`s; it also owns the title scorer (`similarityRaw`, `orderedSimilarity`,
+`foldTitle`) and the alias harvest that [`anime1_service.md`](anime1_service.md) builds on — the
+`anime1.me` watch-URL lookup moved there in 1.5.7. It is a plain shared utility available in **full builds only** — it does not
 itself enforce that restriction; callers gate it (see
 [`../../../../features/multi-source-search.md`](../../../../features/multi-source-search.md) for the
 flavor-gating rule, the per-source field matrix, and the two-round language strategy). It depends on
@@ -68,21 +70,24 @@ and the metadata block becomes `externalMeta`).
 | [`_alignFirstAirDateToSlot`](#alignfirstairdatetoslot) | static method (`AnimeSearchService`) | A | Move a first-air date back onto the late-night slot's calendar day. |
 | [`_toDouble`](#todouble) | static method (`AnimeSearchService`) | B | Coerce a JSON number into a `double`. |
 | [`parseDayOfWeek`](#parsedayofweek) | static method (`AnimeSearchService`) | A | Parse an English weekday name prefix into `1..7` (Monday..Sunday). |
-| [`searchAnime1`](#searchanime1) | static method (`AnimeSearchService`) | A | Search anime1.me for a watch-page URL, with Chinese-variant and substring fallback and fuzzy ranking. |
-| [`_bestSimilarity`](#bestsimilarity) | static method (`AnimeSearchService`) | A | Compute the best fuzzy-similarity score of a title against any of several query variants. |
-| [`_similarity`](#similarity) | static method (`AnimeSearchService`) | A | Fuzzy similarity combining LCS, character-set Dice, and containment, S/T-normalized. |
+| [`harvestAliases`](#harvestaliases) | static method (`AnimeSearchService`) | A | Fetch alternate titles for a query from bangumi.tv, for the anime1.me lookup. |
+| [`aliasCandidatesFrom`](#aliascandidatesfrom) | static method (`AnimeSearchService`), `@visibleForTesting` | A | Pick Chinese and Latin alias strings out of confident search hits. |
+| [`bestSimilarity`](#bestsimilarity) | static method (`AnimeSearchService`) | A | Compute the best fuzzy-similarity score of a title against any of several query variants. |
+| [`_similarity`](#similarity) | static method (`AnimeSearchService`) | A | Fuzzy similarity on the strings as given and on their folded, Simplified forms. |
+| [`similarityRaw`](#similarityraw) | static method (`AnimeSearchService`) | A | The three-measure similarity core (LCS-Dice, character-set Dice, containment) with no normalization. |
+| [`orderedSimilarity`](#orderedsimilarity) | static method (`AnimeSearchService`) | A | Order-aware similarity only — LCS-Dice or containment. |
+| [`foldTitle`](#foldtitle) | static method (`AnimeSearchService`) | A | Normalize a title for matching: halfwidth, lowercase, no punctuation, Simplified. |
 | [`_lcsLength`](#lcslength) | static method (`AnimeSearchService`) | A | Longest common subsequence length between two strings. |
-| [`_searchAnime1Single`](#searchanime1single) | static method (`AnimeSearchService`) | A | Run one anime1.me search query and extract series title/URL pairs from the HTML. |
-| [`_decodeHtmlEntities`](#decodehtmlentities) | static method (`AnimeSearchService`) | B | Decode the handful of HTML entities that appear in scraped titles. |
+| [`decodeHtmlEntities`](#decodehtmlentities) | static method (`AnimeSearchService`) | B | Decode the handful of HTML entities that appear in scraped titles. |
 | `_BackfillTitles(...)` | constructor (`_BackfillTitles`) | B | Hold one harvested title per language family. |
 | `hasAny` | getter (`_BackfillTitles`) | B | Report whether any usable title was harvested. |
 
-Note on the verification count: the source file has 48 `/// Purpose:` doc comments, but this table
-has 49 rows — `searchAnime1` carries a plain (non-`Purpose:`) doc comment. It is still a real,
-non-trivial declaration and is indexed above as Tier A.
+Note on the verification count: the source file has 59 `/// Purpose:` doc comments as of 1.5.7.
+The historical one-row surplus — `searchAnime1` carried a plain (non-`Purpose:`) doc comment — is
+gone with that method, which moved to `anime1_service.dart` as `search` and gained a full block.
 
-Six declarations (`mapBangumiSubject`, `parseBangumiWeekday`, `mapJikanAnime`,
-`parseJikanDuration`, `mapAniListMedia`, `parseDayOfWeek`) are marked `@visibleForTesting`. They are
+Seven declarations (`mapBangumiSubject`, `parseBangumiWeekday`, `mapJikanAnime`,
+`parseJikanDuration`, `mapAniListMedia`, `parseDayOfWeek`, `aliasCandidatesFrom`) are marked `@visibleForTesting`. They are
 public solely so `test/anime_search_test.dart` can exercise the source-format parsing against
 fixture JSON — the HTTP calls are static and take no injectable client, so the mappers are the only
 practical seam. Do not call them from production code outside this file.
@@ -162,7 +167,7 @@ practical seam. Do not call them from production code outside this file.
   final results = await AnimeSearchService.searchAll(query, preferredLanguage: language);
   ```
   (`lib/features/anime/views/anime_search_dialog.dart`, `_search`)
-- **Notes:** Replaces the pre-1.4.0 single round, which sent every source the raw query and only special-cased bangumi.tv for Simplified/Traditional. There is exactly one extra round — no recursion — so the worst case roughly doubles latency, and each source still fails independently via `.catchError`. `anime1.me` is deliberately not part of `searchAll`; see [`searchAnime1`](#searchanime1).
+- **Notes:** Replaces the pre-1.4.0 single round, which sent every source the raw query and only special-cased bangumi.tv for Simplified/Traditional. There is exactly one extra round — no recursion — so the worst case roughly doubles latency, and each source still fails independently via `.catchError`. `anime1.me` is deliberately not part of `searchAll`; its lookup lives in [`anime1_service.md`](anime1_service.md).
 
 ### `static List<String> queryVariants(String query)` <a id="queryvariants"></a>
 - **Kind:** static method of `AnimeSearchService`
@@ -181,7 +186,7 @@ practical seam. Do not call them from production code outside this file.
 - **Inputs:** `result`, `queries` (normally from [`queryVariants`](#queryvariants)); `preferredLanguage` — the UI language tag whose titles should win a near-tie.
 - **Returns:** `double` in `0.0..1.05`.
 - **Side effects:** None.
-- **Algorithm:** Runs [`_bestSimilarity`](#bestsimilarity) over every entry of `result.allTitles`, keeps the maximum, then adds `_languageBonus` (0.05) when [`_languageAffinity`](#languageaffinity) says the result carries a title in `preferredLanguage`.
+- **Algorithm:** Runs [`bestSimilarity`](#bestsimilarity) over every entry of `result.allTitles`, keeps the maximum, then adds `_languageBonus` (0.05) when [`_languageAffinity`](#languageaffinity) says the result carries a title in `preferredLanguage`.
 - **Usage:**
   ```dart
   double _relevance(AnimeSearchResult r) => AnimeSearchService.relevance(
@@ -528,71 +533,88 @@ practical seam. Do not call them from production code outside this file.
 - **Algorithm:** Lowercases `day` and checks 3-letter prefixes in order (`mon`→1 … `sun`→7).
 - **Notes:** Matches by `startsWith`, so it tolerates both `"Monday"` and `"Mondays"`.
 
-### `static Future<List<({String title, String url})>> searchAnime1(String query, {List<String> altQueries = const []})` <a id="searchanime1"></a>
+### `static Future<List<String>> harvestAliases(String query)` <a id="harvestaliases"></a>
 - **Kind:** static method of `AnimeSearchService`
-- **Source:** `lib/features/anime/services/anime_search_service.dart` (line 1437)
-- **Purpose:** Find candidate `anime1.me` category/watch-page URLs for a title, trying Simplified/Traditional variants and optional alternate queries, with a bigram-substring fallback when nothing matches, ranked by fuzzy similarity.
-- **Inputs:** `query`; `altQueries` — additional title variants to also try.
-- **Returns:** `Future<List<({String title, String url})>>` — up to 10, best match first.
-- **Side effects:** One or more HTTP GETs to `anime1.me`, one per query variant tried.
-- **Algorithm:**
-  1. Build a `Set<String>` of variants: `query` plus its Traditional and Simplified forms, and the same three for each non-blank `altQueries` entry.
-  2. Run [`_searchAnime1Single`](#searchanime1single) for every variant, merging and deduplicating by `url`.
-  3. If nothing matched, derive a Traditional letters/numbers-only form; if it is at least 4 characters, try up to 3 trailing bigrams, stopping as soon as one yields results.
-  4. Sort by [`_bestSimilarity`](#bestsimilarity) descending and return the top 10.
+- **Source:** `lib/features/anime/services/anime_search_service.dart` (approx. line 549)
+- **Purpose:** Fetch alternate titles for a query from bangumi.tv, for the anime1.me lookup.
+- **Inputs:** `query` — any language; sent in Simplified form.
+- **Returns:** `Future<List<String>>` — Chinese and Latin-script titles of the confident hits, deduplicated; empty when nothing matched.
+- **Side effects:** One HTTP POST to `api.bgm.tv`.
+- **Algorithm:** `_searchBangumi(toSimplified(query))`, then [`aliasCandidatesFrom`](#aliascandidatesfrom) with `queryVariants(query)`.
 - **Usage:**
   ```dart
-  final results = await AnimeSearchService.searchAnime1(q, altQueries: widget.altQueries);
+  aliases = await AnimeSearchService.harvestAliases(query);
   ```
-  (`lib/features/anime/views/anime_edit_page.dart`, the "find watch URL" dialog)
-- **Notes:** Unlike `searchAll`, this is not part of the general metadata search — it exists specifically to find a series' `anime1.me` watch-page URL for `Anime.watchUrl`, and returns title/URL pairs rather than metadata.
+  (`anime1_service.dart`, `search`, when no index row reaches the confident score)
+- **Notes:** A mainland title and a Taiwanese one can share no characters at all (间谍过家家 / 間諜家家酒), and bangumi.tv's 别名 field usually lists both.
 
-### `static double _bestSimilarity(String title, List<String> queries)` <a id="bestsimilarity"></a>
+### `static List<String> aliasCandidatesFrom(List<AnimeSearchResult> hits, List<String> variants)` <a id="aliascandidatesfrom"></a>
+- **Kind:** static method of `AnimeSearchService`, `@visibleForTesting`
+- **Source:** approx. line 565
+- **Purpose:** Pick alias strings out of search hits that match the query well.
+- **Returns:** `List<String>`, at most six, in hit order.
+- **Side effects:** None.
+- **Algorithm:** For each hit with [`relevance`](#relevance) at least `_backfillMinRelevance` (0.45), keep every `allTitles` entry that is Chinese (Han, no kana) or Latin script, deduplicated.
+- **Notes:** A Japanese title cannot match anime1's Chinese index; a romaji one can, because the site keeps Latin franchise names (`SPY×FAMILY`, `GRAND BLUE`).
+
+### `static double bestSimilarity(String title, List<String> queries)` <a id="bestsimilarity"></a>
 - **Kind:** static method of `AnimeSearchService`
-- **Source:** `lib/features/anime/services/anime_search_service.dart` (line 1506)
+- **Source:** approx. line 1697
 - **Purpose:** Compute the best fuzzy-similarity score of one candidate title against a list of query variants.
 - **Returns:** `double` in `0.0..1.0`.
 - **Side effects:** None.
 - **Algorithm:** Runs [`_similarity`](#similarity) against each entry in `queries`, keeping the maximum.
-- **Notes:** The single primitive behind both `anime1.me` ranking and the public [`relevance`](#relevance).
+- **Notes:** Behind the public [`relevance`](#relevance) and the anime1 scrape fallback; the anime1 index path scores pre-folded strings through [`similarityRaw`](#similarityraw) instead.
 
 ### `static double _similarity(String a, String b)` <a id="similarity"></a>
 - **Kind:** static method of `AnimeSearchService`
-- **Source:** `lib/features/anime/services/anime_search_service.dart` (line 1520)
-- **Purpose:** Score how similar two strings are, combining three measures and taking the best, so both a re-ordered title and a Simplified/Traditional variant of the same title score highly.
+- **Source:** approx. line 1719
+- **Purpose:** Fuzzy similarity of two titles, script- and punctuation-insensitive.
 - **Returns:** `double` in `0.0..1.0`; `0` if either input is empty.
 - **Side effects:** None.
-- **Algorithm:**
-  1. Compute Traditional-normalized forms of both inputs.
-  2. For each of `(a, b)` and `(aNorm, bNorm)`: LCS-based Dice via [`_lcsLength`](#lcslength); order-independent character-set Dice over `.runes.toSet()`; and containment scoring `0.7 + 0.3 * (shorter / longer)`.
-  3. Return the maximum across both passes and all three measures.
-- **Notes:** Comparing both raw and Traditional-normalized forms means a Simplified query still scores well against a Traditional-only title without either side needing pre-normalization.
+- **Algorithm:** The better of [`similarityRaw`](#similarityraw) on the strings as given and on their [`foldTitle`](#foldtitle) forms.
+- **Notes:** Through 1.5.6 the second pass normalized to Traditional, which is one-to-many (干 → 幹 or 乾) and therefore missed exactly the pairs it was meant to catch; Simplified is the many-to-one direction. Changing the pass can only raise scores, so `relevance`-based thresholds elsewhere are unaffected.
+
+### `static double similarityRaw(String a, String b)` <a id="similarityraw"></a>
+- **Kind:** static method of `AnimeSearchService`
+- **Source:** approx. line 1738
+- **Purpose:** The three-measure similarity core on strings exactly as given.
+- **Returns:** `double` in `0.0..1.0` — the best of LCS-Dice via [`_lcsLength`](#lcslength), order-independent character-set Dice over `.runes.toSet()`, and containment scoring `0.7 + 0.3 * (shorter / longer)`.
+- **Side effects:** None.
+- **Notes:** Public so `Anime1Service.rank` can score pre-folded strings without folding again per pair; every other caller wants [`_similarity`](#similarity).
+
+### `static double orderedSimilarity(String a, String b)` <a id="orderedsimilarity"></a>
+- **Kind:** static method of `AnimeSearchService`
+- **Source:** approx. line 1764
+- **Purpose:** Order-aware similarity only — LCS-Dice or containment.
+- **Returns:** `double` in `0.0..1.0`.
+- **Side effects:** None.
+- **Notes:** The character-set Dice term in [`similarityRaw`](#similarityraw) is blind to order, which on short Latin strings lets `bocchitherock` and `tomjerry` share half their letters. `Anime1Service.rank` requires this score to clear a floor as well, so such pairs are never offered.
+
+### `static String foldTitle(String s)` <a id="foldtitle"></a>
+- **Kind:** static method of `AnimeSearchService`
+- **Source:** approx. line 1791
+- **Purpose:** Normalize a title for matching — never for display.
+- **Returns:** `String` — fullwidth ASCII made halfwidth (U+FF01–FF5E, and U+3000 to a space), lowercased, whitespace and Unicode punctuation/symbols (`[\s\p{P}\p{S}]`) removed, then converted to Simplified.
+- **Side effects:** None.
+- **Notes:** Simplified is the canonical side because Traditional→Simplified is many-to-one (乾/幹 → 干, 髮/發 → 发). The conversion also folds Japanese kanji (滅 → 灭), so `鬼滅の刃` reaches `鬼滅之刃`. Symbols such as `×` in `SPY×FAMILY` are stripped on both sides, so they never decide a match.
 
 ### `static int _lcsLength(String a, String b)` <a id="lcslength"></a>
 - **Kind:** static method of `AnimeSearchService`
-- **Source:** `lib/features/anime/services/anime_search_service.dart` (line 1554)
+- **Source:** approx. line 1815
 - **Purpose:** Compute the longest common subsequence length between two strings.
 - **Returns:** `int`.
 - **Side effects:** None.
 - **Algorithm:** Standard O(n·m) dynamic programming using two rolling rows instead of a full 2D table.
 - **Notes:** O(n·m) is acceptable specifically because both inputs are short anime titles, not arbitrary-length text.
 
-### `static Future<List<({String title, String url})>> _searchAnime1Single(String query)` <a id="searchanime1single"></a>
+### `static String decodeHtmlEntities(String text)` <a id="decodehtmlentities"></a>
 - **Kind:** static method of `AnimeSearchService`
-- **Source:** `lib/features/anime/services/anime_search_service.dart` (line 1581)
-- **Purpose:** Run a single `anime1.me` search query and extract series (not episode) title/URL pairs from the result HTML.
-- **Returns:** `Future<List<({String title, String url})>>` — `[]` on a non-200 response.
-- **Side effects:** One HTTP GET (10s timeout) to `anime1.me`.
-- **Algorithm:** Three patterns in priority order — category links tagged `rel="...category..."`; then `?cat=<id>` links; then `<h2 class="...entry-title...">` episode-post links with a trailing `" [<n>]"` suffix stripped. Later tiers run only when earlier ones found nothing; every tier deduplicates by title and decodes HTML entities.
-- **Notes:** The tiers exist because the search page mixes clean series-level category links with individual episode posts; falling through only on an empty result avoids surfacing dozens of per-episode duplicates.
-
-### `static String _decodeHtmlEntities(String text)` <a id="decodehtmlentities"></a>
-- **Kind:** static method of `AnimeSearchService`
-- **Source:** `lib/features/anime/services/anime_search_service.dart` (line 1656)
+- **Source:** approx. line 1845
 - **Purpose:** Decode the small fixed set of HTML entities that show up in titles scraped from `filmarks.com` and `anime1.me`.
 - **Returns:** `String`.
 - **Side effects:** None.
-- **Notes:** Only six entities are handled — a numeric character reference other than `&#39;` (e.g. `&#8217;`) passes through unescaped.
+- **Notes:** Only six entities are handled — a numeric character reference other than `&#39;` (e.g. `&#8217;`) passes through unescaped. Public since 1.5.7 because `anime1_service.dart` decodes index titles and scraped links with it.
 
 ### `double? AnimeSearchProgress.fraction` <a id="searchprogressfraction"></a>
 - **Kind:** getter of `AnimeSearchProgress`

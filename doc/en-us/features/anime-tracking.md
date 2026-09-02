@@ -118,7 +118,9 @@ share files and never drawn into shared image cards. See
 The detail page adapts to the viewport. On a phone, a folded foldable, or any window that is
 meaningfully taller than it is wide, it is the single scrolling column it has always been. Given
 enough room and a squarer shape it splits into two panes: a fixed, full-height left column holding
-the cover, the Japanese title, the metadata chips and the watch-progress bar, and an independently
+the cover, the Japanese title, the metadata chips — including, for an anime1.me watch URL, the
+site's update progress (see [`watch-url-lookup.md`](watch-url-lookup.md)) — and the watch-progress
+bar, and an independently
 scrolling right column holding the rating card, the database-info card, the local-archive card,
 the notes, the season navigation, and the episode list.
 

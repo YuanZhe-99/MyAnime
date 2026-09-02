@@ -539,6 +539,66 @@ abstract class AppLocalizations {
   /// **'No matching watch URL found'**
   String get searchWatchUrlEmpty;
 
+  /// No description provided for @searchWatchUrlAliasHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Matched through aliases from bangumi.tv'**
+  String get searchWatchUrlAliasHint;
+
+  /// No description provided for @anime1Ongoing.
+  ///
+  /// In en, this message translates to:
+  /// **'Updated to episode {episode}'**
+  String anime1Ongoing(int episode);
+
+  /// No description provided for @anime1EpisodeRange.
+  ///
+  /// In en, this message translates to:
+  /// **'Episodes {range}'**
+  String anime1EpisodeRange(String range);
+
+  /// No description provided for @anime1Movie.
+  ///
+  /// In en, this message translates to:
+  /// **'Movie'**
+  String get anime1Movie;
+
+  /// No description provided for @anime1Special.
+  ///
+  /// In en, this message translates to:
+  /// **'Special'**
+  String get anime1Special;
+
+  /// No description provided for @anime1Short.
+  ///
+  /// In en, this message translates to:
+  /// **'up to {episode}'**
+  String anime1Short(int episode);
+
+  /// No description provided for @anime1CheckProgress.
+  ///
+  /// In en, this message translates to:
+  /// **'Check anime1'**
+  String get anime1CheckProgress;
+
+  /// No description provided for @anime1ProgressLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'anime1: {status}'**
+  String anime1ProgressLabel(String status);
+
+  /// No description provided for @anime1ProgressUnknown.
+  ///
+  /// In en, this message translates to:
+  /// **'anime1: no episode info found'**
+  String get anime1ProgressUnknown;
+
+  /// No description provided for @anime1ProgressFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'anime1 lookup failed: {error}'**
+  String anime1ProgressFailed(String error);
+
   /// No description provided for @searchSort.
   ///
   /// In en, this message translates to:

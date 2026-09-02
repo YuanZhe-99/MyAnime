@@ -97,6 +97,25 @@ value**, with exactly one exception: `endEpisode` when the counts demonstrably d
 apply can only fill blanks and correct a provable mismatch — which is what makes offering "update
 everything" defensible at all.
 
+## Watch-site progress
+
+Since 1.5.7 the loop has a third step between refresh and discovery: re-reading what anime1.me
+lists for every record whose `watchUrl` points there, and storing it as
+`externalMeta.watchProgress` (see [`watch-url-lookup.md`](watch-url-lookup.md#background-refresh)).
+It follows the same rule as refresh — a cache of public data, written through `patchExternalMeta`,
+never touching `modifiedAt` — and differs in shape: one `animelist.json` download covers the whole
+library, so the entire due set is handled in a single tick. A record is due when it was never read
+(or read for a different URL), after 6 hours while the site says `連載中`, after 7 days once the
+run is complete, and never once the user has watched everything of a completed run. Only
+pre-1.5.7 `/category/…` links cost a page request each, capped at three per tick. Failures use a
+one-hour **in-memory** retry that is deliberately separate from the entry backoff below, so a flaky
+watch-site read never delays that record's metadata refresh. The manual check runs the same batch
+first, outside the queue the progress bar counts.
+
+Relevance itself changed slightly in the same release: the scorer's normalized pass now runs on
+the folded Simplified form rather than Traditional. That can only raise near-duplicate scores, so
+the confidence threshold and margin below are unaffected.
+
 ## Rate limiting, backoff, and offline
 
 The external APIs are other people's servers. Jikan documents 3 requests per second and 60 per

@@ -58,4 +58,9 @@ git submodule update --init
 
 `tool/` 目录包含临时脚本，如图标生成和搜索源校验。`tool/generate_ios_icons.dart` 从 `assets/icon/app_icon.png` 派生出带内边距的 iOS 默认、深色和着色图标来源，并把预览 PNG 写到 `/tmp` 下；更改 iOS 图标来源后，用 `flutter_launcher_icons` 重新生成 `ios/Runner/Assets.xcassets/AppIcon.appiconset/`。
 
+`tool/gen_chinese_convert.dart` 从保留在 `tool/data/opencc/` 中的 OpenCC 字符字典加上 `tool/data/legacy_st_pairs.txt`
+中的旧手打表重新生成 `lib/shared/utils/chinese_convert_data.dart`；它离线且确定，因此输入不变时重新运行不产生
+任何差异。只在升级 OpenCC 时重新生成——从 `https://raw.githubusercontent.com/BYVoid/OpenCC/<commit>/data/dictionary/`
+刷新两个字典文件，然后运行 `dart run tool/gen_chinese_convert.dart --commit <sha>`——并提交数据文件。
+
 生产行为优先用聚焦测试，除非用户要求，否则把工具脚本留在发布关键路径之外。

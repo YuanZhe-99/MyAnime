@@ -4,24 +4,26 @@ This is the top-level index of the hand-written Function Explanation Layer docum
 `lib/` in the MyAnime repo. Each row links to a per-source-file page under `doc/en-us/functions/`
 mirroring the `lib/` tree (with `.dart` replaced by `.md`).
 
-**Totals:** the repo's `/// Purpose:` comment count is **864** (per the Function Explanation Layer
+**Totals:** the repo's `/// Purpose:` comment count is **919** (per the Function Explanation Layer
 convention in `AGENTS.md`, excluding generated `lib/l10n/` code — see [l10n/INDEX.md](l10n/INDEX.md)).
-The rows below sum to **862** documented declarations.
+The rows below sum to **900** documented declarations.
 
 | Tier | Count |
 |---|---|
-| Tier A (full entry: Purpose/Inputs/Returns/Side effects/Algorithm/Usage/Notes) | 554 |
-| Tier B (index row only) | 308 |
-| **Total** | **862** |
+| Tier A (full entry: Purpose/Inputs/Returns/Side effects/Algorithm/Usage/Notes) | 562 |
+| Tier B (index row only) | 338 |
+| **Total** | **900** |
 
-**Known gap.** These two numbers do not match: 2 declarations carry a `/// Purpose:` comment in
-source but have no row here, so the index under-covers `lib/` by that much. It was 10 until 1.5.6,
+**Known gap.** These two numbers do not match: 19 declarations carry a `/// Purpose:` comment in
+source but have no row here, so the index under-covers `lib/` by that much. The 1.5.7 recount found
+that the 864 recorded through 1.5.6 was itself stale — the same command measured 901 on the 1.5.6
+tree — so most of this gap accumulated unnoticed over earlier releases rather than being new. It
+was 10 until 1.5.6,
 when `adaptive_layout.dart`'s row was found still reading `4 | 4` — the count it had in 1.5.3,
 before the module grew from the detail page's own helper into the app-wide policy. Its page has
 documented twelve declarations since 1.5.5; only this row had not followed. The gap is not evenly
-distributed and has not been audited file by file. Two individual files go the *other* way and
-carry one more row than their source's `Purpose:` count — see the note under the `features/`
-section below.
+distributed and has not been audited file by file. One file goes the *other* way and carries one
+more row than its source's `Purpose:` count — see the note under the `features/` section below.
 
 These totals were recomputed against the actual source tree in 1.4.0, again in 1.5.0 (93 new
 declarations across four new files and five changed ones), and again in 1.5.1, which added 24
@@ -30,7 +32,8 @@ ones, again in 1.5.3, which added 22 across three new files and six changed ones
 in 1.5.4, which added 11 across three changed files and promoted three more rows from Tier B to
 Tier A without adding any file, and again in 1.5.5, which added 9 across four changed files and
 promoted five more rows from Tier B to Tier A, also without adding a file, and again in 1.5.6, which added 2 across two changed files and
-corrected `adaptive_layout.dart`'s long-stale row from 4 to 12. The
+corrected `adaptive_layout.dart`'s long-stale row from 4 to 12, and again in 1.5.7, which added 18
+across two new files and eight changed ones and corrected the stale 864 total to the measured 919. The
 pre-1.4.0 figures (682
 `Purpose:` comments and 685 documented declarations) had drifted far from both the source and this
 file's own per-file rows, which summed to 615 at the time. If you change these numbers, measure
@@ -64,27 +67,30 @@ convention (function/method/constructor/getter/setter); see that page for detail
 
 | Source file | Page | Declarations | Tier A count |
 |---|---|---|---|
-| `lib/features/anime/models/anime.dart` | [features/anime/models/anime.md](features/anime/models/anime.md) | 67 | 55 |
+| `lib/features/anime/models/anime.dart` | [features/anime/models/anime.md](features/anime/models/anime.md) | 73 | 59 |
 | `lib/features/anime/models/metadata_update.dart` | [features/anime/models/metadata_update.md](features/anime/models/metadata_update.md) | 22 | 9 |
 | `lib/features/anime/services/anime_storage.dart` | [features/anime/services/anime_storage.md](features/anime/services/anime_storage.md) | 40 | 32 |
-| `lib/features/anime/services/anime_search_service.dart` | [features/anime/services/anime_search_service.md](features/anime/services/anime_search_service.md) | 56 | 36 |
+| `lib/features/anime/services/anime1_service.dart` | [features/anime/services/anime1_service.md](features/anime/services/anime1_service.md) | 33 | 18 |
+| `lib/features/anime/services/anime_search_service.dart` | [features/anime/services/anime_search_service.md](features/anime/services/anime_search_service.md) | 59 | 39 |
 | `lib/features/anime/services/metadata_cache.dart` | [features/anime/services/metadata_cache.md](features/anime/services/metadata_cache.md) | 10 | 7 |
-| `lib/features/anime/services/metadata_update_service.dart` | [features/anime/services/metadata_update_service.md](features/anime/services/metadata_update_service.md) | 41 | 24 |
-| `lib/features/anime/views/anime_detail_page.dart` | [features/anime/views/anime_detail_page.md](features/anime/views/anime_detail_page.md) | 28 | 11 |
-| `lib/features/anime/views/anime_edit_page.dart` | [features/anime/views/anime_edit_page.md](features/anime/views/anime_edit_page.md) | 25 | 9 |
+| `lib/features/anime/services/metadata_update_service.dart` | [features/anime/services/metadata_update_service.md](features/anime/services/metadata_update_service.md) | 44 | 27 |
+| `lib/features/anime/views/anime1_labels.dart` | [features/anime/views/anime1_labels.md](features/anime/views/anime1_labels.md) | 4 | 4 |
+| `lib/features/anime/views/anime_detail_page.dart` | [features/anime/views/anime_detail_page.md](features/anime/views/anime_detail_page.md) | 30 | 12 |
+| `lib/features/anime/views/anime_edit_page.dart` | [features/anime/views/anime_edit_page.md](features/anime/views/anime_edit_page.md) | 28 | 9 |
 | `lib/features/anime/views/anime_search_dialog.dart` | [features/anime/views/anime_search_dialog.md](features/anime/views/anime_search_dialog.md) | 34 | 17 |
 | `lib/features/anime/views/archive_labels.dart` | [features/anime/views/archive_labels.md](features/anime/views/archive_labels.md) | 3 | 3 |
-| `lib/features/anime/views/home_page.dart` | [features/anime/views/home_page.md](features/anime/views/home_page.md) | 23 | 9 |
+| `lib/features/anime/views/home_page.dart` | [features/anime/views/home_page.md](features/anime/views/home_page.md) | 24 | 9 |
 | `lib/features/anime/views/management_page.dart` | [features/anime/views/management_page.md](features/anime/views/management_page.md) | 27 | 12 |
 | `lib/features/anime/views/metadata_updates_page.dart` | [features/anime/views/metadata_updates_page.md](features/anime/views/metadata_updates_page.md) | 23 | 9 |
 | `lib/features/anime/views/quarter_picker_dialog.dart` | [features/anime/views/quarter_picker_dialog.md](features/anime/views/quarter_picker_dialog.md) | 5 | 1 |
 | `lib/features/anime/views/statistics_page.dart` | [features/anime/views/statistics_page.md](features/anime/views/statistics_page.md) | 70 | 29 |
 
-Note: `anime.dart` and `anime_search_service.dart` each have one more row than their source's
-`Purpose:` comment count — the `AnimeData` default constructor has no doc comment at all in
-source, and `searchAnime1` carries a plain (non-`Purpose:`) one. Both are real, documented
-declarations (see each page's own note). As of 1.4.0 `_searchAnime1Single` does have a
-`Purpose:` comment, so it is no longer one of these cases.
+Note: `anime.dart` has one more row than its source's `Purpose:` comment count — the `AnimeData`
+default constructor has no doc comment at all in source but is a real, documented declaration (see
+that page's own note). `anime_search_service.dart` used to share this property because
+`searchAnime1` carried a plain (non-`Purpose:`) comment; that method moved to `anime1_service.dart`
+in 1.5.7 with a full block, so the two now agree. `chinese_convert_data.dart` is generated data
+with no declarations of the documented kinds, hence its `0 | 0` row.
 
 ## features/kana/
 
@@ -113,7 +119,8 @@ the 771 hand-documented declarations above).
 | `lib/shared/providers/app_settings.dart` | [shared/providers/app_settings.md](shared/providers/app_settings.md) | 17 | 14 |
 | `lib/shared/utils/adaptive_layout.dart` | [shared/utils/adaptive_layout.md](shared/utils/adaptive_layout.md) | 12 | 12 |
 | `lib/shared/utils/calendar_preferences.dart` | [shared/utils/calendar_preferences.md](shared/utils/calendar_preferences.md) | 4 | 4 |
-| `lib/shared/utils/chinese_convert.dart` | [shared/utils/chinese_convert.md](shared/utils/chinese_convert.md) | 3 | 2 |
+| `lib/shared/utils/chinese_convert.dart` | [shared/utils/chinese_convert.md](shared/utils/chinese_convert.md) | 5 | 4 |
+| `lib/shared/utils/chinese_convert_data.dart` | [shared/utils/chinese_convert_data.md](shared/utils/chinese_convert_data.md) | 0 | 0 |
 | `lib/shared/utils/detail_layout.dart` | [shared/utils/detail_layout.md](shared/utils/detail_layout.md) | 3 | 3 |
 | `lib/shared/utils/jst_time.dart` | [shared/utils/jst_time.md](shared/utils/jst_time.md) | 5 | 4 |
 | `lib/shared/widgets/adaptive_tile_grid.dart` | [shared/widgets/adaptive_tile_grid.md](shared/widgets/adaptive_tile_grid.md) | 3 | 3 |
@@ -135,7 +142,7 @@ the 771 hand-documented declarations above).
 | `lib/shared/services/import_export_service.dart` | [shared/services/import_export_service.md](shared/services/import_export_service.md) | 6 | 4 |
 | `lib/shared/services/tray_service.dart` | [shared/services/tray_service.md](shared/services/tray_service.md) | 16 | 8 |
 | `lib/shared/services/image_service.dart` | [shared/services/image_service.md](shared/services/image_service.md) | 6 | 6 |
-| `lib/shared/services/local_api_server.dart` | [shared/services/local_api_server.md](shared/services/local_api_server.md) | 44 | 36 |
+| `lib/shared/services/local_api_server.dart` | [shared/services/local_api_server.md](shared/services/local_api_server.md) | 45 | 36 |
 | `lib/shared/views/webdav_config_page.dart` | [shared/views/webdav_config_page.md](shared/views/webdav_config_page.md) | 22 | 12 |
 
 ## Area totals
@@ -144,10 +151,8 @@ the 771 hand-documented declarations above).
 |---|---|---|---|---|
 | Root (`lib/`) | 1 | 1 | 1 | 0 |
 | `app/` | 5 | 18 | 13 | 5 |
-| `features/anime/` | 11 | 338 | 198 | 140 |
+| `features/anime/` | 17 | 529 | 296 | 233 |
 | `features/kana/` | 1 | 19 | 3 | 16 |
-| `features/settings/` | 4 | 45 | 24 | 21 |
-| `shared/` (utils/widgets/providers) | 8 | 46 | 31 | 15 |
-| `shared/services/` | 14 | 189 | 155 | 34 |
-| `shared/views/` | 1 | 22 | 12 | 10 |
-| **Total** | **45** | **678** | **437** | **241** |
+| `features/settings/` | 4 | 49 | 28 | 21 |
+| `shared/` (utils, widgets, providers, services, views) | 28 | 284 | 221 | 63 |
+| **Total** | **56** | **900** | **562** | **338** |

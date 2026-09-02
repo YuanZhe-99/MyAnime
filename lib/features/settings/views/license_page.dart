@@ -63,5 +63,14 @@ Key points:
 - Any distributed or modified version must also be released under
   GPLv3 with source code available.
 - You may NOT incorporate this software into proprietary programs.
-- There is NO WARRANTY for this software.''';
+- There is NO WARRANTY for this software.
+
+---
+
+Third-party components
+
+Simplified/Traditional Chinese conversion tables are derived from OpenCC
+(https://github.com/BYVoid/OpenCC), Copyright (c) Carbo Kuo and contributors,
+licensed under the Apache License, Version 2.0. You may obtain a copy of the
+License at http://www.apache.org/licenses/LICENSE-2.0.''';
 }

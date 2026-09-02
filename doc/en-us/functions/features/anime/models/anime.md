@@ -52,6 +52,10 @@ every view under `lib/features/anime/views/`.
 | [`withExtraJson`](#withextrajson-animeexternalrating) | method (`AnimeExternalRating`) | B | Copy with `extraJson` replaced. |
 | [`toJson`](#tojson-animeexternalrating) | method (`AnimeExternalRating`) | A | Serialize to one entry of `externalMeta.ratings`. |
 | [`AnimeExternalRating.fromJson`](#animeexternalrating-fromjson) | factory constructor | A | Parse one rating entry, routing unparseable values into `extraJson`. |
+| [`AnimeWatchProgress(...)`](#animewatchprogress-new) | constructor (`AnimeWatchProgress`) | A | Create the record of what the watch site listed for `watchUrl` when last checked. |
+| `hasAnyData` | getter (`AnimeWatchProgress`) | B | Whether there's a source URL, episode data, a timestamp, or preserved `extraJson`. |
+| [`toJson`](#tojson-animewatchprogress) | method (`AnimeWatchProgress`) | A | Serialize to the object stored under `externalMeta.watchProgress`. |
+| [`AnimeWatchProgress.fromJson`](#animewatchprogress-fromjson) | factory constructor | A | Parse a watch-progress record, routing unparseable values into `extraJson`. |
 | [`AnimeExternalMeta(...)`](#animeexternalmeta-new) | constructor (`AnimeExternalMeta`) | A | Create a public-metadata record pulled from external databases. |
 | `hasAnyData` | getter (`AnimeExternalMeta`) | B | Whether there's anything worth persisting. |
 | [`ratingFor`](#ratingfor) | method (`AnimeExternalMeta`) | A | Look up this record's rating for one source. |
@@ -73,6 +77,7 @@ every view under `lib/features/anime/views/`.
 | [`getEpisodeAirDate`](#getepisodeairdate) | method (`Anime`) | A | JST air timestamp for an episode, with late-night (`25:00`-style) rollover. |
 | [`getEpisodeCalendarDate`](#getepisodecalendardate) | method (`Anime`) | A | JST calendar date for an episode, without rollover. |
 | [`nextUnwatchedEpisode`](#nextunwatchedepisode) | getter (`Anime`) | A | First episode number still unwatched. |
+| [`validWatchProgress`](#validwatchprogress) | getter (`Anime`) | A | The stored watch-site progress, only while it was read for the current `watchUrl`. |
 | [`isCompleted`](#iscompleted) | getter (`Anime`) | A | Whether every episode up to `endEpisode` is watched. |
 | [`viewingStatus`](#viewingstatus) | getter (`Anime`) | A | Derived `AnimeViewingStatus` (completed/watching/dropped/notStarted). |
 | [`copyWith`](#copywith) | method (`Anime`) | A | Create a copy with selected fields replaced (with `clearXxx` flags for nullable fields). |
@@ -485,7 +490,7 @@ has 63 rows — the `AnimeData` default constructor has no doc comment at all in
 - **Algorithm:** Computes `extraJson` via `_unknownJson`, then reads each known key with a type check; any value present but of the wrong type is written back into `extraJson` rather than dropped. A missing or non-numeric `scoreMax` falls back to `10`.
 - **Notes:** Same discipline as [`AnimeLocalArchive.fromJson`](#animelocalarchive-fromjson) — a newer build's data must survive an older build's edits.
 
-### `const AnimeExternalMeta({synonyms = const [], titleRomaji, titleEn, format, status, durationMinutes, genres = const [], studios = const [], endDate, ratings = const [], refreshedAt, extraJson = const {}})` <a id="animeexternalmeta-new"></a>
+### `const AnimeExternalMeta({synonyms = const [], titleRomaji, titleEn, format, status, durationMinutes, genres = const [], studios = const [], endDate, ratings = const [], refreshedAt, watchProgress, extraJson = const {}})` <a id="animeexternalmeta-new"></a>
 - **Kind:** constructor of `AnimeExternalMeta`
 - **Source:** `lib/features/anime/models/anime.dart` (line 826)
 - **Purpose:** Create a record of public metadata pulled from external anime databases.
@@ -1015,3 +1020,54 @@ has 63 rows — the `AnimeData` default constructor has no doc comment at all in
   ```
   (`AnimeStorage.load`, [`../services/anime_storage.md`](../services/anime_storage.md#load))
 - **Notes:** A missing `animes` key parses to an empty list rather than throwing, but a malformed individual anime entry propagates whatever exception `Anime.fromJson` throws (e.g. a missing `id`) — there is no per-record error isolation at this layer.
+
+### `const AnimeWatchProgress({required sourceUrl, catId, latestEpisode, episodesText, ongoing = false, checkedAt, extraJson = const {}})` <a id="animewatchprogress-new"></a>
+- **Kind:** constructor of `AnimeWatchProgress`
+- **Source:** `lib/features/anime/models/anime.dart` (approx. line 862)
+- **Purpose:** Create the record of what the watch site (anime1.me) listed for an anime's `watchUrl` when it was last checked — the newest available episode and whether the run is still updating.
+- **Inputs:** `sourceUrl` — the `watchUrl` this was read for; `catId`; `latestEpisode` — `null` for films and specials; `episodesText` — the site's cell verbatim (`連載中(09)`, `1-12+OVA`); `ongoing`; `checkedAt` (UTC); `extraJson`.
+- **Returns:** A new `AnimeWatchProgress`.
+- **Side effects:** None.
+- **Usage:**
+  ```dart
+  AnimeWatchProgress toProgress(DateTime now) => AnimeWatchProgress(
+    sourceUrl: url,
+    catId: catId,
+    latestEpisode: episodes?.latest,
+    episodesText: episodes?.raw,
+    ongoing: episodes?.isOngoing ?? false,
+    checkedAt: now.toUtc(),
+  );
+  ```
+  (`anime1_service.dart`, `Anime1Match.toProgress`)
+- **Notes:** A cached copy of public site data, like the rest of `AnimeExternalMeta`: written through `AnimeStorage.patchExternalMeta` and never bumping `modifiedAt`. `sourceUrl` is what lets [`validWatchProgress`](#validwatchprogress) invalidate it when the URL is edited. See [`../../../../features/watch-url-lookup.md`](../../../../features/watch-url-lookup.md#persisted-progress).
+
+### `Map<String, dynamic> toJson()` (AnimeWatchProgress) <a id="tojson-animewatchprogress"></a>
+- **Kind:** method of `AnimeWatchProgress`
+- **Source:** approx. line 895
+- **Purpose:** Serialize to the object stored under `externalMeta.watchProgress`.
+- **Returns:** `Map<String, dynamic>` — starts from `extraJson`, then writes `sourceUrl` and `ongoing` always, and `catId`, `latestEpisode`, `episodesText`, `checkedAt` (ISO-8601 UTC) when present.
+- **Side effects:** None.
+- **Notes:** The shape is documented in [`../../../../data-formats.md`](../../../../data-formats.md).
+
+### `factory AnimeWatchProgress.fromJson(Map<String, dynamic> json)` <a id="animewatchprogress-fromjson"></a>
+- **Kind:** factory constructor of `AnimeWatchProgress`
+- **Source:** approx. line 913
+- **Purpose:** Parse a watch-progress record, routing unparseable values into `extraJson`.
+- **Returns:** A new `AnimeWatchProgress`; a missing `sourceUrl` reads as empty.
+- **Side effects:** None.
+- **Algorithm:** Unknown keys go to `extraJson` via `_unknownJson`; each known key is read with a type check and, on the wrong type, kept in `extraJson` instead of dropped — the same pattern as every other record in this file.
+- **Notes:** `AnimeExternalMeta.fromJson` discards a parsed record whose `hasAnyData` is false, so an empty object never survives a round trip.
+
+### `AnimeWatchProgress? get validWatchProgress` <a id="validwatchprogress"></a>
+- **Kind:** getter of `Anime`
+- **Source:** approx. line 1626
+- **Purpose:** Return the stored watch-site progress only while it still applies — that is, while its `sourceUrl` equals the current `watchUrl`.
+- **Returns:** `AnimeWatchProgress?` — `null` when nothing is stored, when there is no watch URL, or when the record was read for a different one.
+- **Side effects:** None.
+- **Usage:**
+  ```dart
+  final siteLatest = anime.validWatchProgress?.latestEpisode;
+  ```
+  (`management_page.dart`, `_buildAnimeTile`)
+- **Notes:** Editing the watch URL by hand therefore hides the stale count until the next check, instead of showing episode 9 of a series the URL no longer points at. `MetadataUpdateService.isWatchProgressStale` treats a `null` here as "never read", so the next tick refreshes it.

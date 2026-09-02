@@ -101,6 +101,25 @@ enum AnimeType {
 - `genres`、`studios` — 类型标签与制作公司。
 - `endDate` — 已知时的完结日期。
 - `refreshedAt` — 上次刷新的 UTC 时间戳。
+- `watchProgress` — 自 1.5.7 起，观看站点（anime1.me）在上次检查时为 `watchUrl` 列出的内容，是一个
+  `AnimeWatchProgress` 对象：
+
+  ```json
+  "watchProgress": {
+    "sourceUrl": "https://anime1.me/?cat=1935",
+    "catId": 1935,
+    "latestEpisode": 9,
+    "episodesText": "連載中(09)",
+    "ongoing": true,
+    "checkedAt": "2026-09-01T12:00:00.000Z"
+  }
+  ```
+
+  `sourceUrl` 是读取该记录时所用的 `watchUrl`；`Anime.validWatchProgress` 只在两者仍然一致时返回该记录，因此
+  改了链接就会隐藏过期的集数。`latestEpisode` 对剧场版与特别篇为 `null`，`episodesText` 原样保留站点的单元格
+  （`1-12+OVA`）。对象内的未知键与其他地方一样被保留。它放在 `externalMeta` 里，因为它是同一类数据——经
+  `AnimeStorage.patchExternalMeta` 写入的公开站点信息缓存，绝不修改 `modifiedAt`。见
+  [`features/watch-url-lookup.md`](features/watch-url-lookup.md)。
 
 **`ratings` 与 `AnimeRating` 刻意分离。** `AnimeRating` 保存的是*用户自己*的评分，任何抓取都不会写入它；
 `externalMeta.ratings` 保存的是各外部资料库的评分，统一归一化到 10 分制（`scoreMax`，默认 `10`）。每条

@@ -1,6 +1,6 @@
 # lib/features/settings/views/license_page.dart
 
-`LicensePage` 是从设置 -> 关于 -> 许可证到达的一个极小的、完全静态的设置子页（见 `functions/features/settings/views/settings_page.md`）。它没有状态、没有服务依赖：整个页面是一个渲染单个硬编码 `SelectableText` 块（保存项目 GPLv3 许可证声明，存储为私有 `_licenseText` 静态 const `String` 字段）的 `StatelessWidget`。本文件没有 Tier A 逻辑——它纯粹为显示静态文本而存在，与 `settings_page.dart` 别处经 `showLicensePage` 到达的生成第三方许可证页不同。
+`LicensePage` 是从设置 -> 关于 -> 许可证到达的一个极小的、完全静态的设置子页（见 `functions/features/settings/views/settings_page.md`）。它没有状态、没有服务依赖：整个页面是一个渲染单个硬编码 `SelectableText` 块（保存项目 GPLv3 许可证声明，存储为私有 `_licenseText` 静态 const `String` 字段）的 `StatelessWidget`。自 1.5.7 起该文本以一节「Third-party components」结尾，为 [`../../../shared/utils/chinese_convert_data.md`](../../../shared/utils/chinese_convert_data.md) 背后的 OpenCC 字符字典署名（Apache License 2.0）。本文件没有 Tier A 逻辑——它纯粹为显示静态文本而存在，与 `settings_page.dart` 别处经 `showLicensePage` 到达的生成第三方许可证页不同。
 
 ## 声明
 

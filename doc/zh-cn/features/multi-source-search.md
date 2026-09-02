@@ -10,7 +10,8 @@
 - AniList —— GraphQL API。
 - `acgsecrets.hk` —— 季度页面的 JSON-LD。
 - `filmarks.com` —— HTML 抓取。
-- `anime1.me` —— 专门用于查找观看链接（不参与通用元数据搜索）。
+- `anime1.me` —— 只用于查找观看链接，不参与元数据；自 1.5.7 起它住在自己的服务里，对站点的系列索引做匹配——
+  见 [`watch-url-lookup.md`](watch-url-lookup.md)。
 
 每个来源最多查询 `_maxPerSource`（10）条结果。
 
@@ -103,9 +104,10 @@
 ## 相关度评分
 
 `relevance(result, queryVariants)` 会把一条结果已知的每个标题 —— `title`、`titleJa`、`titleRomaji`、
-`titleEn` 以及每个 `synonym` —— 与每个查询变体逐一比对，取最高分。它复用了给 `anime1.me` 观看链接命中
-排序的那套模糊评分器（`_similarity`：LCS-Dice、字符集 Dice、包含关系，且每项都在原始形式与繁体归一化
-形式上各算一遍），因此简体查询对纯繁体标题依然能得高分。
+`titleEn` 以及每个 `synonym` —— 与每个查询变体逐一比对，取最高分。它复用了 `anime1.me` 查找所用的那套模糊
+评分器（`_similarity`：LCS-Dice、字符集 Dice、包含关系，且每项都在原始形式与 `foldTitle` 给出的**归一化简体
+形式**上各算一遍），因此简体查询对纯繁体标题依然能得高分。1.5.6 之前第二遍按繁体归一化——那是一对多的方向，
+会漏掉 干/乾 这类组合；这次切换只会抬高分数，因此没有任何阈值挪动。
 
 `queryVariants(query)` 是公开的，这样搜索对话框可以用与服务实际检索时完全相同的变体集合来评分，而不必
 自己再推导一遍。

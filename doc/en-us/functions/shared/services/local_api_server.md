@@ -489,7 +489,8 @@ server the app runs for other local/LAN tools to call, e.g. the desktop web dash
 - **Returns:** `Map<String, dynamic>` with identity/URL/schedule fields plus derived fields:
   `status` (`viewingStatus.name`), `nextUnwatchedEpisode`/`nextEpisodeAirDate` (UTC string via
   `_jstToUtcString`), `type`/`manualType`, `watchedEpisodes`/`skippedEpisodes`
-  (`_episodeStatusCount`), `airedEpisodes`/`airedUnwatchedEpisodes`, `rating`
+  (`_episodeStatusCount`), `airedEpisodes`/`airedUnwatchedEpisodes`,
+  `watchLatestEpisode`/`watchProgressCheckedAt` (from `Anime.validWatchProgress`, since 1.5.7), `rating`
   (`_ratingToJson`), `localArchive` (`_localArchiveToJson`), and `createdAt`/`modifiedAt` as
   ISO 8601 strings.
 - **Side effects:** None (reads only).

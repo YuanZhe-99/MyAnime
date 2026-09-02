@@ -31,6 +31,7 @@
 - [`features/home-management-statistics.md`](features/home-management-statistics.md) — 主页、管理和统计三个标签。
 - [`features/kana-reference.md`](features/kana-reference.md) — 纯 UI 的假名速查模块。
 - [`features/multi-source-search.md`](features/multi-source-search.md) — 多源动画搜索、去重、模糊匹配和风味门控。
+- [`features/watch-url-lookup.md`](features/watch-url-lookup.md) — anime1.me 观看链接查找：系列索引、归一化匹配、别名补采与持久化的观看进度。
 - [`features/share-and-import.md`](features/share-and-import.md) — 分享/导出流程和 `.myanimeitem` 文件导入/导出。
 - [`features/duplicate-detection.md`](features/duplicate-detection.md) — 重复分组和合并逻辑。
 - [`features/reminders.md`](features/reminders.md) — 移动/桌面提醒通知调度。

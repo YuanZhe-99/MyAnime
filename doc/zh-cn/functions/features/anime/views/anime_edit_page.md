@@ -12,7 +12,7 @@
 | [`_loadExisting`](#_loadexisting) | 方法（`_AnimeEditPageState`） | A | 加载既有动画并从它填充每个表单字段/控制器。 |
 | `_AnimeEditPageState.dispose` | 方法（`_AnimeEditPageState`） | B | 释放全部 17 个自有的 `TextEditingController`。 |
 | [`_pickCoverImage`](#_pickcoverimage) | 方法（`_AnimeEditPageState`） | A | 让用户选择封面图像文件并暂存其路径。 |
-| [`_searchWatchUrl`](#_searchwatchurl) | 方法（`_AnimeEditPageState`） | A | 打开观看 URL 搜索对话框并应用所选 URL。 |
+| [`_searchWatchUrl`](#_searchwatchurl) | 方法（`_AnimeEditPageState`） | A | 用所有已知标题打开观看 URL 搜索对话框，并应用所选 URL 及其进度。 |
 | [`_showSearchDialog`](#_showsearchdialog) | 方法（`_AnimeEditPageState`） | A | 打开在线元数据搜索对话框并把其结果合并进表单。 |
 | [`_pickFirstAirDate`](#_pickfirstairdate) | 方法（`_AnimeEditPageState`） | A | 显示日期选择器并暂存所选 `firstAirDate`。 |
 | [`_save`](#_save) | 方法（`_AnimeEditPageState`） | A | 校验表单并创建或更新动画记录。 |
@@ -27,11 +27,11 @@
 | `_buildRatingField` | 方法（组件辅助） | B | 渲染一个带校验的 0–10 评分 `TextFormField`。 |
 | `_dayName` | 方法（`_AnimeEditPageState`） | B | 本地化星期几数字供播出日下拉框使用。 |
 | `_typeLabel` | 方法（`_AnimeEditPageState`） | B | 本地化 `AnimeType` 值供类型覆盖下拉框使用。 |
-| `_WatchUrlSearchDialog.new` | 构造函数（`_WatchUrlSearchDialog`） | B | 带查询和替代查询创建观看 URL 搜索对话框。 |
+| `_WatchUrlSearchDialog.new` | 构造函数（`_WatchUrlSearchDialog`） | B | 带查询、替代查询、首播日期与季度标签创建观看 URL 搜索对话框。 |
 | `_WatchUrlSearchDialog.createState` | 方法（`_WatchUrlSearchDialog`） | B | 为此组件创建可变状态对象。 |
 | `_WatchUrlSearchDialogState.initState` | 方法（`_WatchUrlSearchDialogState`） | B | 播种查询控制器并运行首次搜索。 |
 | `_WatchUrlSearchDialogState.dispose` | 方法（`_WatchUrlSearchDialogState`） | B | 释放查询控制器。 |
-| [`_search`](#_search-watchurl) | 方法（`_WatchUrlSearchDialogState`） | A | 搜索 anime1.me 找匹配查询的观看页链接。 |
+| [`_search`](#_search-watchurl) | 方法（`_WatchUrlSearchDialogState`） | A | 对对话框的查询文本运行 anime1.me 索引查找。 |
 | `_WatchUrlSearchDialogState.build` | 方法（`_WatchUrlSearchDialogState`，组件构建） | B | 构建观看 URL 搜索对话框脚手架。 |
 | `_buildBody` | 方法（组件辅助） | B | 渲染观看 URL 对话框的加载/错误/结果正文。 |
 
@@ -79,14 +79,14 @@
 ### `Future<void> _searchWatchUrl()` <a id="_searchwatchurl"></a>
 - **种类：** `_AnimeEditPageState` 的方法
 - **来源：** `lib/features/anime/views/anime_edit_page.dart`（约第 153 行）
-- **用途：** 打开以当前标题（和替代标题）为种子的 `_WatchUrlSearchDialog`，并应用用户选择的任何结果 URL。
-- **输入：** 无（读取 `_titleController`/`_titleJaController` 文本）。
+- **用途：** 打开以表单所知的每个标题为种子的 `_WatchUrlSearchDialog`，并应用用户选择的结果——其 URL 与站点的集数进度。
+- **输入：** 无（读取标题控制器、`_externalMeta`、`_firstAirDate` 与季度控制器）。
 - **返回：** `Future<void>`。
-- **副作用：** 显示执行网络请求的对话框；`setState` `_watchUrlController.text`；成功时显示 `SnackBar`。
+- **副作用：** 显示执行网络请求的对话框；`setState` `_watchUrlController.text` 与 `_externalMeta`；成功时显示 `SnackBar`。
 - **算法：**
   1. 标题非空则用作主查询，否则用日文标题；两者都空则提前返回。
-  2. 构建 `altQueries`——*另一个*标题，但只在两者恰好一个非空时包含（使对话框在只有一个标题时总有回退查询）。
-  3. Await `showDialog<String>`，带一个 `_WatchUrlSearchDialog`；选中 URL 且组件仍 mounted 时，设置 `_watchUrlController.text` 并显示确认 `SnackBar`。
+  2. 构建 `altQueries`——日文标题（当标题是主查询时），以及 `_externalMeta` 的 `titleEn`、`titleRomaji` 与每个别名，过滤空白。站点索引的台译可能与大陆译名一个字都不共享，因此每个已知名称都一并送去。
+  3. Await `showDialog<Anime1Match>`，带一个同时接收 `_firstAirDate` 与季度标签（驱动档期加分）的 `_WatchUrlSearchDialog`；选中命中且组件仍 mounted 时，设置 `_watchUrlController.text`，经 `mergedWith` 把 `match.toProgress(now)` 并入 `_externalMeta`，并显示确认 `SnackBar`。进度因此在保存时一并存储，无需再发请求。
 - **用法：**
   ```dart
   suffixIcon: AppFlavor.isFull
@@ -205,14 +205,14 @@
 ### `Future<void> _search()` <a id="_search-watchurl"></a>
 - **种类：** `_WatchUrlSearchDialogState` 的方法
 - **来源：** `lib/features/anime/views/anime_edit_page.dart`（约第 867 行）
-- **用途：** 经 `AnimeSearchService.searchAnime1` 查询 `anime1.me`，找匹配对话框查询文本的观看页链接，外加传入的任何替代查询。
-- **输入：** 无（读取 `_controller.text`；使用 `widget.altQueries`）。
+- **用途：** 对对话框的查询文本运行 anime1.me 查找（`Anime1Service.search`），外加传入的替代查询、首播日期与季度标签。
+- **输入：** 无（读取 `_controller.text`；使用 `widget.altQueries`、`widget.firstAirDate`、`widget.seasonText`）。
 - **返回：** `Future<void>`。
-- **副作用：** 经 `AnimeSearchService.searchAnime1` 执行网络请求；`setState` `_loading`、`_results`、`_error`。
+- **副作用：** 经 `Anime1Service.search` 执行网络请求；`setState` `_loading`、`_results`（一个 `List<Anime1Match>`）、`_error`。
 - **算法：**
   1. 修剪查询文本；为空则提前返回。
   2. `setState` 进入加载状态，清除先前的结果/错误。
-  3. Await `AnimeSearchService.searchAnime1(q, altQueries: widget.altQueries)`；成功时存储结果，列表返回空时设置"无结果"错误消息。
+  3. Await `Anime1Service.search(q, altQueries:, firstAirDate:, seasonText:)`；成功时存储结果，列表返回空时设置"无结果"错误消息。每行渲染标题、来自 `anime1InfoLine` 的说明行（季节 · 集数 · 字幕组）与 URL；当任一结果为 `viaAliases` 时，一行说明指出命中来自 bangumi.tv 的别名。重新键入查询只对缓存的索引重新排序，不会再下载。
   4. 任何抛出的异常时，把 `e.toString()` 存为 `_error` 而不是结果。
 - **用法：**
   ```dart

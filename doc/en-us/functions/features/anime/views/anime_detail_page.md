@@ -46,13 +46,15 @@ list read correctly whether it follows the progress bar or opens the right pane.
 | [`_delete`](#_delete) | method (`_AnimeDetailPageState`) | A | Confirm and delete this anime record. |
 | `_AnimeDetailPageState.build` | method (`_AnimeDetailPageState`, widget build) | B | Build the detail page scaffold, choosing the single-column or two-pane layout. |
 | `_buildCover` | method (widget helper) | B | Build the cover image block at an explicit size. |
-| `_buildHeaderChildren` | method (widget helper) | B | Build the header block: Japanese title, chips, and watch progress. |
+| `_buildHeaderChildren` | method (widget helper) | B | Build the header block: Japanese title, chips (including the anime1.me progress chip), and the watched-episode bar. |
 | `_buildDetailChildren` | method (widget helper) | B | Build the cards below the progress bar, plus season navigation. |
 | `_buildEpisodeChildren` | method (widget helper) | B | Build the episode list header and one row per tracked episode. |
 | [`_toggleAllWatched`](#_toggleallwatched) | method (`_AnimeDetailPageState`) | A | Mark every tracked episode watched, or all unwatched if already complete. |
 | `_buildAbandonOrResume` | method (widget helper) | B | Render the "Abandon"/"Resume" action button for the episode list header. |
 | [`_refreshableUrls`](#_refreshableurls) | method (`_AnimeDetailPageState`) | A | List the source pages this anime can be refreshed from. |
 | [`_refreshExternalMeta`](#_refreshexternalmeta) | method (`_AnimeDetailPageState`) | A | Re-fetch external metadata from every remembered source page. |
+| `_watchProgressChipLabel` | method (`_AnimeDetailPageState`) | B | Label the anime1.me chip from the stored watch progress, or the "check" prompt. |
+| [`_checkWatchProgress`](#_checkwatchprogress) | method (`_AnimeDetailPageState`) | A | Re-read what anime1.me lists for this record's URL and store it. |
 | [`_buildExternalMetaCard`](#_buildexternalmetacard) | method (widget helper) | A | Render the public metadata pulled from external databases. |
 | `_buildRatingCard` | method (widget helper) | B | Render the user's own rating summary card. |
 | `_buildLocalArchiveCard` | method (widget helper) | B | Render the read-only local-archive summary card. |
@@ -309,3 +311,28 @@ list read correctly whether it follows the progress bar or opens the right pane.
   one)
 - **Notes:** `_buildAbandonOrResume` shows at most one of the abandon/resume buttons at a time —
   abandon takes priority when both unwatched and skipped episodes exist.
+
+### `Future<void> _checkWatchProgress(Anime anime)` <a id="_checkwatchprogress"></a>
+- **Kind:** method of `_AnimeDetailPageState`
+- **Source:** `lib/features/anime/views/anime_detail_page.dart` (approx. line 816)
+- **Purpose:** Re-read what anime1.me currently lists for this record's watch URL and store it.
+- **Inputs:** `anime`.
+- **Returns:** `Future<void>`.
+- **Side effects:** Up to three HTTP requests via `Anime1Service.fetchProgress`; a write through
+  `AnimeStorage.patchExternalMeta`; `setState`s `_checkingProgress`; a snack bar on failure.
+- **Algorithm:**
+  1. Return when there is no watch URL; set the chip's spinner.
+  2. Await `Anime1Service.fetchProgress(url)`; `null` → snack bar `anime1ProgressUnknown`.
+  3. Otherwise merge the record into `externalMeta` via `mergedWith(AnimeExternalMeta(watchProgress: …))`, write it with `patchExternalMeta`, and `_load()`.
+  4. Any exception → snack bar `anime1ProgressFailed`; the spinner is always cleared when mounted.
+- **Usage:**
+  ```dart
+  onPressed: AppFlavor.isFull && !_checkingProgress
+      ? () => _checkWatchProgress(anime)
+      : null,
+  ```
+  (`_buildHeaderChildren`, the anime1.me chip — the chip itself renders in every flavor)
+- **Notes:** Like `_refreshExternalMeta`, this never bumps `modifiedAt`: the progress is a cache of
+  public site data, not a user edit. The chip's label comes from `_watchProgressChipLabel`, which
+  reads `Anime.validWatchProgress`, so a URL edited after the last check shows the "check" prompt
+  rather than a stale count.

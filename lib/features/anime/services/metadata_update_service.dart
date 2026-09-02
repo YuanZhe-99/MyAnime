@@ -29,6 +29,7 @@ import '../../../shared/services/image_service.dart';
 import '../models/anime.dart';
 import '../models/metadata_update.dart';
 import 'anime_search_service.dart';
+import 'anime1_service.dart';
 import 'anime_storage.dart';
 import 'metadata_cache.dart';
 
@@ -119,6 +120,26 @@ class MetadataUpdateService {
   static const _manualDiscoverGap = Duration(seconds: 6);
 
   Timer? _timer;
+  /// How often an anime1.me series that is still updating is re-read.
+  static const _watchOngoingFreshness = Duration(hours: 6);
+
+  /// How often a series the site lists as complete is re-read.
+  static const _watchFinishedFreshness = Duration(days: 7);
+
+  /// Gap between category-page fetches within one tick.
+  static const _watchPageGap = Duration(seconds: 2);
+
+  /// Category-page fetches allowed per tick; `?cat=` URLs cost none.
+  static const _maxWatchPagesPerTick = 3;
+
+  /// How long a failed anime1.me read is left alone.
+  static const _watchRetry = Duration(hours: 1);
+
+  /// Per-anime retry-after for failed anime1.me reads. Kept in memory and
+  /// separate from the entry backoff on purpose: a flaky watch-site lookup
+  /// must never delay that anime's metadata refresh.
+  final Map<String, DateTime> _watchRetryAfter = {};
+
   bool _started = false;
   bool _busy = false;
   MetadataUpdateStore _store = const MetadataUpdateStore();
@@ -401,6 +422,14 @@ class MetadataUpdateService {
       return _refreshGap;
     }
 
+    // One index download covers every anime1.me watch URL, so the whole due
+    // set is handled in one tick rather than one anime per tick.
+    final watchTargets = selectWatchProgressTargets(animes, now);
+    if (watchTargets.isNotEmpty) {
+      await _refreshWatchProgress(watchTargets, now);
+      return _refreshGap;
+    }
+
     final discoverTarget = _nextDiscoveryTarget(animes, now);
     if (discoverTarget != null) {
       await _discoverOne(discoverTarget, now);
@@ -476,6 +505,100 @@ class MetadataUpdateService {
     if (refreshedAt == null) return true;
     final freshness = anime.isCompleted ? _finishedFreshness : _airingFreshness;
     return now.difference(refreshedAt) >= freshness;
+  }
+
+  /// Purpose: Report whether an anime's stored watch-site progress needs a re-read.
+  /// Inputs: `anime`, `now`.
+  /// Returns: `bool` — `true` when it was never read.
+  /// Side effects: None.
+  /// Notes: Only anime1.me watch URLs qualify. A record the user has finished
+  /// watching whose stored progress says the run is complete is left alone —
+  /// there is nothing left to learn. Ongoing runs are re-read every six
+  /// hours, finished ones weekly; a stored record for a different URL counts
+  /// as never read.
+  static bool isWatchProgressStale(Anime anime, DateTime now) {
+    if (!Anime1Service.isAnime1Url(anime.watchUrl)) return false;
+    final progress = anime.validWatchProgress;
+    if (progress == null) return true;
+    if (anime.isCompleted && !progress.ongoing) return false;
+    final checkedAt = progress.checkedAt;
+    if (checkedAt == null) return true;
+    final freshness = progress.ongoing
+        ? _watchOngoingFreshness
+        : _watchFinishedFreshness;
+    return now.difference(checkedAt) >= freshness;
+  }
+
+  /// Purpose: List the anime whose watch-site progress is due for a re-read.
+  /// Inputs: `animes`, `now`.
+  /// Returns: `List<Anime>` in library order.
+  /// Side effects: None.
+  /// Notes: Skips anime inside their in-memory retry window and anime already
+  /// carrying a buffered, unwritten metadata update.
+  @visibleForTesting
+  List<Anime> selectWatchProgressTargets(List<Anime> animes, DateTime now) {
+    return [
+      for (final anime in animes)
+        if (isWatchProgressStale(anime, now) &&
+            !_pendingMeta.containsKey(anime.id) &&
+            !(_watchRetryAfter[anime.id]?.isAfter(now) ?? false))
+          anime,
+    ];
+  }
+
+  /// Purpose: Re-read the watch-site progress for a batch of anime.
+  /// Inputs: `targets`, `now`.
+  /// Returns: None.
+  /// Side effects: One index download, at most `_maxWatchPagesPerTick`
+  /// category-page requests, buffered metadata writes, and a listener
+  /// notification.
+  /// Notes: Internal helper used within this file only. `?cat=` URLs resolve
+  /// from the index with no request, so a library of any size costs one
+  /// download per tick; only pre-1.5.7 `/category/…` links need a page each,
+  /// and those are paced. Failures set a one-hour in-memory retry and never
+  /// touch the shared entry backoff. Writes go through `_pendingMeta`, so
+  /// `modifiedAt` is preserved exactly as for a metadata refresh.
+  Future<void> _refreshWatchProgress(List<Anime> targets, DateTime now) async {
+    List<Anime1IndexEntry>? index;
+    try {
+      index = await Anime1Service.loadIndex();
+    } catch (_) {
+      index = null;
+    }
+    if (index == null) {
+      for (final anime in targets) {
+        _watchRetryAfter[anime.id] = now.add(_watchRetry);
+      }
+      return;
+    }
+
+    var pagesFetched = 0;
+    var changed = false;
+    for (final anime in targets) {
+      final url = anime.watchUrl!;
+      final needsPage = Anime1Service.catIdFromUrl(url) == null;
+      if (needsPage) {
+        if (pagesFetched >= _maxWatchPagesPerTick) continue;
+        if (pagesFetched > 0) await Future<void>.delayed(_watchPageGap);
+        pagesFetched++;
+      }
+      final progress = await Anime1Service.fetchProgress(url, index: index);
+      if (progress == null) {
+        _watchRetryAfter[anime.id] = now.add(_watchRetry);
+        continue;
+      }
+      _watchRetryAfter.remove(anime.id);
+      final base = _pendingMeta[anime.id] ?? anime.externalMeta;
+      _pendingMeta[anime.id] = (base ?? const AnimeExternalMeta()).mergedWith(
+        AnimeExternalMeta(watchProgress: progress),
+      );
+      _sinceFlush++;
+      changed = true;
+    }
+    if (changed) {
+      if (_sinceFlush >= _flushEvery) await _flushPendingMeta();
+      _notify();
+    }
   }
 
   /// Purpose: Pick the next anime whose cached metadata should be refreshed.
@@ -975,6 +1098,15 @@ class MetadataUpdateService {
     try {
       await _ensureStoreLoaded();
       final data = await AnimeStorage.load();
+      // Watch-site progress first: one index download covers every record,
+      // so it is not counted in the queue the progress bar measures.
+      final watchTargets = selectWatchProgressTargets(
+        data.animes,
+        DateTime.now().toUtc(),
+      );
+      if (watchTargets.isNotEmpty) {
+        await _refreshWatchProgress(watchTargets, DateTime.now().toUtc());
+      }
       final queue = buildScanQueue(
         data.animes,
         _store,

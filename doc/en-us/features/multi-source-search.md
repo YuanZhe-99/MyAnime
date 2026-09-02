@@ -11,7 +11,8 @@ the `full`/`store` flavor split.
 - AniList — GraphQL API.
 - `acgsecrets.hk` — seasonal page JSON-LD.
 - `filmarks.com` — HTML scraping.
-- `anime1.me` — used for watch URL lookup specifically (not general metadata search).
+- `anime1.me` — watch-URL lookup only, not metadata; since 1.5.7 it lives in its own service and
+  matches against the site's series index — see [`watch-url-lookup.md`](watch-url-lookup.md).
 
 Each source is queried for up to `_maxPerSource` (10) results.
 
@@ -121,8 +122,10 @@ remove that choice.
 `relevance(result, queryVariants)` scores every title a result knows about — `title`, `titleJa`,
 `titleRomaji`, `titleEn`, and every `synonym` — against every query variant, and keeps the best.
 It reuses the same fuzzy scorer (`_similarity`: LCS-Dice, character-set Dice, and containment, each
-computed on both the raw and Traditional-normalized forms) that ranks `anime1.me` watch-URL hits, so
-a Simplified query still scores highly against a Traditional-only title.
+computed on both the raw form and the **folded, Simplified** form from `foldTitle`) that the
+`anime1.me` lookup ranks with, so a Simplified query still scores highly against a Traditional-only
+title. Through 1.5.6 the second pass normalized to Traditional — the one-to-many direction, which
+missed pairs such as 干/乾; the switch can only raise scores, so no threshold moved.
 
 `queryVariants(query)` is public so the search dialog can score with exactly the variant set the
 service searched with, instead of re-deriving it.

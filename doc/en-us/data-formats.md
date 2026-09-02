@@ -132,6 +132,27 @@ search (see [`features/multi-source-search.md`](features/multi-source-search.md)
 - `genres`, `studios` — tags and animation studios.
 - `endDate` — date the final episode aired, when known.
 - `refreshedAt` — UTC timestamp of the last refresh.
+- `watchProgress` — since 1.5.7, what the watch site (anime1.me) listed for `watchUrl` when last
+  checked, as an `AnimeWatchProgress` object:
+
+  ```json
+  "watchProgress": {
+    "sourceUrl": "https://anime1.me/?cat=1935",
+    "catId": 1935,
+    "latestEpisode": 9,
+    "episodesText": "連載中(09)",
+    "ongoing": true,
+    "checkedAt": "2026-09-01T12:00:00.000Z"
+  }
+  ```
+
+  `sourceUrl` is the `watchUrl` the record was read for; `Anime.validWatchProgress` returns the
+  record only while they still match, so editing the URL hides a stale count. `latestEpisode` is
+  `null` for films and specials, and `episodesText` keeps the site's cell verbatim (`1-12+OVA`).
+  Unknown keys inside the object are preserved like everywhere else. It sits inside `externalMeta`
+  because it is the same kind of data — a cache of public site information written through
+  `AnimeStorage.patchExternalMeta`, never touching `modifiedAt`. See
+  [`features/watch-url-lookup.md`](features/watch-url-lookup.md).
 
 **`ratings` is separate from `AnimeRating` on purpose.** `AnimeRating` holds the *user's own* scores
 and is never written by a fetch; `externalMeta.ratings` holds each external database's score,

@@ -332,7 +332,7 @@
 - **来源：** `lib/shared/services/local_api_server.dart`（第 689 行）。
 - **用途：** 把一个 `Anime` 序列化为每个 API 响应（`/anime/list`、`/anime/unwatched`、`/anime/history`、`/anime/ranking`）使用的平铺 JSON 形态。
 - **输入：** `a` — 要序列化的 `Anime`。
-- **返回：** `Map<String, dynamic>`，带身份/URL/日程字段加派生字段：`status`（`viewingStatus.name`）、`nextUnwatchedEpisode`/`nextEpisodeAirDate`（经 `_jstToUtcString` 的 UTC 字符串）、`type`/`manualType`、`watchedEpisodes`/`skippedEpisodes`（`_episodeStatusCount`）、`airedEpisodes`/`airedUnwatchedEpisodes`、`rating`（`_ratingToJson`）、`localArchive`（`_localArchiveToJson`）和作为 ISO 8601 字符串的 `createdAt`/`modifiedAt`。
+- **返回：** `Map<String, dynamic>`，带身份/URL/日程字段加派生字段：`status`（`viewingStatus.name`）、`nextUnwatchedEpisode`/`nextEpisodeAirDate`（经 `_jstToUtcString` 的 UTC 字符串）、`type`/`manualType`、`watchedEpisodes`/`skippedEpisodes`（`_episodeStatusCount`）、`airedEpisodes`/`airedUnwatchedEpisodes`、`watchLatestEpisode`/`watchProgressCheckedAt`（来自 `Anime.validWatchProgress`，自 1.5.7 起）、`rating`（`_ratingToJson`）、`localArchive`（`_localArchiveToJson`）和作为 ISO 8601 字符串的 `createdAt`/`modifiedAt`。
 - **副作用：** 无（只读）。
 - **算法：** 直接字段映射加对上面列出的每个派生字段的小辅助函数调用；文档化字段列表见本仓库 `AGENTS.md` 的"桌面 API"一节。
 - **用法：** 每个返回动画行的路由处理器调用：`_handleList`、`_handleUnwatched`、`_handleHistory` 和（经 `buildRankingSnapshotForQuery`）`_handleRanking`。

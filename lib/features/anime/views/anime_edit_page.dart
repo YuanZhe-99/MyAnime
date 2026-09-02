@@ -7,7 +7,8 @@ import '../../../l10n/app_localizations.dart';
 import '../../../shared/services/image_service.dart';
 import '../../../shared/utils/detail_layout.dart';
 import '../models/anime.dart';
-import '../services/anime_search_service.dart';
+import '../services/anime1_service.dart';
+import 'anime1_labels.dart';
 import '../services/anime_storage.dart';
 import 'anime_search_dialog.dart';
 import 'archive_labels.dart';
@@ -183,30 +184,47 @@ class _AnimeEditPageState extends State<AnimeEditPage> {
     }
   }
 
-  /// Purpose: Provide the internal search watch url helper for this file.
+  /// Purpose: Look up the anime1.me watch URL for the titles on the form.
   /// Inputs: None.
   /// Returns: None.
-  /// Side effects: May perform network or file-system operations.
-  /// Notes: Internal helper used within this file only.
+  /// Side effects: Opens the search dialog; on selection fills the watch URL
+  /// field, folds the match's progress into `_externalMeta`, and shows a
+  /// snack bar.
+  /// Notes: Every known name goes along as an alternate query — the Japanese
+  /// title, the stored English/romaji titles and synonyms — because the site
+  /// indexes Taiwanese titles that can share no characters with a mainland
+  /// one. The first-air date and season label drive the season boost.
   Future<void> _searchWatchUrl() async {
     final title = _titleController.text.trim();
     final titleJa = _titleJaController.text.trim();
     final query = title.isNotEmpty ? title : titleJa;
     if (query.isEmpty) return;
     final l10n = AppLocalizations.of(context)!;
+    final meta = _externalMeta;
+    final altQueries = <String>{
+      if (title.isNotEmpty && titleJa.isNotEmpty) titleJa,
+      if (meta?.titleEn != null) meta!.titleEn!,
+      if (meta?.titleRomaji != null) meta!.titleRomaji!,
+      ...?meta?.synonyms,
+    }.where((s) => s.trim().isNotEmpty).toList();
 
-    final selectedUrl = await showDialog<String>(
+    final selected = await showDialog<Anime1Match>(
       context: context,
       builder: (_) => _WatchUrlSearchDialog(
         query: query,
-        altQueries: [
-          if (title.isNotEmpty && titleJa.isNotEmpty) titleJa,
-          if (title.isEmpty && titleJa.isNotEmpty) title,
-        ],
+        altQueries: altQueries,
+        firstAirDate: _firstAirDate,
+        seasonText: _seasonController.text,
       ),
     );
-    if (selectedUrl != null && mounted) {
-      setState(() => _watchUrlController.text = selectedUrl);
+    if (selected != null && mounted) {
+      final progress = selected.toProgress(DateTime.now());
+      setState(() {
+        _watchUrlController.text = selected.url;
+        _externalMeta = (_externalMeta ?? const AnimeExternalMeta()).mergedWith(
+          AnimeExternalMeta(watchProgress: progress),
+        );
+      });
       ScaffoldMessenger.of(
         context,
       ).showSnackBar(SnackBar(content: Text(l10n.searchWatchUrlSet)));
@@ -1068,15 +1086,21 @@ class _AnimeEditPageState extends State<AnimeEditPage> {
 class _WatchUrlSearchDialog extends StatefulWidget {
   final String query;
   final List<String> altQueries;
+  final DateTime? firstAirDate;
+  final String? seasonText;
 
   /// Purpose: Create a watch url search dialog instance.
-  /// Inputs: `query`, `altQueries`.
+  /// Inputs: `query`, `altQueries`, `firstAirDate`, `seasonText`.
   /// Returns: A new `_WatchUrlSearchDialog` instance.
   /// Side effects: None.
-  /// Notes: Internal helper used within this file only.
+  /// Notes: Internal helper used within this file only. Pops the chosen
+  /// `Anime1Match`, not just its URL, so the caller can store the site's
+  /// episode progress alongside the link.
   const _WatchUrlSearchDialog({
     required this.query,
     this.altQueries = const [],
+    this.firstAirDate,
+    this.seasonText,
   });
 
   /// Purpose: Create the mutable state object for this widget.
@@ -1090,7 +1114,7 @@ class _WatchUrlSearchDialog extends StatefulWidget {
 
 class _WatchUrlSearchDialogState extends State<_WatchUrlSearchDialog> {
   late final TextEditingController _controller;
-  List<({String title, String url})> _results = [];
+  List<Anime1Match> _results = [];
   bool _loading = false;
   String? _error;
 
@@ -1117,11 +1141,13 @@ class _WatchUrlSearchDialogState extends State<_WatchUrlSearchDialog> {
     super.dispose();
   }
 
-  /// Purpose: Provide the internal search helper for this file.
+  /// Purpose: Run the anime1.me lookup for the dialog's query text.
   /// Inputs: None.
   /// Returns: None.
-  /// Side effects: May perform network or file-system operations.
-  /// Notes: Internal helper used within this file only.
+  /// Side effects: Network requests through `Anime1Service.search`;
+  /// `setState`s `_loading`, `_results`, `_error`.
+  /// Notes: Internal helper used within this file only. Retyping the query
+  /// re-ranks the cached series index without another index download.
   Future<void> _search() async {
     final q = _controller.text.trim();
     if (q.isEmpty) return;
@@ -1131,9 +1157,11 @@ class _WatchUrlSearchDialogState extends State<_WatchUrlSearchDialog> {
       _results = [];
     });
     try {
-      final results = await AnimeSearchService.searchAnime1(
+      final results = await Anime1Service.search(
         q,
         altQueries: widget.altQueries,
+        firstAirDate: widget.firstAirDate,
+        seasonText: widget.seasonText,
       );
       if (!mounted) return;
       setState(() {
@@ -1175,8 +1203,8 @@ class _WatchUrlSearchDialogState extends State<_WatchUrlSearchDialog> {
       ),
       contentPadding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
       content: SizedBox(
-        width: 360,
-        height: 340,
+        width: 400,
+        height: 380,
         child: Column(
           children: [
             Row(
@@ -1234,26 +1262,59 @@ class _WatchUrlSearchDialogState extends State<_WatchUrlSearchDialog> {
       );
     }
     if (_results.isEmpty) return const SizedBox.shrink();
-    return ListView.separated(
+    final l10n = AppLocalizations.of(context)!;
+    final theme = Theme.of(context);
+    final viaAliases = _results.any((r) => r.viaAliases);
+    final list = ListView.separated(
       itemCount: _results.length,
       separatorBuilder: (context, index) => const Divider(height: 1),
       itemBuilder: (_, i) {
         final r = _results[i];
+        final info = anime1InfoLine(l10n, r);
         return ListTile(
           leading: const Icon(Icons.play_circle_outline, size: 20),
           title: Text(r.title, maxLines: 2, overflow: TextOverflow.ellipsis),
-          subtitle: Text(
-            r.url,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: Theme.of(context).textTheme.bodySmall?.copyWith(
-              color: Theme.of(context).colorScheme.primary,
-            ),
+          subtitle: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              if (info != null)
+                Text(
+                  info,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: theme.textTheme.bodySmall,
+                ),
+              Text(
+                r.url,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: theme.textTheme.bodySmall?.copyWith(
+                  color: theme.colorScheme.primary,
+                ),
+              ),
+            ],
           ),
+          isThreeLine: info != null,
           dense: true,
-          onTap: () => Navigator.of(context).pop(r.url),
+          onTap: () => Navigator.of(context).pop(r),
         );
       },
+    );
+    if (!viaAliases) return list;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: const EdgeInsets.only(bottom: 4),
+          child: Text(
+            l10n.searchWatchUrlAliasHint,
+            style: theme.textTheme.bodySmall?.copyWith(
+              color: theme.colorScheme.onSurfaceVariant,
+            ),
+          ),
+        ),
+        Expanded(child: list),
+      ],
     );
   }
 }

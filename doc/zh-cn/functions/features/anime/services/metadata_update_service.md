@@ -75,6 +75,9 @@
 | `_hasNoLink` | 静态方法 | B | 判断链路列表是否意味着「没有连接」。 |
 | [`_isOffline`](#_isoffline) | 方法 | A | 是否完全没有连接。 |
 | [`isMetaStale`](#ismetastale) | 静态方法 | A | 缓存的资料是否已过新鲜期。 |
+| [`isWatchProgressStale`](#iswatchprogressstale) | 静态方法 | A | 记录已存的观看站点进度是否需要重新读取。 |
+| [`selectWatchProgressTargets`](#selectwatchprogresstargets) | 方法 | A | 列出观看站点进度已到期的记录。 |
+| [`_refreshWatchProgress`](#_refreshwatchprogress) | 方法 | A | 为一批记录重新读取观看站点进度。 |
 
 ## 文档
 
@@ -259,3 +262,34 @@
 - **注意：** 由 [`_nextRefreshTarget`](#_nextrefreshtarget) 与 [`buildScanQueue`](#buildscanqueue)
   共用，使后台循环与手动检索对「过期」的定义不会各自漂移。已完结作品适用 `_finishedFreshness`
   （14 天），放送中作品适用 `_airingFreshness`（24 小时）——因为完结之后评分与集数就不再变动了。
+
+### `static bool isWatchProgressStale(Anime anime, DateTime now)` <a id="iswatchprogressstale"></a>
+- **种类：** `MetadataUpdateService` 的静态方法
+- **来源：** `lib/features/anime/services/metadata_update_service.dart`（约第 515 行）
+- **用途：** 报告一条记录已存的观看站点进度是否需要重新读取。
+- **返回：** `bool`——从未读取时为 `true`。
+- **副作用：** 无。
+- **算法：** 除非 `Anime1Service.isAnime1Url(watchUrl)` 否则为 `false`；`validWatchProgress` 为 `null`（从未读取，或为另一个 URL 读取）时为 `true`；记录已全部看完且已存的作品不在连载中时为 `false`；否则把 `checkedAt` 与 6 小时（连载中）或 7 天（已完结）比较。
+- **备注：** 后台循环与手动扫描共用，使两者对「到期」的判断一致。
+
+### `List<Anime> selectWatchProgressTargets(List<Anime> animes, DateTime now)` <a id="selectwatchprogresstargets"></a>
+- **种类：** `MetadataUpdateService` 的方法，`@visibleForTesting`
+- **来源：** 约第 536 行
+- **用途：** 按库中顺序列出观看站点进度已到期的记录。
+- **返回：** `List<Anime>`。
+- **副作用：** 无。
+- **算法：** [`isWatchProgressStale`](#iswatchprogressstale) 成立的每条记录，排除带有已缓冲未写入元数据更新的记录，以及处于内存中重试窗口内的记录。
+- **备注：** `test/watch_progress_test.dart` 钉住了新鲜期窗口与各项跳过。
+
+### `Future<void> _refreshWatchProgress(List<Anime> targets, DateTime now)` <a id="_refreshwatchprogress"></a>
+- **种类：** `MetadataUpdateService` 的方法
+- **来源：** 约第 558 行
+- **用途：** 为一批记录重新读取观看站点进度。
+- **返回：** `Future<void>`。
+- **副作用：** 一次索引下载，至多 `_maxWatchPagesPerTick`（3）次间隔两秒的分类页面请求，经 `_pendingMeta` 缓冲的元数据写入，以及一次监听器通知。
+- **算法：**
+  1. `Anime1Service.loadIndex()`；失败时把每个目标的重试时间设为一小时后并返回。
+  2. 对每个目标：`/category/…` 链接计入每个 tick 的页面上限（用尽则跳过，其余按间隔节奏）；`Anime1Service.fetchProgress(url, index:)`。
+  3. `null` → 重试时间一小时后；否则清除它，把记录并入待写元数据（`mergedWith(AnimeExternalMeta(watchProgress: …))`），并计入冲刷计数。
+  4. 达到批量阈值时冲刷；有任何变化时通知监听器。
+- **备注：** 仅在本文件内部使用的辅助函数。`?cat=` URL 不花请求，因此任何规模的库都是每个 tick 一次下载。内存中重试刻意与条目退避分开——观看站点一次抖动永远不能拖延该记录的元数据刷新。写入经 `_pendingMeta`，因此 `modifiedAt` 与元数据刷新时一样被完整保留。`_runOnce` 在刷新与探索之间运行它，`startManualScan` 先运行它，不计入被统计的队列。

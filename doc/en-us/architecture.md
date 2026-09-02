@@ -102,6 +102,7 @@ lib/
       webdav_service.dart
     utils/
       chinese_convert.dart
+      chinese_convert_data.dart
       jst_time.dart
     views/webdav_config_page.dart
     widgets/
@@ -125,7 +126,8 @@ Primary tests (mirroring the structure above where relevant):
   source dropdown, and the archive enum label helpers.
 - `test/widget_test.dart` — basic widget smoke coverage.
 
-`tool/` contains ad hoc scripts (icon generation, search-source validation) that are not part of
+`tool/` contains ad hoc scripts (icon generation, search-source validation, the Chinese
+conversion-table generator) that are not part of
 the release-critical path.
 
 ## Shared package (`myapps_data`)

@@ -170,7 +170,13 @@ Not copied to the other repos — no other app has these.
 | window size class | 窗口尺寸等级 | Material 的 compact/medium/expanded 断点分级 |
 | foldable | 折叠屏 | zh-TW 用「摺疊螢幕」，ja 用「折りたたみ」 |
 | aspect ratio | 宽高比 | 拆分判据中的宽除以高 |
-${new_rows}
+| series index | 系列索引 | anime1.me 的 `animelist.json`，站点全部作品的一张表 |
+| watch URL | 观看链接 | zh-TW 用「觀看連結」，ja 用「視聴URL」 |
+| folded form / fold | 归一化形式 / 归一化 | 只用于匹配、不用于显示的标题形式：半角、小写、去标点、转简体 |
+| season boost | 档期加分 | 行的年份/季节与记录首播季度一致时的加分 |
+| alias harvest | 别名补采 | 本地无命中时向 bangumi.tv 取一次别名再匹配 |
+| episode text | 集数文本 | anime1 的原文单元格，如 `1-12+OVA`、`連載中(09)` |
+| watch progress | 观看进度 | 观看站点已更新到第几集；zh-TW 用「觀看進度」，ja 用「視聴進捗」 |
 | update proposal | 更新建议 | 已下载但等待用户确认的核心字段改动，绝不自动应用 |
 | discovery | 探索 | 为资料不全的记录发起的全源搜索，区别于「刷新」 |
 | confidence threshold | 置信度阈值 | 决定一条搜索结果是否值得提议的相关度下限 |

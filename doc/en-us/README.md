@@ -57,6 +57,8 @@ The shared WebDAV sync, backup, and ZIP engines are not in this repository. They
   module.
 - [`features/multi-source-search.md`](features/multi-source-search.md) — multi-source anime
   search, dedup, fuzzy matching, and flavor gating.
+- [`features/watch-url-lookup.md`](features/watch-url-lookup.md) — the anime1.me watch-URL
+  lookup: series index, folded matching, alias harvest, and persisted watch progress.
 - [`features/share-and-import.md`](features/share-and-import.md) — share/export flows and
   `.myanimeitem` file import/export.
 - [`features/duplicate-detection.md`](features/duplicate-detection.md) — duplicate grouping and

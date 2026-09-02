@@ -236,6 +236,46 @@ class AppLocalizationsZh extends AppLocalizations {
   String get searchWatchUrlEmpty => '未找到匹配的观看链接';
 
   @override
+  String get searchWatchUrlAliasHint => '通过 bangumi.tv 别名匹配';
+
+  @override
+  String anime1Ongoing(int episode) {
+    return '更新至第 $episode 集';
+  }
+
+  @override
+  String anime1EpisodeRange(String range) {
+    return '第 $range 集';
+  }
+
+  @override
+  String get anime1Movie => '剧场版';
+
+  @override
+  String get anime1Special => '特别篇';
+
+  @override
+  String anime1Short(int episode) {
+    return '更新至 $episode';
+  }
+
+  @override
+  String get anime1CheckProgress => '查看 anime1 更新';
+
+  @override
+  String anime1ProgressLabel(String status) {
+    return 'anime1：$status';
+  }
+
+  @override
+  String get anime1ProgressUnknown => 'anime1：未找到集数信息';
+
+  @override
+  String anime1ProgressFailed(String error) {
+    return 'anime1 查询失败：$error';
+  }
+
+  @override
   String get searchSort => '排序';
 
   @override
@@ -1752,6 +1792,46 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
 
   @override
   String get searchWatchUrlEmpty => '未找到匹配的觀看連結';
+
+  @override
+  String get searchWatchUrlAliasHint => '透過 bangumi.tv 別名比對';
+
+  @override
+  String anime1Ongoing(int episode) {
+    return '更新至第 $episode 集';
+  }
+
+  @override
+  String anime1EpisodeRange(String range) {
+    return '第 $range 集';
+  }
+
+  @override
+  String get anime1Movie => '劇場版';
+
+  @override
+  String get anime1Special => '特別篇';
+
+  @override
+  String anime1Short(int episode) {
+    return '更新至 $episode';
+  }
+
+  @override
+  String get anime1CheckProgress => '查看 anime1 更新';
+
+  @override
+  String anime1ProgressLabel(String status) {
+    return 'anime1：$status';
+  }
+
+  @override
+  String get anime1ProgressUnknown => 'anime1：未找到集數資訊';
+
+  @override
+  String anime1ProgressFailed(String error) {
+    return 'anime1 查詢失敗：$error';
+  }
 
   @override
   String get searchSort => '排序';

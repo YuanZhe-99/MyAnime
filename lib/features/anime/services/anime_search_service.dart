@@ -288,7 +288,7 @@ class AnimeSearchProgress {
 }
 
 class AnimeSearchService {
-  static const _userAgent = 'MyAnime/1.5.6 (anime tracker)';
+  static const userAgent = 'MyAnime/1.5.7 (anime tracker)';
 
   /// Maximum results requested from, and kept per, each individual source.
   static const _maxPerSource = 10;
@@ -429,7 +429,7 @@ class AnimeSearchService {
   }) {
     double best = 0;
     for (final title in result.allTitles) {
-      final s = _bestSimilarity(title, queries);
+      final s = bestSimilarity(title, queries);
       if (s > best) best = s;
     }
     return best + _languageBonus * _languageAffinity(result, preferredLanguage);
@@ -543,6 +543,47 @@ class AnimeSearchService {
       ),
     );
     return fetched.whereType<AnimeSearchResult>().toList();
+  }
+
+  /// Purpose: Fetch alternate titles for a query from bangumi.tv.
+  /// Inputs: `query` — any language; sent in Simplified form.
+  /// Returns: `Future<List<String>>` — Chinese and Latin-script titles of the
+  /// confident hits, deduplicated; empty when nothing matched.
+  /// Side effects: One HTTP POST to `api.bgm.tv`.
+  /// Notes: Exists for the anime1.me lookup: a mainland title and a Taiwanese
+  /// one can share no characters at all (间谍过家家 / 間諜家家酒), and
+  /// bangumi.tv's 别名 field usually lists both. Only hits scoring at least
+  /// `_backfillMinRelevance` contribute, so a stray result cannot inject
+  /// unrelated aliases.
+  static Future<List<String>> harvestAliases(String query) async {
+    final hits = await _searchBangumi(ChineseConvert.toSimplified(query));
+    return aliasCandidatesFrom(hits, queryVariants(query));
+  }
+
+  /// Purpose: Pick alias strings out of search hits that match the query well.
+  /// Inputs: `hits`, `variants` — from [queryVariants].
+  /// Returns: `List<String>`, at most six, in hit order.
+  /// Side effects: None.
+  /// Notes: Keeps Chinese (Han, no kana) and Latin-script titles only — a
+  /// Japanese title cannot match anime1's Chinese index and a romaji one can,
+  /// because the site keeps Latin franchise names (`SPY×FAMILY`, `GRAND BLUE`).
+  @visibleForTesting
+  static List<String> aliasCandidatesFrom(
+    List<AnimeSearchResult> hits,
+    List<String> variants,
+  ) {
+    const maxAliases = 6;
+    final out = <String>[];
+    final seen = <String>{};
+    for (final hit in hits) {
+      if (relevance(hit, variants) < _backfillMinRelevance) continue;
+      for (final t in hit.allTitles) {
+        if (!_isLikelyChinese(t) && !_isLatinScript(t)) continue;
+        if (seen.add(t)) out.add(t);
+        if (out.length >= maxAliases) return out;
+      }
+    }
+    return out;
   }
 
   // ──── Round orchestration ────
@@ -718,7 +759,7 @@ class AnimeSearchService {
         .post(
           url,
           headers: {
-            'User-Agent': _userAgent,
+            'User-Agent': userAgent,
             'Content-Type': 'application/json',
             'Accept': 'application/json',
           },
@@ -755,7 +796,7 @@ class AnimeSearchService {
     final resp = await http
         .get(
           url,
-          headers: {'User-Agent': _userAgent, 'Accept': 'application/json'},
+          headers: {'User-Agent': userAgent, 'Accept': 'application/json'},
         )
         .timeout(const Duration(seconds: 10));
     if (resp.statusCode != 200) return null;
@@ -932,7 +973,7 @@ class AnimeSearchService {
     final resp = await http
         .get(
           url,
-          headers: {'User-Agent': _userAgent, 'Accept': 'application/json'},
+          headers: {'User-Agent': userAgent, 'Accept': 'application/json'},
         )
         .timeout(const Duration(seconds: 10));
     if (resp.statusCode != 200) return [];
@@ -958,7 +999,7 @@ class AnimeSearchService {
     final resp = await http
         .get(
           url,
-          headers: {'User-Agent': _userAgent, 'Accept': 'application/json'},
+          headers: {'User-Agent': userAgent, 'Accept': 'application/json'},
         )
         .timeout(const Duration(seconds: 10));
     if (resp.statusCode != 200) return null;
@@ -1123,7 +1164,7 @@ class AnimeSearchService {
     for (final season in seasons) {
       final url = Uri.parse('https://acgsecrets.hk/bangumi/$season/');
       final resp = await http
-          .get(url, headers: {'User-Agent': _userAgent})
+          .get(url, headers: {'User-Agent': userAgent})
           .timeout(const Duration(seconds: 15));
       if (resp.statusCode != 200) continue;
 
@@ -1281,7 +1322,7 @@ class AnimeSearchService {
       '?q=${Uri.encodeComponent(query)}',
     );
     final resp = await http
-        .get(url, headers: {'User-Agent': _userAgent, 'Accept-Language': 'ja'})
+        .get(url, headers: {'User-Agent': userAgent, 'Accept-Language': 'ja'})
         .timeout(const Duration(seconds: 10));
     if (resp.statusCode != 200) return [];
 
@@ -1306,7 +1347,7 @@ class AnimeSearchService {
         AnimeSearchResult(
           source: AnimeSearchSource.filmarks,
           sourceUrl: 'https://filmarks.com$path',
-          titleJa: _decodeHtmlEntities(title),
+          titleJa: decodeHtmlEntities(title),
           coverImageUrl: match.group(3),
         ),
       );
@@ -1328,7 +1369,7 @@ class AnimeSearchService {
           AnimeSearchResult(
             source: AnimeSearchSource.filmarks,
             sourceUrl: 'https://filmarks.com$path',
-            titleJa: _decodeHtmlEntities(title),
+            titleJa: decodeHtmlEntities(title),
           ),
         );
         if (results.length >= _maxPerSource) break;
@@ -1421,7 +1462,7 @@ $_aniListMediaFields  }
           headers: {
             'Content-Type': 'application/json',
             'Accept': 'application/json',
-            'User-Agent': _userAgent,
+            'User-Agent': userAgent,
           },
           body: jsonEncode({'query': document, 'variables': variables}),
         )
@@ -1645,80 +1686,13 @@ $_aniListMediaFields  }
     return null;
   }
 
-  /// anime1.me — search for watch URLs.
-  /// Returns list of (title, url) pairs for the anime's category page.
-  /// Automatically tries S↔T Chinese variants + optional alternate queries.
-  /// Results are ranked by fuzzy similarity to the queries.
-  static Future<List<({String title, String url})>> searchAnime1(
-    String query, {
-    List<String> altQueries = const [],
-  }) async {
-    // Build all query variants.
-    final traditional = ChineseConvert.toTraditional(query);
-    final simplified = ChineseConvert.toSimplified(query);
-    final queries = <String>{query, traditional, simplified};
-    for (final alt in altQueries) {
-      if (alt.trim().isNotEmpty) {
-        queries.add(alt.trim());
-        queries.add(ChineseConvert.toTraditional(alt.trim()));
-        queries.add(ChineseConvert.toSimplified(alt.trim()));
-      }
-    }
-
-    final allResults = <({String title, String url})>[];
-    final seenUrls = <String>{};
-
-    // Try each query variant; merge results.
-    for (final q in queries) {
-      final partial = await _searchAnime1Single(q);
-      for (final r in partial) {
-        if (seenUrls.add(r.url)) {
-          allResults.add(r);
-        }
-      }
-    }
-
-    // Fallback: if no results, try short substrings (bigrams) from the
-    // traditional query.  E.g. "能幫我弄乾淨嗎" shares "乾淨" with
-    // "可以幫忙洗乾淨嗎？" even though the full titles differ.
-    if (allResults.isEmpty) {
-      final trad = ChineseConvert.toTraditional(
-        query,
-      ).replaceAll(RegExp(r'[^\p{L}\p{N}]', unicode: true), '');
-      if (trad.length >= 4) {
-        int attempts = 0;
-        for (
-          int i = trad.length - 2;
-          i >= 0 && attempts < 3 && allResults.isEmpty;
-          i--
-        ) {
-          final sub = trad.substring(i, i + 2);
-          attempts++;
-          final partial = await _searchAnime1Single(sub);
-          for (final r in partial) {
-            if (seenUrls.add(r.url)) allResults.add(r);
-          }
-        }
-      }
-    }
-
-    // Rank by fuzzy similarity to any query variant.
-    final variants = queries.toList();
-    allResults.sort((a, b) {
-      final sa = _bestSimilarity(a.title, variants);
-      final sb = _bestSimilarity(b.title, variants);
-      return sb.compareTo(sa); // descending
-    });
-
-    return allResults.take(10).toList();
-  }
-
   /// Purpose: Compute the best similarity score of [title] against any of [queries].
   /// Inputs: `title`, `queries`.
-  /// Returns: `double`.
+  /// Returns: `double` in `0.0..1.0`.
   /// Side effects: None.
-  /// Notes: Internal helper used within this file only. Compute the best similarity score of [title] against any of [queries]. Returns 0.0..1.0.
-  static double _bestSimilarity(String title, List<String> queries) {
+  /// Notes: Shared with `Anime1Service`, which ranks scraped search hits with
+  /// it; the index path scores pre-folded strings through [similarityRaw].
+  static double bestSimilarity(String title, List<String> queries) {
     double best = 0;
     for (final q in queries) {
       final s = _similarity(title, q);
@@ -1727,38 +1701,107 @@ $_aniListMediaFields  }
     return best;
   }
 
-  /// Purpose: Fuzzy similarity combining LCS, Dice (set-based), and containment.
+  /// Purpose: Fuzzy similarity of two titles, script- and punctuation-insensitive.
   /// Inputs: `a`, `b`.
-  /// Returns: `double`.
+  /// Returns: `double` in `0.0..1.0`.
   /// Side effects: None.
-  /// Notes: Internal helper used within this file only. Fuzzy similarity combining LCS, Dice (set-based), and containment. Also compares S↔T normalized forms.  Returns 0.0..1.0.
+  /// Notes: Internal helper used within this file only. Takes the better of
+  /// [similarityRaw] on the strings as given and on their [foldTitle] forms,
+  /// so a Simplified query scores fully against a Traditional title and
+  /// `【推しの子】` against `我推的孩子`-style punctuation variants. Through
+  /// 1.5.6 the second pass normalized to Traditional, which is one-to-many
+  /// (干 → 幹 or 乾) and therefore missed exactly the pairs it was meant to
+  /// catch; Simplified is the many-to-one direction.
   static double _similarity(String a, String b) {
     if (a.isEmpty || b.isEmpty) return 0;
-    final aNorm = ChineseConvert.toTraditional(a);
-    final bNorm = ChineseConvert.toTraditional(b);
-    double best = 0;
-    for (final pair in [(a, b), (aNorm, bNorm)]) {
-      final s1 = pair.$1, s2 = pair.$2;
-      // LCS-based Dice coefficient.
-      final lcs = 2.0 * _lcsLength(s1, s2) / (s1.length + s2.length);
-      if (lcs > best) best = lcs;
-      // Character-set Dice coefficient (order-independent).
-      final set1 = s1.runes.toSet();
-      final set2 = s2.runes.toSet();
-      final shared = set1.intersection(set2).length;
-      final dice = 2.0 * shared / (set1.length + set2.length);
-      if (dice > best) best = dice;
-      // Containment: if one contains the other, high score.
-      if (s1.contains(s2) || s2.contains(s1)) {
-        final shorter = s1.length < s2.length ? s1.length : s2.length;
-        final longer = s1.length > s2.length ? s1.length : s2.length;
-        final cont = shorter / longer;
-        // Guarantee at least 0.7 for containment.
-        final score = 0.7 + 0.3 * cont;
-        if (score > best) best = score;
-      }
+    var best = similarityRaw(a, b);
+    final fa = foldTitle(a);
+    final fb = foldTitle(b);
+    if (fa.isNotEmpty && fb.isNotEmpty) {
+      final s = similarityRaw(fa, fb);
+      if (s > best) best = s;
     }
     return best;
+  }
+
+  /// Purpose: The three-measure similarity core on strings exactly as given.
+  /// Inputs: `a`, `b`.
+  /// Returns: `double` in `0.0..1.0` — the best of LCS-Dice, character-set
+  /// Dice, and containment (`0.7 + 0.3 · shorter/longer`).
+  /// Side effects: None.
+  /// Notes: Public so `Anime1Service` can score pre-folded strings without
+  /// folding again per pair; every other caller wants [_similarity].
+  static double similarityRaw(String a, String b) {
+    if (a.isEmpty || b.isEmpty) return 0;
+    double best = 0;
+    // LCS-based Dice coefficient.
+    final lcs = 2.0 * _lcsLength(a, b) / (a.length + b.length);
+    if (lcs > best) best = lcs;
+    // Character-set Dice coefficient (order-independent).
+    final set1 = a.runes.toSet();
+    final set2 = b.runes.toSet();
+    final shared = set1.intersection(set2).length;
+    final dice = 2.0 * shared / (set1.length + set2.length);
+    if (dice > best) best = dice;
+    // Containment: if one contains the other, high score.
+    if (a.contains(b) || b.contains(a)) {
+      final shorter = a.length < b.length ? a.length : b.length;
+      final longer = a.length > b.length ? a.length : b.length;
+      final cont = shorter / longer;
+      // Guarantee at least 0.7 for containment.
+      final score = 0.7 + 0.3 * cont;
+      if (score > best) best = score;
+    }
+    return best;
+  }
+
+  /// Purpose: Order-aware similarity only — LCS-Dice or containment.
+  /// Inputs: `a`, `b`.
+  /// Returns: `double` in `0.0..1.0`.
+  /// Side effects: None.
+  /// Notes: The character-set Dice term in [similarityRaw] is blind to
+  /// order, which on short Latin strings lets `bocchitherock` and `tomjerry`
+  /// share half their letters. `Anime1Service` requires this order-aware
+  /// score to clear a floor as well, so such pairs are never offered.
+  static double orderedSimilarity(String a, String b) {
+    if (a.isEmpty || b.isEmpty) return 0;
+    var best = 2.0 * _lcsLength(a, b) / (a.length + b.length);
+    if (a.contains(b) || b.contains(a)) {
+      final shorter = a.length < b.length ? a.length : b.length;
+      final longer = a.length > b.length ? a.length : b.length;
+      final score = 0.7 + 0.3 * shorter / longer;
+      if (score > best) best = score;
+    }
+    return best;
+  }
+
+  static final _foldStrip = RegExp(r'[\s\p{P}\p{S}]+', unicode: true);
+
+  /// Purpose: Normalize a title for matching — never for display.
+  /// Inputs: `s`.
+  /// Returns: `String` — fullwidth ASCII made halfwidth, lowercased,
+  /// whitespace and Unicode punctuation/symbols removed, then converted to
+  /// Simplified Chinese.
+  /// Side effects: None.
+  /// Notes: Simplified is the canonical side because Traditional→Simplified
+  /// is many-to-one (乾/幹 → 干, 髮/發 → 发). The conversion also folds
+  /// Japanese kanji (滅 → 灭), so `鬼滅の刃` reaches `鬼滅之刃`. Symbols such
+  /// as `×` in `SPY×FAMILY` are stripped on both sides, so they never decide
+  /// a match.
+  static String foldTitle(String s) {
+    if (s.isEmpty) return s;
+    final buf = StringBuffer();
+    for (final c in s.runes) {
+      if (c >= 0xFF01 && c <= 0xFF5E) {
+        buf.writeCharCode(c - 0xFEE0);
+      } else if (c == 0x3000) {
+        buf.write(' ');
+      } else {
+        buf.writeCharCode(c);
+      }
+    }
+    final stripped = buf.toString().toLowerCase().replaceAll(_foldStrip, '');
+    return ChineseConvert.toSimplified(stripped);
   }
 
   /// Purpose: Longest common subsequence length (O(n*m) but strings are short titles).
@@ -1787,88 +1830,12 @@ $_aniListMediaFields  }
     return prev[m];
   }
 
-  /// Purpose: Run one anime1.me query and extract series title/URL pairs.
-  /// Inputs: `query`.
-  /// Returns: `Future<List<({String title, String url})>>`.
-  /// Side effects: One HTTP GET (10s timeout) to `anime1.me`.
-  /// Notes: Internal helper used within this file only. Three fallback patterns
-  /// run in priority order so cleaner category links win over per-episode posts.
-  static Future<List<({String title, String url})>> _searchAnime1Single(
-    String query,
-  ) async {
-    final url = Uri.parse('https://anime1.me/?s=${Uri.encodeComponent(query)}');
-    final resp = await http
-        .get(url, headers: {'User-Agent': _userAgent})
-        .timeout(const Duration(seconds: 10));
-    if (resp.statusCode != 200) return [];
-
-    final html = utf8.decode(resp.bodyBytes);
-    final results = <({String title, String url})>[];
-    final seen = <String>{};
-
-    // Priority 1: category links — these are the collection/series pages.
-    // anime1.me search results contain category tags like:
-    // <a href="https://anime1.me/category/..." rel="category tag">Title</a>
-    final catPattern = RegExp(
-      r'<a[^>]*href="(https://anime1\.me/category/[^"]+)"[^>]*rel="[^"]*category[^"]*"[^>]*>([^<]+)</a>',
-    );
-    for (final match in catPattern.allMatches(html)) {
-      final href = match.group(1);
-      final title = match.group(2)?.trim();
-      if (href != null && title != null && title.isNotEmpty) {
-        if (seen.add(title)) {
-          results.add((title: _decodeHtmlEntities(title), url: href));
-        }
-      }
-    }
-
-    // Priority 2: links with "/?cat=" pattern
-    if (results.isEmpty) {
-      final catIdPattern = RegExp(
-        r'<a[^>]*href="(https://anime1\.me/\?cat=\d+)"[^>]*>([^<]+)</a>',
-      );
-      for (final match in catIdPattern.allMatches(html)) {
-        final href = match.group(1);
-        final title = match.group(2)?.trim();
-        if (href != null && title != null && title.isNotEmpty) {
-          if (seen.add(title)) {
-            results.add((title: _decodeHtmlEntities(title), url: href));
-          }
-        }
-      }
-    }
-
-    // Priority 3: fall back to entry-title links but strip episode numbers
-    // so we can deduplicate the same series
-    if (results.isEmpty) {
-      final titlePattern = RegExp(
-        r'<h2[^>]*class="[^"]*entry-title[^"]*"[^>]*>\s*<a[^>]*href="([^"]+)"[^>]*>([^<]+)</a>',
-        dotAll: true,
-      );
-      for (final match in titlePattern.allMatches(html)) {
-        final href = match.group(1);
-        final rawTitle = match.group(2)?.trim();
-        if (href != null && rawTitle != null && rawTitle.isNotEmpty) {
-          // Strip episode suffix like " [34]" or " [1]"
-          final cleanTitle = _decodeHtmlEntities(
-            rawTitle.replaceAll(RegExp(r'\s*\[\d+\]\s*$'), ''),
-          );
-          if (seen.add(cleanTitle)) {
-            results.add((title: cleanTitle, url: href));
-          }
-        }
-      }
-    }
-
-    return results;
-  }
-
   /// Purpose: Provide the internal decode html entities helper for this file.
   /// Inputs: `text`.
   /// Returns: `String`.
   /// Side effects: None.
   /// Notes: Internal helper used within this file only.
-  static String _decodeHtmlEntities(String text) {
+  static String decodeHtmlEntities(String text) {
     return text
         .replaceAll('&amp;', '&')
         .replaceAll('&lt;', '<')

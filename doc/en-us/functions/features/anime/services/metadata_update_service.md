@@ -78,6 +78,9 @@ Applying a *proposal* is the opposite case and does bump it — that is a user e
 | `_hasNoLink` | static method | B | Whether a link list means "no connection". |
 | [`_isOffline`](#_isoffline) | method | A | Whether there is no connection at all. |
 | [`isMetaStale`](#ismetastale) | static method | A | Whether cached metadata is past its freshness window. |
+| [`isWatchProgressStale`](#iswatchprogressstale) | static method | A | Whether a record's stored watch-site progress needs a re-read. |
+| [`selectWatchProgressTargets`](#selectwatchprogresstargets) | method | A | List the records whose watch-site progress is due. |
+| [`_refreshWatchProgress`](#_refreshwatchprogress) | method | A | Re-read the watch-site progress for a batch of records. |
 
 ## Documentation
 
@@ -286,3 +289,34 @@ Applying a *proposal* is the opposite case and does bump it — that is a user e
   [`buildScanQueue`](#buildscanqueue) so the background loop and the manual scan cannot drift on
   what "stale" means. A finished show gets `_finishedFreshness` (14 days) against an airing show's
   `_airingFreshness` (24 hours), because a finished show's score and episode count stop moving.
+
+### `static bool isWatchProgressStale(Anime anime, DateTime now)` <a id="iswatchprogressstale"></a>
+- **Kind:** static method of `MetadataUpdateService`
+- **Source:** `lib/features/anime/services/metadata_update_service.dart` (approx. line 515)
+- **Purpose:** Report whether a record's stored watch-site progress needs a re-read.
+- **Returns:** `bool` — `true` when it was never read.
+- **Side effects:** None.
+- **Algorithm:** `false` unless `Anime1Service.isAnime1Url(watchUrl)`; `true` when `validWatchProgress` is `null` (never read, or read for a different URL); `false` when the record is fully watched and the stored run is not ongoing; otherwise compare `checkedAt` against 6 hours (ongoing) or 7 days (complete).
+- **Notes:** Shared by the background loop and the manual scan so both agree on "due".
+
+### `List<Anime> selectWatchProgressTargets(List<Anime> animes, DateTime now)` <a id="selectwatchprogresstargets"></a>
+- **Kind:** method of `MetadataUpdateService`, `@visibleForTesting`
+- **Source:** approx. line 536
+- **Purpose:** List the records whose watch-site progress is due, in library order.
+- **Returns:** `List<Anime>`.
+- **Side effects:** None.
+- **Algorithm:** Every record for which [`isWatchProgressStale`](#iswatchprogressstale) holds, excluding those with a buffered unwritten metadata update and those inside their in-memory retry window.
+- **Notes:** `test/watch_progress_test.dart` pins the freshness windows and the skips.
+
+### `Future<void> _refreshWatchProgress(List<Anime> targets, DateTime now)` <a id="_refreshwatchprogress"></a>
+- **Kind:** method of `MetadataUpdateService`
+- **Source:** approx. line 558
+- **Purpose:** Re-read the watch-site progress for a batch of records.
+- **Returns:** `Future<void>`.
+- **Side effects:** One index download, at most `_maxWatchPagesPerTick` (3) category-page requests two seconds apart, buffered metadata writes through `_pendingMeta`, and a listener notification.
+- **Algorithm:**
+  1. `Anime1Service.loadIndex()`; on failure set every target's retry-after to one hour and return.
+  2. For each target: a `/category/…` link counts against the per-tick page cap (skip when exhausted, pace the rest); `Anime1Service.fetchProgress(url, index:)`.
+  3. `null` → retry-after one hour; otherwise clear it, merge the record into the pending metadata (`mergedWith(AnimeExternalMeta(watchProgress: …))`), and count toward the flush.
+  4. Flush when the batch threshold is reached; notify listeners when anything changed.
+- **Notes:** Internal helper used within this file only. `?cat=` URLs cost no request, so a library of any size is one download per tick. The in-memory retry is kept separate from the entry backoff on purpose — a flaky watch-site read must never delay that record's metadata refresh. Writes go through `_pendingMeta`, so `modifiedAt` is preserved exactly as for a metadata refresh. `_runOnce` runs it between the refresh and discovery steps, and `startManualScan` runs it first, outside the counted queue.

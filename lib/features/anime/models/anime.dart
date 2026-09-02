@@ -53,6 +53,16 @@ const _externalMetaJsonKeys = {
   'endDate',
   'ratings',
   'refreshedAt',
+  'watchProgress',
+};
+
+const _watchProgressJsonKeys = {
+  'sourceUrl',
+  'catId',
+  'latestEpisode',
+  'episodesText',
+  'ongoing',
+  'checkedAt',
 };
 
 const _externalRatingJsonKeys = {
@@ -813,6 +823,130 @@ class AnimeExternalRating {
 /// Everything here is publicly available information about the work itself, not
 /// the user's personal tracking data, so it travels with `.myanimeitem` share
 /// files rather than being stripped like [AnimeLocalArchive].
+/// What the watch site (anime1.me) listed for an anime's `watchUrl` when it
+/// was last checked — the newest available episode, and whether the run is
+/// still updating.
+///
+/// This is a cached copy of public site data, like the rest of
+/// `AnimeExternalMeta`: it is written through `AnimeStorage.patchExternalMeta`
+/// and never bumps `modifiedAt`. `sourceUrl` remembers which `watchUrl` it was
+/// read for, so an edited URL invalidates it (see `Anime.validWatchProgress`).
+class AnimeWatchProgress {
+  /// The `watchUrl` this record was fetched for.
+  final String sourceUrl;
+
+  /// anime1.me category id, when known.
+  final int? catId;
+
+  /// Newest episode the site lists; `null` for films and specials.
+  final int? latestEpisode;
+
+  /// The site's episode cell verbatim, e.g. `連載中(09)` or `1-12+OVA`.
+  final String? episodesText;
+
+  /// Whether the site marks the series as still updating.
+  final bool ongoing;
+
+  /// When the site was last read (UTC).
+  final DateTime? checkedAt;
+
+  /// JSON fields this app version does not understand yet.
+  final Map<String, dynamic> extraJson;
+
+  /// Purpose: Create a watch progress instance.
+  /// Inputs: `sourceUrl`, `catId`, `latestEpisode`, `episodesText`, `ongoing`, `checkedAt`, `extraJson`.
+  /// Returns: A new `AnimeWatchProgress` instance.
+  /// Side effects: None.
+  /// Notes: None.
+  const AnimeWatchProgress({
+    required this.sourceUrl,
+    this.catId,
+    this.latestEpisode,
+    this.episodesText,
+    this.ongoing = false,
+    this.checkedAt,
+    this.extraJson = const {},
+  });
+
+  /// Purpose: Report whether this record carries anything worth persisting.
+  /// Inputs: None.
+  /// Returns: `bool`.
+  /// Side effects: None.
+  /// Notes: A record with only a `sourceUrl` is still data — it records that
+  /// the site was checked and listed nothing.
+  bool get hasAnyData =>
+      sourceUrl.isNotEmpty ||
+      latestEpisode != null ||
+      episodesText != null ||
+      checkedAt != null ||
+      extraJson.isNotEmpty;
+
+  /// Purpose: Serialize this value into a JSON-compatible map.
+  /// Inputs: None.
+  /// Returns: `Map<String, dynamic>`.
+  /// Side effects: None.
+  /// Notes: Unknown fields are carried through from `extraJson`.
+  Map<String, dynamic> toJson() {
+    final json = Map<String, dynamic>.from(extraJson);
+    json['sourceUrl'] = sourceUrl;
+    if (catId != null) json['catId'] = catId;
+    if (latestEpisode != null) json['latestEpisode'] = latestEpisode;
+    if (episodesText != null) json['episodesText'] = episodesText;
+    json['ongoing'] = ongoing;
+    if (checkedAt != null) {
+      json['checkedAt'] = checkedAt!.toUtc().toIso8601String();
+    }
+    return json;
+  }
+
+  /// Purpose: Create an instance from a JSON-compatible map.
+  /// Inputs: `json`.
+  /// Returns: A new `AnimeWatchProgress`.
+  /// Side effects: None.
+  /// Notes: Values that fail to parse are kept in `extraJson` rather than
+  /// dropped, following the pattern of every other record in this file.
+  factory AnimeWatchProgress.fromJson(Map<String, dynamic> json) {
+    final extraJson = _unknownJson(json, _watchProgressJsonKeys);
+
+    String? readString(String key) {
+      final raw = json[key];
+      if (raw is String) return raw;
+      if (json.containsKey(key)) extraJson[key] = raw;
+      return null;
+    }
+
+    int? readInt(String key) {
+      final raw = json[key];
+      if (raw is int) return raw;
+      if (json.containsKey(key)) extraJson[key] = raw;
+      return null;
+    }
+
+    final rawOngoing = json['ongoing'];
+    var ongoing = false;
+    if (rawOngoing is bool) {
+      ongoing = rawOngoing;
+    } else if (json.containsKey('ongoing')) {
+      extraJson['ongoing'] = rawOngoing;
+    }
+
+    final checkedAt = _parseUtcDateTime(json['checkedAt']);
+    if (json.containsKey('checkedAt') && checkedAt == null) {
+      extraJson['checkedAt'] = json['checkedAt'];
+    }
+
+    return AnimeWatchProgress(
+      sourceUrl: readString('sourceUrl') ?? '',
+      catId: readInt('catId'),
+      latestEpisode: readInt('latestEpisode'),
+      episodesText: readString('episodesText'),
+      ongoing: ongoing,
+      checkedAt: checkedAt,
+      extraJson: extraJson,
+    );
+  }
+}
+
 class AnimeExternalMeta {
   /// Alternate titles across languages, as reported by the sources.
   final List<String> synonyms;
@@ -847,11 +981,14 @@ class AnimeExternalMeta {
   /// When this record was last refreshed from its sources (UTC).
   final DateTime? refreshedAt;
 
+  /// What the watch site listed for `watchUrl` when last checked.
+  final AnimeWatchProgress? watchProgress;
+
   /// JSON fields this app version does not understand yet.
   final Map<String, dynamic> extraJson;
 
   /// Purpose: Create an external metadata instance.
-  /// Inputs: `synonyms`, `titleRomaji`, `titleEn`, `format`, `status`, `durationMinutes`, `genres`, `studios`, `endDate`, `ratings`, `refreshedAt`, `extraJson`.
+  /// Inputs: `synonyms`, `titleRomaji`, `titleEn`, `format`, `status`, `durationMinutes`, `genres`, `studios`, `endDate`, `ratings`, `refreshedAt`, `watchProgress`, `extraJson`.
   /// Returns: A new `AnimeExternalMeta` instance.
   /// Side effects: None.
   /// Notes: None.
@@ -867,6 +1004,7 @@ class AnimeExternalMeta {
     this.endDate,
     this.ratings = const [],
     this.refreshedAt,
+    this.watchProgress,
     this.extraJson = const {},
   });
 
@@ -887,6 +1025,7 @@ class AnimeExternalMeta {
       studios.isNotEmpty ||
       endDate != null ||
       ratings.isNotEmpty ||
+      watchProgress != null ||
       extraJson.isNotEmpty;
 
   /// Purpose: Look up this record's rating for one source.
@@ -969,6 +1108,7 @@ class AnimeExternalMeta {
       endDate: other.endDate ?? endDate,
       ratings: mergedRatings.values.toList(),
       refreshedAt: refreshedAt ?? other.refreshedAt ?? this.refreshedAt,
+      watchProgress: other.watchProgress ?? watchProgress,
       extraJson: _mergeJsonMaps([extraJson, other.extraJson]),
     );
   }
@@ -991,6 +1131,7 @@ class AnimeExternalMeta {
         endDate: endDate,
         ratings: ratings,
         refreshedAt: refreshedAt,
+        watchProgress: watchProgress,
         extraJson: extraJson,
       );
 
@@ -1044,6 +1185,11 @@ class AnimeExternalMeta {
       json['refreshedAt'] = refreshedAt!.toUtc().toIso8601String();
     } else if (!extraJson.containsKey('refreshedAt')) {
       json.remove('refreshedAt');
+    }
+    if (watchProgress != null) {
+      json['watchProgress'] = watchProgress!.toJson();
+    } else if (!extraJson.containsKey('watchProgress')) {
+      json.remove('watchProgress');
     }
     return json;
   }
@@ -1110,6 +1256,15 @@ class AnimeExternalMeta {
       extraJson['refreshedAt'] = json['refreshedAt'];
     }
 
+    AnimeWatchProgress? watchProgress;
+    final rawProgress = json['watchProgress'];
+    if (rawProgress is Map) {
+      final parsed = AnimeWatchProgress.fromJson(_stringKeyedMap(rawProgress));
+      if (parsed.hasAnyData) watchProgress = parsed;
+    } else if (json.containsKey('watchProgress')) {
+      extraJson['watchProgress'] = rawProgress;
+    }
+
     return AnimeExternalMeta(
       synonyms: readList('synonyms'),
       titleRomaji: readString('titleRomaji'),
@@ -1122,6 +1277,7 @@ class AnimeExternalMeta {
       endDate: endDate,
       ratings: ratings,
       refreshedAt: refreshedAt,
+      watchProgress: watchProgress,
       extraJson: extraJson,
     );
   }
@@ -1453,6 +1609,21 @@ class Anime {
       }
     }
     return null;
+  }
+
+  /// Purpose: Return the stored watch-site progress if it still applies.
+  /// Inputs: None.
+  /// Returns: `AnimeWatchProgress?` — `null` when nothing is stored or when
+  /// it was read for a different `watchUrl`.
+  /// Side effects: None.
+  /// Notes: The record keeps the URL it was fetched for, so editing the
+  /// watch URL hides a stale count until the next check.
+  AnimeWatchProgress? get validWatchProgress {
+    final progress = externalMeta?.watchProgress;
+    if (progress == null) return null;
+    final url = watchUrl?.trim();
+    if (url == null || url.isEmpty || progress.sourceUrl != url) return null;
+    return progress;
   }
 
   /// Purpose: Whether all episodes have been watched.

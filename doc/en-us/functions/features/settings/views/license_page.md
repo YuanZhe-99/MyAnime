@@ -4,7 +4,10 @@
 (see `functions/features/settings/views/settings_page.md`). It has no state and no service
 dependencies: the entire page is a `StatelessWidget` that renders a single hard-coded
 `SelectableText` block holding the project's GPLv3 license notice (stored as the private
-`_licenseText` static const `String` field). There is no Tier A logic in this file — it exists
+`_licenseText` static const `String` field). Since 1.5.7 that text ends with a "Third-party
+components" section attributing the OpenCC character dictionaries behind
+[`../../../shared/utils/chinese_convert_data.md`](../../../shared/utils/chinese_convert_data.md)
+(Apache License 2.0). There is no Tier A logic in this file — it exists
 purely to display static text, distinct from the generated third-party license page reachable via
 `showLicensePage` elsewhere in `settings_page.dart`.
 

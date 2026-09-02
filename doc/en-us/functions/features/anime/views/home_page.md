@@ -42,7 +42,8 @@ underlying episode air-date logic this page consumes.
 | `_startingDayOfWeek` | method (`_HomePageState`) | B | Convert a week-start weekday into `TableCalendar`'s enum. |
 | `_calendarTimeNote` | method (`_HomePageState`) | B | Localize the explanatory note for the current time basis. |
 | `_showActions` | method (`_HomePageState`) | B | Show the long-press action sheet for one anime and reload. |
-| `_buildEpisodeTile` | method (widget helper) | B | Render one episode row (cover, title, air date, watch toggle, long-press actions). |
+| `_siteHasEpisode` | method (`_HomePageState`) | B | Whether the stored anime1.me progress already lists this episode. |
+| `_buildEpisodeTile` | method (widget helper) | B | Render one episode row (cover, title, air date, watch button — primary when the watch site already lists the episode — watch toggle, long-press actions). |
 | `_AiringEpisode.new` | constructor (`_AiringEpisode`) | B | Pair an anime with one of its episode numbers. |
 
 ## Documentation

@@ -81,5 +81,12 @@ The `tool/` directory contains ad hoc scripts such as icon generation and search
 `assets/icon/app_icon.png` and writes preview PNGs under `/tmp`; after changing iOS icon sources,
 regenerate `ios/Runner/Assets.xcassets/AppIcon.appiconset/` with `flutter_launcher_icons`.
 
+`tool/gen_chinese_convert.dart` regenerates `lib/shared/utils/chinese_convert_data.dart` from the
+OpenCC character dictionaries kept in `tool/data/opencc/` plus the legacy hand table in
+`tool/data/legacy_st_pairs.txt`; it is offline and deterministic, so a re-run with unchanged inputs
+produces no diff. Regenerate only when bumping OpenCC — refresh the two dictionary files from
+`https://raw.githubusercontent.com/BYVoid/OpenCC/<commit>/data/dictionary/`, then run
+`dart run tool/gen_chinese_convert.dart --commit <sha>` — and commit the data file.
+
 Prefer focused tests for production behavior, and keep tool scripts out of release-critical paths
 unless the user asks for them.

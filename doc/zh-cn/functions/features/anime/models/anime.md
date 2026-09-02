@@ -38,6 +38,10 @@
 | [`withExtraJson`](#withextrajson-animeexternalrating) | 方法（`AnimeExternalRating`） | B | 替换 `extraJson` 的副本。 |
 | [`toJson`](#tojson-animeexternalrating) | 方法（`AnimeExternalRating`） | A | 序列化为 `externalMeta.ratings` 的一条记录。 |
 | [`AnimeExternalRating.fromJson`](#animeexternalrating-fromjson) | 工厂构造函数 | A | 解析一条评分记录，无法解析的值转入 `extraJson`。 |
+| [`AnimeWatchProgress(...)`](#animewatchprogress-new) | 构造函数（`AnimeWatchProgress`） | A | 创建观看站点上次检查时为 `watchUrl` 列出内容的记录。 |
+| `hasAnyData` | getter（`AnimeWatchProgress`） | B | 是否有来源 URL、集数数据、时间戳或保留的 `extraJson`。 |
+| [`toJson`](#tojson-animewatchprogress) | 方法（`AnimeWatchProgress`） | A | 序列化为存于 `externalMeta.watchProgress` 下的对象。 |
+| [`AnimeWatchProgress.fromJson`](#animewatchprogress-fromjson) | 工厂构造函数 | A | 解析观看进度记录，无法解析的值转入 `extraJson`。 |
 | [`AnimeExternalMeta(...)`](#animeexternalmeta-new) | 构造函数（`AnimeExternalMeta`） | A | 创建从外部资料库拉取的公开元数据记录。 |
 | `hasAnyData` | getter（`AnimeExternalMeta`） | B | 是否有任何值得持久化的内容。 |
 | [`ratingFor`](#ratingfor) | 方法（`AnimeExternalMeta`） | A | 查找本记录中某个来源的评分。 |
@@ -59,6 +63,7 @@
 | [`getEpisodeAirDate`](#getepisodeairdate) | 方法（`Anime`） | A | 一集的 JST 播出时间戳，带深夜（`25:00` 式）回卷。 |
 | [`getEpisodeCalendarDate`](#getepisodecalendardate) | 方法（`Anime`） | A | 一集的 JST 日历日期，不回卷。 |
 | [`nextUnwatchedEpisode`](#nextunwatchedepisode) | getter（`Anime`） | A | 第一个仍未观看的集编号。 |
+| [`validWatchProgress`](#validwatchprogress) | getter（`Anime`） | A | 已存的观看站点进度，仅当它是为当前 `watchUrl` 读取时。 |
 | [`isCompleted`](#iscompleted) | getter（`Anime`） | A | 到 `endEpisode` 为止的每一集是否都已看。 |
 | [`viewingStatus`](#viewingstatus) | getter（`Anime`） | A | 派生的 `AnimeViewingStatus`（completed/watching/dropped/notStarted）。 |
 | [`copyWith`](#copywith) | 方法（`Anime`） | A | 用所选字段创建副本（可为可空字段带 `clearXxx` 标志）。 |
@@ -462,7 +467,7 @@
 - **算法：** 经 `_unknownJson` 计算 `extraJson`，随后逐个带类型检查地读取已知键；存在但类型不对的值会被写回 `extraJson` 而非丢弃。缺失或非数值的 `scoreMax` 回退为 `10`。
 - **备注：** 与 [`AnimeLocalArchive.fromJson`](#animelocalarchive-fromjson) 同一套纪律——较新版本的数据必须能在较旧版本的编辑中存活。
 
-### `const AnimeExternalMeta({synonyms = const [], titleRomaji, titleEn, format, status, durationMinutes, genres = const [], studios = const [], endDate, ratings = const [], refreshedAt, extraJson = const {}})` <a id="animeexternalmeta-new"></a>
+### `const AnimeExternalMeta({synonyms = const [], titleRomaji, titleEn, format, status, durationMinutes, genres = const [], studios = const [], endDate, ratings = const [], refreshedAt, watchProgress, extraJson = const {}})` <a id="animeexternalmeta-new"></a>
 - **种类：** `AnimeExternalMeta` 的构造函数
 - **来源：** `lib/features/anime/models/anime.dart`（第 826 行）
 - **用途：** 创建一条从外部番剧资料库拉取的公开元数据记录。
@@ -971,3 +976,54 @@
   ```
   （`AnimeStorage.load`，[`../services/anime_storage.md`](../services/anime_storage.md#load)）
 - **备注：** 缺失的 `animes` 键解析为空列表而不是抛出，但单个格式错误的动画条目会传播 `Anime.fromJson` 抛出的任何异常（如缺失 `id`）——这一层没有逐记录错误隔离。
+
+### `const AnimeWatchProgress({required sourceUrl, catId, latestEpisode, episodesText, ongoing = false, checkedAt, extraJson = const {}})` <a id="animewatchprogress-new"></a>
+- **种类：** `AnimeWatchProgress` 的构造函数
+- **来源：** `lib/features/anime/models/anime.dart`（约第 862 行）
+- **用途：** 创建观看站点（anime1.me）在上次检查时为某番剧 `watchUrl` 列出内容的记录——可看的最新一集，以及作品是否仍在更新。
+- **输入：** `sourceUrl`——读取时所用的 `watchUrl`；`catId`；`latestEpisode`——剧场版与特别篇为 `null`；`episodesText`——站点单元格原文（`連載中(09)`、`1-12+OVA`）；`ongoing`；`checkedAt`（UTC）；`extraJson`。
+- **返回：** 一个新的 `AnimeWatchProgress`。
+- **副作用：** 无。
+- **用法：**
+  ```dart
+  AnimeWatchProgress toProgress(DateTime now) => AnimeWatchProgress(
+    sourceUrl: url,
+    catId: catId,
+    latestEpisode: episodes?.latest,
+    episodesText: episodes?.raw,
+    ongoing: episodes?.isOngoing ?? false,
+    checkedAt: now.toUtc(),
+  );
+  ```
+  （`anime1_service.dart`，`Anime1Match.toProgress`）
+- **备注：** 与 `AnimeExternalMeta` 的其余部分一样是公开站点数据的缓存副本：经 `AnimeStorage.patchExternalMeta` 写入，绝不修改 `modifiedAt`。`sourceUrl` 正是让 [`validWatchProgress`](#validwatchprogress) 在链接被改后使其失效的依据。见 [`../../../../features/watch-url-lookup.md`](../../../../features/watch-url-lookup.md#持久化的进度)。
+
+### `Map<String, dynamic> toJson()`（AnimeWatchProgress） <a id="tojson-animewatchprogress"></a>
+- **种类：** `AnimeWatchProgress` 的方法
+- **来源：** 约第 895 行
+- **用途：** 序列化为存于 `externalMeta.watchProgress` 下的对象。
+- **返回：** `Map<String, dynamic>`——从 `extraJson` 出发，总是写入 `sourceUrl` 与 `ongoing`，存在时写入 `catId`、`latestEpisode`、`episodesText`、`checkedAt`（ISO-8601 UTC）。
+- **副作用：** 无。
+- **备注：** 形状记录在 [`../../../../data-formats.md`](../../../../data-formats.md)。
+
+### `factory AnimeWatchProgress.fromJson(Map<String, dynamic> json)` <a id="animewatchprogress-fromjson"></a>
+- **种类：** `AnimeWatchProgress` 的工厂构造函数
+- **来源：** 约第 913 行
+- **用途：** 解析观看进度记录，无法解析的值转入 `extraJson`。
+- **返回：** 一个新的 `AnimeWatchProgress`；缺失的 `sourceUrl` 读作空串。
+- **副作用：** 无。
+- **算法：** 未知键经 `_unknownJson` 进入 `extraJson`；每个已知键带类型检查读取，类型不符时保留在 `extraJson` 里而不是丢弃——与本文件中其他每条记录相同的模式。
+- **备注：** `AnimeExternalMeta.fromJson` 会丢弃 `hasAnyData` 为 false 的解析结果，因此空对象永远不会在往返中存活。
+
+### `AnimeWatchProgress? get validWatchProgress` <a id="validwatchprogress"></a>
+- **种类：** `Anime` 的 getter
+- **来源：** 约第 1626 行
+- **用途：** 只在已存的观看站点进度仍然适用时返回它——即其 `sourceUrl` 等于当前 `watchUrl` 时。
+- **返回：** `AnimeWatchProgress?`——没有存储、没有观看链接、或记录是为另一个链接读取时为 `null`。
+- **副作用：** 无。
+- **用法：**
+  ```dart
+  final siteLatest = anime.validWatchProgress?.latestEpisode;
+  ```
+  （`management_page.dart`，`_buildAnimeTile`）
+- **备注：** 因此手工改了观看链接会把过期的集数隐藏到下一次检查，而不是给链接已不再指向的作品显示第 9 集。`MetadataUpdateService.isWatchProgressStale` 把这里的 `null` 当作「从未读取」，下一个 tick 就会刷新它。

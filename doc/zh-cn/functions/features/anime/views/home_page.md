@@ -27,7 +27,8 @@
 | `_startingDayOfWeek` | 方法（`_HomePageState`） | B | 把周起始星期转换为 `TableCalendar` 的枚举。 |
 | `_calendarTimeNote` | 方法（`_HomePageState`） | B | 本地化当前时间基准的解释性说明。 |
 | `_showActions` | 方法（`_HomePageState`） | B | 展示某个动画的长按操作面板并重新加载。 |
-| `_buildEpisodeTile` | 方法（组件辅助） | B | 渲染一个剧集行（封面、标题、播出日期、观看切换、长按操作）。 |
+| `_siteHasEpisode` | 方法（`_HomePageState`） | B | 已存的 anime1.me 进度是否已列出这一集。 |
+| `_buildEpisodeTile` | 方法（组件辅助） | B | 渲染一个剧集行（封面、标题、播出日期、观看按钮——观看站点已列出该集时为主色——观看切换、长按操作）。 |
 | `_AiringEpisode.new` | 构造函数（`_AiringEpisode`） | B | 把一部动画与它的一个集编号配对。 |
 
 ## 文档

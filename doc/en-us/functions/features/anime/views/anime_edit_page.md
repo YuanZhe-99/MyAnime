@@ -23,7 +23,7 @@ and episode air-date computation.
 | [`_loadExisting`](#_loadexisting) | method (`_AnimeEditPageState`) | A | Load an existing anime and populate every form field/controller from it. |
 | `_AnimeEditPageState.dispose` | method (`_AnimeEditPageState`) | B | Dispose all 17 owned `TextEditingController`s. |
 | [`_pickCoverImage`](#_pickcoverimage) | method (`_AnimeEditPageState`) | A | Let the user pick a cover image file and stage its path. |
-| [`_searchWatchUrl`](#_searchwatchurl) | method (`_AnimeEditPageState`) | A | Open the watch-URL search dialog and apply the chosen URL. |
+| [`_searchWatchUrl`](#_searchwatchurl) | method (`_AnimeEditPageState`) | A | Open the watch-URL search dialog with every known title, and apply the chosen URL plus its progress. |
 | [`_showSearchDialog`](#_showsearchdialog) | method (`_AnimeEditPageState`) | A | Open the online metadata search dialog and merge its result into the form. |
 | [`_pickFirstAirDate`](#_pickfirstairdate) | method (`_AnimeEditPageState`) | A | Show a date picker and stage the chosen `firstAirDate`. |
 | [`_save`](#_save) | method (`_AnimeEditPageState`) | A | Validate the form and create or update the anime record. |
@@ -38,11 +38,11 @@ and episode air-date computation.
 | `_buildRatingField` | method (widget helper) | B | Render one 0–10 rating `TextFormField` with validation. |
 | `_dayName` | method (`_AnimeEditPageState`) | B | Localize a day-of-week number for the air-day dropdown. |
 | `_typeLabel` | method (`_AnimeEditPageState`) | B | Localize an `AnimeType` value for the type-override dropdown. |
-| `_WatchUrlSearchDialog.new` | constructor (`_WatchUrlSearchDialog`) | B | Create the watch-URL search dialog with a query and alternate queries. |
+| `_WatchUrlSearchDialog.new` | constructor (`_WatchUrlSearchDialog`) | B | Create the watch-URL search dialog with a query, alternate queries, the first-air date and the season label. |
 | `_WatchUrlSearchDialog.createState` | method (`_WatchUrlSearchDialog`) | B | Create the mutable state object for this widget. |
 | `_WatchUrlSearchDialogState.initState` | method (`_WatchUrlSearchDialogState`) | B | Seed the query controller and run the first search. |
 | `_WatchUrlSearchDialogState.dispose` | method (`_WatchUrlSearchDialogState`) | B | Dispose the query controller. |
-| [`_search`](#_search-watchurl) | method (`_WatchUrlSearchDialogState`) | A | Search anime1.me for watch-page links matching the query. |
+| [`_search`](#_search-watchurl) | method (`_WatchUrlSearchDialogState`) | A | Run the anime1.me index lookup for the dialog's query text. |
 | `_WatchUrlSearchDialogState.build` | method (`_WatchUrlSearchDialogState`, widget build) | B | Build the watch-URL search dialog scaffold. |
 | `_buildBody` | method (widget helper) | B | Render the loading/error/results body of the watch-URL dialog. |
 
@@ -102,19 +102,24 @@ and episode air-date computation.
 ### `Future<void> _searchWatchUrl()` <a id="_searchwatchurl"></a>
 - **Kind:** method of `_AnimeEditPageState`
 - **Source:** `lib/features/anime/views/anime_edit_page.dart` (approx. line 153)
-- **Purpose:** Open `_WatchUrlSearchDialog` seeded with the current title (and alternate title) and
-  apply whichever result URL the user selects.
-- **Inputs:** None (reads `_titleController`/`_titleJaController` text).
+- **Purpose:** Open `_WatchUrlSearchDialog` seeded with every title the form knows, and apply the
+  result the user selects — its URL and the site's episode progress.
+- **Inputs:** None (reads the title controllers, `_externalMeta`, `_firstAirDate` and the season
+  controller).
 - **Returns:** `Future<void>`.
 - **Side effects:** Shows a dialog that performs network requests; `setState`s
-  `_watchUrlController.text`; shows a `SnackBar` on success.
+  `_watchUrlController.text` and `_externalMeta`; shows a `SnackBar` on success.
 - **Algorithm:**
   1. Use the title if non-empty, else the Japanese title, as the primary query; return early if
      both are empty.
-  2. Build `altQueries` — the *other* title, but only included when exactly one of the two is
-     non-empty (so the dialog always has a fallback query when only one title exists).
-  3. Await `showDialog<String>` with a `_WatchUrlSearchDialog`; if a URL was picked and the widget is
-     still mounted, set `_watchUrlController.text` and show a confirmation `SnackBar`.
+  2. Build `altQueries` — the Japanese title (when the title is the query), and `_externalMeta`'s
+     `titleEn`, `titleRomaji` and every synonym, blank-filtered. The site indexes Taiwanese titles
+     that can share no characters with a mainland one, so every known name goes along.
+  3. Await `showDialog<Anime1Match>` with a `_WatchUrlSearchDialog` that also receives
+     `_firstAirDate` and the season label (they drive the season boost); if a match was picked and
+     the widget is still mounted, set `_watchUrlController.text`, fold
+     `match.toProgress(now)` into `_externalMeta` via `mergedWith`, and show a confirmation
+     `SnackBar`. The progress is therefore stored on save without a further request.
 - **Usage:**
   ```dart
   suffixIcon: AppFlavor.isFull
@@ -271,17 +276,21 @@ and episode air-date computation.
 ### `Future<void> _search()` <a id="_search-watchurl"></a>
 - **Kind:** method of `_WatchUrlSearchDialogState`
 - **Source:** `lib/features/anime/views/anime_edit_page.dart` (approx. line 867)
-- **Purpose:** Query `anime1.me` (via `AnimeSearchService.searchAnime1`) for watch-page links
-  matching the dialog's query text, plus any alternate queries passed in.
-- **Inputs:** None (reads `_controller.text`; uses `widget.altQueries`).
+- **Purpose:** Run the anime1.me lookup (`Anime1Service.search`) for the dialog's query text, plus
+  the alternate queries, first-air date and season label passed in.
+- **Inputs:** None (reads `_controller.text`; uses `widget.altQueries`, `widget.firstAirDate`,
+  `widget.seasonText`).
 - **Returns:** `Future<void>`.
-- **Side effects:** Performs a network request via `AnimeSearchService.searchAnime1`; `setState`s
-  `_loading`, `_results`, `_error`.
+- **Side effects:** Network requests via `Anime1Service.search`; `setState`s
+  `_loading`, `_results` (a `List<Anime1Match>`), `_error`.
 - **Algorithm:**
   1. Trim the query text; return early if empty.
   2. `setState` into a loading state, clearing prior results/error.
-  3. Await `AnimeSearchService.searchAnime1(q, altQueries: widget.altQueries)`; on success, store the
-     results and set a "no results" error message if the list came back empty.
+  3. Await `Anime1Service.search(q, altQueries:, firstAirDate:, seasonText:)`; on success, store the
+     results and set a "no results" error message if the list came back empty. Rows render the
+     title, an info line from `anime1InfoLine` (season · episodes · fansub) and the URL; when any
+     result is `viaAliases`, a caption says the hits came through bangumi.tv aliases. Retyping the
+     query re-ranks the cached index without another download.
   4. On any thrown exception, store `e.toString()` as `_error` instead of results.
 - **Usage:**
   ```dart
