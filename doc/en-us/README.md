@@ -42,6 +42,9 @@ The shared WebDAV sync, backup, and ZIP engines are not in this repository. They
   blobs, GC, retention), restore safety rules, and ZIP/Markdown import-export.
 - [`platform-notes.md`](platform-notes.md) — Windows/macOS/iOS/Android platform caveats and the
   desktop local API server, tray, and launch-at-startup behavior.
+- [`on-device-ai.md`](on-device-ai.md) — on-device AI platform facts (Android AICore, Apple
+  Foundation Models), the policy, the code layout, weak linking, and the device checklist. Not yet
+  verified on a device.
 - [`ci-cd.md`](ci-cd.md) — CI jobs and workflow caveats, the build/verify command set, `tool/`
   scripts, and fresh-clone (submodule) steps.
 - [`version-history.md`](version-history.md) — release-by-release summary. Worth checking before

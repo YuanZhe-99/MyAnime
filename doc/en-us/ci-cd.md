@@ -10,12 +10,17 @@ in CI, so the default `GITHUB_TOKEN` is sufficient.
 
 ## Jobs
 
-- Android APK full flavor and AAB store flavor.
+- Android APK full flavor and AAB store flavor. Both are release builds, so they run R8 with the
+  ML Kit keep rules in `android/app/proguard-rules.pro`.
 - Windows x64 full installer on `windows-latest`.
 - Windows ARM64 full installer on `windows-11-arm`; this currently uses cached Flutter master because
   stable ARM64 engine support was not yet available when the workflow was written.
-- iOS full sideload IPA without codesign.
-- macOS full DMG via `create-dmg`.
+- iOS full sideload IPA without codesign. After `flutter build ios`, the step "Check
+  FoundationModels is weakly linked (iOS)" runs `tool/check_weak_link.sh` on
+  `build/ios/iphoneos/Runner.app`.
+- macOS full DMG via `create-dmg`. After `flutter build macos`, the step "Check FoundationModels is
+  weakly linked (macOS)" finds the `.app` under `build/macos/Build/Products/Release` (its name
+  contains `!!!!!`, so it is found rather than typed, and always quoted) and runs the same script.
 - GitHub Release artifact upload on tag push.
 
 ## Workflow caveats
@@ -87,6 +92,13 @@ OpenCC character dictionaries kept in `tool/data/opencc/` plus the legacy hand t
 produces no diff. Regenerate only when bumping OpenCC — refresh the two dictionary files from
 `https://raw.githubusercontent.com/BYVoid/OpenCC/<commit>/data/dictionary/`, then run
 `dart run tool/gen_chinese_convert.dart --commit <sha>` — and commit the data file.
+
+`tool/check_weak_link.sh <path/to/App.app>` (1.6.0) is the one script CI runs. It walks every
+Mach-O file in the bundle with `otool -l` and fails if any binary links FoundationModels with
+`LC_LOAD_DYLIB` instead of `LC_LOAD_WEAK_DYLIB`, or if no binary links it at all (the
+`on_device_ai_apple` plugin did not make it into the build). A strong link would stop the app
+launching on iOS 18 and macOS 15 and earlier. It needs macOS (`otool`); quote the path. See
+[`on-device-ai.md`](on-device-ai.md).
 
 Prefer focused tests for production behavior, and keep tool scripts out of release-critical paths
 unless the user asks for them.

@@ -41,6 +41,10 @@
 | [`setMetadataPrefetchCovers`](#setmetadataprefetchcovers) | 静态方法（`AnimeStorage`） | A | 持久化是否预下载候选封面。 |
 | [`getKanaTabEnabled`](#getkanatabenabled) | 静态方法（`AnimeStorage`） | A | 读取是否显示五十音速查标签。 |
 | [`setKanaTabEnabled`](#setkanatabenabled) | 静态方法（`AnimeStorage`） | A | 持久化是否显示五十音速查标签。 |
+| [`getOnDeviceAiEnabled`](#getondeviceaienabled) | 静态方法（`AnimeStorage`） | A | 读取是否开启端侧 AI。 |
+| [`setOnDeviceAiEnabled`](#setondeviceaienabled) | 静态方法（`AnimeStorage`） | A | 持久化是否开启端侧 AI。 |
+| [`getOnDeviceAiPreferFast`](#getondeviceaipreferfast) | 静态方法（`AnimeStorage`） | A | 读取是否优先使用更快的端侧模型。 |
+| [`setOnDeviceAiPreferFast`](#setondeviceaipreferfast) | 静态方法（`AnimeStorage`） | A | 持久化是否优先使用更快的端侧模型。 |
 | `_getListColumns` | 静态方法（`AnimeStorage`） | B | 读取某个模块存储的列表列数偏好。 |
 | `_setListColumns` | 静态方法（`AnimeStorage`） | B | 持久化某个模块的列表列数偏好。 |
 | `getHomeListColumns` | 静态方法（`AnimeStorage`） | B | 读取首页模块的列表列数偏好。 |
@@ -582,3 +586,27 @@
 - **种类：** `AnimeStorage` 的静态方法
 - **副作用：** 写入 `storage_config.json`。
 - **备注：** 开启时写入 `kanaTabEnabled: true`，关闭时移除该键，形态与 `setMetadataPrefetchCovers` 相同。
+
+### `static Future<bool> getOnDeviceAiEnabled()` <a id="getondeviceaienabled"></a>
+- **种类：** `AnimeStorage` 的静态方法
+- **返回：** `Future<bool>` —— 仅当 `storage_config.json` 含 `onDeviceAiEnabled: true` 时为 `true`。
+- **副作用：** 读取 `storage_config.json`。
+- **备注：** 1.6.0（M3）新增。默认关闭；关闭期间不会向端侧模型发出任何请求。由
+  `AppSettingsNotifier._loadPersisted` 读取，并把值传给 `OnDeviceAiService.setEnabled`。参见
+  [`../../../../on-device-ai.md`](../../../../on-device-ai.md)。
+
+### `static Future<void> setOnDeviceAiEnabled(bool enabled)` <a id="setondeviceaienabled"></a>
+- **种类：** `AnimeStorage` 的静态方法
+- **副作用：** 写入 `storage_config.json`。
+- **备注：** 开启时写入 `onDeviceAiEnabled: true`，关闭时移除该键，形态与 `setKanaTabEnabled` 相同。
+
+### `static Future<bool> getOnDeviceAiPreferFast()` <a id="getondeviceaipreferfast"></a>
+- **种类：** `AnimeStorage` 的静态方法
+- **返回：** `Future<bool>` —— 仅当 `storage_config.json` 含 `onDeviceAiPreferFast: true` 时为 `true`。
+- **副作用：** 读取 `storage_config.json`。
+- **备注：** 1.6.0（M3）新增。仅限 Android，且只在 AICore 同时提供两种尺寸的模型时才有意义。
+
+### `static Future<void> setOnDeviceAiPreferFast(bool enabled)` <a id="setondeviceaipreferfast"></a>
+- **种类：** `AnimeStorage` 的静态方法
+- **副作用：** 写入 `storage_config.json`。
+- **备注：** 开启时写入 `onDeviceAiPreferFast: true`，关闭时移除该键。

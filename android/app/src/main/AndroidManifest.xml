@@ -76,5 +76,10 @@
             <action android:name="android.intent.action.PROCESS_TEXT"/>
             <data android:mimeType="text/plain"/>
         </intent>
+        <!-- Android 11+ package visibility: Settings reports the AICore version
+             behind the on-device AI switch, which needs the package to be
+             visible. Without this every device reads as "AICore not installed".
+             See doc/en-us/on-device-ai.md. -->
+        <package android:name="com.google.android.aicore"/>
     </queries>
 </manifest>

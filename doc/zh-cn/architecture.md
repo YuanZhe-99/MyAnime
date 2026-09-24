@@ -49,6 +49,12 @@ lib/
     router.dart
     theme.dart
   features/
+    ai/                       # on-device AI layer (1.6.0)
+      services/
+        genai_backend.dart
+        on_device_ai_service.dart
+        output_validation.dart
+      widgets/ai_settings_tiles.dart
     anime/
       models/anime.dart
       services/
@@ -108,8 +114,17 @@ lib/
 - `test/bundle_import_test.dart` — `.myanimeitem` v1 向后兼容、v2 多动画捆绑格式，以及导出个人数据剥离。
 - `test/local_archive_ui_test.dart` — 本地存档小节的渲染、archived 开关、片源下拉框，以及存档枚举标签辅助函数。
 - `test/widget_test.dart` — 基础组件冒烟覆盖。
+- `test/on_device_ai_test.dart` 和 `test/ai_settings_tiles_ui_test.dart` — 用假后端测试端侧 AI 的门、状态映射、
+  队列、节奏控制和输出解析，并按平台测试设置中的各行（1.6.0）。
 
-`tool/` 包含临时脚本（图标生成、搜索源校验、中文转换表生成器），不在发布关键路径上。
+`tool/` 包含临时脚本（图标生成、搜索源校验、中文转换表生成器），不在发布关键路径上。例外是
+`tool/check_weak_link.sh`，iOS 和 macOS 的 CI 任务会运行它（见 [`ci-cd.md`](ci-cd.md)）。
+
+在 `lib/` 之外，仓库在 `packages/` 下带有两个本地 Dart 包，都是 `pubspec.yaml` 中的路径依赖：
+`packages/myapps_data`，即下文所述的共享引擎子模块；以及 `packages/on_device_ai_apple`（1.6.0），一个纳入版本
+控制的本地 Flutter 插件，在 iOS 和 macOS 上桥接 Apple 的 Foundation Models 框架。Android 上的对应部分是
+`android/app/src/main/kotlin/com/yuanzhe/my_anime/GenAiChannel.kt`。见 [`on-device-ai.md`](on-device-ai.md) 和
+[`platform-notes.md`](platform-notes.md)。
 
 ## 共享包（`myapps_data`）
 

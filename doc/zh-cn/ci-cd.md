@@ -8,11 +8,15 @@
 
 ## 任务
 
-- Android full 风味的 APK 和 store 风味的 AAB。
+- Android full 风味的 APK 和 store 风味的 AAB。两者都是 release 构建，因此会带着 `android/app/proguard-rules.pro`
+  中的 ML Kit 保留规则运行 R8。
 - 在 `windows-latest` 上构建 Windows x64 full 安装包。
 - 在 `windows-11-arm` 上构建 Windows ARM64 full 安装包；它目前使用缓存的 Flutter master，因为编写工作流时 stable 的 ARM64 引擎支持尚不可用。
-- 不带签名的 iOS full 侧载 IPA。
-- 通过 `create-dmg` 构建 macOS full DMG。
+- 不带签名的 iOS full 侧载 IPA。`flutter build ios` 之后，步骤「Check FoundationModels is weakly linked (iOS)」
+  对 `build/ios/iphoneos/Runner.app` 运行 `tool/check_weak_link.sh`。
+- 通过 `create-dmg` 构建 macOS full DMG。`flutter build macos` 之后，步骤「Check FoundationModels is weakly
+  linked (macOS)」在 `build/macos/Build/Products/Release` 下查找 `.app`（其名称含 `!!!!!`，因此靠查找而不是手写，
+  并且始终加引号），再运行同一个脚本。
 - 标签推送时上传 GitHub Release 工件。
 
 ## 工作流注意事项
@@ -62,5 +66,10 @@ git submodule update --init
 中的旧手打表重新生成 `lib/shared/utils/chinese_convert_data.dart`；它离线且确定，因此输入不变时重新运行不产生
 任何差异。只在升级 OpenCC 时重新生成——从 `https://raw.githubusercontent.com/BYVoid/OpenCC/<commit>/data/dictionary/`
 刷新两个字典文件，然后运行 `dart run tool/gen_chinese_convert.dart --commit <sha>`——并提交数据文件。
+
+`tool/check_weak_link.sh <path/to/App.app>`（1.6.0）是 CI 唯一运行的脚本。它用 `otool -l` 遍历应用包中的每个
+Mach-O 文件，只要有任何二进制以 `LC_LOAD_DYLIB` 而不是 `LC_LOAD_WEAK_DYLIB` 链接 FoundationModels，或者没有
+任何二进制链接它（`on_device_ai_apple` 插件没有进入构建），就失败。强链接会让应用无法在 iOS 18 和 macOS 15
+及更早版本上启动。它需要 macOS（`otool`）；路径要加引号。见 [`on-device-ai.md`](on-device-ai.md)。
 
 生产行为优先用聚焦测试，除非用户要求，否则把工具脚本留在发布关键路径之外。

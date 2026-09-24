@@ -21,6 +21,8 @@ reuses the shared search service.
   `Release.entitlements` for network access.
 - Custom app icons are generated with `flutter_launcher_icons`.
 - `.myanimeitem` file association uses UTI `com.yuanzhe.my-anime.myanimeitem` in `Info.plist`.
+- On-device AI (1.6.0) uses the same plugin and weak-link rules as iOS below; the deployment target
+  stays macOS 13.0.
 
 ## iOS
 
@@ -31,6 +33,17 @@ reuses the shared search service.
   `assets/icon/app_icon_ios_tinted.png`.
 - `.myanimeitem` file association uses the same UTI declarations as macOS.
 - App Store IPA requires signing/provisioning and is not built by CI.
+- **On-device AI (1.6.0):** Apple's Foundation Models framework is bridged by the local Flutter
+  plugin `packages/on_device_ai_apple/` (a tracked directory, not a submodule), declared with
+  `sharedDarwinSource: true` so one Swift source serves iOS and macOS. It registers the
+  `com.yuanzhe.my_anime/genai` channel and exposes no Dart API; the Flutter tool integrates it like
+  any other plugin, so no `project.pbxproj` was edited. FoundationModels is **weak-linked**
+  (`s.weak_frameworks` in the podspec; under Swift Package Manager the `@available` guards make the
+  linker weak-link it) and every use sits behind `#if canImport(FoundationModels)` and
+  `@available(iOS 26.0, macOS 26.0, *)`, so the deployment target stays iOS 13.0 and the app still
+  launches on iOS 18 and earlier. Building the bridge needs the Xcode 26 SDK; with an older SDK
+  `canImport` is false and the plugin answers `unsupported`. No entitlement or `Info.plist` key is
+  needed. See [`on-device-ai.md`](on-device-ai.md).
 
 ## Android
 
@@ -51,6 +64,22 @@ reuses the shared search service.
   `compileSdk 34` and fail the metadata check. Its Dart API is `FilePicker.platform.*`.
 - Keystore properties should use nullable casts such as `as String?`.
 - Core library desugaring is enabled.
+- **`minSdk` is 26 since 1.6.0**, set explicitly in `defaultConfig` instead of
+  `flutter.minSdkVersion` (24), because the ML Kit GenAI library requires API 26. This drops
+  Android 7.0 and 7.1. `tools:overrideLibrary` with run-time guards was rejected: it risks
+  class-verification crashes on API 24 and 25.
+- **On-device AI dependencies are pinned exactly:** `com.google.mlkit:genai-prompt:1.0.0-beta4` (a
+  beta API with no deprecation policy) and `org.jetbrains.kotlinx:kotlinx-coroutines-android:1.10.2`.
+  Both build on the current toolchain (AGP 9.1.1, KGP 2.2.20, `builtInKotlin=false`).
+- **R8 keep rules:** the release build type adds `proguardFiles("proguard-rules.pro")`.
+  `android/app/proguard-rules.pro` keeps `com.google.mlkit.**`,
+  `com.google.android.gms.internal.mlkit_**` and `kotlinx.coroutines.**`; without them a release
+  build fails at run time in a way that looks like an unsupported device, while debug builds work.
+- `AndroidManifest.xml` has `<package android:name="com.google.android.aicore"/>` in `<queries>`, so
+  the AICore version is visible on API 30 and later.
+- `GenAiChannel` (`android/app/src/main/kotlin/com/yuanzhe/my_anime/GenAiChannel.kt`) is attached in
+  `MainActivity.configureFlutterEngine` next to the share and file-open channels and detached in
+  `onDestroy`, which closes the AICore client. See [`on-device-ai.md`](on-device-ai.md).
 - Signing is optional locally via `key.properties`; CI uses GitHub Secrets.
 - `FileProvider` and `FLAG_ACTIVITY_NEW_TASK` support share/import flows (see
   [`features/share-and-import.md`](features/share-and-import.md)).

@@ -706,6 +706,88 @@ class AppLocalizationsZh extends AppLocalizations {
   String get syncSeriesAuto => '系列：自动';
 
   @override
+  String get aiSectionTitle => '分类与推荐';
+
+  @override
+  String get aiUseOnDevice => '使用端侧 AI';
+
+  @override
+  String get aiUseOnDeviceDesc =>
+      '默认关闭。借助本设备内置的模型，为资料库没有给出分类的番剧补上分类，并为推荐写一句简短理由。任何内容都不会离开本设备。';
+
+  @override
+  String get aiNeedsFeature => '请先开启自动分类或推荐。';
+
+  @override
+  String get aiStatusAvailable => '可以使用';
+
+  @override
+  String get aiStatusUnavailable => '本设备不支持';
+
+  @override
+  String get aiStatusUnreachable => '无法访问端侧模型';
+
+  @override
+  String get aiStatusUnknown => '设备返回了本版本无法识别的状态';
+
+  @override
+  String get aiStatusDownloadable => '需要下载一次';
+
+  @override
+  String get aiStatusDownloading => '正在准备模型…';
+
+  @override
+  String get aiStatusNotEnabled => 'Apple Intelligence 已关闭';
+
+  @override
+  String get aiStatusUnsupportedApple =>
+      '需要支持 Apple Intelligence 的 iOS 26 或 macOS 26';
+
+  @override
+  String get aiTurnOnAppleIntelligence =>
+      '请在系统设置中开启 Apple Intelligence，然后重新检查。';
+
+  @override
+  String get aiCheckAgain => '重新检查';
+
+  @override
+  String get aiDownload => '下载';
+
+  @override
+  String aiDownloadedBytes(String megabytes) {
+    return '已下载 $megabytes MB';
+  }
+
+  @override
+  String get aiDownloadNote => '模型由 Android 下载，不是本应用，并且只在你点「下载」时才开始。';
+
+  @override
+  String get aiPreferFast => '使用更快的模型';
+
+  @override
+  String get aiPreferFastBody => '回答来得更快，通常也更简短。';
+
+  @override
+  String get aiModelStorageNote => '模型属于 Android，与使用它的其他应用共用，因此无法在这里删除。';
+
+  @override
+  String get aiModelAppleNote => '模型属于 Apple Intelligence，由系统管理。';
+
+  @override
+  String get aiTechnicalDetails => '技术详情';
+
+  @override
+  String aiCoreVersion(String version) {
+    return 'AICore $version';
+  }
+
+  @override
+  String get aiCoreMissing => '本设备未安装 AICore。';
+
+  @override
+  String get aiGeneratedLabel => '在本设备上生成——可能有误';
+
+  @override
   String get save => '保存';
 
   @override
@@ -2317,6 +2399,88 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
 
   @override
   String get syncSeriesAuto => '系列：自動';
+
+  @override
+  String get aiSectionTitle => '分類與推薦';
+
+  @override
+  String get aiUseOnDevice => '使用裝置端 AI';
+
+  @override
+  String get aiUseOnDeviceDesc =>
+      '預設關閉。借助本裝置內建的模型，為資料庫沒有提供分類的番劇補上分類，並為推薦寫一句簡短理由。任何內容都不會離開本裝置。';
+
+  @override
+  String get aiNeedsFeature => '請先開啟自動分類或推薦。';
+
+  @override
+  String get aiStatusAvailable => '可以使用';
+
+  @override
+  String get aiStatusUnavailable => '本裝置不支援';
+
+  @override
+  String get aiStatusUnreachable => '無法存取裝置端模型';
+
+  @override
+  String get aiStatusUnknown => '裝置回報了本版本無法辨識的狀態';
+
+  @override
+  String get aiStatusDownloadable => '需要下載一次';
+
+  @override
+  String get aiStatusDownloading => '正在準備模型…';
+
+  @override
+  String get aiStatusNotEnabled => 'Apple Intelligence 已關閉';
+
+  @override
+  String get aiStatusUnsupportedApple =>
+      '需要支援 Apple Intelligence 的 iOS 26 或 macOS 26';
+
+  @override
+  String get aiTurnOnAppleIntelligence =>
+      '請在系統設定中開啟 Apple Intelligence，然後重新檢查。';
+
+  @override
+  String get aiCheckAgain => '重新檢查';
+
+  @override
+  String get aiDownload => '下載';
+
+  @override
+  String aiDownloadedBytes(String megabytes) {
+    return '已下載 $megabytes MB';
+  }
+
+  @override
+  String get aiDownloadNote => '模型由 Android 下載，不是本應用程式，而且只在你點「下載」時才開始。';
+
+  @override
+  String get aiPreferFast => '使用較快的模型';
+
+  @override
+  String get aiPreferFastBody => '回答來得更快，通常也更簡短。';
+
+  @override
+  String get aiModelStorageNote => '模型屬於 Android，與使用它的其他應用程式共用，因此無法在這裡刪除。';
+
+  @override
+  String get aiModelAppleNote => '模型屬於 Apple Intelligence，由系統管理。';
+
+  @override
+  String get aiTechnicalDetails => '技術詳情';
+
+  @override
+  String aiCoreVersion(String version) {
+    return 'AICore $version';
+  }
+
+  @override
+  String get aiCoreMissing => '本裝置未安裝 AICore。';
+
+  @override
+  String get aiGeneratedLabel => '在本裝置上生成——可能有誤';
 
   @override
   String get save => '儲存';

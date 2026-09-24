@@ -709,6 +709,90 @@ class AppLocalizationsJa extends AppLocalizations {
   String get syncSeriesAuto => 'シリーズ：自動';
 
   @override
+  String get aiSectionTitle => '分類とおすすめ';
+
+  @override
+  String get aiUseOnDevice => 'オンデバイスAIを使う';
+
+  @override
+  String get aiUseOnDeviceDesc =>
+      '初期状態ではオフです。データベースに分類がない作品の分類を補い、おすすめの短い理由を、この端末に内蔵されたモデルで書きます。何も端末の外に送信されません。';
+
+  @override
+  String get aiNeedsFeature => '先に自動分類かおすすめをオンにしてください。';
+
+  @override
+  String get aiStatusAvailable => '利用可能';
+
+  @override
+  String get aiStatusUnavailable => 'この端末では利用できません';
+
+  @override
+  String get aiStatusUnreachable => 'オンデバイスモデルに接続できませんでした';
+
+  @override
+  String get aiStatusUnknown => 'このバージョンでは認識できない状態が端末から返されました';
+
+  @override
+  String get aiStatusDownloadable => '初回のみダウンロードが必要';
+
+  @override
+  String get aiStatusDownloading => 'モデルを準備中…';
+
+  @override
+  String get aiStatusNotEnabled => 'Apple Intelligence がオフになっています';
+
+  @override
+  String get aiStatusUnsupportedApple =>
+      'Apple Intelligence に対応した iOS 26 または macOS 26 が必要です';
+
+  @override
+  String get aiTurnOnAppleIntelligence =>
+      '設定アプリで Apple Intelligence をオンにしてから、再確認してください。';
+
+  @override
+  String get aiCheckAgain => '再確認';
+
+  @override
+  String get aiDownload => 'ダウンロード';
+
+  @override
+  String aiDownloadedBytes(String megabytes) {
+    return '$megabytes MB ダウンロード済み';
+  }
+
+  @override
+  String get aiDownloadNote =>
+      'モデルをダウンロードするのはこのアプリではなくAndroidで、「ダウンロード」をタップしたときだけです。';
+
+  @override
+  String get aiPreferFast => '高速なモデルを使う';
+
+  @override
+  String get aiPreferFastBody => '答えが早く返り、たいていは短めになります。';
+
+  @override
+  String get aiModelStorageNote =>
+      'モデルはAndroidが管理し、ほかのアプリとも共有されるため、ここから削除することはできません。';
+
+  @override
+  String get aiModelAppleNote => 'モデルは Apple Intelligence の一部で、システムが管理します。';
+
+  @override
+  String get aiTechnicalDetails => '技術情報';
+
+  @override
+  String aiCoreVersion(String version) {
+    return 'AICore $version';
+  }
+
+  @override
+  String get aiCoreMissing => 'この端末にはAICoreがインストールされていません。';
+
+  @override
+  String get aiGeneratedLabel => 'この端末で生成 — 誤りを含む可能性があります';
+
+  @override
   String get save => '保存';
 
   @override

@@ -16,6 +16,7 @@
 - `DebugProfile.entitlements` 和 `Release.entitlements` 都必须有 `com.apple.security.network.client` 才能联网。
 - 自定义应用图标用 `flutter_launcher_icons` 生成。
 - `.myanimeitem` 文件关联在 `Info.plist` 中使用 UTI `com.yuanzhe.my-anime.myanimeitem`。
+- 端侧 AI（1.6.0）使用与下文 iOS 相同的插件和弱链接规则；部署目标仍为 macOS 13.0。
 
 ## iOS
 
@@ -24,6 +25,14 @@
 - iOS 应用图标对默认、深色和着色模式使用专门的带内边距来源：`assets/icon/app_icon_ios.png`、`assets/icon/app_icon_ios_dark.png`、`assets/icon/app_icon_ios_tinted.png`。
 - `.myanimeitem` 文件关联与 macOS 使用相同的 UTI 声明。
 - App Store IPA 需要签名/预置描述文件，不由 CI 构建。
+- **端侧 AI（1.6.0）：** Apple 的 Foundation Models 框架由本地 Flutter 插件 `packages/on_device_ai_apple/`
+  桥接（纳入版本控制的目录，不是子模块），以 `sharedDarwinSource: true` 声明，一份 Swift 源码同时服务 iOS 和
+  macOS。它注册 `com.yuanzhe.my_anime/genai` 通道，不暴露任何 Dart API；Flutter 工具像集成其他插件一样集成它，
+  因此没有编辑任何 `project.pbxproj`。FoundationModels 是**弱链接**的（podspec 中的 `s.weak_frameworks`；在
+  Swift Package Manager 下由 `@available` 守卫让链接器弱链接它），每处使用都位于
+  `#if canImport(FoundationModels)` 和 `@available(iOS 26.0, macOS 26.0, *)` 之后，因此部署目标仍为 iOS 13.0，
+  应用在 iOS 18 及更早版本上仍能启动。构建该桥接需要 Xcode 26 SDK；使用更旧的 SDK 时 `canImport` 为 false，
+  插件回答 `unsupported`。不需要任何 entitlement 或 `Info.plist` 键。见 [`on-device-ai.md`](on-device-ai.md)。
 
 ## Android
 
@@ -32,6 +41,20 @@
 - **`file_picker` 精确固定为 `10.3.7`**（不是 caret 约束），因为它是既自己应用 KGP（`builtInKotlin=false` 时需要）*又*能对照 `flutter.compileSdkVersion` 编译（AGP 9 AAR 元数据检查需要）的最后一个版本。`10.3.9+` 和 `11.x` 依赖 AGP 的内置 Kotlin，在兼容模式下无法编译；`10.3.2` 及更早固定 `compileSdk 34`，无法通过元数据检查。其 Dart API 是 `FilePicker.platform.*`。
 - Keystore 属性应使用 `as String?` 之类的可空转换。
 - 启用了核心库脱糖。
+- **自 1.6.0 起 `minSdk` 为 26**，在 `defaultConfig` 中显式设置，而不是用 `flutter.minSdkVersion`（24），因为
+  ML Kit GenAI 库要求 API 26。这放弃了 Android 7.0 和 7.1。带运行时守卫的 `tools:overrideLibrary` 方案被否决：
+  它有在 API 24 和 25 上发生类校验崩溃的风险。
+- **端侧 AI 依赖精确锁定版本：** `com.google.mlkit:genai-prompt:1.0.0-beta4`（没有弃用政策的 beta API）和
+  `org.jetbrains.kotlinx:kotlinx-coroutines-android:1.10.2`。两者都能在当前工具链（AGP 9.1.1、KGP 2.2.20、
+  `builtInKotlin=false`）上构建。
+- **R8 保留规则：** release 构建类型加上 `proguardFiles("proguard-rules.pro")`。`android/app/proguard-rules.pro`
+  保留 `com.google.mlkit.**`、`com.google.android.gms.internal.mlkit_**` 和 `kotlinx.coroutines.**`；缺少它们时，
+  release 构建会在运行时失败，看起来像是设备不受支持，而 debug 构建一切正常。
+- `AndroidManifest.xml` 在 `<queries>` 中有 `<package android:name="com.google.android.aicore"/>`，使 AICore 版本
+  在 API 30 及以上可见。
+- `GenAiChannel`（`android/app/src/main/kotlin/com/yuanzhe/my_anime/GenAiChannel.kt`）在
+  `MainActivity.configureFlutterEngine` 中与分享和文件打开通道一起挂接，并在 `onDestroy` 中解除挂接，同时关闭
+  AICore 客户端。见 [`on-device-ai.md`](on-device-ai.md)。
 - 本地可通过 `key.properties` 可选签名；CI 使用 GitHub Secrets。
 - `FileProvider` 和 `FLAG_ACTIVITY_NEW_TASK` 支持分享/导入流程（见 [`features/share-and-import.md`](features/share-and-import.md)）。
 

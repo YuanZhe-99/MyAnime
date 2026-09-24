@@ -11,12 +11,16 @@ import java.io.File
 class MainActivity : FlutterActivity() {
     private var fileOpenChannel: MethodChannel? = null
 
+    /** The bridge to Android AICore; see [GenAiChannel]. */
+    private val genAi = GenAiChannel(this)
+
     /**
-     * Purpose: Register Android share and file-open channels for the Flutter engine.
+     * Purpose: Register Android share, file-open and on-device AI channels for the Flutter engine.
      * Inputs: `flutterEngine`.
      * Returns: None.
      * Side effects: Installs method-channel handlers and may dispatch the launch intent into Flutter.
      * Notes: Runs during activity startup and reuses the existing launch intent for cold-start file opens.
+     * [GenAiChannel] creates no AICore client here; see its own note on why.
      */
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
         super.configureFlutterEngine(flutterEngine)
@@ -71,8 +75,22 @@ class MainActivity : FlutterActivity() {
                 }
             }
 
+        genAi.attach(flutterEngine)
+
         // Handle file open from launch intent
         handleIntent(intent)
+    }
+
+    /**
+     * Purpose: Release the AICore client when the activity goes away.
+     * Inputs: None.
+     * Returns: None.
+     * Side effects: Closes the on-device model session and cancels any request.
+     * Notes: A model left open holds an AICore session, a shared device resource.
+     */
+    override fun onDestroy() {
+        genAi.detach()
+        super.onDestroy()
     }
 
     /**

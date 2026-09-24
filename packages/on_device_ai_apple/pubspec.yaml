@@ -1,0 +1,25 @@
+name: on_device_ai_apple
+description: >-
+  MyAnime!!!!!'s bridge to Apple's Foundation Models framework on iOS and
+  macOS. Registers the com.yuanzhe.my_anime/genai method channel; it exposes
+  no Dart API of its own.
+version: 1.0.0
+publish_to: none
+
+environment:
+  sdk: ^3.11.3
+  flutter: '>=3.3.0'
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+flutter:
+  plugin:
+    platforms:
+      ios:
+        pluginClass: OnDeviceAiApplePlugin
+        sharedDarwinSource: true
+      macos:
+        pluginClass: OnDeviceAiApplePlugin
+        sharedDarwinSource: true

@@ -185,6 +185,11 @@ jobs:
       - name: Build iOS (full, no codesign)
         run: flutter build ios --release --no-codesign --dart-define=FLAVOR=full
 
+      # FoundationModels exists only on iOS 26+, and a strong link would stop
+      # the app launching on iOS 18 and earlier. See doc/en-us/on-device-ai.md.
+      - name: Check FoundationModels is weakly linked (iOS)
+        run: bash tool/check_weak_link.sh build/ios/iphoneos/Runner.app
+
       - name: Package sideload IPA
         run: |
           mkdir -p build/ios/ipa/Payload
@@ -222,6 +227,13 @@ jobs:
 
       - name: Build macOS (full)
         run: flutter build macos --release --dart-define=FLAVOR=full
+
+      # Same check as iOS, for macOS 15 and earlier. The bundle name contains
+      # `!!!!!`, so it is found rather than typed, and always quoted.
+      - name: Check FoundationModels is weakly linked (macOS)
+        run: |
+          APP_PATH=$(find build/macos/Build/Products/Release -name "*.app" -maxdepth 1 | head -1)
+          bash tool/check_weak_link.sh "$APP_PATH"
 
       - name: Install create-dmg
         run: brew install create-dmg

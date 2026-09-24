@@ -166,6 +166,8 @@
 | standalone | 独立（不归入系列） | 用户把记录移出所有系列（`standalone: true`）；它不加入任何系列，也不吸引其他记录 |
 | next season | 下一季 | 「添加下一季」操作，预填标题与递增后的季标签 |
 | materialise (a series) | 固化（系列） | 首次手动整理时给自动归入的系列的每个成员写入同一 `seriesId` |
+| on-device AI | 端侧 AI | 在本设备上运行的模型；与 MyNihongo 一致。勿译成「本地 AI」或「设备端 AI」 |
+| Apple Intelligence / AICore / Foundation Models | Apple Intelligence / AICore / Foundation Models | 平台与框架名，不翻译 |
 
 ## 6. 复查清单（提交中文页面之前运行）
 

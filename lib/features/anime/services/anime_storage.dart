@@ -546,6 +546,57 @@ class AnimeStorage {
     await writeConfig(config);
   }
 
+  /// Purpose: Return whether on-device AI is turned on.
+  /// Inputs: None.
+  /// Returns: `Future<bool>` — defaults to false.
+  /// Side effects: Reads `storage_config.json`.
+  /// Notes: Off by default; while off, the on-device model is never asked
+  /// anything. See `doc/en-us/on-device-ai.md`.
+  static Future<bool> getOnDeviceAiEnabled() async {
+    final config = await readConfig();
+    return config['onDeviceAiEnabled'] == true;
+  }
+
+  /// Purpose: Persist whether on-device AI is turned on.
+  /// Inputs: `enabled`.
+  /// Returns: None.
+  /// Side effects: Writes `storage_config.json`.
+  /// Notes: The default `false` is removed from config rather than stored.
+  static Future<void> setOnDeviceAiEnabled(bool enabled) async {
+    final config = await readConfig();
+    if (enabled) {
+      config['onDeviceAiEnabled'] = true;
+    } else {
+      config.remove('onDeviceAiEnabled');
+    }
+    await writeConfig(config);
+  }
+
+  /// Purpose: Return whether the faster on-device model is preferred.
+  /// Inputs: None.
+  /// Returns: `Future<bool>` — defaults to false.
+  /// Side effects: Reads `storage_config.json`.
+  /// Notes: Android only, and only meaningful where AICore serves both sizes.
+  static Future<bool> getOnDeviceAiPreferFast() async {
+    final config = await readConfig();
+    return config['onDeviceAiPreferFast'] == true;
+  }
+
+  /// Purpose: Persist whether the faster on-device model is preferred.
+  /// Inputs: `enabled`.
+  /// Returns: None.
+  /// Side effects: Writes `storage_config.json`.
+  /// Notes: The default `false` is removed from config rather than stored.
+  static Future<void> setOnDeviceAiPreferFast(bool enabled) async {
+    final config = await readConfig();
+    if (enabled) {
+      config['onDeviceAiPreferFast'] = true;
+    } else {
+      config.remove('onDeviceAiPreferFast');
+    }
+    await writeConfig(config);
+  }
+
   /// Purpose: Read a stored list column preference.
   /// Inputs: `key` — the `storage_config.json` key for one module.
   /// Returns: `Future<int>` — `listColumnsAuto` when unset or malformed.

@@ -41,6 +41,9 @@ before handing control to Flutter's widget tree via `runApp`. See
   6. Fire `BackupService.runAutoBackupIfNeeded()` without awaiting (runs the once-per-day auto
      backup check in the background).
   7. Start `AutoSyncService.instance` so it begins observing app lifecycle events for sync triggers.
+  7a. Start `OnDeviceAiService.instance` so its queue follows the app lifecycle. This calls nothing
+      on the platform: the service stays off until `AppSettingsNotifier` loads the user's switch.
+      See [`../on-device-ai.md`](../on-device-ai.md).
   8. Start `ReminderService.startPeriodicCheck()` (desktop 60-second in-process reminder check).
   8a. Under `AppFlavor.isFull` only, resolve the background metadata-update policy and start
       `MetadataUpdateService.instance` unless it is `off`. Started without awaiting, so a slow

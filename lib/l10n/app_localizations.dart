@@ -1313,6 +1313,156 @@ abstract class AppLocalizations {
   /// **'Series: automatic'**
   String get syncSeriesAuto;
 
+  /// No description provided for @aiSectionTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Categories & recommendations'**
+  String get aiSectionTitle;
+
+  /// No description provided for @aiUseOnDevice.
+  ///
+  /// In en, this message translates to:
+  /// **'Use on-device AI'**
+  String get aiUseOnDevice;
+
+  /// No description provided for @aiUseOnDeviceDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'Off by default. Fills in categories the databases did not provide and writes short reasons for recommendations, with the model built into this device. Nothing leaves the device.'**
+  String get aiUseOnDeviceDesc;
+
+  /// No description provided for @aiNeedsFeature.
+  ///
+  /// In en, this message translates to:
+  /// **'Turn on automatic categories or recommendations first.'**
+  String get aiNeedsFeature;
+
+  /// No description provided for @aiStatusAvailable.
+  ///
+  /// In en, this message translates to:
+  /// **'Ready'**
+  String get aiStatusAvailable;
+
+  /// No description provided for @aiStatusUnavailable.
+  ///
+  /// In en, this message translates to:
+  /// **'Not available on this device'**
+  String get aiStatusUnavailable;
+
+  /// No description provided for @aiStatusUnreachable.
+  ///
+  /// In en, this message translates to:
+  /// **'The on-device model could not be reached'**
+  String get aiStatusUnreachable;
+
+  /// No description provided for @aiStatusUnknown.
+  ///
+  /// In en, this message translates to:
+  /// **'The device reported a status this version does not recognise'**
+  String get aiStatusUnknown;
+
+  /// No description provided for @aiStatusDownloadable.
+  ///
+  /// In en, this message translates to:
+  /// **'Needs a one-time download'**
+  String get aiStatusDownloadable;
+
+  /// No description provided for @aiStatusDownloading.
+  ///
+  /// In en, this message translates to:
+  /// **'Preparing the model…'**
+  String get aiStatusDownloading;
+
+  /// No description provided for @aiStatusNotEnabled.
+  ///
+  /// In en, this message translates to:
+  /// **'Apple Intelligence is turned off'**
+  String get aiStatusNotEnabled;
+
+  /// No description provided for @aiStatusUnsupportedApple.
+  ///
+  /// In en, this message translates to:
+  /// **'Needs iOS 26 or macOS 26 with Apple Intelligence'**
+  String get aiStatusUnsupportedApple;
+
+  /// No description provided for @aiTurnOnAppleIntelligence.
+  ///
+  /// In en, this message translates to:
+  /// **'Turn on Apple Intelligence in the Settings app, then check again.'**
+  String get aiTurnOnAppleIntelligence;
+
+  /// No description provided for @aiCheckAgain.
+  ///
+  /// In en, this message translates to:
+  /// **'Check again'**
+  String get aiCheckAgain;
+
+  /// No description provided for @aiDownload.
+  ///
+  /// In en, this message translates to:
+  /// **'Download'**
+  String get aiDownload;
+
+  /// No description provided for @aiDownloadedBytes.
+  ///
+  /// In en, this message translates to:
+  /// **'{megabytes} MB so far'**
+  String aiDownloadedBytes(String megabytes);
+
+  /// No description provided for @aiDownloadNote.
+  ///
+  /// In en, this message translates to:
+  /// **'Android downloads the model, not this app, and only when you tap Download.'**
+  String get aiDownloadNote;
+
+  /// No description provided for @aiPreferFast.
+  ///
+  /// In en, this message translates to:
+  /// **'Use the faster model'**
+  String get aiPreferFast;
+
+  /// No description provided for @aiPreferFastBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Answers come sooner, and are usually shorter.'**
+  String get aiPreferFastBody;
+
+  /// No description provided for @aiModelStorageNote.
+  ///
+  /// In en, this message translates to:
+  /// **'The model belongs to Android and is shared with other apps that use it, so it cannot be removed from here.'**
+  String get aiModelStorageNote;
+
+  /// No description provided for @aiModelAppleNote.
+  ///
+  /// In en, this message translates to:
+  /// **'The model is part of Apple Intelligence and is managed by the system.'**
+  String get aiModelAppleNote;
+
+  /// No description provided for @aiTechnicalDetails.
+  ///
+  /// In en, this message translates to:
+  /// **'Technical details'**
+  String get aiTechnicalDetails;
+
+  /// No description provided for @aiCoreVersion.
+  ///
+  /// In en, this message translates to:
+  /// **'AICore {version}'**
+  String aiCoreVersion(String version);
+
+  /// No description provided for @aiCoreMissing.
+  ///
+  /// In en, this message translates to:
+  /// **'AICore is not installed on this device.'**
+  String get aiCoreMissing;
+
+  /// No description provided for @aiGeneratedLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Generated on this device — may be wrong'**
+  String get aiGeneratedLabel;
+
   /// No description provided for @save.
   ///
   /// In en, this message translates to:

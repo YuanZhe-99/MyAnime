@@ -25,6 +25,9 @@
   5. 无条件初始化 `ReminderService`（本地通知插件设置）——这个调用在所有平台上都 await。
   6. 不 await 地触发 `BackupService.runAutoBackupIfNeeded()`（在后台运行每日一次自动备份检查）。
   7. 启动 `AutoSyncService.instance`，使它开始观察应用生命周期事件以触发同步。
+  7a. 启动 `OnDeviceAiService.instance`，使它的队列跟随应用生命周期。这不会调用平台的任何东西：在
+      `AppSettingsNotifier` 加载用户的开关之前，该服务一直处于关闭状态。见
+      [`../on-device-ai.md`](../on-device-ai.md)。
   8. 启动 `ReminderService.startPeriodicCheck()`（桌面 60 秒进程内提醒检查）。
   8a. 仅在 `AppFlavor.isFull` 下，解析后台资料更新策略，若不是 `off` 则启动
       `MetadataUpdateService.instance`。启动时不 await，因此一次缓慢的配置读取不会拖延首帧。这里的

@@ -757,6 +757,94 @@ class AppLocalizationsEn extends AppLocalizations {
   String get syncSeriesAuto => 'Series: automatic';
 
   @override
+  String get aiSectionTitle => 'Categories & recommendations';
+
+  @override
+  String get aiUseOnDevice => 'Use on-device AI';
+
+  @override
+  String get aiUseOnDeviceDesc =>
+      'Off by default. Fills in categories the databases did not provide and writes short reasons for recommendations, with the model built into this device. Nothing leaves the device.';
+
+  @override
+  String get aiNeedsFeature =>
+      'Turn on automatic categories or recommendations first.';
+
+  @override
+  String get aiStatusAvailable => 'Ready';
+
+  @override
+  String get aiStatusUnavailable => 'Not available on this device';
+
+  @override
+  String get aiStatusUnreachable => 'The on-device model could not be reached';
+
+  @override
+  String get aiStatusUnknown =>
+      'The device reported a status this version does not recognise';
+
+  @override
+  String get aiStatusDownloadable => 'Needs a one-time download';
+
+  @override
+  String get aiStatusDownloading => 'Preparing the model…';
+
+  @override
+  String get aiStatusNotEnabled => 'Apple Intelligence is turned off';
+
+  @override
+  String get aiStatusUnsupportedApple =>
+      'Needs iOS 26 or macOS 26 with Apple Intelligence';
+
+  @override
+  String get aiTurnOnAppleIntelligence =>
+      'Turn on Apple Intelligence in the Settings app, then check again.';
+
+  @override
+  String get aiCheckAgain => 'Check again';
+
+  @override
+  String get aiDownload => 'Download';
+
+  @override
+  String aiDownloadedBytes(String megabytes) {
+    return '$megabytes MB so far';
+  }
+
+  @override
+  String get aiDownloadNote =>
+      'Android downloads the model, not this app, and only when you tap Download.';
+
+  @override
+  String get aiPreferFast => 'Use the faster model';
+
+  @override
+  String get aiPreferFastBody =>
+      'Answers come sooner, and are usually shorter.';
+
+  @override
+  String get aiModelStorageNote =>
+      'The model belongs to Android and is shared with other apps that use it, so it cannot be removed from here.';
+
+  @override
+  String get aiModelAppleNote =>
+      'The model is part of Apple Intelligence and is managed by the system.';
+
+  @override
+  String get aiTechnicalDetails => 'Technical details';
+
+  @override
+  String aiCoreVersion(String version) {
+    return 'AICore $version';
+  }
+
+  @override
+  String get aiCoreMissing => 'AICore is not installed on this device.';
+
+  @override
+  String get aiGeneratedLabel => 'Generated on this device — may be wrong';
+
+  @override
   String get save => 'Save';
 
   @override

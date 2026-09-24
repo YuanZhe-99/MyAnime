@@ -37,6 +37,7 @@ about to change, verify against the code, then fix the docs in the same commit.
 | Worked end-to-end scenarios | `doc/en-us/examples/*.md` |
 | Windows/macOS/iOS/Android specifics, `file_picker` pin, Gradle/AGP state | `doc/en-us/platform-notes.md` |
 | CI jobs, build commands, `tool/` scripts, fresh-clone steps | `doc/en-us/ci-cd.md` |
+| On-device AI platform facts: AICore, Foundation Models, device checklist | `doc/en-us/on-device-ai.md` |
 | Why a behavior exists; past releases | `doc/en-us/version-history.md` |
 | English→Chinese terminology | `doc/en-us/translation-guide.md` |
 
@@ -68,7 +69,8 @@ sync rule, or a feature must update, in the same commit:
 
 - the per-file page under `doc/en-us/functions/` and its `INDEX.md` row,
 - every affected concept doc (`architecture.md`, `data-formats.md`, `sync.md`,
-  `backup-restore.md`, `features/*.md`, `algorithms/*.md`, `platform-notes.md`, `ci-cd.md`).
+  `backup-restore.md`, `features/*.md`, `algorithms/*.md`, `platform-notes.md`, `ci-cd.md`,
+  `on-device-ai.md`).
 
 Every language directory under `doc/` (currently `en-us` and `zh-cn`) mirrors the others exactly —
 same files, headings, tables, and examples. `doc/en-us/` is authoritative: any documentation change

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:table_calendar/table_calendar.dart';
 
+import '../../features/ai/services/on_device_ai_service.dart';
 import '../../features/anime/services/anime_storage.dart';
 import '../utils/adaptive_layout.dart';
 import '../utils/calendar_preferences.dart';
@@ -83,6 +84,8 @@ class AppSettingsNotifier extends StateNotifier<AppSettings> {
     final manageListColumns = await AnimeStorage.getManageListColumns();
     final statsListColumns = await AnimeStorage.getStatsListColumns();
     final kanaTabEnabled = await AnimeStorage.getKanaTabEnabled();
+    final onDeviceAiEnabled = await AnimeStorage.getOnDeviceAiEnabled();
+    final onDeviceAiPreferFast = await AnimeStorage.getOnDeviceAiPreferFast();
 
     final themeMode = switch (modeStr) {
       'light' => ThemeMode.light,
@@ -107,7 +110,14 @@ class AppSettingsNotifier extends StateNotifier<AppSettings> {
       manageListColumns: manageListColumns,
       statsListColumns: statsListColumns,
       kanaTabEnabled: kanaTabEnabled,
+      onDeviceAiEnabled: onDeviceAiEnabled,
+      onDeviceAiPreferFast: onDeviceAiPreferFast,
     );
+    // The service holds no preference of its own; it is told once here and
+    // again by each setter below.
+    final ai = OnDeviceAiService.instance;
+    await ai.setPreferFast(onDeviceAiPreferFast);
+    await ai.setEnabled(onDeviceAiEnabled);
   }
 
   /// Purpose: Update theme mode with the provided value.
@@ -229,6 +239,28 @@ class AppSettingsNotifier extends StateNotifier<AppSettings> {
     state = state.copyWith(kanaTabEnabled: enabled);
     AnimeStorage.setKanaTabEnabled(enabled);
   }
+
+  /// Purpose: Turn on-device AI on or off.
+  /// Inputs: `enabled`.
+  /// Returns: None.
+  /// Side effects: Persists the preference and switches `OnDeviceAiService`.
+  /// Notes: Off by default. Switching off cancels anything running.
+  void setOnDeviceAiEnabled(bool enabled) {
+    state = state.copyWith(onDeviceAiEnabled: enabled);
+    AnimeStorage.setOnDeviceAiEnabled(enabled);
+    OnDeviceAiService.instance.setEnabled(enabled);
+  }
+
+  /// Purpose: Prefer the faster on-device model where both sizes are served.
+  /// Inputs: `enabled`.
+  /// Returns: None.
+  /// Side effects: Persists the preference; the service re-probes.
+  /// Notes: Android only.
+  void setOnDeviceAiPreferFast(bool enabled) {
+    state = state.copyWith(onDeviceAiPreferFast: enabled);
+    AnimeStorage.setOnDeviceAiPreferFast(enabled);
+    OnDeviceAiService.instance.setPreferFast(enabled);
+  }
 }
 
 class AppSettings {
@@ -251,8 +283,14 @@ class AppSettings {
   /// Whether the Kana quick-reference tab appears in navigation. Off by default.
   final bool kanaTabEnabled;
 
+  /// Whether on-device AI is turned on. Off by default.
+  final bool onDeviceAiEnabled;
+
+  /// Whether the faster on-device model is preferred (Android).
+  final bool onDeviceAiPreferFast;
+
   /// Purpose: Create a app settings instance.
-  /// Inputs: `themeMode`, `locale`, `weekStartDay`, `homeCalendarLayout`, `homeCalendarTimeBasis`, `homeCalendarFormat`, `homeListColumns`, `manageListColumns`, `statsListColumns`, `kanaTabEnabled`.
+  /// Inputs: `themeMode`, `locale`, `weekStartDay`, `homeCalendarLayout`, `homeCalendarTimeBasis`, `homeCalendarFormat`, `homeListColumns`, `manageListColumns`, `statsListColumns`, `kanaTabEnabled`, `onDeviceAiEnabled`, `onDeviceAiPreferFast`.
   /// Returns: A new `AppSettings` instance.
   /// Side effects: None.
   /// Notes: `weekStartDay` stores the local-calendar preference; Japanese layout uses Sunday effectively.
@@ -267,6 +305,8 @@ class AppSettings {
     this.manageListColumns = listColumnsAuto,
     this.statsListColumns = listColumnsAuto,
     this.kanaTabEnabled = false,
+    this.onDeviceAiEnabled = false,
+    this.onDeviceAiPreferFast = false,
   });
 
   /// Purpose: Return the week start day that should be applied to calendars.
@@ -280,7 +320,7 @@ class AppSettings {
       : weekStartDay;
 
   /// Purpose: Create a copy with selected fields replaced.
-  /// Inputs: `themeMode`, `locale`, `weekStartDay`, `homeCalendarLayout`, `homeCalendarTimeBasis`, `homeCalendarFormat`, `homeListColumns`, `manageListColumns`, `statsListColumns`, `kanaTabEnabled`, `clearLocale`.
+  /// Inputs: `themeMode`, `locale`, `weekStartDay`, `homeCalendarLayout`, `homeCalendarTimeBasis`, `homeCalendarFormat`, `homeListColumns`, `manageListColumns`, `statsListColumns`, `kanaTabEnabled`, `onDeviceAiEnabled`, `onDeviceAiPreferFast`, `clearLocale`.
   /// Returns: `AppSettings`.
   /// Side effects: None.
   /// Notes: None.
@@ -295,6 +335,8 @@ class AppSettings {
     int? manageListColumns,
     int? statsListColumns,
     bool? kanaTabEnabled,
+    bool? onDeviceAiEnabled,
+    bool? onDeviceAiPreferFast,
     bool clearLocale = false,
   }) {
     return AppSettings(
@@ -309,6 +351,8 @@ class AppSettings {
       manageListColumns: manageListColumns ?? this.manageListColumns,
       statsListColumns: statsListColumns ?? this.statsListColumns,
       kanaTabEnabled: kanaTabEnabled ?? this.kanaTabEnabled,
+      onDeviceAiEnabled: onDeviceAiEnabled ?? this.onDeviceAiEnabled,
+      onDeviceAiPreferFast: onDeviceAiPreferFast ?? this.onDeviceAiPreferFast,
     );
   }
 }

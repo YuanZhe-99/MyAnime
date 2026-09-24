@@ -50,6 +50,10 @@ notifies `AutoSyncService`/`ReminderService` after every save. See
 | [`setMetadataPrefetchCovers`](#setmetadataprefetchcovers) | static method (`AnimeStorage`) | A | Persist whether candidate covers are prefetched. |
 | [`getKanaTabEnabled`](#getkanatabenabled) | static method (`AnimeStorage`) | A | Read whether the Kana quick-reference tab is shown. |
 | [`setKanaTabEnabled`](#setkanatabenabled) | static method (`AnimeStorage`) | A | Persist whether the Kana quick-reference tab is shown. |
+| [`getOnDeviceAiEnabled`](#getondeviceaienabled) | static method (`AnimeStorage`) | A | Read whether on-device AI is turned on. |
+| [`setOnDeviceAiEnabled`](#setondeviceaienabled) | static method (`AnimeStorage`) | A | Persist whether on-device AI is turned on. |
+| [`getOnDeviceAiPreferFast`](#getondeviceaipreferfast) | static method (`AnimeStorage`) | A | Read whether the faster on-device model is preferred. |
+| [`setOnDeviceAiPreferFast`](#setondeviceaipreferfast) | static method (`AnimeStorage`) | A | Persist whether the faster on-device model is preferred. |
 | `_getListColumns` | static method (`AnimeStorage`) | B | Read a stored list column preference. |
 | `_setListColumns` | static method (`AnimeStorage`) | B | Persist a list column preference for one module. |
 | `getHomeListColumns` | static method (`AnimeStorage`) | B | Read the home module's list column preference. |
@@ -616,3 +620,30 @@ notifies `AutoSyncService`/`ReminderService` after every save. See
 - **Side effects:** Writes `storage_config.json`.
 - **Notes:** Writes `kanaTabEnabled: true` when on and removes the key when off, the same shape as
   `setMetadataPrefetchCovers`.
+
+### `static Future<bool> getOnDeviceAiEnabled()` <a id="getondeviceaienabled"></a>
+- **Kind:** static method of `AnimeStorage`
+- **Returns:** `Future<bool>` — `true` only when `storage_config.json` holds `onDeviceAiEnabled: true`.
+- **Side effects:** Reads `storage_config.json`.
+- **Notes:** Added in 1.6.0 (M3). Off by default; while off, the on-device model is never asked
+  anything. Read by `AppSettingsNotifier._loadPersisted`, which passes the value to
+  `OnDeviceAiService.setEnabled`. See [`../../../../on-device-ai.md`](../../../../on-device-ai.md).
+
+### `static Future<void> setOnDeviceAiEnabled(bool enabled)` <a id="setondeviceaienabled"></a>
+- **Kind:** static method of `AnimeStorage`
+- **Side effects:** Writes `storage_config.json`.
+- **Notes:** Writes `onDeviceAiEnabled: true` when on and removes the key when off, the same shape as
+  `setKanaTabEnabled`.
+
+### `static Future<bool> getOnDeviceAiPreferFast()` <a id="getondeviceaipreferfast"></a>
+- **Kind:** static method of `AnimeStorage`
+- **Returns:** `Future<bool>` — `true` only when `storage_config.json` holds
+  `onDeviceAiPreferFast: true`.
+- **Side effects:** Reads `storage_config.json`.
+- **Notes:** Added in 1.6.0 (M3). Android only, and only meaningful where AICore serves both model
+  sizes.
+
+### `static Future<void> setOnDeviceAiPreferFast(bool enabled)` <a id="setondeviceaipreferfast"></a>
+- **Kind:** static method of `AnimeStorage`
+- **Side effects:** Writes `storage_config.json`.
+- **Notes:** Writes `onDeviceAiPreferFast: true` when on and removes the key when off.

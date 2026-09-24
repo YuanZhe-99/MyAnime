@@ -4,15 +4,15 @@ This is the top-level index of the hand-written Function Explanation Layer docum
 `lib/` in the MyAnime repo. Each row links to a per-source-file page under `doc/en-us/functions/`
 mirroring the `lib/` tree (with `.dart` replaced by `.md`).
 
-**Totals:** the repo's `/// Purpose:` comment count is **979** (per the Function Explanation Layer
+**Totals:** the repo's `/// Purpose:` comment count is **1046** (per the Function Explanation Layer
 convention in `AGENTS.md`, excluding generated `lib/l10n/` code — see [l10n/INDEX.md](l10n/INDEX.md)).
-The rows below sum to **961** documented declarations.
+The rows below sum to **1028** documented declarations.
 
 | Tier | Count |
 |---|---|
-| Tier A (full entry: Purpose/Inputs/Returns/Side effects/Algorithm/Usage/Notes) | 604 |
-| Tier B (index row only) | 357 |
-| **Total** | **961** |
+| Tier A (full entry: Purpose/Inputs/Returns/Side effects/Algorithm/Usage/Notes) | 631 |
+| Tier B (index row only) | 397 |
+| **Total** | **1028** |
 
 **Known gap.** These two numbers do not match: 18 declarations carry a `/// Purpose:` comment in
 source but have no row here, so the index under-covers `lib/` by that much. The 1.5.7 recount found
@@ -39,7 +39,9 @@ again in 1.6.0 (M1, series linking), which added 56 across three new files and s
 net of the two `Anime1Service` helpers that moved into `season_label.dart` — and, while there, gave
 `anime.dart`'s page the `_parseCalendarDate` row it had lacked since 1.5.7 and corrected
 `anime_edit_page.dart`'s stale Tier A count from 9 to the 13 its page already documented; the gap
-stayed at 18. The
+stayed at 18, and again in 1.6.0 (M3, on-device AI), which added 67 across four new files and two
+changed ones (`app_settings.dart` and `anime_storage.dart`; `main.dart` changed without a new
+declaration); the gap stayed at 18. The
 pre-1.4.0 figures (682
 `Purpose:` comments and 685 documented declarations) had drifted far from both the source and this
 file's own per-file rows, which summed to 615 at the time. If you change these numbers, measure
@@ -70,13 +72,25 @@ find lib -name "*.dart" -not -path "lib/l10n/*" | xargs grep -h '/// Purpose:' |
 Function Explanation Layer convention (function/method/constructor/getter/setter); see that page for
 detail.
 
+## features/ai/
+
+| Source file | Page | Declarations | Tier A count |
+|---|---|---|---|
+| `lib/features/ai/services/genai_backend.dart` | [features/ai/services/genai_backend.md](features/ai/services/genai_backend.md) | 25 | 7 |
+| `lib/features/ai/services/on_device_ai_service.dart` | [features/ai/services/on_device_ai_service.md](features/ai/services/on_device_ai_service.md) | 24 | 9 |
+| `lib/features/ai/services/output_validation.dart` | [features/ai/services/output_validation.md](features/ai/services/output_validation.md) | 6 | 4 |
+| `lib/features/ai/widgets/ai_settings_tiles.dart` | [features/ai/widgets/ai_settings_tiles.md](features/ai/widgets/ai_settings_tiles.md) | 6 | 2 |
+
+The on-device AI layer (1.6.0, M3). Rows include the private `_AiJob` helpers and state methods
+that carry a `/// Purpose:` comment. See [../on-device-ai.md](../on-device-ai.md).
+
 ## features/anime/
 
 | Source file | Page | Declarations | Tier A count |
 |---|---|---|---|
 | `lib/features/anime/models/anime.dart` | [features/anime/models/anime.md](features/anime/models/anime.md) | 79 | 64 |
 | `lib/features/anime/models/metadata_update.dart` | [features/anime/models/metadata_update.md](features/anime/models/metadata_update.md) | 22 | 9 |
-| `lib/features/anime/services/anime_storage.dart` | [features/anime/services/anime_storage.md](features/anime/services/anime_storage.md) | 43 | 35 |
+| `lib/features/anime/services/anime_storage.dart` | [features/anime/services/anime_storage.md](features/anime/services/anime_storage.md) | 47 | 39 |
 | `lib/features/anime/services/anime1_service.dart` | [features/anime/services/anime1_service.md](features/anime/services/anime1_service.md) | 31 | 17 |
 | `lib/features/anime/services/anime_search_service.dart` | [features/anime/services/anime_search_service.md](features/anime/services/anime_search_service.md) | 59 | 39 |
 | `lib/features/anime/services/metadata_cache.dart` | [features/anime/services/metadata_cache.md](features/anime/services/metadata_cache.md) | 10 | 7 |
@@ -125,7 +139,7 @@ the 771 hand-documented declarations above).
 
 | Source file | Page | Declarations | Tier A count |
 |---|---|---|---|
-| `lib/shared/providers/app_settings.dart` | [shared/providers/app_settings.md](shared/providers/app_settings.md) | 19 | 14 |
+| `lib/shared/providers/app_settings.dart` | [shared/providers/app_settings.md](shared/providers/app_settings.md) | 21 | 15 |
 | `lib/shared/utils/adaptive_layout.dart` | [shared/utils/adaptive_layout.md](shared/utils/adaptive_layout.md) | 12 | 12 |
 | `lib/shared/utils/calendar_preferences.dart` | [shared/utils/calendar_preferences.md](shared/utils/calendar_preferences.md) | 4 | 4 |
 | `lib/shared/utils/chinese_convert.dart` | [shared/utils/chinese_convert.md](shared/utils/chinese_convert.md) | 5 | 4 |
@@ -161,8 +175,9 @@ the 771 hand-documented declarations above).
 |---|---|---|---|---|
 | Root (`lib/`) | 1 | 1 | 1 | 0 |
 | `app/` | 5 | 19 | 14 | 5 |
-| `features/anime/` | 19 | 577 | 328 | 249 |
+| `features/ai/` | 4 | 61 | 22 | 39 |
+| `features/anime/` | 19 | 581 | 332 | 249 |
 | `features/kana/` | 1 | 19 | 3 | 16 |
 | `features/settings/` | 4 | 49 | 28 | 21 |
-| `shared/` (utils, widgets, providers, services, views) | 29 | 296 | 230 | 66 |
-| **Total** | **59** | **961** | **604** | **357** |
+| `shared/` (utils, widgets, providers, services, views) | 29 | 298 | 231 | 67 |
+| **Total** | **63** | **1028** | **631** | **397** |

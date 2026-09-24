@@ -30,6 +30,8 @@ management conventions (Riverpod, no Provider/Bloc) and
 | `AppSettingsNotifier.setManageListColumns` | method (`AppSettingsNotifier`) | B | Update the remembered management list column preference and persist it. |
 | `AppSettingsNotifier.setStatsListColumns` | method (`AppSettingsNotifier`) | B | Update the remembered statistics list column preference and persist it. |
 | `AppSettingsNotifier.setKanaTabEnabled` | method (`AppSettingsNotifier`) | B | Show or hide the Kana tab and persist the choice. |
+| [`AppSettingsNotifier.setOnDeviceAiEnabled`](#appsettingsnotifier-setondeviceaienabled) | method (`AppSettingsNotifier`) | A | Turn on-device AI on or off, persist it, and switch `OnDeviceAiService`. |
+| `AppSettingsNotifier.setOnDeviceAiPreferFast` | method (`AppSettingsNotifier`) | B | Prefer the faster on-device model where both sizes are served; persist it and tell `OnDeviceAiService`. |
 | [`AppSettings.new`](#appsettings-new) | constructor (`AppSettings`) | A | Create an `AppSettings` instance. |
 | [`AppSettings.effectiveWeekStartDay`](#appsettings-effectiveweekstartday) | getter (`AppSettings`) | A | Return the week start day that should be applied to calendars. |
 | [`AppSettings.copyWith`](#appsettings-copywith) | method (`AppSettings`) | A | Create a copy with selected fields replaced. |
@@ -137,8 +139,10 @@ separate rows.
 - **Inputs:** None.
 - **Returns:** `Future<void>`.
 - **Side effects:** Reads `AnimeStorage.getThemeMode()`, `getLocaleTag()`, `getWeekStartDay()`,
-  `getHomeCalendarLayout()`, `getHomeCalendarTimeBasis()`, and `getHomeCalendarFormat()`; replaces
-  `state`.
+  `getHomeCalendarLayout()`, `getHomeCalendarTimeBasis()`, and `getHomeCalendarFormat()` (plus the
+  list-column, Kana-tab and on-device AI getters described at the end of this page); replaces
+  `state`; then calls `OnDeviceAiService.instance.setPreferFast` and `setEnabled` with the loaded
+  values.
 - **Algorithm:**
   1. Await the six `AnimeStorage` getters (theme mode string, locale tag, week start day, home
      calendar layout string, home calendar time basis string, home calendar format string).
@@ -149,6 +153,9 @@ separate rows.
   4. If a locale tag is present, split it on `_`; a tag with a country-code part (e.g. `zh_TW`)
      becomes `Locale('zh', 'TW')`, otherwise a plain `Locale(languageCode)`.
   5. Replace `state` with a new `AppSettings(...)` built from the parsed values.
+  6. Tell `OnDeviceAiService.instance` the loaded size preference, then the loaded switch — the
+     service holds no preference of its own. While the switch is off, `setEnabled(false)` is a
+     no-op, so a default start calls nothing on the platform.
 - **Usage:** Called only from `AppSettingsNotifier()`'s constructor; not part of the public API.
 - **Notes:** A malformed locale tag with more than one `_` (e.g. `en_US_extra`) only uses the first
   two parts; there is no explicit validation beyond that.
@@ -276,6 +283,26 @@ separate rows.
   format here instead of in `_HomePageState` is what makes it survive bottom-nav tab switches, which
   rebuild `HomePage` through the `go_router` shell.
 
+### `void setOnDeviceAiEnabled(bool enabled)` <a id="appsettingsnotifier-setondeviceaienabled"></a>
+- **Kind:** method of `AppSettingsNotifier`
+- **Source:** `lib/shared/providers/app_settings.dart` (approx. line 248)
+- **Purpose:** Turn on-device AI on or off.
+- **Inputs:** `enabled`.
+- **Returns:** None.
+- **Side effects:** Updates `state`; calls `AnimeStorage.setOnDeviceAiEnabled(enabled)` and
+  `OnDeviceAiService.instance.setEnabled(enabled)`, both without awaiting.
+- **Algorithm:** 1) `state = state.copyWith(onDeviceAiEnabled: enabled)`. 2) Persist. 3) Switch the
+  service, which probes the model when turned on and cancels anything running when turned off.
+- **Usage:**
+  ```dart
+  onChanged: widget.featuresOn || settings.onDeviceAiEnabled
+      ? notifier.setOnDeviceAiEnabled
+      : null,
+  ```
+  (from `lib/features/ai/widgets/ai_settings_tiles.dart`, the "Use on-device AI" switch)
+- **Notes:** Off by default. `setOnDeviceAiPreferFast` has the same shape and makes the service
+  re-probe while it is on.
+
 ### `const AppSettings({...})` <a id="appsettings-new"></a>
 - **Kind:** constructor of `AppSettings`
 - **Source:** `lib/shared/providers/app_settings.dart` (approx. line 189)
@@ -367,3 +394,13 @@ Settings › General calls. `ShellScaffold` watches it to show four or five dest
 skips `_loadPersisted`, so a widget test can override `appSettingsProvider` with
 `overrideWithValue(AppSettingsNotifier.fixed(...))` without touching storage. Its setters still
 persist.
+
+## On-device AI preferences
+
+1.6.0 (M3) adds `onDeviceAiEnabled` and `onDeviceAiPreferFast`, both `bool`s defaulting to `false`,
+loaded in `_loadPersisted` through `AnimeStorage.getOnDeviceAiEnabled()` and
+`getOnDeviceAiPreferFast()` and written by `setOnDeviceAiEnabled` and `setOnDeviceAiPreferFast`.
+Each writer also tells `OnDeviceAiService.instance`, which keeps no preference of its own; the
+constructor and `copyWith` take both fields. The only UI is
+[`AiSettingsTiles`](../../features/ai/widgets/ai_settings_tiles.md), which is not yet shown in
+Settings on `master`. See [`../../../on-device-ai.md`](../../../on-device-ai.md).

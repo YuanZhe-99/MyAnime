@@ -22,6 +22,7 @@
 - [`sync.md`](sync.md) — 端到端的 WebDAV 同步算法：加锁、下载、三方合并、冲突处理、重试、心跳、图像同步和自动同步触发。
 - [`backup-restore.md`](backup-restore.md) — 本地备份格式 v2（内容寻址图像 blob、GC、保留）、恢复安全规则，以及 ZIP/Markdown 导入导出。
 - [`platform-notes.md`](platform-notes.md) — Windows/macOS/iOS/Android 平台注意事项，以及桌面本地 API 服务器、托盘和开机自启行为。
+- [`on-device-ai.md`](on-device-ai.md) — 端侧 AI 的平台事实（Android AICore、Apple Foundation Models）、策略、代码布局、弱链接和设备检查清单。尚未在设备上验证。
 - [`ci-cd.md`](ci-cd.md) — CI 任务和工作流注意事项、构建/校验命令集、`tool/` 脚本和全新克隆（子模块）步骤。
 - [`version-history.md`](version-history.md) — 逐版本摘要。在改动一个看起来奇怪的行为前值得先查；多条记录是刻意的安全修复。
 

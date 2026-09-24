@@ -32,7 +32,10 @@ android {
         applicationId = "com.yuanzhe.my_anime"
         // You can update the following values to match your application needs.
         // For more information, see: https://flutter.dev/to/review-gradle-config.
-        minSdk = flutter.minSdkVersion
+        // 26, not flutter.minSdkVersion (24): the ML Kit GenAI library below
+        // requires API 26. Nothing else in the app does. Approved for 1.6.0,
+        // which drops Android 7.0 and 7.1. See doc/en-us/on-device-ai.md.
+        minSdk = 26
         targetSdk = flutter.targetSdkVersion
         versionCode = flutter.versionCode
         versionName = flutter.versionName
@@ -56,6 +59,11 @@ android {
             } else {
                 signingConfigs.getByName("debug")
             }
+            // Additive to the rules the libraries and AGP contribute. The file
+            // exists only for ML Kit GenAI, which R8 otherwise shrinks into a
+            // runtime failure that looks like an unsupported device. See the
+            // comments in proguard-rules.pro.
+            proguardFiles("proguard-rules.pro")
         }
     }
 }
@@ -66,6 +74,20 @@ flutter {
 
 dependencies {
     coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.1.4")
+
+    // On-device generative AI through Android AICore (Gemini Nano), used
+    // only when the user turns on "Use on-device AI". A beta API with no
+    // deprecation policy, so the version is exact rather than dynamic.
+    // 1.0.0-beta4 is the first client that can ask for a named model variant
+    // (ModelReleaseStage x ModelPreference) and that returns a status on a
+    // Gemini Nano v4 device instead of throwing. Which model a device serves
+    // is decided at run time by GenAiChannel.probePrompt, never here.
+    // Checked against the Google Maven index on 2026-09-24; see
+    // doc/en-us/on-device-ai.md.
+    implementation("com.google.mlkit:genai-prompt:1.0.0-beta4")
+    // The Prompt API suspends and returns a Flow; the coroutine runtime is
+    // not pulled in by the Flutter Android embedding, so it is declared here.
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.10.2")
 }
 
 // Built-in Kotlin migration: align the Kotlin jvmTarget with the Java 17

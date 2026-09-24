@@ -66,6 +66,12 @@ lib/
     router.dart
     theme.dart
   features/
+    ai/                       # on-device AI layer (1.6.0)
+      services/
+        genai_backend.dart
+        on_device_ai_service.dart
+        output_validation.dart
+      widgets/ai_settings_tiles.dart
     anime/
       models/anime.dart
       services/
@@ -130,10 +136,21 @@ Primary tests (mirroring the structure above where relevant):
 - `test/local_archive_ui_test.dart` — Local Archive section rendering, the archived switch, the
   source dropdown, and the archive enum label helpers.
 - `test/widget_test.dart` — basic widget smoke coverage.
+- `test/on_device_ai_test.dart` and `test/ai_settings_tiles_ui_test.dart` — the on-device AI gate,
+  status mapping, queue, pacing and output parsing against a fake backend, and the Settings rows per
+  platform (1.6.0).
 
 `tool/` contains ad hoc scripts (icon generation, search-source validation, the Chinese
 conversion-table generator) that are not part of
-the release-critical path.
+the release-critical path. The exception is `tool/check_weak_link.sh`, which the iOS and macOS CI
+jobs run (see [`ci-cd.md`](ci-cd.md)).
+
+Outside `lib/`, the repo carries two local Dart packages under `packages/`, both path dependencies
+in `pubspec.yaml`: `packages/myapps_data`, the shared engine submodule described below, and
+`packages/on_device_ai_apple` (1.6.0), a tracked local Flutter plugin that bridges Apple's
+Foundation Models framework on iOS and macOS. The Android counterpart is
+`android/app/src/main/kotlin/com/yuanzhe/my_anime/GenAiChannel.kt`. See
+[`on-device-ai.md`](on-device-ai.md) and [`platform-notes.md`](platform-notes.md).
 
 ## Shared package (`myapps_data`)
 

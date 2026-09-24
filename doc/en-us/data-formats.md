@@ -334,6 +334,7 @@ migrates data files, backups, and images.
 | API server enabled/listen address/port/credentials | `storage_config.json` | No | Local desktop config; credentials must not be committed |
 | Tray and launch-at-startup preferences | `storage_config.json` | No | Local desktop config |
 | Kana tab shown | `storage_config.json` | No | Device-specific `kanaTabEnabled`; absent means hidden (1.6.0) |
+| On-device AI switch and model-size preference | `storage_config.json` | No | Device-specific `onDeviceAiEnabled` and `onDeviceAiPreferFast` (Android); absent means off (1.6.0) |
 | WebDAV configuration | `webdav_config.json` | No | Local secret/config only |
 | Sync base snapshot | `.sync_base/anime_data.json` | No | Local merge tracking |
 | Local backups | `backups/backup_*.json` | No | Local recovery; v2 bundles reference deduplicated image blobs |
@@ -355,8 +356,10 @@ mode, locale, calendar week-start/layout/time-basis/view-format preferences, sto
 auto-backup enabled + retention days (`backupRetentionDays`), reminder settings, API server
 enabled/listen address/port/credentials, tray/launch-at-startup preferences, and the background
 metadata-update settings (`metadataAutoUpdate`, `metadataPrefetchCovers`), the per-module list
-column counts (`homeListColumns`, `manageListColumns`, `statsListColumns`), and whether the Kana
-tab is shown (`kanaTabEnabled`, written only when on). None of this file is
+column counts (`homeListColumns`, `manageListColumns`, `statsListColumns`), whether the Kana
+tab is shown (`kanaTabEnabled`, written only when on), and the on-device AI switch and "Prefer the
+faster model" preference (`onDeviceAiEnabled`, `onDeviceAiPreferFast`, each written only when on;
+see [`on-device-ai.md`](on-device-ai.md)). None of this file is
 synced — it is intentionally device-specific, which is the right home for a network policy that
 should differ between a desktop on Ethernet and a phone on a data plan.
 
