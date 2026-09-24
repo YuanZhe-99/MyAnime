@@ -53,6 +53,14 @@ class AppSettingsNotifier extends StateNotifier<AppSettings> {
     _loadPersisted();
   }
 
+  /// Purpose: Create a notifier that starts from fixed settings.
+  /// Inputs: `settings`.
+  /// Returns: A new `AppSettingsNotifier` instance.
+  /// Side effects: None; nothing is read from disk.
+  /// Notes: For tests that override `appSettingsProvider`. Setters still
+  /// persist through `AnimeStorage`.
+  AppSettingsNotifier.fixed(super.settings);
+
   /// Purpose: Provide the internal load persisted helper for this file.
   /// Inputs: None.
   /// Returns: None.
@@ -74,6 +82,7 @@ class AppSettingsNotifier extends StateNotifier<AppSettings> {
     final homeListColumns = await AnimeStorage.getHomeListColumns();
     final manageListColumns = await AnimeStorage.getManageListColumns();
     final statsListColumns = await AnimeStorage.getStatsListColumns();
+    final kanaTabEnabled = await AnimeStorage.getKanaTabEnabled();
 
     final themeMode = switch (modeStr) {
       'light' => ThemeMode.light,
@@ -97,6 +106,7 @@ class AppSettingsNotifier extends StateNotifier<AppSettings> {
       homeListColumns: homeListColumns,
       manageListColumns: manageListColumns,
       statsListColumns: statsListColumns,
+      kanaTabEnabled: kanaTabEnabled,
     );
   }
 
@@ -208,6 +218,17 @@ class AppSettingsNotifier extends StateNotifier<AppSettings> {
     state = state.copyWith(statsListColumns: columns);
     AnimeStorage.setStatsListColumns(columns);
   }
+
+  /// Purpose: Show or hide the Kana quick-reference tab.
+  /// Inputs: `enabled`.
+  /// Returns: None.
+  /// Side effects: Persists the preference; the shell rebuilds with four or
+  /// five destinations.
+  /// Notes: Off by default.
+  void setKanaTabEnabled(bool enabled) {
+    state = state.copyWith(kanaTabEnabled: enabled);
+    AnimeStorage.setKanaTabEnabled(enabled);
+  }
 }
 
 class AppSettings {
@@ -227,8 +248,11 @@ class AppSettings {
   /// Column preference for the statistics lists.
   final int statsListColumns;
 
+  /// Whether the Kana quick-reference tab appears in navigation. Off by default.
+  final bool kanaTabEnabled;
+
   /// Purpose: Create a app settings instance.
-  /// Inputs: `themeMode`, `locale`, `weekStartDay`, `homeCalendarLayout`, `homeCalendarTimeBasis`, `homeCalendarFormat`, `homeListColumns`, `manageListColumns`, `statsListColumns`.
+  /// Inputs: `themeMode`, `locale`, `weekStartDay`, `homeCalendarLayout`, `homeCalendarTimeBasis`, `homeCalendarFormat`, `homeListColumns`, `manageListColumns`, `statsListColumns`, `kanaTabEnabled`.
   /// Returns: A new `AppSettings` instance.
   /// Side effects: None.
   /// Notes: `weekStartDay` stores the local-calendar preference; Japanese layout uses Sunday effectively.
@@ -242,6 +266,7 @@ class AppSettings {
     this.homeListColumns = listColumnsAuto,
     this.manageListColumns = listColumnsAuto,
     this.statsListColumns = listColumnsAuto,
+    this.kanaTabEnabled = false,
   });
 
   /// Purpose: Return the week start day that should be applied to calendars.
@@ -255,7 +280,7 @@ class AppSettings {
       : weekStartDay;
 
   /// Purpose: Create a copy with selected fields replaced.
-  /// Inputs: `themeMode`, `locale`, `weekStartDay`, `homeCalendarLayout`, `homeCalendarTimeBasis`, `homeCalendarFormat`, `homeListColumns`, `manageListColumns`, `statsListColumns`, `clearLocale`.
+  /// Inputs: `themeMode`, `locale`, `weekStartDay`, `homeCalendarLayout`, `homeCalendarTimeBasis`, `homeCalendarFormat`, `homeListColumns`, `manageListColumns`, `statsListColumns`, `kanaTabEnabled`, `clearLocale`.
   /// Returns: `AppSettings`.
   /// Side effects: None.
   /// Notes: None.
@@ -269,6 +294,7 @@ class AppSettings {
     int? homeListColumns,
     int? manageListColumns,
     int? statsListColumns,
+    bool? kanaTabEnabled,
     bool clearLocale = false,
   }) {
     return AppSettings(
@@ -282,6 +308,7 @@ class AppSettings {
       homeListColumns: homeListColumns ?? this.homeListColumns,
       manageListColumns: manageListColumns ?? this.manageListColumns,
       statsListColumns: statsListColumns ?? this.statsListColumns,
+      kanaTabEnabled: kanaTabEnabled ?? this.kanaTabEnabled,
     );
   }
 }

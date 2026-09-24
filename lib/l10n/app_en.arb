@@ -265,6 +265,8 @@
   "settingsReminder": "Daily Reminder",
   "settingsReminderOff": "Off",
   "settingsReminderTime": "Reminder Time",
+  "settingsKanaTab": "Kana quick reference",
+  "settingsKanaTabDesc": "Show the Kana tab. For kana practice and more, see MyNihongo!!!!!, a separate app.",
   "settingsGeneral": "General",
   "settingsData": "Data",
   "settingsSelectItem": "Select an item from the list",

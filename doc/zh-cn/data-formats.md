@@ -227,6 +227,7 @@ enum AnimeType {
 | 提醒启用/时间/上次提醒日期 | `storage_config.json` | 否 | 设备特有的本地时间提醒配置和内部状态 |
 | API 服务器启用/监听地址/端口/凭据 | `storage_config.json` | 否 | 本地桌面配置；凭据不得被提交 |
 | 托盘和开机自启偏好 | `storage_config.json` | 否 | 本地桌面配置 |
+| 是否显示假名标签 | `storage_config.json` | 否 | 设备特有的 `kanaTabEnabled`；缺省表示隐藏（1.6.0） |
 | WebDAV 配置 | `webdav_config.json` | 否 | 仅本地秘密/配置 |
 | 同步基线快照 | `.sync_base/anime_data.json` | 否 | 本地合并跟踪 |
 | 本地备份 | `backups/backup_*.json` | 否 | 本地恢复；v2 捆绑引用去重后的图像 blob |
@@ -242,7 +243,7 @@ enum AnimeType {
 
 ### `storage_config.json`
 
-保存上表中除 WebDAV 配置外的每个设备本地偏好：主题模式、语言区域、日历周起始/布局/时间基准/视图格式偏好、存储路径覆盖、自动备份启用 + 保留天数（`backupRetentionDays`）、提醒设置、API 服务器启用/监听地址/端口/凭据、托盘/开机自启偏好，以及后台资料更新设置（`metadataAutoUpdate`、`metadataPrefetchCovers`）与分模块的列表列数（`homeListColumns`、`manageListColumns`、`statsListColumns`）。此文件的任何内容都不被同步——它刻意设备特有，而这正是网络策略应有的归宿：接有线网的桌面与走流量套餐的手机本就该不同。
+保存上表中除 WebDAV 配置外的每个设备本地偏好：主题模式、语言区域、日历周起始/布局/时间基准/视图格式偏好、存储路径覆盖、自动备份启用 + 保留天数（`backupRetentionDays`）、提醒设置、API 服务器启用/监听地址/端口/凭据、托盘/开机自启偏好，以及后台资料更新设置（`metadataAutoUpdate`、`metadataPrefetchCovers`）、分模块的列表列数（`homeListColumns`、`manageListColumns`、`statsListColumns`），以及是否显示假名标签（`kanaTabEnabled`，仅在开启时写入）。此文件的任何内容都不被同步——它刻意设备特有，而这正是网络策略应有的归宿：接有线网的桌面与走流量套餐的手机本就该不同。
 
 ### `webdav_config.json`
 

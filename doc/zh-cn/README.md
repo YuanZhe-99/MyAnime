@@ -29,7 +29,7 @@
 
 - [`features/anime-tracking.md`](features/anime-tracking.md) — `Anime` 模型和季度归属/跟踪逻辑。
 - [`features/home-management-statistics.md`](features/home-management-statistics.md) — 主页、管理和统计三个标签。
-- [`features/kana-reference.md`](features/kana-reference.md) — 纯 UI 的假名速查模块。
+- [`features/kana-reference.md`](features/kana-reference.md) — 纯 UI 的假名速查模块，自 1.6.0 起默认关闭。
 - [`features/multi-source-search.md`](features/multi-source-search.md) — 多源动画搜索、去重、模糊匹配和风味门控。
 - [`features/watch-url-lookup.md`](features/watch-url-lookup.md) — anime1.me 观看链接查找：系列索引、归一化匹配、别名补采与持久化的观看进度。
 - [`features/share-and-import.md`](features/share-and-import.md) — 分享/导出流程和 `.myanimeitem` 文件导入/导出。

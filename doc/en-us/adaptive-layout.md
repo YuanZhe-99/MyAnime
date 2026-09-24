@@ -197,10 +197,11 @@ bool useNavigationRail(double screenWidth) => screenWidth >= navRailMinWidth; //
 ```
 
 Above it the shell renders a `NavigationRail` down the side; below it, the bottom `NavigationBar`
-it always had. Both are built from one list of destinations in
+it always had. Both are built from one list of destinations — four, or five while the Kana tab is
+on — in
 [`shell_scaffold.dart`](functions/shared/widgets/shell_scaffold.md), so they cannot drift apart. The rail
 centres its destinations (`groupAlignment: 0`) rather than taking the default top alignment: a rail
-top-aligns to sit under a leading menu button or FAB, and this one has neither, so five
+top-aligns to sit under a leading menu button or FAB, and this one has neither, so the
 destinations pinned to the top of a 704 dp rail would leave its whole lower half empty.
 
 **This is width-only on purpose, and must not be routed through `canSplitLayout`.** A rail is not a

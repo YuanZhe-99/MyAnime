@@ -501,6 +501,32 @@ class AnimeStorage {
     await writeConfig(config);
   }
 
+  /// Purpose: Return whether the Kana quick-reference tab is shown.
+  /// Inputs: None.
+  /// Returns: `Future<bool>` — defaults to false.
+  /// Side effects: Reads `storage_config.json`.
+  /// Notes: Off by default since 1.6.0, for existing installs too, because
+  /// kana practice now lives in the separate MyNihongo!!!!! app.
+  static Future<bool> getKanaTabEnabled() async {
+    final config = await readConfig();
+    return config['kanaTabEnabled'] == true;
+  }
+
+  /// Purpose: Persist whether the Kana quick-reference tab is shown.
+  /// Inputs: `enabled`.
+  /// Returns: None.
+  /// Side effects: Writes `storage_config.json`.
+  /// Notes: The default `false` is removed from config rather than stored.
+  static Future<void> setKanaTabEnabled(bool enabled) async {
+    final config = await readConfig();
+    if (enabled) {
+      config['kanaTabEnabled'] = true;
+    } else {
+      config.remove('kanaTabEnabled');
+    }
+    await writeConfig(config);
+  }
+
   /// Purpose: Read a stored list column preference.
   /// Inputs: `key` — the `storage_config.json` key for one module.
   /// Returns: `Future<int>` — `listColumnsAuto` when unset or malformed.

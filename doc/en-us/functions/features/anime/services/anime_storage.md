@@ -47,6 +47,8 @@ notifies `AutoSyncService`/`ReminderService` after every save. See
 | [`setMetadataUpdatePolicy`](#setmetadataupdatepolicy) | static method (`AnimeStorage`) | A | Persist the background metadata-update policy. |
 | [`getMetadataPrefetchCovers`](#getmetadataprefetchcovers) | static method (`AnimeStorage`) | A | Read whether candidate covers are prefetched. |
 | [`setMetadataPrefetchCovers`](#setmetadataprefetchcovers) | static method (`AnimeStorage`) | A | Persist whether candidate covers are prefetched. |
+| [`getKanaTabEnabled`](#getkanatabenabled) | static method (`AnimeStorage`) | A | Read whether the Kana quick-reference tab is shown. |
+| [`setKanaTabEnabled`](#setkanatabenabled) | static method (`AnimeStorage`) | A | Persist whether the Kana quick-reference tab is shown. |
 | `_getListColumns` | static method (`AnimeStorage`) | B | Read a stored list column preference. |
 | `_setListColumns` | static method (`AnimeStorage`) | B | Persist a list column preference for one module. |
 | `getHomeListColumns` | static method (`AnimeStorage`) | B | Read the home module's list column preference. |
@@ -579,3 +581,16 @@ notifies `AutoSyncService`/`ReminderService` after every save. See
 - **Side effects:** Writes `storage_config.json`.
 - **Notes:** The default `false` is removed from config rather than stored, matching how
   `setWeekStartDay` handles its own default.
+
+### `static Future<bool> getKanaTabEnabled()` <a id="getkanatabenabled"></a>
+- **Kind:** static method of `AnimeStorage`
+- **Returns:** `Future<bool>` — `true` only when `storage_config.json` holds `kanaTabEnabled: true`.
+- **Side effects:** Reads `storage_config.json`.
+- **Notes:** Added in 1.6.0. Off by default for existing installs too, because kana practice now
+  lives in the separate MyNihongo!!!!! app. Read by `AppSettingsNotifier._loadPersisted`.
+
+### `static Future<void> setKanaTabEnabled(bool enabled)` <a id="setkanatabenabled"></a>
+- **Kind:** static method of `AnimeStorage`
+- **Side effects:** Writes `storage_config.json`.
+- **Notes:** Writes `kanaTabEnabled: true` when on and removes the key when off, the same shape as
+  `setMetadataPrefetchCovers`.

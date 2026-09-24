@@ -1,14 +1,17 @@
 # PLAN.md — series linking, optional Kana tab, on-device categories and recommendations
 
 > **This file is temporary.** It is the implementation plan for three changes requested on
-> 2026-09-24. The agent that finishes the last milestone **must delete `PLAN.md`** — in the commit
-> that lands that milestone, or in a docs-only commit right after it — once everything of lasting
-> value in it has been moved into `doc/en-us/` and `doc/zh-cn/`. Until then, tick each checklist item
+> 2026-09-24. The agent that finishes the last milestone **must delete `PLAN.md`** once everything of
+> lasting value in it has been moved into `doc/en-us/` and `doc/zh-cn/`, and no later than the 1.6.0
+> release commit, so that the `v1.6.0` tag does not contain it. Until then, tick each checklist item
 > in the same commit that lands it. The file is English-only on purpose: it is not part of the
 > mirrored `doc/` tree.
 
 **Baseline:** `master` at `2c956a7`, app `1.5.7+60`, `packages/myapps_data` at `v1.0.2`, Flutter
 `3.44.2` (the CI pin). Nothing in this plan has been implemented yet.
+
+**Target release: 1.6.0** (build 61), confirmed by the user on 2026-09-24. Every milestone ships in
+it. The user also accepted every recommendation in [§9](#9-decisions) on the same day.
 
 ## How to use this plan
 
@@ -16,9 +19,12 @@
    update the docs in both languages in the same commit, give every new declaration the Function
    Explanation Layer (Dart, Kotlin and Swift alike), and verify with `flutter analyze` — compared
    against the pre-change count, because there is pre-existing info-level noise — and `flutter test`.
-2. Milestones are ordered by dependency. Each is shippable on its own; none needs a later one.
-3. Versions, tags and pushes follow `AGENTS.md`: ask the user which version a milestone ships in and
-   whether to push. Nothing in this plan authorises a push.
+2. Milestones are ordered by dependency. Each one leaves `master` consistent — code, tests and both
+   doc trees — without needing a later one.
+3. The version is settled: everything here ships as **1.6.0** ([§10](#10-finishing-and-releasing-160)).
+   Milestones land on `master` as ordinary commits, with no version bump and no tag. Pushes still
+   follow `AGENTS.md`: ask the user before every push, the release push included. Nothing in this
+   plan authorises one.
 4. Where this plan and the code disagree, the code wins: verify, then correct the plan and the docs.
 5. The facts about Android AICore and Apple's Foundation Models framework were checked on 2026-09-24
    (sources in [§4.2](#42-platform-facts-checked-2026-09-24)). These APIs are beta or revised every
@@ -34,16 +40,16 @@
 
 ### Milestone checklist
 
-- [ ] **M0** Kana tab off by default ([§1](#1-m0--kana-tab-off-by-default))
+- [x] **M0** Kana tab off by default ([§1](#1-m0--kana-tab-off-by-default))
 - [ ] **M1** Series linking core: model field, series index, series card, manual curation ([§2](#2-m1--series-linking-core))
 - [ ] **M2** Relation metadata from AniList, MyAnimeList and bangumi.tv feeding the series index; full builds ([§3](#3-m2--relation-metadata-full-builds))
 - [ ] **M3** On-device AI layer: Android AICore bridge, Apple Foundation Models bridge, Dart seam, Settings ([§4](#4-m3--on-device-ai-layer))
 - [ ] **M4** Automatic categories: taxonomy, genre mapping, AI gap-filling, user overrides, filter ([§5](#5-m4--automatic-categories))
 - [ ] **M5** Recommendations: deterministic ranking, series continuation, AI reasons ([§6](#6-m5--recommendations))
-- [ ] **M6** Wrap-up: CI, privacy policy, glossary, version history, final doc pass, **delete `PLAN.md`** ([§7](#7-ci-and-build)–[§10](#10-finishing))
+- [ ] **M6** Wrap-up and the **1.6.0 release**: CI, privacy policy, glossary, version history, final doc pass, **delete `PLAN.md`**, version bump and tag ([§7](#7-ci-and-build)–[§10](#10-finishing-and-releasing-160))
 
-Suggested releases, with the numbers left to the user: M0 and M1 together; M2 on its own; M3, M4
-and M5 together, since M3 has nothing visible to use until M4 lands.
+**Release:** all milestones ship together as 1.6.0, as the user decided on 2026-09-24. If the user
+later wants part of the work released sooner, ask which version that release gets; do not assume.
 
 ### Rules for every milestone
 
@@ -63,13 +69,14 @@ and M5 together, since M3 has nothing visible to use until M4 lands.
 - **Generated text is never synced or backed up.** It lives in a per-device cache that is not
   registered in `lib/app/data_modules.dart`, exactly like `metadata_updates.json`.
 - **Flavor gating is unchanged.** Every new *network* call (M2 only) is full-flavor and is reached only
-  through paths already gated on `AppFlavor.isFull`. On-device AI makes no network call of its own.
+  through paths already gated on `AppFlavor.isFull`. On-device AI makes no network call of its own,
+  and it ships in both flavors (D2).
 - **No new inline width breakpoints.** New pages and sheets take their layout from
   `shared/utils/adaptive_layout.dart`, and the decision is recorded in `adaptive-layout.md`.
 - **New terms** go into `translation-guide.md` §5.2 in both languages ([§8.2](#82-glossary)).
 - **Other clients.** Older MyAnime builds keep the new keys in `extraJson` and ignore them. If the
   SwiftUI port described in the MySeriesData repository is active, it must learn `seriesLink`,
-  `categories` and `externalMeta.relations` as well. Tell the user when M1, M2 and M4 ship.
+  `categories` and `externalMeta.relations` as well. Remind the user of this when 1.6.0 ships.
 
 ### Non-goals
 
@@ -90,8 +97,7 @@ and M5 together, since M3 has nothing visible to use until M4 lands.
   is written as `true` when the user turns the tab on and removed when they turn it off, following the
   habit of storing only non-default preferences.
 - The default applies to existing installs as well: after the update the tab disappears until it is
-  turned back on. The release's `version-history.md` entry must say so (decision D3,
-  [§9](#9-decisions-for-the-user)).
+  turned back on. The 1.6.0 entry in `version-history.md` must say so (D3, [§9](#9-decisions)).
 - Settings › General gains a switch, *Kana quick reference*, described as "Show the Kana tab. For kana
   practice and more, see MyNihongo!!!!!, a separate app." Text only, no store link (D6).
 - Navigation shows **four** destinations by default (Home, Manage, Stats, Settings) and five, in the
@@ -532,10 +538,11 @@ device; native code is a pipe. Reuse MyNihongo's names (`GenAiBackend`, `MethodC
 - In `android/app/build.gradle.kts`, add `implementation("com.google.mlkit:genai-prompt:1.0.0-beta4")`
   and `implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.10.2")`, with comments on why
   the versions are exact, as MyNihongo has. Proofreading is not needed.
-- **minSdk.** The libraries require API 26, and MyAnime uses `flutter.minSdkVersion` (24). Raising it to
-  26 drops Android 7.0 and 7.1 and needs the user's approval (D1). The alternative —
-  `tools:overrideLibrary` plus run-time guards — risks class-verification crashes on API 24 and 25 and is
-  not recommended.
+- **minSdk.** The libraries require API 26, and MyAnime uses `flutter.minSdkVersion` (24). Set
+  `minSdk = 26` in `defaultConfig`, with a comment saying why, as MyNihongo does — approved by the user
+  (D1). This drops Android 7.0 and 7.1, and the 1.6.0 release notes must say so. Do not use
+  `tools:overrideLibrary` with run-time guards instead: that risks class-verification crashes on API 24
+  and 25.
 - Create `android/app/proguard-rules.pro` with MyNihongo's rules and its explanatory comments, and add
   `proguardFiles("proguard-rules.pro")` to the release build type:
 
@@ -613,8 +620,8 @@ A new section after General, *Categories & recommendations*:
 
 All keys are device-local, written only when on, and exposed through `AppSettings`. The AI switch is
 enabled only while at least one of the two feature switches is on. The section follows the existing
-two-pane Settings rules. M3 builds the AI rows and M4 and M5 add their own switches; if M3 ever ships
-without M4, keep the section hidden, because an AI switch that nothing uses is noise.
+two-pane Settings rules. M3 builds the AI rows and M4 and M5 add their own switches; until M4 lands,
+keep the section hidden on `master`, because an AI switch that nothing uses is noise.
 
 ### 4.7 Tests
 
@@ -660,7 +667,7 @@ plugin), `data-formats.md` (the new keys), the function pages and `INDEX.md`.
 
 `lib/features/anime/models/anime_category.dart` holds a const, versioned list
 (`categoryTaxonomyVersion = 1`) of stable ids, each with a one-line English description for prompts.
-Localized labels live in the ARB files. Proposed v1, to confirm with the user (D4):
+Localized labels live in the ARB files. The v1 list, approved as proposed (D4):
 
 `action`, `adventure`, `comedy`, `drama`, `romance`, `slice_of_life`, `fantasy`, `isekai`, `sci_fi`,
 `mecha`, `mystery`, `suspense`, `horror`, `psychological`, `supernatural`, `sports`, `music` (idols
@@ -863,10 +870,10 @@ already has the same string.
 
 ### 8.3 Version history
 
-One `version-history.md` entry per release, in both languages and in the existing style. Call out: the
+One `version-history.md` entry for 1.6.0, in both languages and in the existing style. Call out: the
 Kana tab is now off, and how to turn it back on; series linking replaces the old prev/next rule; the new
-synced fields; that the AI features are off by default and not yet verified on a device; and, if D1 is
-approved, the new Android 8.0 minimum.
+synced fields; that the AI features are off by default and not yet verified on a device; and the new
+Android 8.0 minimum (D1).
 
 ### 8.4 Docs index
 
@@ -875,29 +882,45 @@ approved, the new Android 8.0 minimum.
 facts: AICore, Foundation Models, device checklist" — and a place in the concept-doc list under
 "Documentation maintenance".
 
-## 9. Decisions for the user
+## 9. Decisions
 
-The implementer must get an answer before the release that contains each item. The recommendation is
-what this plan assumes.
+On 2026-09-24 the user accepted every recommendation this plan made, so each row is now a requirement.
+If implementation turns up a reason to revisit one, stop and ask the user rather than deviating.
 
-| # | Question | Recommendation |
-|---|---|---|
-| D1 | Raise Android `minSdk` from 24 to 26 for ML Kit GenAI, dropping Android 7.0 and 7.1? | Yes, as MyNihongo did |
-| D2 | Offer categories, recommendations and on-device AI in the store flavor too? | Yes: the app makes no network call for them, and AICore's model download is the system's |
-| D3 | Hide the Kana tab for existing users as well as new installs? | Yes: an absent key means off. Mention it in the release notes |
-| D4 | Is the v1 category list in [§5.1](#51-taxonomy) right? | Settle it before M4; ids are stable once shipped |
-| D5 | Keep `categories` in `.myanimeitem` share files? (`seriesLink` is always stripped.) | Yes |
-| D6 | Mention MyNihongo!!!!! in the Kana switch's description, without a store link? | Yes |
+| # | Question | Decision | Why |
+|---|---|---|---|
+| D1 | Raise Android `minSdk` from 24 to 26 for ML Kit GenAI, dropping Android 7.0 and 7.1? | **Yes** | As MyNihongo did; the alternative risks crashes on API 24–25 ([§4.4](#44-android)) |
+| D2 | Offer categories, recommendations and on-device AI in the store flavor too? | **Yes** | The app makes no network call for them; AICore's model download is the system's |
+| D3 | Hide the Kana tab for existing users as well as new installs? | **Yes** | An absent key means off; the 1.6.0 notes say how to turn it back on |
+| D4 | Is the v1 category list in [§5.1](#51-taxonomy) right? | **Yes, as proposed** | Ids are stable once shipped |
+| D5 | Keep `categories` in `.myanimeitem` share files? (`seriesLink` is always stripped.) | **Yes** | It holds no personal data |
+| D6 | Mention MyNihongo!!!!! in the Kana switch's description, without a store link? | **Yes** | Points learners to the full app without a store dependency |
 
-## 10. Finishing
+## 10. Finishing and releasing 1.6.0
 
-Before the final commit:
+**Before the release**, all of these must hold:
 
 1. Every checklist item above is ticked, and every milestone's docs exist in both `doc/en-us/` and
    `doc/zh-cn/`, with matching headings and tables.
 2. Everything in this file that is still true and useful — the platform facts, the device checklist,
-   the user's decisions and their reasons — is in `doc/`, not only here.
+   the decisions in [§9](#9-decisions) and their reasons — is in `doc/`, not only here.
 3. `flutter analyze` shows no new issues against the baseline, `flutter test` passes, the Android
-   release builds succeed, and the last CI run is green, weak-link check included.
-4. **Delete `PLAN.md`**, in that commit or in a docs-only commit immediately after it, and say so in the
-   report.
+   release builds succeed, and a `workflow_dispatch` CI run is green, weak-link check included.
+
+**The release**, following "Release, version, commit, tag, push" in `AGENTS.md`. The version is
+already confirmed; do these steps only once the user has also confirmed pushing the release:
+
+4. Move every version location from `1.5.7` (all six are aligned today) to `1.6.0`:
+   - `pubspec.yaml`: `version: 1.6.0+61` and `msix_config.msix_version: 1.6.0.0`;
+   - `installer.iss`: `AppVersion=1.6.0`, `VersionInfoVersion=1.6.0.0` and
+     `VersionInfoProductVersion=1.6.0`, with the output file names still derived from
+     `{#SetupSetting("AppVersion")}`;
+   - `lib/features/anime/services/anime_search_service.dart`: the `userAgent` literal becomes
+     `'MyAnime/1.6.0 (anime tracker)'`.
+5. Add the 1.6.0 `version-history.md` entry in both languages ([§8.3](#83-version-history)), then re-run
+   the verification from step 3.
+6. **Delete `PLAN.md`** no later than this release commit, so that the `v1.6.0` tag does not contain it,
+   and say so in the report.
+7. Commit, create the annotated tag `v1.6.0`, and push the commit first and then the tag to both
+   `origin` and `github`. Check both with `git ls-remote`. The tag push to `github` starts the release
+   builds.

@@ -799,6 +799,13 @@ class AppLocalizationsEn extends AppLocalizations {
   String get settingsReminderTime => 'Reminder Time';
 
   @override
+  String get settingsKanaTab => 'Kana quick reference';
+
+  @override
+  String get settingsKanaTabDesc =>
+      'Show the Kana tab. For kana practice and more, see MyNihongo!!!!!, a separate app.';
+
+  @override
   String get settingsGeneral => 'General';
 
   @override

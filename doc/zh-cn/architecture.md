@@ -6,14 +6,14 @@
 
 - `lib/main.dart` — 应用入口点。
 - `lib/app/app.dart` — 根 `MaterialApp`/`App` 组件接线。
-- `lib/app/router.dart` — 基于 `go_router` 的导航。路由器使用一个 `ShellRoute` 包住五个导航标签——在窄窗口上渲染为底部 `NavigationBar`，从 600 逻辑像素起渲染为侧边 `NavigationRail`，见 [`adaptive-layout.md`](adaptive-layout.md)：
+- `lib/app/router.dart` — 基于 `go_router` 的导航。路由器使用一个 `ShellRoute` 包住各导航标签——在窄窗口上渲染为底部 `NavigationBar`，从 600 逻辑像素起渲染为侧边 `NavigationRail`，见 [`adaptive-layout.md`](adaptive-layout.md)：
   - 主页（`/home`，`home_page.dart`）
   - 管理（`/manage`，`management_page.dart`）
   - 统计（`/stats`，`statistics_page.dart`）
-  - 假名（`/kana`，`kana_page.dart`）
+  - 假名（`/kana`，`kana_page.dart`）——仅当**设置 › 通用 › 五十音速查**开启时出现；自 1.6.0 起默认关闭，关闭时 `/kana` 重定向到 `/home`（见 [`features/kana-reference.md`](features/kana-reference.md)）
   - 设置（`/settings`，`settings_page.dart`）
 
-  非标签路由（动画详情、动画编辑/新增、重复检查）与外壳路由一起声明，并压栈在它之上（如 `/anime/detail/:id`、`/anime/edit`、`/anime/edit/:id`、`/duplicate-check`）。
+  非标签路由（动画详情、动画编辑/新增、元数据更新审阅、重复检查）与外壳路由一起声明，并压栈在它之上（如 `/anime/detail/:id`、`/anime/edit`、`/anime/edit/:id`、`/metadata-updates`、`/duplicate-check`）。
 - `lib/app/theme.dart` — 基于 `flex_color_scheme` 的 Material 3 视觉体系。
 - `lib/app/flavor.dart` — 构建风味逻辑（见下文）。
 
@@ -124,7 +124,7 @@ WebDAV 同步引擎、备份引擎、ZIP 传输引擎和自动同步调度器**�
 这些规则适用于整个代码库，在阅读任何单个功能区域之前值得先内化：
 
 - **状态管理：** `flutter_riverpod`；常规变更不用 Provider 或 Bloc。
-- **导航：** `go_router`，带 `ShellRoute` 和上面列出的五个底部标签。
+- **导航：** `go_router`，带 `ShellRoute` 和上面列出的四个或五个标签。
 - **视觉体系：** 基于 `flex_color_scheme` 的 Material 3。
 - **响应式布局：** 一条共享规则决定界面何时可以拆成分栏或多列，以及列表分成几列；另有一条只看宽度的规则
   决定导航放在侧边还是底部。两者都位于 `shared/utils/adaptive_layout.dart`，推导见

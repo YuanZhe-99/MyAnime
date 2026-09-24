@@ -5,8 +5,19 @@ write any anime data and is **not synced** — it doesn't appear anywhere in the
 inventory in [`../data-formats.md`](../data-formats.md) because it has no persisted state of its
 own beyond ordinary widget state.
 
-It occupies the fourth of the app's five bottom-navigation tabs (see
-[`../architecture.md`](../architecture.md)).
+## Off by default
+
+Since 1.6.0 the Kana tab is **hidden by default**, for new installs and existing ones alike, because
+kana practice now lives in the separate MyNihongo!!!!! app. To bring it back, turn on
+**Settings › General › Kana quick reference**. The switch is a device-local preference
+(`kanaTabEnabled` in `storage_config.json`, see [`../data-formats.md`](../data-formats.md)); its
+description names MyNihongo!!!!! without a store link.
+
+While the tab is on it is the fourth of five navigation destinations, between Stats and Settings.
+While it is off the shell shows four, and the `/kana` route redirects to `/home` (see
+[`../architecture.md`](../architecture.md) and
+[`../functions/app/router.md`](../functions/app/router.md#kanarouteredirect)). The page itself is
+unchanged.
 
 ## Contents
 

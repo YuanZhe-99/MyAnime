@@ -1385,6 +1385,18 @@ abstract class AppLocalizations {
   /// **'Reminder Time'**
   String get settingsReminderTime;
 
+  /// No description provided for @settingsKanaTab.
+  ///
+  /// In en, this message translates to:
+  /// **'Kana quick reference'**
+  String get settingsKanaTab;
+
+  /// No description provided for @settingsKanaTabDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'Show the Kana tab. For kana practice and more, see MyNihongo!!!!!, a separate app.'**
+  String get settingsKanaTabDesc;
+
   /// No description provided for @settingsGeneral.
   ///
   /// In en, this message translates to:

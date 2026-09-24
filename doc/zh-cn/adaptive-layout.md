@@ -173,9 +173,9 @@ bool useNavigationRail(double screenWidth) => screenWidth >= navRailMinWidth; //
 ```
 
 在其之上，外壳沿侧边渲染一个 `NavigationRail`；在其之下则是它一直以来的底部 `NavigationBar`。两者都由
-[`shell_scaffold.dart`](functions/shared/widgets/shell_scaffold.md) 中同一份目的地列表构建，因此不可能彼此
-走样。侧边导航栏将其目的地**居中**（`groupAlignment: 0`）而非采用默认的顶部对齐：顶部对齐是为了让导航栏坐落
-在一个前导菜单按钮或 FAB 之下，而这里两者都没有，于是五个目的地挤在一条 704 dp 高的导航栏顶端会让它整个下半
+[`shell_scaffold.dart`](functions/shared/widgets/shell_scaffold.md) 中同一份目的地列表（四个，开启假名标签时为五个）构建，
+因此不可能彼此走样。侧边导航栏将其目的地**居中**（`groupAlignment: 0`）而非采用默认的顶部对齐：顶部对齐是为了让导航栏坐落
+在一个前导菜单按钮或 FAB 之下，而这里两者都没有，于是这些目的地挤在一条 704 dp 高的导航栏顶端会让它整个下半
 部分空着。
 
 **这里只看宽度是刻意的，绝不可改为走 `canSplitLayout`。** 侧边导航栏不是一次拆分。它拿宽度——在这个测试通过时

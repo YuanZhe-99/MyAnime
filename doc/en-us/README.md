@@ -4,8 +4,8 @@
 metadata, macOS bundle name, iOS display name, and window titles) is a privacy-first anime
 tracking app. It combines a JST-aware calendar, seasonal quarter management, statistics,
 multi-source anime search, watch-progress tracking, daily reminders, share/export flows, WebDAV
-sync, local backup, a desktop local API server, tray behavior, launch-at-startup, and a kana
-quick-reference module.
+sync, local backup, a desktop local API server, tray behavior, launch-at-startup, and an optional kana
+quick-reference module (off by default since 1.6.0).
 
 - **Author / package id:** `yuanzhe`, `com.yuanzhe.my_anime`
 - **License:** GPL-3.0
@@ -54,7 +54,7 @@ The shared WebDAV sync, backup, and ZIP engines are not in this repository. They
 - [`features/home-management-statistics.md`](features/home-management-statistics.md) — the Home,
   Manage, and Stats tabs.
 - [`features/kana-reference.md`](features/kana-reference.md) — the UI-only kana quick-reference
-  module.
+  module, off by default since 1.6.0.
 - [`features/multi-source-search.md`](features/multi-source-search.md) — multi-source anime
   search, dedup, fuzzy matching, and flavor gating.
 - [`features/watch-url-lookup.md`](features/watch-url-lookup.md) — the anime1.me watch-URL

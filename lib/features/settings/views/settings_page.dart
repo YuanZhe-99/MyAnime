@@ -970,6 +970,15 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
                 child: Text(_reminderTime.format(context)),
               ),
             ),
+          // Off by default: kana practice lives in MyNihongo!!!!! now, and the
+          // description names it without a store link.
+          SwitchListTile(
+            secondary: const Icon(Icons.translate_outlined),
+            title: Text(l10n.settingsKanaTab),
+            subtitle: Text(l10n.settingsKanaTabDesc),
+            value: settings.kanaTabEnabled,
+            onChanged: notifier.setKanaTabEnabled,
+          ),
         ]),
 
         // ── Data ──

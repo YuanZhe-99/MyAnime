@@ -259,6 +259,8 @@
   "settingsReminder": "每日提醒",
   "settingsReminderOff": "已關閉",
   "settingsReminderTime": "提醒時間",
+  "settingsKanaTab": "五十音速查",
+  "settingsKanaTabDesc": "顯示五十音分頁。如需練習假名等更多功能，請使用獨立應用程式 MyNihongo!!!!!。",
   "settingsGeneral": "一般",
   "settingsData": "資料",
   "settingsSelectItem": "從左側清單中選擇一項",

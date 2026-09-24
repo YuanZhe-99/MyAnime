@@ -2,7 +2,15 @@
 
 `lib/features/kana/views/kana_page.dart` 是**纯 UI** 的参考模块。它不读不写任何动画数据，也**不同步**——它不出现在 [`../data-formats.md`](../data-formats.md) 的持久化数据清单中，因为除普通组件状态外它没有自己的持久化状态。
 
-它占据应用五个底部导航标签中的第四个（见 [`../architecture.md`](../architecture.md)）。
+## 默认关闭
+
+自 1.6.0 起，假名标签**默认隐藏**，新安装与已有安装一样，因为假名练习如今由独立的 MyNihongo!!!!! 应用承担。
+要恢复它，打开**设置 › 通用 › 五十音速查**。该开关是设备本地偏好（`storage_config.json` 中的 `kanaTabEnabled`，
+见 [`../data-formats.md`](../data-formats.md)）；其说明提到 MyNihongo!!!!!，但不附商店链接。
+
+开启时，它是五个导航目的地中的第四个，位于统计与设置之间。关闭时外壳只显示四个，`/kana` 路由重定向到
+`/home`（见 [`../architecture.md`](../architecture.md) 与
+[`../functions/app/router.md`](../functions/app/router.md#kanarouteredirect)）。页面本身没有变化。
 
 ## 内容
 

@@ -4,17 +4,17 @@ This is the top-level index of the hand-written Function Explanation Layer docum
 `lib/` in the MyAnime repo. Each row links to a per-source-file page under `doc/en-us/functions/`
 mirroring the `lib/` tree (with `.dart` replaced by `.md`).
 
-**Totals:** the repo's `/// Purpose:` comment count is **919** (per the Function Explanation Layer
+**Totals:** the repo's `/// Purpose:` comment count is **923** (per the Function Explanation Layer
 convention in `AGENTS.md`, excluding generated `lib/l10n/` code — see [l10n/INDEX.md](l10n/INDEX.md)).
-The rows below sum to **900** documented declarations.
+The rows below sum to **905** documented declarations.
 
 | Tier | Count |
 |---|---|
-| Tier A (full entry: Purpose/Inputs/Returns/Side effects/Algorithm/Usage/Notes) | 562 |
-| Tier B (index row only) | 338 |
-| **Total** | **900** |
+| Tier A (full entry: Purpose/Inputs/Returns/Side effects/Algorithm/Usage/Notes) | 565 |
+| Tier B (index row only) | 340 |
+| **Total** | **905** |
 
-**Known gap.** These two numbers do not match: 19 declarations carry a `/// Purpose:` comment in
+**Known gap.** These two numbers do not match: 18 declarations carry a `/// Purpose:` comment in
 source but have no row here, so the index under-covers `lib/` by that much. The 1.5.7 recount found
 that the 864 recorded through 1.5.6 was itself stale — the same command measured 901 on the 1.5.6
 tree — so most of this gap accumulated unnoticed over earlier releases rather than being new. It
@@ -33,7 +33,8 @@ in 1.5.4, which added 11 across three changed files and promoted three more rows
 Tier A without adding any file, and again in 1.5.5, which added 9 across four changed files and
 promoted five more rows from Tier B to Tier A, also without adding a file, and again in 1.5.6, which added 2 across two changed files and
 corrected `adaptive_layout.dart`'s long-stale row from 4 to 12, and again in 1.5.7, which added 18
-across two new files and eight changed ones and corrected the stale 864 total to the measured 919. The
+across two new files and eight changed ones and corrected the stale 864 total to the measured 919, and again in 1.6.0 (M0, the optional Kana
+tab), which added 5 across three changed files and found the 1.5.7 tree actually measured 918. The
 pre-1.4.0 figures (682
 `Purpose:` comments and 685 documented declarations) had drifted far from both the source and this
 file's own per-file rows, which summed to 615 at the time. If you change these numbers, measure
@@ -55,13 +56,14 @@ find lib -name "*.dart" -not -path "lib/l10n/*" | xargs grep -h '/// Purpose:' |
 |---|---|---|---|
 | `lib/app/app.dart` | [app/app.md](app/app.md) | 3 | 0 |
 | `lib/app/flavor.dart` | [app/flavor.md](app/flavor.md) | 1 | 0 |
-| `lib/app/router.dart` | [app/router.md](app/router.md) | 0 | 0 |
+| `lib/app/router.dart` | [app/router.md](app/router.md) | 1 | 1 |
 | `lib/app/data_modules.dart` | [app/data_modules.md](app/data_modules.md) | 11 | 11 |
 | `lib/app/theme.dart` | [app/theme.md](app/theme.md) | 3 | 2 |
 
-`app/router.dart` has zero rows because its only top-level declaration (`appRouter`, a `GoRouter`
-config value) carries no `/// Purpose:` comment and falls outside the Function Explanation Layer
-convention (function/method/constructor/getter/setter); see that page for detail.
+`app/router.dart` has one row, `kanaRouteRedirect` (1.6.0). Its other top-level declaration
+(`appRouter`, a `GoRouter` config value) carries no `/// Purpose:` comment and falls outside the
+Function Explanation Layer convention (function/method/constructor/getter/setter); see that page for
+detail.
 
 ## features/anime/
 
@@ -69,7 +71,7 @@ convention (function/method/constructor/getter/setter); see that page for detail
 |---|---|---|---|
 | `lib/features/anime/models/anime.dart` | [features/anime/models/anime.md](features/anime/models/anime.md) | 73 | 59 |
 | `lib/features/anime/models/metadata_update.dart` | [features/anime/models/metadata_update.md](features/anime/models/metadata_update.md) | 22 | 9 |
-| `lib/features/anime/services/anime_storage.dart` | [features/anime/services/anime_storage.md](features/anime/services/anime_storage.md) | 40 | 32 |
+| `lib/features/anime/services/anime_storage.dart` | [features/anime/services/anime_storage.md](features/anime/services/anime_storage.md) | 42 | 34 |
 | `lib/features/anime/services/anime1_service.dart` | [features/anime/services/anime1_service.md](features/anime/services/anime1_service.md) | 33 | 18 |
 | `lib/features/anime/services/anime_search_service.dart` | [features/anime/services/anime_search_service.md](features/anime/services/anime_search_service.md) | 59 | 39 |
 | `lib/features/anime/services/metadata_cache.dart` | [features/anime/services/metadata_cache.md](features/anime/services/metadata_cache.md) | 10 | 7 |
@@ -116,7 +118,7 @@ the 771 hand-documented declarations above).
 
 | Source file | Page | Declarations | Tier A count |
 |---|---|---|---|
-| `lib/shared/providers/app_settings.dart` | [shared/providers/app_settings.md](shared/providers/app_settings.md) | 17 | 14 |
+| `lib/shared/providers/app_settings.dart` | [shared/providers/app_settings.md](shared/providers/app_settings.md) | 19 | 14 |
 | `lib/shared/utils/adaptive_layout.dart` | [shared/utils/adaptive_layout.md](shared/utils/adaptive_layout.md) | 12 | 12 |
 | `lib/shared/utils/calendar_preferences.dart` | [shared/utils/calendar_preferences.md](shared/utils/calendar_preferences.md) | 4 | 4 |
 | `lib/shared/utils/chinese_convert.dart` | [shared/utils/chinese_convert.md](shared/utils/chinese_convert.md) | 5 | 4 |
@@ -150,9 +152,9 @@ the 771 hand-documented declarations above).
 | Area | Files | Declarations | Tier A | Tier B |
 |---|---|---|---|---|
 | Root (`lib/`) | 1 | 1 | 1 | 0 |
-| `app/` | 5 | 18 | 13 | 5 |
-| `features/anime/` | 17 | 529 | 296 | 233 |
+| `app/` | 5 | 19 | 14 | 5 |
+| `features/anime/` | 17 | 531 | 298 | 233 |
 | `features/kana/` | 1 | 19 | 3 | 16 |
 | `features/settings/` | 4 | 49 | 28 | 21 |
-| `shared/` (utils, widgets, providers, services, views) | 28 | 284 | 221 | 63 |
-| **Total** | **56** | **900** | **562** | **338** |
+| `shared/` (utils, widgets, providers, services, views) | 28 | 286 | 221 | 65 |
+| **Total** | **56** | **905** | **565** | **340** |

@@ -288,6 +288,7 @@ migrates data files, backups, and images.
 | Reminder enabled/time/last reminder date | `storage_config.json` | No | Device-specific local-time reminder config and internal state |
 | API server enabled/listen address/port/credentials | `storage_config.json` | No | Local desktop config; credentials must not be committed |
 | Tray and launch-at-startup preferences | `storage_config.json` | No | Local desktop config |
+| Kana tab shown | `storage_config.json` | No | Device-specific `kanaTabEnabled`; absent means hidden (1.6.0) |
 | WebDAV configuration | `webdav_config.json` | No | Local secret/config only |
 | Sync base snapshot | `.sync_base/anime_data.json` | No | Local merge tracking |
 | Local backups | `backups/backup_*.json` | No | Local recovery; v2 bundles reference deduplicated image blobs |
@@ -308,8 +309,9 @@ Holds every device-local preference from the table above that isn't WebDAV confi
 mode, locale, calendar week-start/layout/time-basis/view-format preferences, storage path override,
 auto-backup enabled + retention days (`backupRetentionDays`), reminder settings, API server
 enabled/listen address/port/credentials, tray/launch-at-startup preferences, and the background
-metadata-update settings (`metadataAutoUpdate`, `metadataPrefetchCovers`), and the per-module list
-column counts (`homeListColumns`, `manageListColumns`, `statsListColumns`). None of this file is
+metadata-update settings (`metadataAutoUpdate`, `metadataPrefetchCovers`), the per-module list
+column counts (`homeListColumns`, `manageListColumns`, `statsListColumns`), and whether the Kana
+tab is shown (`kanaTabEnabled`, written only when on). None of this file is
 synced — it is intentionally device-specific, which is the right home for a network policy that
 should differ between a desktop on Ethernet and a phone on a data plan.
 

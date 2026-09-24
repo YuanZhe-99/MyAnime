@@ -259,6 +259,8 @@
   "settingsReminder": "毎日リマインダー",
   "settingsReminderOff": "オフ",
   "settingsReminderTime": "リマインダー時刻",
+  "settingsKanaTab": "かな早見表",
+  "settingsKanaTabDesc": "かなタブを表示します。かなの練習などは別アプリ MyNihongo!!!!! をご利用ください。",
   "settingsGeneral": "一般",
   "settingsData": "データ",
   "settingsSelectItem": "左のリストから項目を選択してください",

@@ -10,6 +10,7 @@
 | [`_parseHomeCalendarTimeBasis`](#parsehomecalendartimebasis) | 顶层函数 | A | 解析存储的主页日历时间基准字符串。 |
 | [`_parseHomeCalendarFormat`](#parsehomecalendarformat) | 顶层函数 | A | 解析存储的主页日历视图格式字符串。 |
 | [`AppSettingsNotifier.new`](#appsettingsnotifier-new) | 构造函数（`AppSettingsNotifier`） | A | 创建 `AppSettingsNotifier` 并触发加载持久化设置。 |
+| `AppSettingsNotifier.fixed` | 构造函数（`AppSettingsNotifier`） | B | 创建一个从固定设置开始、不读取磁盘的通知器；供覆盖 `appSettingsProvider` 的测试使用。 |
 | [`AppSettingsNotifier._loadPersisted`](#appsettingsnotifier_loadpersisted) | 方法（`AppSettingsNotifier`） | A | 把持久化设置从存储加载进状态。 |
 | [`AppSettingsNotifier.setThemeMode`](#appsettingsnotifier-setthememode) | 方法（`AppSettingsNotifier`） | A | 更新主题模式并持久化它。 |
 | [`AppSettingsNotifier.setLocale`](#appsettingsnotifier-setlocale) | 方法（`AppSettingsNotifier`） | A | 更新语言区域并持久化它。 |
@@ -20,6 +21,7 @@
 | `AppSettingsNotifier.setHomeListColumns` | 方法（`AppSettingsNotifier`） | B | 更新并持久化记住的首页列表列数偏好。 |
 | `AppSettingsNotifier.setManageListColumns` | 方法（`AppSettingsNotifier`） | B | 更新并持久化记住的管理列表列数偏好。 |
 | `AppSettingsNotifier.setStatsListColumns` | 方法（`AppSettingsNotifier`） | B | 更新并持久化记住的统计列表列数偏好。 |
+| `AppSettingsNotifier.setKanaTabEnabled` | 方法（`AppSettingsNotifier`） | B | 显示或隐藏假名标签并持久化该选择。 |
 | [`AppSettings.new`](#appsettings-new) | 构造函数（`AppSettings`） | A | 创建 `AppSettings` 实例。 |
 | [`AppSettings.effectiveWeekStartDay`](#appsettings-effectiveweekstartday) | getter（`AppSettings`） | A | 返回应应用于日历的周起始日。 |
 | [`AppSettings.copyWith`](#appsettings-copywith) | 方法（`AppSettings`） | A | 用所选字段创建副本。 |
@@ -267,3 +269,14 @@
 存储的值永远只是用户所选；把它钳制到当前宽度所能容纳的范围发生在渲染时的
 [`listColumnCount`](../utils/adaptive_layout.md#listcolumncount) 中，因此在桌面端设定的偏好能在被带到折叠状态
 的手机上存活下来。见 [`../../../adaptive-layout.md`](../../../adaptive-layout.md)。
+
+## 假名标签偏好
+
+1.6.0 新增 `kanaTabEnabled`，一个默认 `false` 的 `bool`。它在 `_loadPersisted` 中通过
+`AnimeStorage.getKanaTabEnabled()` 加载，由 `setKanaTabEnabled` 写入，后者由设置 › 通用中的开关调用。
+`ShellScaffold` 监听它以显示四个或五个目的地，`router.dart` 中的 `kanaRouteRedirect` 读取它，在关闭时让
+`/kana` 无法到达。见 [`../../../features/kana-reference.md`](../../../features/kana-reference.md)。
+
+同时新增的 `AppSettingsNotifier.fixed(settings)` 从给定设置开始并跳过 `_loadPersisted`，因此组件测试可以用
+`overrideWithValue(AppSettingsNotifier.fixed(...))` 覆盖 `appSettingsProvider` 而不触及存储。它的 setter 仍会
+持久化。

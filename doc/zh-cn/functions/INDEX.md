@@ -2,17 +2,17 @@
 
 这是 MyAnime 仓库中 `lib/` 手写函数解释层文档的顶层索引。每行链接到 `doc/en-us/functions/` 下镜像 `lib/` 树的逐源文件页面（`.dart` 换成 `.md`）。
 
-**总计：** 仓库的 `/// Purpose:` 注释数为 **919**（按 `AGENTS.md` 中的函数解释层约定，排除生成的 `lib/l10n/` 代码——见 [l10n/INDEX.md](l10n/INDEX.md)）。下方各行合计 **900** 个已记录声明。
+**总计：** 仓库的 `/// Purpose:` 注释数为 **923**（按 `AGENTS.md` 中的函数解释层约定，排除生成的 `lib/l10n/` 代码——见 [l10n/INDEX.md](l10n/INDEX.md)）。下方各行合计 **905** 个已记录声明。
 
 | Tier | 计数 |
 |---|---|
-| Tier A（完整条目：Purpose/Inputs/Returns/Side effects/Algorithm/Usage/Notes） | 562 |
-| Tier B（仅索引行） | 338 |
-| **总计** | **900** |
+| Tier A（完整条目：Purpose/Inputs/Returns/Side effects/Algorithm/Usage/Notes） | 565 |
+| Tier B（仅索引行） | 340 |
+| **总计** | **905** |
 
-**已知缺口。** 这两个数字并不相等：有 19 个声明在源码中带 `/// Purpose:` 注释但此处没有对应行，因此本索引对 `lib/` 的覆盖少了这么多。1.5.7 重新测量时发现，1.5.6 记录的 864 本身已经过时——同一条命令在 1.5.6 的源码树上量到的是 901，因此这个缺口大部分是此前几个版本累积而未被发现的，而不是本次新增的。在 1.5.6 之前这个数是 10：当时发现 `adaptive_layout.dart` 那一行仍写着 `4 | 4`——那是它在 1.5.3 时的计数，彼时该模块还没有从详情页自己的辅助函数长成全应用的策略。它的页面自 1.5.5 起就记录了十二个声明，只有这一行没有跟上。该缺口分布不均，且尚未逐文件审计。另有一个文件方向相反，比其源码的 `Purpose:` 注释数多出一行——见下方 `features/` 小节的说明。
+**已知缺口。** 这两个数字并不相等：有 18 个声明在源码中带 `/// Purpose:` 注释但此处没有对应行，因此本索引对 `lib/` 的覆盖少了这么多。1.5.7 重新测量时发现，1.5.6 记录的 864 本身已经过时——同一条命令在 1.5.6 的源码树上量到的是 901，因此这个缺口大部分是此前几个版本累积而未被发现的，而不是本次新增的。在 1.5.6 之前这个数是 10：当时发现 `adaptive_layout.dart` 那一行仍写着 `4 | 4`——那是它在 1.5.3 时的计数，彼时该模块还没有从详情页自己的辅助函数长成全应用的策略。它的页面自 1.5.5 起就记录了十二个声明，只有这一行没有跟上。该缺口分布不均，且尚未逐文件审计。另有一个文件方向相反，比其源码的 `Purpose:` 注释数多出一行——见下方 `features/` 小节的说明。
 
-这些总计在 1.4.0 中已对照真实源码树重新计算，1.5.0 中再次重算（在四个新文件与五个改动文件中新增 93 个声明），1.5.1 中又一次重算（在五个改动文件中新增 24 个声明），1.5.2 中再次重算（在一个新文件与四个改动文件中新增 15 个声明），1.5.3 中再次重算（在三个新文件与六个改动文件中新增 22 个声明），1.5.4 中再次重算——本次在三个改动文件中新增 11 个声明，并把另外三行从 Tier B 提升到 Tier A，没有新增任何文件，1.5.5 中再次重算——本次在四个改动文件中新增 9 个声明，并把另外五行从 Tier B 提升到 Tier A，同样没有新增文件，1.5.6 中再次重算——本次在两个改动文件中新增 2 个声明，并把 `adaptive_layout.dart` 那一行长期陈旧的计数从 4 更正为 12，1.5.7 中再次重算——本次在两个新文件与八个改动文件中新增 18 个声明，并把总数从陈旧的 864 校正为实测的 919。1.4.0 之前的数字（682 个 `Purpose:` 注释与 685 个已记录声明）与源码以及本文件自身的逐文件行都已严重偏离——当时逐文件行合计仅为 615。若要改动这些数字，请测量而不要手工调整：
+这些总计在 1.4.0 中已对照真实源码树重新计算，1.5.0 中再次重算（在四个新文件与五个改动文件中新增 93 个声明），1.5.1 中又一次重算（在五个改动文件中新增 24 个声明），1.5.2 中再次重算（在一个新文件与四个改动文件中新增 15 个声明），1.5.3 中再次重算（在三个新文件与六个改动文件中新增 22 个声明），1.5.4 中再次重算——本次在三个改动文件中新增 11 个声明，并把另外三行从 Tier B 提升到 Tier A，没有新增任何文件，1.5.5 中再次重算——本次在四个改动文件中新增 9 个声明，并把另外五行从 Tier B 提升到 Tier A，同样没有新增文件，1.5.6 中再次重算——本次在两个改动文件中新增 2 个声明，并把 `adaptive_layout.dart` 那一行长期陈旧的计数从 4 更正为 12，1.5.7 中再次重算——本次在两个新文件与八个改动文件中新增 18 个声明，并把总数从陈旧的 864 校正为实测的 919，1.6.0 中再次重算（M0，可选的假名标签）——本次在三个改动文件中新增 5 个声明，并发现 1.5.7 的源码树实测其实是 918。1.4.0 之前的数字（682 个 `Purpose:` 注释与 685 个已记录声明）与源码以及本文件自身的逐文件行都已严重偏离——当时逐文件行合计仅为 615。若要改动这些数字，请测量而不要手工调整：
 
 ```bash
 find lib -name "*.dart" -not -path "lib/l10n/*" | xargs grep -h '/// Purpose:' | wc -l
@@ -30,11 +30,11 @@ find lib -name "*.dart" -not -path "lib/l10n/*" | xargs grep -h '/// Purpose:' |
 |---|---|---|---|
 | `lib/app/app.dart` | [app/app.md](app/app.md) | 3 | 0 |
 | `lib/app/flavor.dart` | [app/flavor.md](app/flavor.md) | 1 | 0 |
-| `lib/app/router.dart` | [app/router.md](app/router.md) | 0 | 0 |
+| `lib/app/router.dart` | [app/router.md](app/router.md) | 1 | 1 |
 | `lib/app/data_modules.dart` | [app/data_modules.md](app/data_modules.md) | 11 | 11 |
 | `lib/app/theme.dart` | [app/theme.md](app/theme.md) | 3 | 2 |
 
-`app/router.dart` 为零行，因为它唯一的顶层声明（`appRouter`，一个 `GoRouter` 配置值）不带 `/// Purpose:` 注释，落在函数解释层约定（函数/方法/构造函数/getter/setter）之外；详见该页面。
+`app/router.dart` 有一行，即 `kanaRouteRedirect`（1.6.0）。它的另一个顶层声明（`appRouter`，一个 `GoRouter` 配置值）不带 `/// Purpose:` 注释，落在函数解释层约定（函数/方法/构造函数/getter/setter）之外；详见该页面。
 
 ## features/anime/
 
@@ -42,7 +42,7 @@ find lib -name "*.dart" -not -path "lib/l10n/*" | xargs grep -h '/// Purpose:' |
 |---|---|---|---|
 | `lib/features/anime/models/anime.dart` | [features/anime/models/anime.md](features/anime/models/anime.md) | 73 | 59 |
 | `lib/features/anime/models/metadata_update.dart` | [features/anime/models/metadata_update.md](features/anime/models/metadata_update.md) | 22 | 9 |
-| `lib/features/anime/services/anime_storage.dart` | [features/anime/services/anime_storage.md](features/anime/services/anime_storage.md) | 40 | 32 |
+| `lib/features/anime/services/anime_storage.dart` | [features/anime/services/anime_storage.md](features/anime/services/anime_storage.md) | 42 | 34 |
 | `lib/features/anime/services/anime1_service.dart` | [features/anime/services/anime1_service.md](features/anime/services/anime1_service.md) | 33 | 18 |
 | `lib/features/anime/services/anime_search_service.dart` | [features/anime/services/anime_search_service.md](features/anime/services/anime_search_service.md) | 59 | 39 |
 | `lib/features/anime/services/metadata_cache.dart` | [features/anime/services/metadata_cache.md](features/anime/services/metadata_cache.md) | 10 | 7 |
@@ -83,7 +83,7 @@ find lib -name "*.dart" -not -path "lib/l10n/*" | xargs grep -h '/// Purpose:' |
 
 | 源文件 | 页面 | 声明数 | Tier A 计数 |
 |---|---|---|---|
-| `lib/shared/providers/app_settings.dart` | [shared/providers/app_settings.md](shared/providers/app_settings.md) | 17 | 14 |
+| `lib/shared/providers/app_settings.dart` | [shared/providers/app_settings.md](shared/providers/app_settings.md) | 19 | 14 |
 | `lib/shared/utils/adaptive_layout.dart` | [shared/utils/adaptive_layout.md](shared/utils/adaptive_layout.md) | 12 | 12 |
 | `lib/shared/utils/calendar_preferences.dart` | [shared/utils/calendar_preferences.md](shared/utils/calendar_preferences.md) | 4 | 4 |
 | `lib/shared/utils/chinese_convert.dart` | [shared/utils/chinese_convert.md](shared/utils/chinese_convert.md) | 5 | 4 |
@@ -117,9 +117,9 @@ find lib -name "*.dart" -not -path "lib/l10n/*" | xargs grep -h '/// Purpose:' |
 | 区域 | 文件 | 声明数 | Tier A | Tier B |
 |---|---|---|---|---|
 | 根（`lib/`） | 1 | 1 | 1 | 0 |
-| `app/` | 5 | 18 | 13 | 5 |
-| `features/anime/` | 17 | 529 | 296 | 233 |
+| `app/` | 5 | 19 | 14 | 5 |
+| `features/anime/` | 17 | 531 | 298 | 233 |
 | `features/kana/` | 1 | 19 | 3 | 16 |
 | `features/settings/` | 4 | 49 | 28 | 21 |
-| `shared/`（utils、widgets、providers、services、views） | 28 | 284 | 221 | 63 |
-| **总计** | **56** | **900** | **562** | **338** |
+| `shared/`（utils、widgets、providers、services、views） | 28 | 286 | 221 | 65 |
+| **总计** | **56** | **905** | **565** | **340** |

@@ -38,6 +38,8 @@
 | [`setMetadataUpdatePolicy`](#setmetadataupdatepolicy) | 静态方法（`AnimeStorage`） | A | 持久化后台资料更新策略。 |
 | [`getMetadataPrefetchCovers`](#getmetadataprefetchcovers) | 静态方法（`AnimeStorage`） | A | 读取是否预下载候选封面。 |
 | [`setMetadataPrefetchCovers`](#setmetadataprefetchcovers) | 静态方法（`AnimeStorage`） | A | 持久化是否预下载候选封面。 |
+| [`getKanaTabEnabled`](#getkanatabenabled) | 静态方法（`AnimeStorage`） | A | 读取是否显示五十音速查标签。 |
+| [`setKanaTabEnabled`](#setkanatabenabled) | 静态方法（`AnimeStorage`） | A | 持久化是否显示五十音速查标签。 |
 | `_getListColumns` | 静态方法（`AnimeStorage`） | B | 读取某个模块存储的列表列数偏好。 |
 | `_setListColumns` | 静态方法（`AnimeStorage`） | B | 持久化某个模块的列表列数偏好。 |
 | `getHomeListColumns` | 静态方法（`AnimeStorage`） | B | 读取首页模块的列表列数偏好。 |
@@ -552,3 +554,15 @@
 - **种类：** `AnimeStorage` 的静态方法
 - **副作用：** 写入 `storage_config.json`。
 - **备注：** 默认值 `false` 会从配置中移除而不是存下来，与 `setWeekStartDay` 处理自身默认值的方式一致。
+
+### `static Future<bool> getKanaTabEnabled()` <a id="getkanatabenabled"></a>
+- **种类：** `AnimeStorage` 的静态方法
+- **返回：** `Future<bool>` —— 仅当 `storage_config.json` 含 `kanaTabEnabled: true` 时为 `true`。
+- **副作用：** 读取 `storage_config.json`。
+- **备注：** 1.6.0 新增。对已有安装同样默认关闭，因为假名练习如今由独立的 MyNihongo!!!!! 应用承担。由
+  `AppSettingsNotifier._loadPersisted` 读取。
+
+### `static Future<void> setKanaTabEnabled(bool enabled)` <a id="setkanatabenabled"></a>
+- **种类：** `AnimeStorage` 的静态方法
+- **副作用：** 写入 `storage_config.json`。
+- **备注：** 开启时写入 `kanaTabEnabled: true`，关闭时移除该键，形态与 `setMetadataPrefetchCovers` 相同。

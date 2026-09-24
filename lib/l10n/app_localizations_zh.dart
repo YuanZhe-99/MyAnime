@@ -746,6 +746,13 @@ class AppLocalizationsZh extends AppLocalizations {
   String get settingsReminderTime => '提醒时间';
 
   @override
+  String get settingsKanaTab => '五十音速查';
+
+  @override
+  String get settingsKanaTabDesc =>
+      '显示五十音标签页。如需练习假名等更多功能，请使用独立应用 MyNihongo!!!!!。';
+
+  @override
   String get settingsGeneral => '通用';
 
   @override
@@ -2302,6 +2309,13 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
 
   @override
   String get settingsReminderTime => '提醒時間';
+
+  @override
+  String get settingsKanaTab => '五十音速查';
+
+  @override
+  String get settingsKanaTabDesc =>
+      '顯示五十音分頁。如需練習假名等更多功能，請使用獨立應用程式 MyNihongo!!!!!。';
 
   @override
   String get settingsGeneral => '一般';

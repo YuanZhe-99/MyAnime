@@ -1,3 +1,5 @@
+import 'package:flutter/widgets.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../features/anime/views/anime_detail_page.dart';
@@ -8,8 +10,23 @@ import '../features/anime/views/metadata_updates_page.dart';
 import '../features/anime/views/statistics_page.dart';
 import '../features/kana/views/kana_page.dart';
 import '../features/settings/views/settings_page.dart';
+import '../shared/providers/app_settings.dart';
 import '../shared/widgets/duplicate_check_page.dart';
 import '../shared/widgets/shell_scaffold.dart';
+
+/// Purpose: Keep `/kana` unreachable while the Kana tab is hidden.
+/// Inputs: `context` — must sit below the app's `ProviderScope`; `state`.
+/// Returns: `String?` — `null` to allow the route, or `'/home'`.
+/// Side effects: None; reads `appSettingsProvider` without listening.
+/// Notes: The tab is off by default. Settings load asynchronously, but the
+/// initial location is `/home`, so no real visit is bounced before they do.
+String? kanaRouteRedirect(BuildContext context, GoRouterState state) {
+  final settings = ProviderScope.containerOf(
+    context,
+    listen: false,
+  ).read(appSettingsProvider);
+  return settings.kanaTabEnabled ? null : '/home';
+}
 
 final appRouter = GoRouter(
   initialLocation: '/home',
@@ -26,7 +43,11 @@ final appRouter = GoRouter(
           path: '/stats',
           builder: (context, state) => const StatisticsPage(),
         ),
-        GoRoute(path: '/kana', builder: (context, state) => const KanaPage()),
+        GoRoute(
+          path: '/kana',
+          redirect: kanaRouteRedirect,
+          builder: (context, state) => const KanaPage(),
+        ),
         GoRoute(
           path: '/settings',
           builder: (context, state) => const SettingsPage(),

@@ -18,6 +18,7 @@ management conventions (Riverpod, no Provider/Bloc) and
 | [`_parseHomeCalendarTimeBasis`](#parsehomecalendartimebasis) | top-level function | A | Parse a stored home calendar time basis string. |
 | [`_parseHomeCalendarFormat`](#parsehomecalendarformat) | top-level function | A | Parse a stored home calendar view format string. |
 | [`AppSettingsNotifier.new`](#appsettingsnotifier-new) | constructor (`AppSettingsNotifier`) | A | Create an `AppSettingsNotifier` and trigger loading persisted settings. |
+| `AppSettingsNotifier.fixed` | constructor (`AppSettingsNotifier`) | B | Create a notifier that starts from fixed settings and reads nothing from disk; for tests that override `appSettingsProvider`. |
 | [`AppSettingsNotifier._loadPersisted`](#appsettingsnotifier_loadpersisted) | method (`AppSettingsNotifier`) | A | Load persisted settings from storage into state. |
 | [`AppSettingsNotifier.setThemeMode`](#appsettingsnotifier-setthememode) | method (`AppSettingsNotifier`) | A | Update theme mode and persist it. |
 | [`AppSettingsNotifier.setLocale`](#appsettingsnotifier-setlocale) | method (`AppSettingsNotifier`) | A | Update locale and persist it. |
@@ -28,6 +29,7 @@ management conventions (Riverpod, no Provider/Bloc) and
 | `AppSettingsNotifier.setHomeListColumns` | method (`AppSettingsNotifier`) | B | Update the remembered home list column preference and persist it. |
 | `AppSettingsNotifier.setManageListColumns` | method (`AppSettingsNotifier`) | B | Update the remembered management list column preference and persist it. |
 | `AppSettingsNotifier.setStatsListColumns` | method (`AppSettingsNotifier`) | B | Update the remembered statistics list column preference and persist it. |
+| `AppSettingsNotifier.setKanaTabEnabled` | method (`AppSettingsNotifier`) | B | Show or hide the Kana tab and persist the choice. |
 | [`AppSettings.new`](#appsettings-new) | constructor (`AppSettings`) | A | Create an `AppSettings` instance. |
 | [`AppSettings.effectiveWeekStartDay`](#appsettings-effectiveweekstartday) | getter (`AppSettings`) | A | Return the week start day that should be applied to calendars. |
 | [`AppSettings.copyWith`](#appsettings-copywith) | method (`AppSettings`) | A | Create a copy with selected fields replaced. |
@@ -352,3 +354,16 @@ the user picked; clamping it to what the current width can fit happens at render
 [`listColumnCount`](../utils/adaptive_layout.md#listcolumncount), so a preference set on a desktop
 survives being carried onto a folded phone. See
 [`../../../adaptive-layout.md`](../../../adaptive-layout.md).
+
+## Kana tab preference
+
+1.6.0 adds `kanaTabEnabled`, a `bool` defaulting to `false`. It is loaded in `_loadPersisted` through
+`AnimeStorage.getKanaTabEnabled()` and written by `setKanaTabEnabled`, which the switch in
+Settings › General calls. `ShellScaffold` watches it to show four or five destinations, and
+`kanaRouteRedirect` in `router.dart` reads it to keep `/kana` unreachable while it is off. See
+[`../../../features/kana-reference.md`](../../../features/kana-reference.md).
+
+`AppSettingsNotifier.fixed(settings)`, added at the same time, starts from the given settings and
+skips `_loadPersisted`, so a widget test can override `appSettingsProvider` with
+`overrideWithValue(AppSettingsNotifier.fixed(...))` without touching storage. Its setters still
+persist.
