@@ -94,6 +94,16 @@ These services have their own privacy policies, which we encourage you to review
 
 Note: Versions distributed through the App Store and Google Play do not include the online search feature and do not connect to these third-party services.
 
+On-Device AI (optional, since 1.6.0)
+
+Automatic categories and recommendations can optionally use the language model built into your device — Gemini Nano through Android AICore, or the model that is part of Apple Intelligence on iOS 26 and macOS 26 or later. This is off by default and runs only after you turn on "Use on-device AI" in Settings.
+
+• Everything the model does happens on your device. For categories it is given an anime's titles, format, year, studios and genres. For recommendation reasons it is also given the suggested titles, your ratings of a few recently finished anime, and which studios and categories you tend to like. Your notes are never given to it.
+
+• On Android, the model is downloaded by the AICore system service from Google, and only when you tap Download in Settings. On Apple devices the model is part of Apple Intelligence and is managed by the system.
+
+• Generated results stay on your device: they are neither synced nor backed up. No cloud model is used, including Apple's Private Cloud Compute.
+
 Data Backup
 
 The app provides a local backup feature. Backup files are stored on your device and include all your anime data and cover images. The storage and management of backup files is entirely under your control.
@@ -144,6 +154,16 @@ MyAnime!!!!! 仅在以下情况下访问互联网：
 
 注意：通过 App Store 和 Google Play 分发的版本不包含在线搜索功能，不会连接到上述第三方服务。
 
+端侧 AI（可选，1.6.0 起）
+
+自动分类与推荐可以选择使用设备内置的语言模型——Android 上通过 AICore 使用 Gemini Nano，iOS 26 与 macOS 26 及以上则使用 Apple Intelligence 自带的模型。此功能默认关闭，只有在您于设置中开启"使用端侧 AI"后才会运行。
+
+• 模型的所有处理都在您的设备上完成。用于分类时，它只会获得番剧的标题、形式、年份、制作公司和类型标签。用于撰写推荐理由时，它还会获得被推荐的标题、您对最近看完的几部番剧的评分，以及您偏好的制作公司和分类。您的备注永远不会提供给它。
+
+• 在 Android 上，模型由系统服务 AICore 从 Google 下载，且仅在您于设置中点击"下载"时进行。在 Apple 设备上，模型属于 Apple Intelligence，由系统管理。
+
+• 生成的结果只保存在您的设备上：既不同步，也不备份。不使用任何云端模型，包括 Apple 的私有云计算（Private Cloud Compute）。
+
 数据备份
 
 应用提供本地备份功能。备份文件存储在您的设备上，包含您的所有番剧数据和封面图片。备份文件的存储和管理完全由您掌控。
@@ -187,6 +207,16 @@ MyAnime!!!!! 僅在以下情況下存取網際網路：
 這些服務有各自的隱私政策，建議您查閱。MyAnime!!!!! 僅取得公開的番劇資訊，不會向這些服務傳送任何個人資料。
 
 注意：透過 App Store 和 Google Play 分發的版本不包含線上搜尋功能，不會連線到上述第三方服務。
+
+裝置端 AI（可選，1.6.0 起）
+
+自動分類與推薦可以選擇使用裝置內建的語言模型——Android 上透過 AICore 使用 Gemini Nano，iOS 26 與 macOS 26 及以上則使用 Apple Intelligence 內建的模型。此功能預設關閉，只有在您於設定中開啟「使用裝置端 AI」後才會執行。
+
+• 模型的所有處理都在您的裝置上完成。用於分類時，它只會取得番劇的標題、形式、年份、製作公司和類型標籤。用於撰寫推薦理由時，它還會取得被推薦的標題、您對最近看完的幾部番劇的評分，以及您偏好的製作公司和分類。您的備註永遠不會提供給它。
+
+• 在 Android 上，模型由系統服務 AICore 從 Google 下載，且僅在您於設定中點選「下載」時進行。在 Apple 裝置上，模型屬於 Apple Intelligence，由系統管理。
+
+• 生成的結果只儲存在您的裝置上：既不同步，也不備份。不使用任何雲端模型，包括 Apple 的私有雲端運算（Private Cloud Compute）。
 
 資料備份
 
@@ -237,6 +267,16 @@ MyAnime!!!!! は以下の場合にのみインターネットにアクセスし�
 これらのサービスには独自のプライバシーポリシーがあります。ご確認をお勧めします。MyAnime!!!!! は公開されているアニメ情報のみを取得し、お客様の個人データをこれらのサービスに送信することはありません。
 
 注意：App Store および Google Play で配信されるバージョンにはオンライン検索機能は含まれておらず、上記のサードパーティサービスに接続しません。
+
+オンデバイスAI（任意、1.6.0 以降）
+
+自動分類とおすすめでは、端末に内蔵された言語モデル（Android では AICore 経由の Gemini Nano、iOS 26・macOS 26 以降では Apple Intelligence のモデル）を任意で利用できます。初期状態ではオフで、設定で「オンデバイスAIを使う」をオンにした場合にのみ動作します。
+
+• モデルの処理はすべて端末内で行われます。分類では、アニメのタイトル、形式、年、制作会社、ジャンルだけを渡します。おすすめの理由を書く際は、候補のタイトル、最近観終えた数作品へのあなたの評価、好みの制作会社と分類も渡します。メモが渡されることはありません。
+
+• Android では、モデルはシステムサービスの AICore が Google からダウンロードします。ダウンロードは設定で「ダウンロード」をタップしたときだけ行われます。Apple 製デバイスでは、モデルは Apple Intelligence の一部としてシステムが管理します。
+
+• 生成された結果は端末内にのみ保存され、同期もバックアップもされません。Apple の Private Cloud Compute を含め、クラウドのモデルは一切使用しません。
 
 データバックアップ
 

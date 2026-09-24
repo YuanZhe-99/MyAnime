@@ -1,6 +1,6 @@
 # lib/features/settings/views/privacy_policy_page.dart
 
-`PrivacyPolicyPage` 是从设置 -> 关于 -> 隐私政策到达的静态、感知语言区域的设置子页（见 `functions/features/settings/views/settings_page.md`）。它是没有服务依赖的 `StatelessWidget`：`build` 经 `Localizations.localeOf(context)` 解析当前 `Locale` 并把它交给文件中唯一一段真实逻辑 `_getText`，后者从四个硬编码隐私政策字符串常量（`_en`、`_zh`、`_zhTW`、`_ja`）中选一个渲染到可滚动 `SelectableText` 中。政策文本本身记录应用实际的网络/数据行为（无分析、仅在用户配置时 WebDAV 同步、仅本地备份）——它用散文描述的机制见 [`../../../backup-restore.md`](../../../../backup-restore.md) 和 [`../../../sync.md`](../../../../sync.md)。
+`PrivacyPolicyPage` 是从设置 -> 关于 -> 隐私政策到达的静态、感知语言区域的设置子页（见 `functions/features/settings/views/settings_page.md`）。它是没有服务依赖的 `StatelessWidget`：`build` 经 `Localizations.localeOf(context)` 解析当前 `Locale` 并把它交给文件中唯一一段真实逻辑 `_getText`，后者从四个硬编码隐私政策字符串常量（`_en`、`_zh`、`_zhTW`、`_ja`）中选一个渲染到可滚动 `SelectableText` 中。政策文本本身记录应用实际的网络/数据行为（无分析、仅在用户配置时 WebDAV 同步、仅本地备份，以及 1.6.0 起可选的端侧 AI：默认关闭、推理在设备上完成、模型下载由 AICore 执行或由 Apple Intelligence 管理、结果既不同步也不备份、不使用云端模型——见 [`../../../../on-device-ai.md`](../../../../on-device-ai.md)）——它用散文描述的机制见 [`../../../backup-restore.md`](../../../../backup-restore.md) 和 [`../../../sync.md`](../../../../sync.md)。
 
 ## 声明
 

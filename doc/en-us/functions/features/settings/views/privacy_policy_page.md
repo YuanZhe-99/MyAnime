@@ -7,7 +7,10 @@ Privacy Policy (see `functions/features/settings/views/settings_page.md`). It is
 `_getText`, which picks one of four hard-coded privacy-policy string constants (`_en`, `_zh`,
 `_zhTW`, `_ja`) to render in a scrollable `SelectableText`. The policy text itself documents the
 app's actual network/data behavior (no analytics, WebDAV sync only when the user configures it,
-local-only backups) — see [`../../../backup-restore.md`](../../../../backup-restore.md) and
+local-only backups, and since 1.6.0 the optional on-device AI: off by default, inference on the
+device, the model download performed by AICore or managed by Apple Intelligence, results neither
+synced nor backed up, no cloud model — see [`../../../../on-device-ai.md`](../../../../on-device-ai.md)) —
+see [`../../../backup-restore.md`](../../../../backup-restore.md) and
 [`../../../sync.md`](../../../../sync.md) for the mechanisms it describes in prose.
 
 ## Declarations

@@ -38,6 +38,16 @@ These services have their own privacy policies, which we encourage you to review
 
 **Note:** Versions distributed through the App Store and Google Play (store flavor) do not include the online search feature and do not connect to these third-party services.
 
+## On-Device AI (optional, since 1.6.0)
+
+Automatic categories and recommendations can optionally use the language model built into your device — Gemini Nano through Android AICore, or the model that is part of Apple Intelligence on iOS 26 and macOS 26 or later. This is off by default and runs only after you turn on "Use on-device AI" in Settings.
+
+- Everything the model does happens on your device. For categories it is given an anime's titles, format, year, studios and genres. For recommendation reasons it is also given the suggested titles, your ratings of a few recently finished anime, and which studios and categories you tend to like. Your notes are never given to it.
+
+- On Android, the model is downloaded by the AICore system service from Google, and only when you tap Download in Settings. On Apple devices the model is part of Apple Intelligence and is managed by the system.
+
+- Generated results stay on your device: they are neither synced nor backed up. No cloud model is used, including Apple's Private Cloud Compute.
+
 ## Data Backup
 
 The app provides a local backup feature. Backup files are stored on your device and include all your anime data and cover images. The storage and management of backup files is entirely under your control.
