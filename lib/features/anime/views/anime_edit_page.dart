@@ -10,6 +10,7 @@ import '../models/anime.dart';
 import '../services/anime1_service.dart';
 import 'anime1_labels.dart';
 import '../services/anime_storage.dart';
+import '../services/series_service.dart';
 import 'anime_search_dialog.dart';
 import 'archive_labels.dart';
 
@@ -23,13 +24,22 @@ class AnimeEditPage extends StatefulWidget {
   /// the search results instead of hunting for the button.
   final bool autoSearch;
 
+  /// Prefill for "Add next season" on the create route: titles, the next
+  /// season label, and the record the new one joins when it is saved.
+  final NextSeasonPrefill? prefill;
+
   /// Purpose: Create a anime edit page instance.
-  /// Inputs: `key`, `animeId`, `autoSearch`.
+  /// Inputs: `key`, `animeId`, `autoSearch`, `prefill`.
   /// Returns: A new `AnimeEditPage` instance.
   /// Side effects: None.
   /// Notes: `autoSearch` is ignored without an `animeId`, since there would be
-  /// no title to search with.
-  const AnimeEditPage({super.key, this.animeId, this.autoSearch = false});
+  /// no title to search with; `prefill` is ignored with one.
+  const AnimeEditPage({
+    super.key,
+    this.animeId,
+    this.autoSearch = false,
+    this.prefill,
+  });
 
   /// Purpose: Create the mutable state object for this widget.
   /// Inputs: None.
@@ -86,6 +96,12 @@ class _AnimeEditPageState extends State<AnimeEditPage> {
     super.initState();
     // Default season: Season 1
     _seasonController.text = 'Season 1';
+    final prefill = widget.prefill;
+    if (widget.animeId == null && prefill != null) {
+      _titleController.text = prefill.title ?? '';
+      _titleJaController.text = prefill.titleJa ?? '';
+      _seasonController.text = prefill.season;
+    }
 
     if (widget.animeId != null) {
       _loadExisting();
@@ -314,6 +330,32 @@ class _AnimeEditPageState extends State<AnimeEditPage> {
     }
   }
 
+  /// Purpose: Write a newly created record, linking it into a series when the
+  /// page was opened by "Add next season".
+  /// Inputs: `anime` — the new record.
+  /// Returns: None.
+  /// Side effects: Writes `anime_data.json` once.
+  /// Notes: Internal helper used within this file only. The pending link is
+  /// written together with the materialised series in one
+  /// `AnimeStorage.addOrUpdateAll`; if the source record has disappeared in
+  /// the meantime, the record is saved unlinked.
+  Future<void> _saveNew(Anime anime) async {
+    final prefill = widget.prefill;
+    if (prefill == null) {
+      await AnimeStorage.addOrUpdate(anime);
+      return;
+    }
+    final data = await AnimeStorage.load();
+    final index = SeriesIndex.build(data.animes);
+    final source = index.animeById(prefill.linkToAnimeId);
+    if (source == null) {
+      await AnimeStorage.addOrUpdate(anime);
+      return;
+    }
+    final writes = SeriesEditor(index).link(anime, source);
+    await AnimeStorage.addOrUpdateAll(writes.isEmpty ? [anime] : writes);
+  }
+
   /// Purpose: Provide the internal save helper for this file.
   /// Inputs: None.
   /// Returns: None.
@@ -429,7 +471,7 @@ class _AnimeEditPageState extends State<AnimeEditPage> {
         localArchive: localArchive,
         externalMeta: _externalMeta,
       );
-      await AnimeStorage.addOrUpdate(anime);
+      await _saveNew(anime);
       if (mounted) context.pop(anime.id);
       return;
     }

@@ -36,8 +36,9 @@ state/conflict-resolution logic" expected of this file.
 | `_fillNextcloud` | method (widget helper) | B | Prefill the form with a placeholder Nextcloud URL/path. |
 | [`_syncStatusText`](#syncstatustext) | method (`_WebDAVConfigPageState`) | A | Build a short sync health summary line for display. |
 | `build` | method (widget build) | B | Render the WebDAV config form and sync/status controls. |
+| [`_seriesLine`](#seriesline) | static method (`_ConflictDialog`) | A | Describe one side's series membership for the conflict dialog. |
 | `_ConflictDialog({required conflict})` | constructor (`_ConflictDialog`) | B | Create a conflict dialog instance. |
-| `build` | method (widget build) | B | Render the local-vs-remote comparison for one conflicting record. |
+| `build` | method (widget build) | B | Render the local-vs-remote comparison for one conflicting record, plus a series line per side when the two `seriesLink`s differ. |
 
 ## Documentation
 
@@ -413,3 +414,19 @@ state/conflict-resolution logic" expected of this file.
   Settings page's WebDAV row (`functions/features/settings/views/settings_page.md`), read there
   directly from `AutoSyncService.instance.lastError`/`hasPendingConflicts` rather than through this
   helper — the two pages independently format the same underlying state.
+
+### `static String _seriesLine(Anime anime, AppLocalizations l10n)` <a id="seriesline"></a>
+- **Kind:** static method of `_ConflictDialog`
+- **Source:** `lib/shared/views/webdav_config_page.dart` (approx. line 695)
+- **Purpose:** Describe one side's series membership in the sync conflict dialog (1.6.0).
+- **Inputs:** `anime` — the local or remote version; `l10n`.
+- **Returns:** `String` — *Series: not in any series* for a standalone record, *Series: linked by
+  you* when it has a `curatedSeriesId`, otherwise *Series: automatic*.
+- **Side effects:** None.
+- **Usage:** `_ConflictDialog.build` adds one such line under each side's summary, but only when
+  `jsonEncode` of the two sides' `seriesLink?.toJson()` differ.
+- **Notes:** The dialog otherwise shows only `modifiedAt`, the episode range and the watched count,
+  so a conflict about the series alone — a materialised series edited concurrently on another
+  device — would look like two identical versions. See
+  [`../../../sync.md`](../../../sync.md) and
+  [`../../../features/series-linking.md`](../../../features/series-linking.md).

@@ -156,6 +156,19 @@ next background sync cycle.
 - Sync errors and image transfer warnings are shown in dialogs, not only snackbars, since they
   need to stay visible.
 
+## Series links
+
+`seriesLink` (1.6.0) needs no sync-layer change: it rides the ordinary whole-record merge like any
+other field. Series curation, however, can write **several records at once** — materialising a
+derived series gives every member the same `seriesId`, and reordering writes an `order` to every
+member — and each of those writes is an ordinary user edit with a fresh UTC `modifiedAt`. A
+concurrent edit of one of those records on another device therefore becomes an ordinary conflict,
+resolved like any other; nothing is auto-resolved. Because the conflict dialog otherwise shows only
+`modifiedAt`, the episode range and the watched count, it adds one series line per side (linked by
+you / not in any series / automatic) whenever the two sides' `seriesLink` differ, so a conflict
+about the series alone does not look like two identical versions. See
+[`features/series-linking.md`](features/series-linking.md).
+
 ## Cached metadata and `modifiedAt`
 
 The background metadata updater writes `externalMeta` without touching `modifiedAt`, and that is

@@ -71,6 +71,7 @@ lib/
       services/
         anime_search_service.dart
         anime_storage.dart
+        series_service.dart     # series grouping and curation (1.6.0)
       views/
         home_page.dart
         management_page.dart
@@ -79,6 +80,7 @@ lib/
         anime_detail_page.dart
         anime_edit_page.dart
         anime_search_dialog.dart
+        series_widgets.dart     # series card and manage sheet (1.6.0)
     kana/views/kana_page.dart
     settings/views/
       backup_page.dart
@@ -106,6 +108,7 @@ lib/
       chinese_convert.dart
       chinese_convert_data.dart
       jst_time.dart
+      season_label.dart       # season ordinals, markers, next label (1.6.0)
     views/webdav_config_page.dart
     widgets/
       duplicate_check_page.dart

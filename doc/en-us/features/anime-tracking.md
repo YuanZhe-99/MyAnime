@@ -122,7 +122,13 @@ the cover, the Japanese title, the metadata chips — including, for an anime1.m
 site's update progress (see [`watch-url-lookup.md`](watch-url-lookup.md)) — and the watch-progress
 bar, and an independently
 scrolling right column holding the rating card, the database-info card, the local-archive card,
-the notes, the season navigation, and the episode list.
+the notes, the series card with its prev/next-season buttons, and the episode list.
+
+Since 1.6.0 the old prev/next-season row is a *Series* card in the same place: it lists every season,
+film and OVA of the work in order and opens any of them, and the prev/next buttons follow that order
+instead of comparing season labels as strings (which put `Season 10` before `Season 2`). A record in
+no series shows no card and reaches the linking actions from the app bar instead. See
+[`series-linking.md`](series-linking.md).
 
 The choice is made by shape, not by device class, which is what lets one device answer differently
 in each orientation: a Galaxy Z Fold 8 unfolds to a 4:3 *landscape* panel, so it splits in

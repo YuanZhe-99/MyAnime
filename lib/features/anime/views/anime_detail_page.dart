@@ -16,8 +16,10 @@ import '../services/anime_search_service.dart';
 import '../services/anime1_service.dart';
 import '../services/anime_storage.dart';
 import '../services/metadata_update_service.dart';
+import '../services/series_service.dart';
 import 'anime1_labels.dart';
 import 'archive_labels.dart';
+import 'series_widgets.dart';
 
 class AnimeDetailPage extends StatefulWidget {
   final String animeId;
@@ -40,8 +42,8 @@ class AnimeDetailPage extends StatefulWidget {
 
 class _AnimeDetailPageState extends State<AnimeDetailPage> {
   Anime? _anime;
-  String? _prevSeasonId;
-  String? _nextSeasonId;
+  SeriesIndex? _seriesIndex;
+  AnimeSeries? _series;
   bool _refreshingMeta = false;
   bool _checkingProgress = false;
 
@@ -56,43 +58,59 @@ class _AnimeDetailPageState extends State<AnimeDetailPage> {
     _load();
   }
 
-  /// Purpose: Provide the internal load helper for this file.
+  /// Purpose: Load the record and the series it belongs to.
   /// Inputs: None.
   /// Returns: None.
-  /// Side effects: May read or mutate application state, storage, or service resources.
-  /// Notes: Internal helper used within this file only.
+  /// Side effects: Reads `anime_data.json`; sets state.
+  /// Notes: Internal helper used within this file only. Builds a
+  /// `SeriesIndex` over the whole library, which replaced the pre-1.6.0 rule of
+  /// matching an identical `displayTitle` and comparing season labels as
+  /// strings (which put `Season 10` before `Season 2`). Nothing is written.
   Future<void> _load() async {
     final data = await AnimeStorage.load();
     final found = data.animeList
         .where((a) => a.id == widget.animeId)
         .firstOrNull;
-    if (found != null && mounted) {
-      // Find prev/next season: same title, different season
-      final title = found.displayTitle;
-      final sameTitleAnime = data.animeList
-          .where((a) => a.id != found.id && a.displayTitle == title)
-          .toList();
-      // Sort by season string
-      sameTitleAnime.sort((a, b) => a.season.compareTo(b.season));
-      String? prev, next;
-      for (final a in sameTitleAnime) {
-        if (a.season.compareTo(found.season) < 0) {
-          prev = a.id; // keep updating to get the closest previous
-        }
-      }
-      for (final a in sameTitleAnime) {
-        if (a.season.compareTo(found.season) > 0) {
-          next = a.id;
-          break; // first one after is the closest next
-        }
-      }
-      setState(() {
-        _anime = found;
-        _prevSeasonId = prev;
-        _nextSeasonId = next;
-      });
-    } else if (mounted) {
-      setState(() => _anime = found);
+    if (!mounted) return;
+    final index = SeriesIndex.build(data.animeList);
+    final series = found == null ? null : index.seriesOf(found.id);
+    setState(() {
+      _anime = found;
+      _seriesIndex = index;
+      _series = series != null && series.members.length >= 2 ? series : null;
+    });
+  }
+
+  /// Purpose: Run one of the series card's menu actions.
+  /// Inputs: `action`.
+  /// Returns: None.
+  /// Side effects: May write records through `AnimeStorage.addOrUpdateAll`,
+  /// open the manage sheet or the create page, and reload.
+  /// Notes: Internal helper used within this file only. Every write is a user
+  /// edit stamped by `SeriesEditor`.
+  Future<void> _runSeriesAction(SeriesAction action) async {
+    final anime = _anime;
+    final index = _seriesIndex;
+    if (anime == null || index == null) return;
+    final editor = SeriesEditor(index);
+    switch (action) {
+      case SeriesAction.manage:
+        final changed = await showSeriesManageSheet(
+          context,
+          anime: anime,
+          index: index,
+        );
+        if (changed) await _load();
+      case SeriesAction.addNextSeason:
+        final last = _series?.members.last ?? anime;
+        await context.push('/anime/edit', extra: NextSeasonPrefill.after(last));
+        await _load();
+      case SeriesAction.remove:
+        await AnimeStorage.addOrUpdateAll(editor.removeFromSeries(anime));
+        await _load();
+      case SeriesAction.letAppDecide:
+        await AnimeStorage.addOrUpdateAll(editor.letAppDecide(anime));
+        await _load();
     }
   }
 
@@ -216,6 +234,29 @@ class _AnimeDetailPageState extends State<AnimeDetailPage> {
       appBar: AppBar(
         title: Text(anime.displayTitle),
         actions: [
+          // The series card carries these actions when there is a series; a
+          // record in none — including a standalone one — reaches them here.
+          if (_series == null)
+            PopupMenuButton<SeriesAction>(
+              icon: const Icon(Icons.link),
+              tooltip: l10n.seriesTitle,
+              onSelected: _runSeriesAction,
+              itemBuilder: (_) => [
+                PopupMenuItem(
+                  value: SeriesAction.manage,
+                  child: Text(l10n.seriesLinkTo),
+                ),
+                PopupMenuItem(
+                  value: SeriesAction.addNextSeason,
+                  child: Text(l10n.seriesAddNext),
+                ),
+                if (anime.seriesLink != null)
+                  PopupMenuItem(
+                    value: SeriesAction.letAppDecide,
+                    child: Text(l10n.seriesLetAppDecide),
+                  ),
+              ],
+            ),
           IconButton(
             icon: const Icon(Icons.share),
             tooltip: l10n.animeShare,
@@ -454,7 +495,7 @@ class _AnimeDetailPageState extends State<AnimeDetailPage> {
     ];
   }
 
-  /// Purpose: Build the cards below the progress bar, plus season navigation.
+  /// Purpose: Build the cards below the progress bar, plus the series card.
   /// Inputs: `anime`, `theme`, `l10n`.
   /// Returns: `List<Widget>` for a `crossAxisAlignment.start` `Column`.
   /// Side effects: None.
@@ -484,25 +525,33 @@ class _AnimeDetailPageState extends State<AnimeDetailPage> {
         Text(anime.notes!, style: theme.textTheme.bodyMedium),
       ],
 
-      // Prev/Next season navigation
-      if (_prevSeasonId != null || _nextSeasonId != null) ...[
+      // Series card, then prev/next driven by the series index.
+      if (_series case final series?) ...[
         const SizedBox(height: 12),
-        Row(
-          mainAxisAlignment: MainAxisAlignment.center,
+        SeriesCard(
+          series: series,
+          current: anime,
+          onOpen: (a) => context.go('/anime/detail/${a.id}'),
+          onAction: _runSeriesAction,
+        ),
+        const SizedBox(height: 8),
+        // A Wrap rather than a Row, so the two buttons stack instead of
+        // overflowing where long labels meet a narrow phone.
+        Wrap(
+          alignment: WrapAlignment.center,
+          spacing: 16,
           children: [
-            if (_prevSeasonId != null)
+            if (series.previousOf(anime.id) case final prev?)
               TextButton.icon(
                 icon: const Icon(Icons.arrow_back, size: 16),
                 label: Text(l10n.animePrevSeason),
-                onPressed: () => context.go('/anime/detail/$_prevSeasonId'),
+                onPressed: () => context.go('/anime/detail/${prev.id}'),
               ),
-            if (_prevSeasonId != null && _nextSeasonId != null)
-              const SizedBox(width: 16),
-            if (_nextSeasonId != null)
+            if (series.nextOf(anime.id) case final next?)
               TextButton.icon(
                 icon: const Icon(Icons.arrow_forward, size: 16),
                 label: Text(l10n.animeNextSeason),
-                onPressed: () => context.go('/anime/detail/$_nextSeasonId'),
+                onPressed: () => context.go('/anime/detail/${next.id}'),
               ),
           ],
         ),
@@ -857,9 +906,9 @@ class _AnimeDetailPageState extends State<AnimeDetailPage> {
     } catch (e) {
       if (!mounted) return;
       setState(() => _checkingProgress = false);
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(l10n.anime1ProgressFailed('$e'))),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(l10n.anime1ProgressFailed('$e'))));
     }
   }
 
@@ -882,8 +931,7 @@ class _AnimeDetailPageState extends State<AnimeDetailPage> {
         (l10n.animeDuration, l10n.animeDurationValue(meta.durationMinutes!)),
       if (meta.endDate != null)
         (l10n.animeEndDate, DateFormat.yMd().format(meta.endDate!)),
-      if (meta.studios.isNotEmpty)
-        (l10n.animeStudios, meta.studios.join(', ')),
+      if (meta.studios.isNotEmpty) (l10n.animeStudios, meta.studios.join(', ')),
       if (meta.genres.isNotEmpty) (l10n.animeGenres, meta.genres.join(', ')),
       if (meta.synonyms.isNotEmpty)
         (l10n.animeAlternateTitles, meta.synonyms.join(' / ')),

@@ -9,7 +9,10 @@ WordPress `?s=` search that was the whole mechanism through 1.5.6 is kept only a
 The persisted result is `AnimeWatchProgress` from [`../models/anime.md`](../models/anime.md). Full
 builds only — callers gate; see
 [`../../../../features/watch-url-lookup.md`](../../../../features/watch-url-lookup.md) for the
-stages, the ranking constants and the background refresh.
+stages, the ranking constants and the background refresh. The season-ordinal reader `rank` and
+`search` use, `seasonOrdinal` (with its `_parseCjkNumber` helper), moved unchanged to the shared
+[`../../../shared/utils/season_label.md`](../../../shared/utils/season_label.md) in 1.6.0, where the
+series index uses it too.
 
 ## Declarations
 
@@ -33,8 +36,6 @@ stages, the ranking constants and the background refresh.
 | [`parseEpisodes`](#parseepisodes) | static method (`Anime1Service`) | A | Parse an episode cell such as `1-12+OVA` or `連載中(09)`. |
 | [`seasonIndex`](#seasonindex) | static method (`Anime1Service`), `@visibleForTesting` | A | Place a row's year/season on a continuous quarter timeline. |
 | [`quarterIndexFor`](#quarterindexfor) | static method (`Anime1Service`), `@visibleForTesting` | A | Place a premiere date on the same timeline, snapping late premieres forward. |
-| [`seasonOrdinal`](#seasonordinal) | static method (`Anime1Service`), `@visibleForTesting` | A | Read a 第N季 / Season N ordinal out of a title or label. |
-| `_parseCjkNumber` | static method (`Anime1Service`) | B | Parse a small Chinese or Arabic numeral. |
 | [`querySet`](#queryset) | static method (`Anime1Service`), `@visibleForTesting` | A | Build the folded, deduplicated query set for one lookup. |
 | [`rank`](#rank) | static method (`Anime1Service`), `@visibleForTesting` | A | Score and order index rows against folded queries. |
 | [`search`](#search) | static method (`Anime1Service`) | A | Find series pages for a record: index, then aliases, then scrape. |
@@ -130,17 +131,9 @@ injectable client. `parseEpisodes` and `catIdFromUrl` are plainly public because
 - **Algorithm:** `year * 4 + (month - 1) ~/ 3`, plus one when the date is on or after the 21st of a quarter's last month.
 - **Notes:** anime1 files a 29 September premiere under 秋 while the calendar says Q3, so late premieres snap forward; 21 December or later lands in the next year's 冬 through the arithmetic alone.
 
-### `static int? seasonOrdinal(String text)` <a id="seasonordinal"></a>
-- **Kind:** static method of `Anime1Service`, `@visibleForTesting`
-- **Source:** approx. line 442
-- **Purpose:** Read a season ordinal out of a title or season label — `第二季`, `第2期`, `Season 2`, `2nd Season`, `S2`, `Part 2`.
-- **Returns:** `int?` — `null` when no ordinal is present.
-- **Side effects:** None.
-- **Notes:** Chinese numerals up to 十 are understood through `_parseCjkNumber`. `Anime.season` is a free-text label ("Season 1"), which is why this reads the label as well as the title.
-
 ### `static List<String> querySet(String query, List<String> altQueries)` <a id="queryset"></a>
 - **Kind:** static method of `Anime1Service`, `@visibleForTesting`
-- **Source:** approx. line 496
+- **Source:** approx. line 449
 - **Purpose:** Build the folded query set for one lookup — folded, deduplicated, at most twelve entries.
 - **Returns:** `List<String>`.
 - **Side effects:** None.
@@ -148,7 +141,7 @@ injectable client. `parseEpisodes` and `catIdFromUrl` are plainly public because
 
 ### `static List<Anime1Match> rank(List<Anime1IndexEntry> entries, List<String> foldedQueries, {int? quarterIndex, int? ordinal, double minScore = minScore, int limit = 10})` <a id="rank"></a>
 - **Kind:** static method of `Anime1Service`, `@visibleForTesting`
-- **Source:** approx. line 520
+- **Source:** approx. line 473
 - **Purpose:** Score and order index rows against folded queries.
 - **Inputs:** `entries`, `foldedQueries`; `quarterIndex` from [`quarterIndexFor`](#quarterindexfor); `ordinal` — the record's season ordinal; `minScore`; `limit`.
 - **Returns:** `List<Anime1Match>` best first.
@@ -162,7 +155,7 @@ injectable client. `parseEpisodes` and `catIdFromUrl` are plainly public because
 
 ### `static Future<List<Anime1Match>> search(String query, {List<String> altQueries = const [], DateTime? firstAirDate, String? seasonText, bool harvestAliases = true})` <a id="search"></a>
 - **Kind:** static method of `Anime1Service`
-- **Source:** approx. line 590
+- **Source:** approx. line 543
 - **Purpose:** Find anime1.me series pages for a record, index-first.
 - **Inputs:** `query` — the display title; `altQueries` — Japanese, English, romaji titles and stored synonyms; `firstAirDate` — enables the season boost; `seasonText` — read for an ordinal; `harvestAliases` — allow one bangumi.tv query.
 - **Returns:** `Future<List<Anime1Match>>`, best first, at most ten.
@@ -186,7 +179,7 @@ injectable client. `parseEpisodes` and `catIdFromUrl` are plainly public because
 
 ### `static List<Anime1Match> _mergeMatches(List<Anime1Match> base, List<Anime1Match> again)` <a id="_mergematches"></a>
 - **Kind:** static method of `Anime1Service`
-- **Source:** approx. line 646
+- **Source:** approx. line 599
 - **Purpose:** Merge an alias-assisted ranking into the base ranking.
 - **Returns:** `List<Anime1Match>` best first, at most ten.
 - **Side effects:** None.
@@ -194,7 +187,7 @@ injectable client. `parseEpisodes` and `catIdFromUrl` are plainly public because
 
 ### `static bool isAnime1Url(String? url)` <a id="isanime1url"></a>
 - **Kind:** static method of `Anime1Service`
-- **Source:** approx. line 682
+- **Source:** approx. line 635
 - **Purpose:** Report whether a URL points at anime1.me (the bare host or any subdomain).
 - **Returns:** `bool`; `false` for `null` or blank.
 - **Side effects:** None.
@@ -202,7 +195,7 @@ injectable client. `parseEpisodes` and `catIdFromUrl` are plainly public because
 
 ### `static int? catIdFromUrl(String url)` <a id="catidfromurl"></a>
 - **Kind:** static method of `Anime1Service`
-- **Source:** approx. line 696
+- **Source:** approx. line 649
 - **Purpose:** Read the category id out of a `?cat=` URL.
 - **Returns:** `int?` — `null` for `/category/…` slugs and anything else.
 - **Side effects:** None.
@@ -210,7 +203,7 @@ injectable client. `parseEpisodes` and `catIdFromUrl` are plainly public because
 
 ### `static ({int? catId, String? title, int? latestEpisode, String? categoryUrl}) parseCategoryPage(String html)` <a id="parsecategorypage"></a>
 - **Kind:** static method of `Anime1Service`, `@visibleForTesting`
-- **Source:** approx. line 712
+- **Source:** approx. line 665
 - **Purpose:** Extract the category id, title, newest episode and category link from a series or episode page.
 - **Returns:** A record; each field `null` when absent.
 - **Side effects:** None.
@@ -219,7 +212,7 @@ injectable client. `parseEpisodes` and `catIdFromUrl` are plainly public because
 
 ### `static Future<AnimeWatchProgress?> fetchProgress(String watchUrl, {List<Anime1IndexEntry>? index})` <a id="fetchprogress"></a>
 - **Kind:** static method of `Anime1Service`
-- **Source:** approx. line 758
+- **Source:** approx. line 711
 - **Purpose:** Read what anime1.me currently lists for a saved watch URL.
 - **Inputs:** `watchUrl`; `index` — a pre-loaded index to reuse (the background loop passes one).
 - **Returns:** `Future<AnimeWatchProgress?>` — `null` when the URL is not anime1.me or nothing could be read.
@@ -238,7 +231,7 @@ injectable client. `parseEpisodes` and `catIdFromUrl` are plainly public because
 
 ### `static Future<List<Anime1Match>> _scrapeSearch(String query, List<String> altQueries)` <a id="_scrapesearch"></a>
 - **Kind:** static method of `Anime1Service`
-- **Source:** approx. line 846
+- **Source:** approx. line 799
 - **Purpose:** Search the site's own `?s=` endpoint — the pre-1.5.7 method, kept as the last resort.
 - **Returns:** `Future<List<Anime1Match>>` ranked by `bestSimilarity`, at most ten.
 - **Side effects:** Up to six sequential HTTP GETs, plus up to three bigram retries when nothing matched.
@@ -247,7 +240,7 @@ injectable client. `parseEpisodes` and `catIdFromUrl` are plainly public because
 
 ### `static Future<List<({String title, String url})>> _scrapeOne(String query)` <a id="_scrapeone"></a>
 - **Kind:** static method of `Anime1Service`
-- **Source:** approx. line 905
+- **Source:** approx. line 858
 - **Purpose:** Run one `?s=` query and extract series (not episode) title/URL pairs from the HTML.
 - **Returns:** `Future<List<({String title, String url})>>` — empty on a non-200 response.
 - **Side effects:** One HTTP GET (10 s timeout).

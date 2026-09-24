@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:file_picker/file_picker.dart';
+import 'package:flutter/foundation.dart' show visibleForTesting;
 import 'package:flutter/services.dart';
 import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
@@ -102,7 +103,8 @@ class FileOpenService {
   /// Returns: `Future<Anime>`.
   /// Side effects: Writes cover images to the app images directory.
   /// Notes: Internal helper used within this file only. Always assigns a new
-  /// UUID and current UTC timestamps so imports never overwrite existing data.
+  /// UUID and current UTC timestamps so imports never overwrite existing data;
+  /// the record itself comes from [importedCopy].
   static Future<Anime> _importOne(
     Anime parsed,
     Map<String, dynamic> itemJson,
@@ -119,9 +121,32 @@ class FileOpenService {
       coverPath = 'images/$newName';
     }
 
-    final now = DateTime.now().toUtc();
-    return Anime(
+    return importedCopy(
+      parsed,
       id: const Uuid().v4(),
+      now: DateTime.now().toUtc(),
+      coverPath: coverPath,
+    );
+  }
+
+  /// Purpose: Build the record an import writes from a parsed share-file record.
+  /// Inputs: `parsed`; `id` — the fresh UUID; `now` — the UTC import time;
+  /// `coverPath` — where the bundled cover was written, if any.
+  /// Returns: `Anime` — a new record that can never overwrite existing data.
+  /// Side effects: None.
+  /// Notes: Carries every field except `seriesLink`, which is dropped even
+  /// when a hand-written file carries one (a foreign `seriesId` means nothing
+  /// here and would pin the record out of automatic grouping). Public
+  /// `externalMeta` has been carried since 1.6.0; earlier builds dropped it.
+  @visibleForTesting
+  static Anime importedCopy(
+    Anime parsed, {
+    required String id,
+    required DateTime now,
+    String? coverPath,
+  }) {
+    return Anime(
+      id: id,
       title: parsed.title,
       titleJa: parsed.titleJa,
       season: parsed.season,
@@ -141,9 +166,10 @@ class FileOpenService {
       // Export strips this, so it is normally absent; carried through anyway so
       // a hand-written file's value is not silently dropped.
       localArchive: parsed.localArchive,
+      externalMeta: parsed.externalMeta,
       createdAt: now,
       modifiedAt: now,
-      extraJson: parsed.extraJson,
+      extraJson: Map.of(parsed.extraJson)..remove('seriesLink'),
     );
   }
 
@@ -288,9 +314,9 @@ class FileOpenService {
   /// Inputs: `anime`.
   /// Returns: `Future<String?>`.
   /// Side effects: May read or mutate application state, storage, or service resources.
-  /// Notes: Export an anime to a .myanimeitem JSON file. Returns the file path, or null on failure. Personal data (episodeStatuses, episodeWeekOffsets, localArchive) is stripped.
+  /// Notes: Export an anime to a .myanimeitem JSON file. Returns the file path, or null on failure. Personal data (episodeStatuses, episodeWeekOffsets, localArchive, seriesLink) is stripped.
   static Future<String?> exportAnimeItem(Anime anime) async {
-    final animeJson = _stripPersonalData(anime.toJson());
+    final animeJson = stripPersonalData(anime.toJson());
     final json = <String, dynamic>{
       'version': 1,
       'anime': animeJson,
@@ -300,10 +326,7 @@ class FileOpenService {
       json['coverImageExt'] = p.extension(anime.coverImage!);
     }
 
-    return _writeBundleFile(
-      _sanitizeFileName(anime.displayTitle),
-      json,
-    );
+    return _writeBundleFile(_sanitizeFileName(anime.displayTitle), json);
   }
 
   /// Purpose: Export a collection of anime to a multi-anime .myanimeitem file.
@@ -312,14 +335,14 @@ class FileOpenService {
   /// Side effects: Writes a temporary `.myanimeitem` file.
   /// Notes: Returns the file path, or null on failure. Uses bundle version 2
   /// so single-anime v1 files remain backward compatible. Personal viewing
-  /// data (episodeStatuses, episodeWeekOffsets, localArchive) is stripped from each record.
+  /// data (episodeStatuses, episodeWeekOffsets, localArchive, seriesLink) is stripped from each record.
   static Future<String?> exportAnimeBundle(
     List<Anime> animes, {
     String displayName = 'myanime_collection',
   }) async {
     final items = <Map<String, dynamic>>[];
     for (final anime in animes) {
-      final animeJson = _stripPersonalData(anime.toJson());
+      final animeJson = stripPersonalData(anime.toJson());
       final item = <String, dynamic>{
         'anime': animeJson,
         'coverImage': await _readCoverBase64(anime),
@@ -330,26 +353,26 @@ class FileOpenService {
       items.add(item);
     }
 
-    final json = <String, dynamic>{
-      'version': 2,
-      'items': items,
-    };
+    final json = <String, dynamic>{'version': 2, 'items': items};
     return _writeBundleFile(_sanitizeFileName(displayName), json);
   }
 
-  /// Purpose: Provide the internal strip personal data helper for this file.
+  /// Purpose: Remove what a share file must not carry from one record's JSON.
   /// Inputs: `json`.
   /// Returns: `Map<String, dynamic>`.
   /// Side effects: None.
-  /// Notes: Internal helper used within this file only. Removes personal
+  /// Notes: Visible for testing. Removes personal
   /// viewing data so shared bundles do not leak the sender's watch progress,
   /// and the local-archive record so they do not leak the sender's storage
-  /// repository codes and copy counts.
-  static Map<String, dynamic> _stripPersonalData(Map<String, dynamic> json) {
+  /// repository codes and copy counts, and the series link, whose group id
+  /// means nothing in another library.
+  @visibleForTesting
+  static Map<String, dynamic> stripPersonalData(Map<String, dynamic> json) {
     final copy = Map<String, dynamic>.from(json);
     copy.remove('episodeStatuses');
     copy.remove('episodeWeekOffsets');
     copy.remove('localArchive');
+    copy.remove('seriesLink');
     return copy;
   }
 

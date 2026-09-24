@@ -1,14 +1,16 @@
 # lib/features/anime/views/anime_detail_page.dart
 
-`AnimeDetailPage` 是一部被跟踪动画的读/操作页：封面、元数据徽章、评分摘要、本地存档摘要、上一季/下一季导航，以及带日程偏移控件的逐集观看状态列表。它通过 `AnimeStorage`（[`../services/anime_storage.md`](../services/anime_storage.md)）读写，并操作 `Anime`/`AnimeRating`/`AnimeLocalArchive` 模型（[`../models/anime.md`](../models/anime.md)），存档枚举通过 [`archive_labels.md`](archive_labels.md) 渲染。存档卡片仅供展示，且刻意不出现在本页分享操作生成的分享图片卡片中——见 [`../../../../features/share-and-import.md`](../../../../features/share-and-import.md)。本页为剧集播出日期/回卷和日程偏移语义暴露的控件见 [`../../../../features/anime-tracking.md`](../../../../features/anime-tracking.md)。
+`AnimeDetailPage` 是一部被跟踪动画的读/操作页：封面、元数据徽章、评分摘要、本地存档摘要、带上一季/下一季导航的系列卡片，以及带日程偏移控件的逐集观看状态列表。它通过 `AnimeStorage`（[`../services/anime_storage.md`](../services/anime_storage.md)）读写，并操作 `Anime`/`AnimeRating`/`AnimeLocalArchive` 模型（[`../models/anime.md`](../models/anime.md)），存档枚举通过 [`archive_labels.md`](archive_labels.md) 渲染。存档卡片仅供展示，且刻意不出现在本页分享操作生成的分享图片卡片中——见 [`../../../../features/share-and-import.md`](../../../../features/share-and-import.md)。本页为剧集播出日期/回卷和日程偏移语义暴露的控件见 [`../../../../features/anime-tracking.md`](../../../../features/anime-tracking.md)。
 
 
 ## 布局
 
 页面以两种布局之一渲染，每帧由 [`../../../shared/utils/detail_layout.md`](../../../shared/utils/detail_layout.md) 中的 `useDetailTwoPane` 依视口尺寸选定：
 
-- **单栏** — 一个 `ListView`：封面，然后是信息块（日文标题、标签、进度条、`已看 / 总数`、评分／资料库／存档卡片、备注、上下季导航），最后是剧集列表。这就是原本的布局，未作改动。
-- **双栏** — 一个 `Row`。左栏定宽且占满高度，容纳从封面到观看进度标签的内容，封面尺寸由 `detailCoverSize` 按剩余高度算出。右栏是独立滚动的 `ListView`，容纳从卡片往下的全部内容，包括剧集列表。
+- **单栏** — 一个 `ListView`：封面，然后是信息块（日文标题、标签、进度条、`已看 / 总数`、评分／资料库／存档卡片、备注、系列卡片与上下季导航），最后是剧集列表。这就是原本的布局，未作改动。
+- **双栏** — 一个 `Row`。左栏定宽且占满高度，容纳从封面到观看进度标签的内容，封面尺寸由 `detailCoverSize` 按剩余高度算出。右栏是独立滚动的 `ListView`，容纳从卡片往下的全部内容，包括系列卡片和剧集列表。
+
+系列卡片（1.6.0，[`series_widgets.md`](series_widgets.md) 中的 `SeriesCard`）在 `_buildDetailChildren` 中取代了原来的上一季/下一季行，位置不变，因此在双栏布局中它落在右栏。只有记录所属系列至少有两个成员时才会出现；其下方的上一季/下一季按钮现在由系列顺序驱动，放在 `Wrap` 中，窄屏手机上会换行堆叠而不会溢出。记录不属于任何系列（包括独立（不归入系列）的记录）时，卡片不出现，改由应用栏的关联菜单（*关联到系列…*、*添加下一季*，记录带 `seriesLink` 时还有*交给应用自动判断*）提供相同操作。见 [`../../../../features/series-linking.md`](../../../../features/series-linking.md)。
 
 两种布局都由同样四个构建函数拼装——`_buildCover`、`_buildHeaderChildren`、`_buildDetailChildren`、`_buildEpisodeChildren`——因此每个区块的组件代码只有一份。`_buildHeaderChildren` 与 `_buildDetailChildren` 之间的分界**就是**分栏边界：把某个区块移过这条缝，它就会换栏。`_buildDetailChildren` 中每一项都自带前置的 `SizedBox(height: 12)`，正是这一点让同一份列表无论跟在进度条之后还是作为右栏开头都能正确呈现。
 
@@ -19,7 +21,8 @@
 | `AnimeDetailPage.new` | 构造函数（`AnimeDetailPage`） | B | 为给定动画 ID 创建 `AnimeDetailPage` 实例。 |
 | `AnimeDetailPage.createState` | 方法（`AnimeDetailPage`） | B | 为此组件创建可变状态对象。 |
 | `_AnimeDetailPageState.initState` | 方法（`_AnimeDetailPageState`） | B | 触发首次数据加载。 |
-| [`_load`](#_load) | 方法（`_AnimeDetailPageState`） | A | 从存储加载此动画并定位它的上一季/下一季。 |
+| [`_load`](#_load) | 方法（`_AnimeDetailPageState`） | A | 加载此动画并构建系列分组，找到它所属的系列。 |
+| [`_runSeriesAction`](#_runseriesaction) | 方法（`_AnimeDetailPageState`） | A | 运行系列卡片（或应用栏关联菜单）中的某个操作。 |
 | [`_toggleEpisode`](#_toggleepisode) | 方法（`_AnimeDetailPageState`） | A | 循环一集的观看状态并持久化它。 |
 | [`_shiftFromEpisode`](#_shiftfromepisode) | 方法（`_AnimeDetailPageState`） | A | 把一集的播出周偏移一个增量并持久化它。 |
 | [`_resetSchedule`](#_resetschedule) | 方法（`_AnimeDetailPageState`） | A | 清除所有逐集周偏移，恢复到原始日程。 |
@@ -27,7 +30,7 @@
 | `_AnimeDetailPageState.build` | 方法（`_AnimeDetailPageState`，组件构建） | B | 构建详情页脚手架，并在单栏与双栏布局之间取舍。 |
 | `_buildCover` | 方法（组件辅助） | B | 按明确尺寸构建封面图块。 |
 | `_buildHeaderChildren` | 方法（组件辅助） | B | 构建头部块：日文标题、标签（含 anime1.me 进度标签）与已看集数条。 |
-| `_buildDetailChildren` | 方法（组件辅助） | B | 构建进度条下方的卡片，以及季度导航。 |
+| `_buildDetailChildren` | 方法（组件辅助） | B | 构建进度条下方的卡片，以及系列卡片和上一季/下一季按钮。 |
 | `_buildEpisodeChildren` | 方法（组件辅助） | B | 构建剧集列表表头及每一集一行。 |
 | [`_toggleAllWatched`](#_toggleallwatched) | 方法（`_AnimeDetailPageState`） | A | 把每个被跟踪剧集标记为已看，已完整时则全部标记为未看。 |
 | `_buildAbandonOrResume` | 方法（组件辅助） | B | 渲染剧集列表页头的"放弃"/"恢复"操作按钮。 |
@@ -51,16 +54,15 @@
 
 ### `Future<void> _load()` <a id="_load"></a>
 - **种类：** `_AnimeDetailPageState` 的方法
-- **来源：** `lib/features/anime/views/anime_detail_page.dart`（约第 55 行）
-- **用途：** 从存储加载 `widget.animeId` 标识的动画，找到时定位最近的上一季和下一季"季"记录（相同 `displayTitle`、不同 `season` 字符串），供上一季/下一季导航按钮使用。
+- **来源：** `lib/features/anime/views/anime_detail_page.dart`（约第 61 行）
+- **用途：** 加载 `widget.animeId` 标识的动画及其所属的系列。
 - **输入：** 无（`widget.animeId` 从外层组件读取）。
 - **返回：** `Future<void>`。
-- **副作用：** 调用 `AnimeStorage.load()`；`setState` `_anime`、`_prevSeasonId`、`_nextSeasonId`。
+- **副作用：** 调用 `AnimeStorage.load()`；`setState` `_anime`、`_seriesIndex`、`_series`。不写入任何内容。
 - **算法：**
   1. Await `AnimeStorage.load()` 并找 `id == widget.animeId` 的记录。
-  2. 找到时，收集共享同一 `displayTitle` 的每条其他记录，按 `season` 字符串比较排序该子集。
-  3. 遍历排序后的子集一次，找 `season` 小于当前季的最近一个（`prev`，持续更新使*最后一个*符合条件的条目——最接近的下方——胜出），再遍历一次找 `season` 大于当前季的最近一个（`next`，在*第一个*符合条件的条目——最接近的上方——`break`）。
-  4. 用找到的动画和两个邻居 ID（未找到时只用动画）`setState`。
+  2. 在整个片库上构建 [`SeriesIndex`](../services/series_service.md#seriesindex-build)，向它查询该记录的系列。
+  3. 用记录、索引和系列 `setState`——但只在该系列至少有两个成员时；否则 `_series` 为 `null`，不显示系列卡片。
 - **用法：**
   ```dart
   @override
@@ -70,7 +72,31 @@
   }
   ```
   （`_AnimeDetailPageState.initState`，同一文件；编辑/删除/剧集操作后也调用它刷新页面）
-- **备注：** `season` 比较是普通 `String.compareTo`，因此季标签需要作为字符串正确排序（如 `"Season 2"` 按字典序 > `"Season 10"`）——本页不做数字感知的季排序。
+- **备注：** 1.6.0 之前，这里匹配 `displayTitle` 完全相同的记录，并用普通 `String.compareTo` 比较它们的 `season` 标签，结果把 `"Season 10"` 排在 `"Season 2"` 之前，而且标题稍有不同的续作永远找不到。现在不再比较字符串：顺序来自系列分组（显式 `order`，然后 `firstAirDate`、季数序数、`createdAt`、`id`），旧的相同标题规则只作为系列分组的一种边保留下来。见 [`../../../../features/series-linking.md`](../../../../features/series-linking.md)。
+
+### `Future<void> _runSeriesAction(SeriesAction action)` <a id="_runseriesaction"></a>
+- **种类：** `_AnimeDetailPageState` 的方法
+- **来源：** `lib/features/anime/views/anime_detail_page.dart`（约第 85 行）
+- **用途：** 运行系列卡片菜单中的某个操作；记录不在任何系列中时，运行应用栏关联菜单中的操作。
+- **输入：** `action` — 一个 `SeriesAction`（[`series_widgets.md`](series_widgets.md)）。
+- **返回：** `Future<void>`。
+- **副作用：** 可能通过 `AnimeStorage.addOrUpdateAll` 写入记录、打开管理面板或新建页，并经 `_load()` 重新加载。
+- **算法：** `_anime` 与 `_seriesIndex` 加载完成前直接返回；之后用基于当前索引的 `SeriesEditor`：
+  - `manage` → `showSeriesManageSheet`；仅当它报告有写入时重新加载。
+  - `addNextSeason` → `context.push('/anime/edit', extra: NextSeasonPrefill.after(last))`，其中 `last` 是系列的最后一个成员（没有系列时是本记录）；返回后重新加载。
+  - `remove` → `addOrUpdateAll(editor.removeFromSeries(anime))`，然后重新加载。
+  - `letAppDecide` → `addOrUpdateAll(editor.letAppDecide(anime))`，然后重新加载。
+- **用法：**
+  ```dart
+  SeriesCard(
+    series: series,
+    current: anime,
+    onOpen: (a) => context.go('/anime/detail/${a.id}'),
+    onAction: _runSeriesAction,
+  ),
+  ```
+  （`_buildDetailChildren`，同一文件；应用栏的 `PopupMenuButton<SeriesAction>` 也调用它）
+- **备注：** 每次写入都是由 `SeriesEditor` 标记时间的用户编辑——见 [`../services/series_service.md`](../services/series_service.md#serieseditor)。
 
 ### `Future<void> _toggleEpisode(int ep)` <a id="_toggleepisode"></a>
 - **种类：** `_AnimeDetailPageState` 的方法

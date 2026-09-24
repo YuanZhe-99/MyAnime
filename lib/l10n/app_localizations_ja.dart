@@ -661,6 +661,54 @@ class AppLocalizationsJa extends AppLocalizations {
   String get animeNextSeason => '次シーズン';
 
   @override
+  String get seriesTitle => 'シリーズ';
+
+  @override
+  String get seriesAuto => '自動でまとめました';
+
+  @override
+  String get seriesCurated => '手動で関連付け';
+
+  @override
+  String get seriesManage => 'シリーズを管理…';
+
+  @override
+  String get seriesLinkTo => 'シリーズに関連付け…';
+
+  @override
+  String get seriesAddNext => '次のシーズンを追加';
+
+  @override
+  String get seriesRemove => 'シリーズから外す';
+
+  @override
+  String get seriesLetAppDecide => 'アプリに任せる';
+
+  @override
+  String get seriesSearchHint => 'ライブラリを検索';
+
+  @override
+  String get seriesSuggestions => '候補';
+
+  @override
+  String get seriesMembers => 'このシリーズ';
+
+  @override
+  String get seriesNoMatches => '該当するアニメはありません';
+
+  @override
+  String get seriesSaveOrder => '順番を保存';
+
+  @override
+  String get syncSeriesLinked => 'シリーズ：手動で関連付け';
+
+  @override
+  String get syncSeriesStandalone => 'シリーズ：どのシリーズにも属さない';
+
+  @override
+  String get syncSeriesAuto => 'シリーズ：自動';
+
+  @override
   String get save => '保存';
 
   @override

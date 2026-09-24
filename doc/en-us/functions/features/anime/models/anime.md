@@ -1,7 +1,8 @@
 # lib/features/anime/models/anime.dart
 
 The core data model: `Anime` (one tracked series), `AnimeRating` (optional personal rating),
-`AnimeLocalArchive` (optional record of a downloaded local copy), `AnimeData` (the top-level
+`AnimeLocalArchive` (optional record of a downloaded local copy), `AnimeSeriesLink` (optional series
+membership set by the user, 1.6.0), `AnimeData` (the top-level
 `{animes: [...]}` persisted container), plus the `AnimeType`, `EpisodeStatus`,
 `AnimeViewingStatus`, `AnimeRatingField`, `ArchiveSource`, and `ArchiveResolution` enums. This file
 owns `fromJson`/`toJson` for all four classes, the `extraJson` unknown-field-preservation pattern used
@@ -29,6 +30,7 @@ every view under `lib/features/anime/views/`.
 | [`_parseEpisodeStatus`](#parseepisodestatus) | top-level function | A | Parse a JSON string into an `EpisodeStatus`, or `null` if unrecognized. |
 | [`_parseStringList`](#parsestringlist) | top-level function | A | Parse a JSON value into a `List<String>`, or `null` if it isn't one. |
 | [`_parseUtcDateTime`](#parseutcdatetime) | top-level function | A | Parse a JSON string into a UTC `DateTime`, or `null`. |
+| `_parseCalendarDate` | top-level function | B | Parse a JSON string into a calendar-day `DateTime` **without** normalizing to UTC, so a broadcast date does not shift a day east of UTC. |
 | [`AnimeRating(...)`](#animerating-new) | constructor (`AnimeRating`) | A | Create a personal rating value (manual overall + five sub-scores). |
 | `hasManualOverall` | getter (`AnimeRating`) | B | Whether `overall` is set. |
 | `hasAnyScore` | getter (`AnimeRating`) | B | Whether any of `overall`/`visual`/`story`/`character`/`music`/`enjoyment` is set. |
@@ -46,6 +48,12 @@ every view under `lib/features/anime/views/`.
 | [`withExtraJson`](#withextrajson-animelocalarchive) | method (`AnimeLocalArchive`) | A | Copy with `extraJson` replaced. |
 | [`toJson`](#tojson-animelocalarchive) | method (`AnimeLocalArchive`) | A | Serialize to the JSON shape stored under `Anime.localArchive`. |
 | [`AnimeLocalArchive.fromJson`](#animelocalarchive-fromjson) | factory constructor | A | Parse an archive record from JSON, routing unparseable values into `extraJson`. |
+| [`AnimeSeriesLink(...)`](#animeserieslink-new) | constructor (`AnimeSeriesLink`) | A | Create a series-membership record (`seriesId`, `order`, `standalone`). |
+| [`curatedSeriesId`](#curatedseriesid) | getter (`AnimeSeriesLink`) | A | The curated series this record belongs to, or `null` (standalone wins over `seriesId`). |
+| `hasAnyData` | getter (`AnimeSeriesLink`) | B | Whether there's anything worth persisting (`standalone`, `seriesId`, `order`, or preserved `extraJson`). |
+| [`withExtraJson`](#withextrajson-animeserieslink) | method (`AnimeSeriesLink`) | A | Copy with `extraJson` replaced. |
+| [`toJson`](#tojson-animeserieslink) | method (`AnimeSeriesLink`) | A | Serialize to the JSON shape stored under `Anime.seriesLink`. |
+| [`AnimeSeriesLink.fromJson`](#animeserieslink-fromjson) | factory constructor | A | Parse a series link from JSON, routing unparseable values into `extraJson`. |
 | [`AnimeExternalRating(...)`](#animeexternalrating-new) | constructor (`AnimeExternalRating`) | A | Create one external database's score, with the URL it came from. |
 | `hasAnyData` | getter (`AnimeExternalRating`) | B | Whether there's a score, votes, rank, or preserved `extraJson`. |
 | [`normalizedScore`](#normalizedscore) | getter (`AnimeExternalRating`) | A | This source's score rebased onto a 0-10 scale. |
@@ -93,8 +101,8 @@ every view under `lib/features/anime/views/`.
 | [`toJson`](#tojson-animedata) | method (`AnimeData`) | A | Serialize to `{...extraJson, animes: [...]}`. |
 | [`AnimeData.fromJson`](#animedata-fromjson) | factory constructor | A | Parse the `{animes: [...]}` container from JSON. |
 
-Note on the verification count: the source file has 62 `/// Purpose:` doc comments, but this table
-has 63 rows — the `AnimeData` default constructor has no doc comment at all in source
+Note on the verification count: the source file has 78 `/// Purpose:` doc comments, but this table
+has 79 rows — the `AnimeData` default constructor has no doc comment at all in source
 (unlike every other constructor in this file), yet is still a real declaration and is indexed above
 (Tier B: a plain default-value constructor with no logic).
 
@@ -457,6 +465,79 @@ has 63 rows — the `AnimeData` default constructor has no doc comment at all in
   record written by a newer build round-trips the newer build's values untouched. Covered by
   `test/anime_json_test.dart` ("local archive preserves unknown and unparseable fields").
 
+### `const AnimeSeriesLink({seriesId, order, standalone = false, extraJson = const {}})` <a id="animeserieslink-new"></a>
+- **Kind:** constructor (`AnimeSeriesLink`)
+- **Source:** `lib/features/anime/models/anime.dart` (line 657)
+- **Purpose:** Create the optional record of the series a user placed an anime in (1.6.0).
+- **Inputs:** `seriesId` — lowercase UUID v4 shared by every member of one curated series; `order` —
+  1-based position after the user reordered the series; `standalone` — the user took this record
+  out of every series; `extraJson` — preserved unknown fields.
+- **Returns:** A new `AnimeSeriesLink`.
+- **Side effects:** None.
+- **Notes:** Membership is a shared group id, not prev/next pointers, so no record ever references
+  another record's `id`: deleting, merging or importing a record cannot leave a dangling link.
+  Synced and backed up, but stripped from `.myanimeitem` share files and dropped on import — see
+  [`../../../../features/series-linking.md`](../../../../features/series-linking.md) and the travel
+  table in [`../../../../data-formats.md`](../../../../data-formats.md). Written only by
+  `SeriesEditor` ([`../services/series_service.md`](../services/series_service.md)).
+
+### `String? get curatedSeriesId` <a id="curatedseriesid"></a>
+- **Kind:** getter (`AnimeSeriesLink`)
+- **Source:** `lib/features/anime/models/anime.dart` (line 671)
+- **Purpose:** Return the curated series this record belongs to, if any.
+- **Returns:** `String?` — `null` for a standalone record and for a link without a `seriesId`.
+- **Side effects:** None.
+- **Algorithm:** `standalone ? null : seriesId`.
+- **Usage:** Every reader that asks "which curated series?" goes through this getter rather than
+  `seriesId` — `SeriesIndex.build`, `SeriesEditor`, and the sync conflict dialog's series line.
+- **Notes:** When a hand-edited file carries both `standalone` and `seriesId`, `standalone` wins; the
+  id is still written back untouched by [`toJson`](#tojson-animeserieslink).
+
+### `AnimeSeriesLink withExtraJson(Map<String, dynamic> extraJson)` <a id="withextrajson-animeserieslink"></a>
+- **Kind:** method (`AnimeSeriesLink`)
+- **Source:** `lib/features/anime/models/anime.dart` (line 686)
+- **Purpose:** Copy this link with its preserved-unknown-fields map replaced.
+- **Inputs:** `extraJson` — the replacement map.
+- **Returns:** `AnimeSeriesLink`.
+- **Side effects:** None.
+- **Usage:** Called from `Anime.withPreservedUnknownJson` after deep-merging the link `extraJson` of
+  every candidate source, exactly as for `AnimeLocalArchive`.
+
+### `Map<String, dynamic> toJson()` (`AnimeSeriesLink`) <a id="tojson-animeserieslink"></a>
+- **Kind:** method (`AnimeSeriesLink`)
+- **Source:** `lib/features/anime/models/anime.dart` (line 699)
+- **Purpose:** Serialize to the JSON object stored under `Anime.seriesLink`.
+- **Returns:** `Map<String, dynamic>`.
+- **Side effects:** None.
+- **Algorithm:**
+  1. Start from a copy of `extraJson`.
+  2. For each of `seriesId`, `order`: write the typed value when set; otherwise remove the key only
+     when `extraJson` is not preserving one.
+  3. Write `standalone: true` only when true; otherwise remove it unless `extraJson` preserves one.
+- **Output shape:**
+  ```json
+  { "seriesId": "0b5d0c1e-7f59-4f3e-9d5e-2a1c1b9e8f00", "order": 2 }
+  ```
+  ```json
+  { "standalone": true }
+  ```
+
+### `factory AnimeSeriesLink.fromJson(Map<String, dynamic> json)` <a id="animeserieslink-fromjson"></a>
+- **Kind:** factory constructor
+- **Source:** `lib/features/anime/models/anime.dart` (line 726)
+- **Purpose:** Parse a series link from JSON without losing anything this build cannot interpret.
+- **Inputs:** `json` — the decoded `seriesLink` object.
+- **Returns:** A new `AnimeSeriesLink`.
+- **Side effects:** None.
+- **Algorithm:**
+  1. `extraJson = _unknownJson(json, _seriesLinkJsonKeys)` (`seriesId`, `order`, `standalone`).
+  2. `seriesId` must be a non-empty string, `order` a positive `int`, `standalone` a `bool`. A
+     present-but-unparseable value — a numeric `seriesId`, a string `order` — is written **back**
+     into `extraJson` and the typed field is treated as absent.
+- **Notes:** Same forward-compatibility contract as
+  [`AnimeLocalArchive.fromJson`](#animelocalarchive-fromjson). Covered by
+  `test/anime_json_test.dart`.
+
 ### `const AnimeExternalRating({required source, sourceUrl, score, scoreMax = 10, votes, rank, fetchedAt, extraJson = const {}})` <a id="animeexternalrating-new"></a>
 - **Kind:** constructor of `AnimeExternalRating`
 - **Source:** `lib/features/anime/models/anime.dart` (line 637)
@@ -574,9 +655,9 @@ has 63 rows — the `AnimeData` default constructor has no doc comment at all in
 - **Algorithm:** Local `readString`/`readList` helpers type-check each key and push anything of the wrong shape into `extraJson`. `ratings` entries that are maps are parsed through [`AnimeExternalRating.fromJson`](#animeexternalrating-fromjson) and kept when they carry data or a source name; non-map entries are collected back into `extraJson['ratings']`.
 - **Notes:** A `genres` value that is a string rather than a list survives verbatim in `extraJson` and re-serializes unchanged, so an older build cannot silently delete a newer build's shape change.
 
-### `const Anime({required id, title, titleJa, season = 'Season 1', startEpisode = 1, endEpisode = 13, manualType, airDayOfWeek, airTime, firstAirDate, episodeStatuses = const {}, coverImage, infoUrl, watchUrl, episodeWeekOffsets = const {}, notes, rating, localArchive, externalMeta, required createdAt, required modifiedAt, extraJson = const {}})` <a id="anime-new"></a>
+### `const Anime({required id, title, titleJa, season = 'Season 1', startEpisode = 1, endEpisode = 13, manualType, airDayOfWeek, airTime, firstAirDate, episodeStatuses = const {}, coverImage, infoUrl, watchUrl, episodeWeekOffsets = const {}, notes, rating, localArchive, seriesLink, externalMeta, required createdAt, required modifiedAt, extraJson = const {}})` <a id="anime-new"></a>
 - **Kind:** constructor of `Anime`
-- **Source:** `lib/features/anime/models/anime.dart` (line 620)
+- **Source:** `lib/features/anime/models/anime.dart` (line 1498)
 - **Purpose:** Construct an `Anime` record from every persisted field directly.
 - **Inputs:** `id`, `createdAt`, `modifiedAt` required; `season` defaults to `'Season 1'`, `startEpisode` to `1`, `endEpisode` to `13` (a fresh single-cour assumption), `episodeStatuses`/`episodeWeekOffsets`/`extraJson` default to empty; everything else optional.
 - **Returns:** A new `Anime`.
@@ -822,9 +903,9 @@ has 63 rows — the `AnimeData` default constructor has no doc comment at all in
 
 ### `Anime copyWith({...})` <a id="copywith"></a>
 - **Kind:** method of `Anime`
-- **Source:** `lib/features/anime/models/anime.dart` (line 922)
+- **Source:** `lib/features/anime/models/anime.dart` (line 1818)
 - **Purpose:** Create a copy with selected fields replaced, using `clearXxx` boolean flags to explicitly null out an otherwise-nullable field (since passing `null` for a parameter is indistinguishable from "not supplied").
-- **Inputs:** One optional parameter per mutable field, plus `clearEndEpisode`/`clearManualType`/`clearAirDayOfWeek`/`clearAirTime`/`clearFirstAirDate`/`clearCoverImage`/`clearInfoUrl`/`clearWatchUrl`/`clearNotes`/`clearRating`/`clearLocalArchive`/`clearExternalMeta` (all default `false`); `modifiedAt` optional (defaults to `DateTime.now().toUtc()` if not supplied).
+- **Inputs:** One optional parameter per mutable field, plus `clearEndEpisode`/`clearManualType`/`clearAirDayOfWeek`/`clearAirTime`/`clearFirstAirDate`/`clearCoverImage`/`clearInfoUrl`/`clearWatchUrl`/`clearNotes`/`clearRating`/`clearLocalArchive`/`clearSeriesLink`/`clearExternalMeta` (all default `false`); `modifiedAt` optional (defaults to `DateTime.now().toUtc()` if not supplied).
 - **Returns:** A new `Anime`; `id`, `createdAt`, and `extraJson` are always carried over unchanged.
 - **Side effects:** None (though calling it without an explicit `modifiedAt` reads the current time).
 - **Algorithm:** For each nullable field with a `clearXxx` flag: if the flag is `true`, the field becomes `null`; else the supplied value is used if non-null, else the existing value is kept (`value ?? this.value`). Non-nullable fields (`season`, `startEpisode`) and `episodeStatuses`/`episodeWeekOffsets` just use `?? this.field` directly with no clear flag.
@@ -842,11 +923,11 @@ has 63 rows — the `AnimeData` default constructor has no doc comment at all in
   await AnimeStorage.addOrUpdate(updated);
   ```
   (`lib/features/anime/views/anime_edit_page.dart`, saving an edited anime)
-- **Notes:** `modifiedAt` always advances to "now" unless the caller passes an explicit value — every edit path in the UI passes `DateTime.now().toUtc()` explicitly so sync conflict detection (which compares `modifiedAt`) sees the edit.
+- **Notes:** `modifiedAt` always advances to "now" unless the caller passes an explicit value — every edit path in the UI passes `DateTime.now().toUtc()` explicitly so sync conflict detection (which compares `modifiedAt`) sees the edit. The converse matters as much: a write that must **not** count as a user edit has to pass the old `modifiedAt` back explicitly, as [`AnimeStorage.patchExternalMeta`](../services/anime_storage.md#patchexternalmeta) does. `seriesLink`/`clearSeriesLink` (1.6.0) follow the same `clearXxx` pattern; `SeriesEditor` passes its own UTC `now`, because every series curation is a user edit.
 
 ### `Anime withExtraJson(Map<String, dynamic> extraJson)` (`Anime`) <a id="withextrajson-anime"></a>
 - **Kind:** method of `Anime`
-- **Source:** `lib/features/anime/models/anime.dart` (line 989)
+- **Source:** `lib/features/anime/models/anime.dart` (line 1893)
 - **Purpose:** Return a copy of this anime with only `extraJson` replaced.
 - **Inputs:** `extraJson`.
 - **Returns:** A new `Anime` with every other field unchanged.
@@ -860,17 +941,17 @@ has 63 rows — the `AnimeData` default constructor has no doc comment at all in
 
 ### `Anime withPreservedUnknownJson(Iterable<Anime?> fallbackSources)` <a id="withpreservedunknownjson-anime"></a>
 - **Kind:** method of `Anime`
-- **Source:** `lib/features/anime/models/anime.dart` (line 1018)
-- **Purpose:** Merge this record's `extraJson` (and the `extraJson` of its nested `rating` and `localArchive`) with the `extraJson` of one or more fallback candidates — typically the local and remote copies of the same record during a sync merge — so a field unknown to *this* app version but present on either side survives.
+- **Source:** `lib/features/anime/models/anime.dart` (line 1924)
+- **Purpose:** Merge this record's `extraJson` (and the `extraJson` of its nested `rating`, `localArchive`, and `seriesLink`) with the `extraJson` of one or more fallback candidates — typically the local and remote copies of the same record during a sync merge — so a field unknown to *this* app version but present on either side survives.
 - **Inputs:** `fallbackSources` — an iterable of `Anime?` (nulls are skipped).
-- **Returns:** A new `Anime` with `extraJson`, `rating.extraJson`, and `localArchive.extraJson` each replaced by their merged form; every other field is copied from `this` unchanged.
+- **Returns:** A new `Anime` with `extraJson`, `rating.extraJson`, `localArchive.extraJson`, and `seriesLink.extraJson` each replaced by their merged form; every other field is copied from `this` unchanged.
 - **Side effects:** None (pure).
 - **Algorithm:**
   1. Merge `rating.extraJson` across every source that has a non-null `rating`, plus this record's own `rating?.extraJson`, via [`_mergeJsonMaps`](#mergejsonmaps).
   2. If `this.rating` is non-null, produce `rating!.withExtraJson(mergedRatingExtraJson)`; else, if the merged map is non-empty, synthesize a scores-empty `AnimeRating(extraJson: ...)` so a rating known only via `extraJson` on another device doesn't vanish; else `null`.
-  3. Repeat steps 1–2 verbatim for `localArchive`, synthesizing a field-empty `AnimeLocalArchive(extraJson: ...)` in the same situation.
+  3. Repeat steps 1–2 verbatim for `localArchive` and `seriesLink`, synthesizing a field-empty `AnimeLocalArchive(extraJson: ...)` or `AnimeSeriesLink(extraJson: ...)` in the same situation.
   4. Merge top-level `extraJson` the same way across all sources plus `this.extraJson`.
-  5. Return a full copy of `this` with the merged `rating`, `localArchive`, and `extraJson`.
+  5. Return a full copy of `this` with the merged `rating`, `localArchive`, `seriesLink`, and `extraJson`.
 - **Usage:**
   ```dart
   all.add(chosen.withPreservedUnknownJson([c.localRecord, c.remoteRecord]));
@@ -885,7 +966,7 @@ has 63 rows — the `AnimeData` default constructor has no doc comment at all in
 
 ### `Map<String, dynamic> toJson()` (`Anime`) <a id="tojson-anime"></a>
 - **Kind:** method of `Anime`
-- **Source:** `lib/features/anime/models/anime.dart` (line 1076)
+- **Source:** `lib/features/anime/models/anime.dart` (line 2006)
 - **Purpose:** Serialize this record to the JSON shape persisted in `anime_data.json`.
 - **Inputs:** None.
 - **Returns:** `Map<String, dynamic>`.
@@ -896,7 +977,7 @@ has 63 rows — the `AnimeData` default constructor has no doc comment at all in
   3. Write every scalar field (`id`, `title`, `titleJa`, `season`, `startEpisode`, `endEpisode`, `manualType`, `airDayOfWeek`, `airTime`, `firstAirDate`, `coverImage`, `infoUrl`, `watchUrl`, `notes`, `createdAt`, `modifiedAt`) — nullable fields are written when non-null and otherwise `json.remove(key)`'d, except `manualType`/`rating`/`localArchive` which are left alone (not removed) when the field is null but the key already survives via `extraJson`.
   4. `episodeStatuses` is always written (even if empty); `episodeWeekOffsets` is only written when non-empty.
   5. `rating` is written via `rating!.toJson()` only when `rating != null && rating!.hasAnyData`.
-  6. `localArchive` follows the same rule via `localArchive!.toJson()` and `hasAnyData`, so a record that never used the feature emits no `localArchive` key at all.
+  6. `localArchive` follows the same rule via `localArchive!.toJson()` and `hasAnyData`, so a record that never used the feature emits no `localArchive` key at all. `seriesLink` (1.6.0) follows it too, so a record the user never curated emits no `seriesLink` key.
 - **Usage:**
   ```dart
   final jsonStr = const JsonEncoder.withIndent('  ').convert(data.toJson());
@@ -909,7 +990,7 @@ has 63 rows — the `AnimeData` default constructor has no doc comment at all in
 
 ### `factory Anime.fromJson(Map<String, dynamic> json)` <a id="anime-fromjson"></a>
 - **Kind:** factory constructor of `Anime`
-- **Source:** `lib/features/anime/models/anime.dart` (line 1182)
+- **Source:** `lib/features/anime/models/anime.dart` (line 2122)
 - **Purpose:** Reconstruct an `Anime` from its persisted JSON form, preserving every field this app version doesn't recognize or can't parse.
 - **Inputs:** `json`.
 - **Returns:** A new `Anime`.
@@ -920,7 +1001,7 @@ has 63 rows — the `AnimeData` default constructor has no doc comment at all in
   3. `episodeStatuses` parses each `episodeStatuses` entry via [`_parseEpisodeStatus`](#parseepisodestatus); entries that don't parse (bad key or value) collect into `extraJson['episodeStatuses']` instead of the typed map; if the raw value isn't a `Map` at all, the whole raw value is preserved instead.
   4. `episodeWeekOffsets` follows the identical pattern, requiring `int` values.
   5. `rating` parses via [`AnimeRating.fromJson`](#animerating-fromjson) when the raw value is a `Map` and collapses to `null` if the parsed rating has no data; a non-`Map` raw value is preserved into `extraJson['rating']`.
-  6. `localArchive` follows the identical pattern via [`AnimeLocalArchive.fromJson`](#animelocalarchive-fromjson) and its `hasAnyData` gate.
+  6. `localArchive` follows the identical pattern via [`AnimeLocalArchive.fromJson`](#animelocalarchive-fromjson) and its `hasAnyData` gate, and so does `seriesLink` via [`AnimeSeriesLink.fromJson`](#animeserieslink-fromjson).
   7. Required scalar fields (`id`, `createdAt`, `modifiedAt`) are read with `as` casts (throwing if absent/wrong-typed); everything else uses `as Type?` with sensible defaults (`season` → `'Season 1'`, `startEpisode` → `1`).
 - **Usage:**
   ```dart

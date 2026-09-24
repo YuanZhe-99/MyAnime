@@ -55,14 +55,23 @@ image, and exporting/sharing the current statistics summary view as an image or 
 Supports `.myanimeitem` export/import for both single-anime (v1) and multi-anime bundle (v2)
 formats — see [`../data-formats.md`](../data-formats.md) for the exact JSON shape of each version.
 
-- Export strips personal data — `episodeStatuses`, `episodeWeekOffsets`, and `localArchive` — from
-  every exported record, via `_stripPersonalData`. The archive record is stripped for a different
-  reason than the viewing fields: it does not leak what the sender watched, it leaks where the
-  sender stores things. Import still carries the field through when a hand-written file happens to
-  contain one, so the copy list stays complete.
+- Export strips personal data — `episodeStatuses`, `episodeWeekOffsets`, `localArchive`, and since
+  1.6.0 `seriesLink` — from every exported record, via `stripPersonalData` (private
+  `_stripPersonalData` before 1.6.0). The archive record is stripped for a different reason than the
+  viewing fields: it does not leak what the sender watched, it leaks where the sender stores things.
+  Import still carries `localArchive` through when a hand-written file happens to contain one, so
+  the copy list stays complete.
+- `seriesLink` is different on import: it is **dropped** even from a hand-written file (including an
+  unparseable value preserved in `extraJson`). A foreign `seriesId` means nothing in the receiving
+  library and would pin the record out of automatic grouping — see
+  [`series-linking.md`](series-linking.md).
+- `externalMeta` (public database info) is never stripped, and since 1.6.0 import carries it
+  through. Earlier builds exported it but silently dropped it on import.
 - Statistics data-file and TXT exports go through the same stripping, so no share surface in the
-  app emits `localArchive`.
-- Import always creates a new UUID for the incoming record and never overwrites an existing anime.
+  app emits `localArchive` or `seriesLink`.
+- Import always creates a new UUID for the incoming record and never overwrites an existing anime;
+  the new record is built by `importedCopy`
+  ([`../functions/shared/services/file_open_service.md`](../functions/shared/services/file_open_service.md#importedcopy)).
 - Multi-anime bundle imports detect conflicts with existing local records (reusing
   [`duplicate-detection.md`](duplicate-detection.md)'s grouping logic) and show a per-conflict
   dialog offering keep-local, use-imported, or merge.

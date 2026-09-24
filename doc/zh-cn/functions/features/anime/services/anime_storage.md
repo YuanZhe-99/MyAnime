@@ -19,6 +19,7 @@
 | [`save`](#save) | 静态方法（`AnimeStorage`） | A | 持久化 `AnimeData`，然后通知自动同步和提醒。 |
 | [`patchExternalMeta`](#patchexternalmeta) | 静态方法（`AnimeStorage`） | A | 刷新缓存的外部元数据，**不**把记录标记为已编辑。 |
 | [`addOrUpdate`](#addorupdate) | 静态方法（`AnimeStorage`） | A | 按 `id` 插入或替换一条动画记录并保存。 |
+| [`addOrUpdateAll`](#addorupdateall) | 静态方法（`AnimeStorage`） | A | 用一次加载和一次保存插入或替换多条动画记录。 |
 | [`deleteAnime`](#deleteanime) | 静态方法（`AnimeStorage`） | A | 按 `id` 移除一条动画记录并保存。 |
 | [`readConfig`](#readconfig) | 静态方法（`AnimeStorage`） | A | 把 `storage_config.json` 作为原始 JSON 映射读取。 |
 | [`writeConfig`](#writeconfig) | 静态方法（`AnimeStorage`） | A | 原子写入 `storage_config.json`。 |
@@ -276,6 +277,21 @@
   ```
   （`lib/features/anime/views/anime_edit_page.dart`，保存编辑后的动画）
 - **备注：** 对另一个并发的 `addOrUpdate`/`deleteAnime` 调用不并发安全（经典读-改-写竞争）——考虑到应用对每个数据目录是单用户/单进程，可接受。
+
+### `static Future<void> addOrUpdateAll(Iterable<Anime> animes)` <a id="addorupdateall"></a>
+- **种类：** `AnimeStorage` 的静态方法
+- **来源：** `lib/features/anime/services/anime_storage.dart`（第 224 行）
+- **用途：** 一次写入即添加或替换多条动画记录（1.6.0）。
+- **输入：** `animes` — 按 `id` 区分的记录；重复 id 以后出现者为准。
+- **返回：** 无。
+- **副作用：** 对 `anime_data.json` 做一次 [`load`](#load) 和一次 [`save`](#save)，因此只有一次自动同步通知。输入为空时什么都不做。
+- **算法：** 为更新构建按 id 索引的映射；遍历加载出的列表，原位替换每条匹配的记录（并从映射中移除），然后把剩下的作为新记录追加。
+- **用法：**
+  ```dart
+  await AnimeStorage.addOrUpdateAll(editor.removeFromSeries(anime));
+  ```
+  （`lib/features/anime/views/anime_detail_page.dart`，`_runSeriesAction`；系列管理面板和新建页的 `_saveNew` 也使用）
+- **备注：** 供系列整理使用，它可能一次改写系列的每个成员——见 [`series_service.md`](series_service.md)。与 [`patchExternalMeta`](#patchexternalmeta) 不同，它原样写入给定的记录：调用方自行标记 `modifiedAt`（`SeriesEditor` 就是这样做的），因此每次写入都是同步眼中的普通用户编辑。
 
 ### `static Future<void> deleteAnime(String id)` <a id="deleteanime"></a>
 - **种类：** `AnimeStorage` 的静态方法

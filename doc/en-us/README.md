@@ -51,6 +51,8 @@ The shared WebDAV sync, backup, and ZIP engines are not in this repository. They
 
 - [`features/anime-tracking.md`](features/anime-tracking.md) — the `Anime` model and quarter
   placement/tracking logic.
+- [`features/series-linking.md`](features/series-linking.md) — series linking (1.6.0): automatic
+  grouping of a work's seasons, manual curation, the series card and the `seriesLink` field.
 - [`features/home-management-statistics.md`](features/home-management-statistics.md) — the Home,
   Manage, and Stats tabs.
 - [`features/kana-reference.md`](features/kana-reference.md) — the UI-only kana quick-reference

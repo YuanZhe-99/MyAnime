@@ -180,7 +180,7 @@ the work rather than personal infrastructure, so it is **not** stripped from sha
 | Backup bundles | **Yes** |
 | Local HTTP API | **Yes** |
 | Shared image cards | **No** — never drawn |
-| `.myanimeitem` share files | **Yes** — public metadata, not personal data |
+| `.myanimeitem` share files | **Yes** — public metadata, not personal data; import carries it through since 1.6.0 (earlier builds dropped it on import) |
 
 ### `AnimeLocalArchive`
 
@@ -229,6 +229,51 @@ existed — which is why adding it required no change to the WebDAV request gold
 
 See [`features/share-and-import.md`](features/share-and-import.md) for the sharing side of that
 table.
+
+### `AnimeSeriesLink`
+
+Optional (1.6.0) record of the **series** the user placed an anime in — see
+[`features/series-linking.md`](features/series-linking.md). Stored under the `seriesLink` key, in one
+of two shapes:
+
+```json
+"seriesLink": {
+  "seriesId": "0b5d0c1e-7f59-4f3e-9d5e-2a1c1b9e8f00",
+  "order": 2
+}
+```
+
+```json
+"seriesLink": { "standalone": true }
+```
+
+- `seriesId` — a lowercase UUID v4 shared by every member of one curated series.
+- `order` — optional positive integer: the member's position after the user reordered the series.
+- `standalone` — written only when `true`: the user took the record out of every series. If a
+  hand-edited file carries both `standalone` and `seriesId`, `standalone` wins and `seriesId` is
+  preserved untouched.
+
+Membership is a shared group id, not prev/next pointers, so no record ever references another
+record's `id`: deleting, merging or importing a record cannot leave a dangling link. A record
+without the key is an **auto** record that the app groups by itself; nothing about a derived series
+is stored.
+
+**The whole object is omitted when empty** (`hasAnyData`), as for `AnimeLocalArchive`, so a library
+the user never curated serializes byte-identically to 1.5.7 and needs no migration. The object has
+its own `extraJson`, which `withPreservedUnknownJson` deep-merges; unparseable values — a numeric
+`seriesId`, a string `order` — are preserved verbatim and treated as absent.
+
+**Where it does and does not travel.**
+
+| Surface | Included? |
+|---|---|
+| `anime_data.json` on disk | **Yes** |
+| WebDAV sync | **Yes**, verbatim — rides the ordinary whole-record merge, no sync-layer change |
+| Backup bundles | **Yes**, verbatim |
+| ZIP export and import | **Yes**, verbatim |
+| Local HTTP API | **No** — unchanged; the API's own record projection does not include it |
+| Shared image cards | **No** |
+| `.myanimeitem` share files | **No** — stripped on export **and dropped on import**. A foreign `seriesId` means nothing in another library and would pin the imported record out of automatic grouping. This differs on purpose from `localArchive`, which import carries through. |
 
 ### Compatibility: unknown-JSON-field preservation (`extraJson`)
 
@@ -345,8 +390,9 @@ JSON file used for exporting/importing individual or multiple anime (see
   "<base64>", "coverImageExt": ".jpg"}, ...]}` — each item has the same optional cover fields as
   v1.
 
-Export strips personal viewing data (`episodeStatuses`, `episodeWeekOffsets`) from each `anime`
-payload before writing. Import always assigns a new UUID and never overwrites an existing local
-record; multi-anime bundle imports run the same conflict detection as
+Export strips personal data (`episodeStatuses`, `episodeWeekOffsets`, `localArchive`, and since
+1.6.0 `seriesLink`) from each `anime` payload before writing. Import always assigns a new UUID and
+never overwrites an existing local record; it drops any `seriesLink` a file carries, and since 1.6.0
+it carries `externalMeta` through (earlier builds dropped it on import although export kept it); multi-anime bundle imports run the same conflict detection as
 [`features/duplicate-detection.md`](features/duplicate-detection.md) to decide whether an
 incoming record collides with a local one, offering keep-local/use-imported/merge per conflict.

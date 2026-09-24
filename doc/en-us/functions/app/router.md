@@ -52,7 +52,7 @@ For reference, the route table is:
 | `/kana` | `KanaPage` | Shell tab, only while the Kana tab is on; otherwise redirects to `/home` |
 | `/settings` | `SettingsPage` | Shell tab |
 | `/anime/detail/:id` | `AnimeDetailPage` | Pushed on top of the shell; `id` is required |
-| `/anime/edit` | `AnimeEditPage` | Create flow (no `animeId`) |
+| `/anime/edit` | `AnimeEditPage` | Create flow (no `animeId`); `extra` may carry a `NextSeasonPrefill` from "Add next season" (1.6.0, see [`../features/anime/services/series_service.md`](../features/anime/services/series_service.md#nextseasonprefill)); any other `extra` is ignored |
 | `/anime/edit/:id` | `AnimeEditPage` | Edit flow (`animeId` from path); `extra: true` opens the online search on load |
 | `/metadata-updates` | `MetadataUpdatesPage` | Pushed on top of the shell; `extra` may carry the current page's anime ids |
 | `/duplicate-check` | `DuplicateCheckPage` | Pushed on top of the shell |

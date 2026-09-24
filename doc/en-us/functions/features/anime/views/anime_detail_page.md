@@ -1,7 +1,7 @@
 # lib/features/anime/views/anime_detail_page.dart
 
 `AnimeDetailPage` is the read/act page for one tracked anime: cover, metadata chips, rating
-summary, local-archive summary, prev/next-season navigation, and the per-episode watch-status list
+summary, local-archive summary, the series card with prev/next-season navigation, and the per-episode watch-status list
 with schedule-shift controls. It reads and writes through `AnimeStorage` ([`../services/anime_storage.md`](../services/anime_storage.md))
 and operates on the `Anime`/`AnimeRating`/`AnimeLocalArchive` model
 ([`../models/anime.md`](../models/anime.md)), rendering the archive enums through
@@ -18,12 +18,21 @@ The page renders in one of two layouts, chosen per frame from the viewport size 
 `useDetailTwoPane` in [`../../../shared/utils/detail_layout.md`](../../../shared/utils/detail_layout.md):
 
 - **Single column** — one `ListView`: cover, then the info block (Japanese title, chips, progress
-  bar, `watched / total`, the rating / database / archive cards, notes, prev-next season), then the
-  episode list. This is the original layout, unchanged.
+  bar, `watched / total`, the rating / database / archive cards, notes, the series card and
+  prev/next season), then the episode list. This is the original layout, unchanged.
 - **Two panes** — a `Row`. The left pane is fixed-width and full-height, holding the cover through
   the watch-progress label, with the cover sized by `detailCoverSize` from whatever height is left
   over. The right pane is an independently scrolling `ListView` holding everything from the cards
-  down, including the episode list.
+  down, including the series card and the episode list.
+
+The series card (1.6.0, `SeriesCard` in [`series_widgets.md`](series_widgets.md)) replaced the old
+prev/next row in the same place in `_buildDetailChildren`, so in the two-pane layout it lands in the
+right pane. It appears only when the record's series has at least two members; the prev/next buttons
+below it, now driven by the series order, sit in a `Wrap` so they stack rather than overflow on a
+narrow phone. When the record belongs to no series — including a standalone one — the card is
+absent and an app-bar link menu (*Link to series…*, *Add next season*, and *Let the app decide* when
+the record carries a `seriesLink`) reaches the same actions. See
+[`../../../../features/series-linking.md`](../../../../features/series-linking.md).
 
 Both layouts are assembled from the same four builders — `_buildCover`, `_buildHeaderChildren`,
 `_buildDetailChildren`, `_buildEpisodeChildren` — so there is exactly one copy of each section's
@@ -39,7 +48,8 @@ list read correctly whether it follows the progress bar or opens the right pane.
 | `AnimeDetailPage.new` | constructor (`AnimeDetailPage`) | B | Create an `AnimeDetailPage` instance for a given anime ID. |
 | `AnimeDetailPage.createState` | method (`AnimeDetailPage`) | B | Create the mutable state object for this widget. |
 | `_AnimeDetailPageState.initState` | method (`_AnimeDetailPageState`) | B | Trigger the first data load. |
-| [`_load`](#_load) | method (`_AnimeDetailPageState`) | A | Load this anime from storage and locate its prev/next season. |
+| [`_load`](#_load) | method (`_AnimeDetailPageState`) | A | Load this anime and build the series index to find the series it belongs to. |
+| [`_runSeriesAction`](#_runseriesaction) | method (`_AnimeDetailPageState`) | A | Run one of the series card's (or the app-bar link menu's) actions. |
 | [`_toggleEpisode`](#_toggleepisode) | method (`_AnimeDetailPageState`) | A | Cycle one episode's watch status and persist it. |
 | [`_shiftFromEpisode`](#_shiftfromepisode) | method (`_AnimeDetailPageState`) | A | Shift an episode's broadcast week by a delta and persist it. |
 | [`_resetSchedule`](#_resetschedule) | method (`_AnimeDetailPageState`) | A | Clear all per-episode week offsets back to the original schedule. |
@@ -47,7 +57,7 @@ list read correctly whether it follows the progress bar or opens the right pane.
 | `_AnimeDetailPageState.build` | method (`_AnimeDetailPageState`, widget build) | B | Build the detail page scaffold, choosing the single-column or two-pane layout. |
 | `_buildCover` | method (widget helper) | B | Build the cover image block at an explicit size. |
 | `_buildHeaderChildren` | method (widget helper) | B | Build the header block: Japanese title, chips (including the anime1.me progress chip), and the watched-episode bar. |
-| `_buildDetailChildren` | method (widget helper) | B | Build the cards below the progress bar, plus season navigation. |
+| `_buildDetailChildren` | method (widget helper) | B | Build the cards below the progress bar, plus the series card and prev/next buttons. |
 | `_buildEpisodeChildren` | method (widget helper) | B | Build the episode list header and one row per tracked episode. |
 | [`_toggleAllWatched`](#_toggleallwatched) | method (`_AnimeDetailPageState`) | A | Mark every tracked episode watched, or all unwatched if already complete. |
 | `_buildAbandonOrResume` | method (widget helper) | B | Render the "Abandon"/"Resume" action button for the episode list header. |
@@ -71,21 +81,18 @@ list read correctly whether it follows the progress bar or opens the right pane.
 
 ### `Future<void> _load()` <a id="_load"></a>
 - **Kind:** method of `_AnimeDetailPageState`
-- **Source:** `lib/features/anime/views/anime_detail_page.dart` (approx. line 55)
-- **Purpose:** Load the anime identified by `widget.animeId` from storage and, if found, locate the
-  closest previous and next "season" records (same `displayTitle`, different `season` string) for
-  the prev/next-season navigation buttons.
+- **Source:** `lib/features/anime/views/anime_detail_page.dart` (approx. line 61)
+- **Purpose:** Load the anime identified by `widget.animeId` and the series it belongs to.
 - **Inputs:** None (`widget.animeId` is read from the enclosing widget).
 - **Returns:** `Future<void>`.
-- **Side effects:** Calls `AnimeStorage.load()`; `setState`s `_anime`, `_prevSeasonId`, `_nextSeasonId`.
+- **Side effects:** Calls `AnimeStorage.load()`; `setState`s `_anime`, `_seriesIndex`, `_series`.
+  Writes nothing.
 - **Algorithm:**
   1. Await `AnimeStorage.load()` and find the record whose `id == widget.animeId`.
-  2. If found, collect every other record sharing the same `displayTitle`, sort that subset by
-     `season` string comparison.
-  3. Walk the sorted subset once to find the closest `season` less than the current one (`prev`,
-     kept updating so the *last* qualifying entry — the closest below — wins) and once to find the
-     closest `season` greater (`next`, `break`s on the *first* qualifying entry — the closest above).
-  4. `setState` with the found anime and the two neighbor IDs (or just the anime if not found).
+  2. Build a [`SeriesIndex`](../services/series_service.md#seriesindex-build) over the whole
+     library and ask it for the record's series.
+  3. `setState` with the record, the index, and the series — but only when that series has at
+     least two members; otherwise `_series` is `null` and the series card is not shown.
 - **Usage:**
   ```dart
   @override
@@ -96,9 +103,41 @@ list read correctly whether it follows the progress bar or opens the right pane.
   ```
   (`_AnimeDetailPageState.initState`, same file; also called after edit/delete/episode actions to
   refresh the page)
-- **Notes:** `season` comparison is a plain `String.compareTo`, so season labels need to sort
-  correctly as strings (e.g. `"Season 2"` > `"Season 10"` lexicographically) — this page does not
-  do numeric-aware season sorting.
+- **Notes:** Until 1.6.0 this matched records with an identical `displayTitle` and compared their
+  `season` labels with a plain `String.compareTo`, which put `"Season 10"` before `"Season 2"` and
+  never found a sequel whose title differed at all. It no longer compares strings: order comes from
+  the series index (explicit `order`, then `firstAirDate`, season ordinal, `createdAt`, `id`), and
+  the old identical-title rule survives only as one of the index's grouping edges. See
+  [`../../../../features/series-linking.md`](../../../../features/series-linking.md).
+
+### `Future<void> _runSeriesAction(SeriesAction action)` <a id="_runseriesaction"></a>
+- **Kind:** method of `_AnimeDetailPageState`
+- **Source:** `lib/features/anime/views/anime_detail_page.dart` (approx. line 85)
+- **Purpose:** Run one of the series card's menu actions, or the app-bar link menu's when the
+  record is in no series.
+- **Inputs:** `action` — a `SeriesAction` ([`series_widgets.md`](series_widgets.md)).
+- **Returns:** `Future<void>`.
+- **Side effects:** May write records through `AnimeStorage.addOrUpdateAll`, open the manage sheet or
+  the create page, and reload via `_load()`.
+- **Algorithm:** Returns early until `_anime` and `_seriesIndex` are loaded; then, with a
+  `SeriesEditor` over the current index:
+  - `manage` → `showSeriesManageSheet`; reload only when it reports a write.
+  - `addNextSeason` → `context.push('/anime/edit', extra: NextSeasonPrefill.after(last))`, where
+    `last` is the series' last member (or this record when there is no series); reload on return.
+  - `remove` → `addOrUpdateAll(editor.removeFromSeries(anime))`, then reload.
+  - `letAppDecide` → `addOrUpdateAll(editor.letAppDecide(anime))`, then reload.
+- **Usage:**
+  ```dart
+  SeriesCard(
+    series: series,
+    current: anime,
+    onOpen: (a) => context.go('/anime/detail/${a.id}'),
+    onAction: _runSeriesAction,
+  ),
+  ```
+  (`_buildDetailChildren`, same file; the app bar's `PopupMenuButton<SeriesAction>` also calls it)
+- **Notes:** Every write is a user edit stamped by `SeriesEditor` — see
+  [`../services/series_service.md`](../services/series_service.md#serieseditor).
 
 ### `Future<void> _toggleEpisode(int ep)` <a id="_toggleepisode"></a>
 - **Kind:** method of `_AnimeDetailPageState`

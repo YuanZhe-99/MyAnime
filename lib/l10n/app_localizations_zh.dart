@@ -658,6 +658,54 @@ class AppLocalizationsZh extends AppLocalizations {
   String get animeNextSeason => '下一季';
 
   @override
+  String get seriesTitle => '系列';
+
+  @override
+  String get seriesAuto => '自动归入';
+
+  @override
+  String get seriesCurated => '手动关联的系列';
+
+  @override
+  String get seriesManage => '管理系列…';
+
+  @override
+  String get seriesLinkTo => '关联到系列…';
+
+  @override
+  String get seriesAddNext => '添加下一季';
+
+  @override
+  String get seriesRemove => '移出系列';
+
+  @override
+  String get seriesLetAppDecide => '交给应用自动判断';
+
+  @override
+  String get seriesSearchHint => '在番剧库中搜索';
+
+  @override
+  String get seriesSuggestions => '建议';
+
+  @override
+  String get seriesMembers => '本系列';
+
+  @override
+  String get seriesNoMatches => '没有匹配的番剧';
+
+  @override
+  String get seriesSaveOrder => '保存顺序';
+
+  @override
+  String get syncSeriesLinked => '系列：手动关联';
+
+  @override
+  String get syncSeriesStandalone => '系列：独立（不归入系列）';
+
+  @override
+  String get syncSeriesAuto => '系列：自动';
+
+  @override
   String get save => '保存';
 
   @override
@@ -2221,6 +2269,54 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
 
   @override
   String get animeNextSeason => '下一季';
+
+  @override
+  String get seriesTitle => '系列';
+
+  @override
+  String get seriesAuto => '自動歸入';
+
+  @override
+  String get seriesCurated => '手動關聯的系列';
+
+  @override
+  String get seriesManage => '管理系列…';
+
+  @override
+  String get seriesLinkTo => '關聯到系列…';
+
+  @override
+  String get seriesAddNext => '新增下一季';
+
+  @override
+  String get seriesRemove => '移出系列';
+
+  @override
+  String get seriesLetAppDecide => '交給應用程式自動判斷';
+
+  @override
+  String get seriesSearchHint => '在番劇庫中搜尋';
+
+  @override
+  String get seriesSuggestions => '建議';
+
+  @override
+  String get seriesMembers => '本系列';
+
+  @override
+  String get seriesNoMatches => '沒有符合的番劇';
+
+  @override
+  String get seriesSaveOrder => '儲存順序';
+
+  @override
+  String get syncSeriesLinked => '系列：手動關聯';
+
+  @override
+  String get syncSeriesStandalone => '系列：獨立（不歸入系列）';
+
+  @override
+  String get syncSeriesAuto => '系列：自動';
 
   @override
   String get save => '儲存';

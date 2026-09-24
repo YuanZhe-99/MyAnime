@@ -4,6 +4,7 @@ import 'package:flutter/foundation.dart' show visibleForTesting;
 import 'package:http/http.dart' as http;
 
 import '../../../shared/utils/chinese_convert.dart';
+import '../../../shared/utils/season_label.dart';
 import '../models/anime.dart';
 import 'anime_search_service.dart';
 
@@ -455,54 +456,6 @@ class Anime1Service {
     var idx = firstAirDate.year * 4 + (firstAirDate.month - 1) ~/ 3;
     if (firstAirDate.month % 3 == 0 && firstAirDate.day >= 21) idx += 1;
     return idx;
-  }
-
-  /// Purpose: Read a season ordinal out of a title or season label.
-  /// Inputs: `text` — e.g. `第二季`, `第2期`, `Season 2`, `2nd Season`, `S2`, `Part 2`.
-  /// Returns: `int?` — `null` when no ordinal is present.
-  /// Side effects: None.
-  /// Notes: Chinese numerals up to 十 are understood.
-  @visibleForTesting
-  static int? seasonOrdinal(String text) {
-    if (text.trim().isEmpty) return null;
-    final cjk = RegExp(r'第\s*([一二三四五六七八九十\d]+)\s*[季期]').firstMatch(text);
-    if (cjk != null) return _parseCjkNumber(cjk.group(1)!);
-    final patterns = [
-      RegExp(r'season\s*(\d+)', caseSensitive: false),
-      RegExp(r'(\d+)(?:st|nd|rd|th)\s+season', caseSensitive: false),
-      RegExp(r'\bS(\d+)\b'),
-      RegExp(r'part\s*(\d+)', caseSensitive: false),
-    ];
-    for (final p in patterns) {
-      final m = p.firstMatch(text);
-      if (m != null) return int.tryParse(m.group(1)!);
-    }
-    return null;
-  }
-
-  /// Purpose: Parse a small Chinese or Arabic numeral.
-  /// Inputs: `s`.
-  /// Returns: `int?`.
-  /// Side effects: None.
-  /// Notes: Internal helper used within this file only.
-  static int? _parseCjkNumber(String s) {
-    final arabic = int.tryParse(s);
-    if (arabic != null) return arabic;
-    const digits = '一二三四五六七八九';
-    if (s == '十') return 10;
-    if (s.length == 1) {
-      final i = digits.indexOf(s);
-      return i < 0 ? null : i + 1;
-    }
-    if (s.startsWith('十') && s.length == 2) {
-      final i = digits.indexOf(s[1]);
-      return i < 0 ? null : 10 + i + 1;
-    }
-    if (s.endsWith('十') && s.length == 2) {
-      final i = digits.indexOf(s[0]);
-      return i < 0 ? null : (i + 1) * 10;
-    }
-    return null;
   }
 
   /// Purpose: Build the folded query set for one lookup.

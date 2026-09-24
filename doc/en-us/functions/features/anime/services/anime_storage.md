@@ -28,6 +28,7 @@ notifies `AutoSyncService`/`ReminderService` after every save. See
 | [`save`](#save) | static method (`AnimeStorage`) | A | Persist an `AnimeData`, then notify auto-sync and reminders. |
 | [`patchExternalMeta`](#patchexternalmeta) | static method (`AnimeStorage`) | A | Refresh cached external metadata **without** marking records edited. |
 | [`addOrUpdate`](#addorupdate) | static method (`AnimeStorage`) | A | Insert or replace one anime record by `id` and save. |
+| [`addOrUpdateAll`](#addorupdateall) | static method (`AnimeStorage`) | A | Insert or replace several anime records in one load and one save. |
 | [`deleteAnime`](#deleteanime) | static method (`AnimeStorage`) | A | Remove one anime record by `id` and save. |
 | [`readConfig`](#readconfig) | static method (`AnimeStorage`) | A | Read `storage_config.json` as a raw JSON map. |
 | [`writeConfig`](#writeconfig) | static method (`AnimeStorage`) | A | Write `storage_config.json` atomically. |
@@ -296,6 +297,27 @@ notifies `AutoSyncService`/`ReminderService` after every save. See
   ```
   (`lib/features/anime/views/anime_edit_page.dart`, saving an edited anime)
 - **Notes:** Not concurrency-safe against another simultaneous `addOrUpdate`/`deleteAnime` call (classic read-modify-write race) — acceptable given the app is single-user/single-process per data directory.
+
+### `static Future<void> addOrUpdateAll(Iterable<Anime> animes)` <a id="addorupdateall"></a>
+- **Kind:** static method of `AnimeStorage`
+- **Source:** `lib/features/anime/services/anime_storage.dart` (line 224)
+- **Purpose:** Add or replace several anime records in one write (1.6.0).
+- **Inputs:** `animes` — records keyed by `id`; a later duplicate id wins.
+- **Returns:** None.
+- **Side effects:** One [`load`](#load) and one [`save`](#save) of `anime_data.json`, so one auto-sync
+  notification. Does nothing for an empty input.
+- **Algorithm:** Builds an id-keyed map of the updates; walks the loaded list replacing each matching
+  record in place (removing it from the map), then appends whatever is left as new records.
+- **Usage:**
+  ```dart
+  await AnimeStorage.addOrUpdateAll(editor.removeFromSeries(anime));
+  ```
+  (`lib/features/anime/views/anime_detail_page.dart`, `_runSeriesAction`; also the series manage
+  sheet and the create page's `_saveNew`)
+- **Notes:** Used by series curation, which may rewrite every member of a series at once — see
+  [`series_service.md`](series_service.md). Unlike [`patchExternalMeta`](#patchexternalmeta) it
+  writes the records exactly as given: callers stamp `modifiedAt` themselves (`SeriesEditor` does),
+  so each write is an ordinary user edit to sync.
 
 ### `static Future<void> deleteAnime(String id)` <a id="deleteanime"></a>
 - **Kind:** static method of `AnimeStorage`

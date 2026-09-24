@@ -10,7 +10,8 @@
 | `setPendingFile` | 方法（`FileOpenService`） | B | 记住应用完成启动前打开的文件路径。 |
 | [`processPendingFile`](#processpendingfile) | 方法（`FileOpenService`） | A | 导入并导航到先前记住的待处理文件。 |
 | [`handleFile`](#handlefile) | 方法（`FileOpenService`） | A | 直接把 `.myanimeitem` 文件（v1 或 v2）导入存储。 |
-| [`_importOne`](#_importone) | 方法（`FileOpenService`） | A | 从解析的 JSON 构建全新 `Anime`（新 UUID、解码封面图像）。 |
+| [`_importOne`](#_importone) | 方法（`FileOpenService`） | A | 解码解析记录附带的封面，再经 `importedCopy` 构建新记录。 |
+| [`importedCopy`](#importedcopy) | 方法（`FileOpenService`），`@visibleForTesting` | A | 构建导入要写入的记录：新 id 与时间戳，丢弃 `seriesLink`，带过 `externalMeta`。 |
 | [`parseBundle`](#parsebundle) | 方法（`FileOpenService`） | A | 把 `.myanimeitem` 文件解析为 `ImportBundle`，不写存储。 |
 | [`pickAndParseBundle`](#pickandparsebundle) | 方法（`FileOpenService`） | A | 让用户选择 `.myanimeitem` 文件并解析为捆绑。 |
 | [`applyBundle`](#applybundle) | 方法（`FileOpenService`） | A | 把已解析捆绑的所选子集持久化到存储。 |
@@ -19,7 +20,7 @@
 | [`importFromPicker`](#importfrompicker) | 方法（`FileOpenService`） | A | 让用户选择并直接导入 `.myanimeitem` 文件。 |
 | [`exportAnimeItem`](#exportanimeitem) | 方法（`FileOpenService`） | A | 把一部动画导出为 v1 `.myanimeitem` JSON 文件。 |
 | [`exportAnimeBundle`](#exportanimebundle) | 方法（`FileOpenService`） | A | 把动画集合导出为 v2 多动画 `.myanimeitem` 文件。 |
-| `_stripPersonalData` | 方法（`FileOpenService`） | B | 从导出 JSON 中移除 `episodeStatuses`/`episodeWeekOffsets`/`localArchive`。 |
+| [`stripPersonalData`](#strippersonaldata) | 方法（`FileOpenService`），`@visibleForTesting` | A | 从导出 JSON 中移除 `episodeStatuses`/`episodeWeekOffsets`/`localArchive`/`seriesLink`。 |
 | [`_readCoverBase64`](#_readcoverbase64) | 方法（`FileOpenService`） | A | 读取动画的封面图像文件并 base64 编码。 |
 | [`_writeBundleFile`](#_writebundlefile) | 方法（`FileOpenService`） | A | 把 JSON 捆绑写入临时 `.myanimeitem` 文件。 |
 | [`_sanitizeFileName`](#_sanitizefilename) | 方法（`FileOpenService`） | A | 净化显示名用作跨平台文件名。 |
@@ -86,9 +87,23 @@
 - **副作用：** `itemJson['coverImage']` 存在时，base64 解码并写入 `<应用目录>/images/<uuid><ext>`（需要时创建目录）。
 - **算法：**
   1. `itemJson['coverImage']` 存在时，解码并以新 UUID 文件名写入（用 `coverImageExt` 或 `.jpg` 作扩展名）。
-  2. 构造新 `Anime`，从 `parsed` 复制每个字段，唯独 `id`（新 UUID）、`coverImage`（刚写的本地路径，或没有嵌入图像时的 `parsed.coverImage`）和 `createdAt`/`modifiedAt`（都设为现在）不同。
+  2. 返回 [`importedCopy`](#importedcopy)`(parsed, id: <新 UUID>, now: <UTC 当前时间>, coverPath: <刚写入的路径（如有）>)`。
 - **用法：** 从 [`handleFile`](#handlefile) 和 [`parseBundle`](#parsebundle) 内部调用。
-- **备注：** 个人字段（`episodeStatuses`、`episodeWeekOffsets`、`localArchive`）从 `parsed` 原样带过——剥离只在导出时发生（见 `_stripPersonalData`），不在导入时。由于导出会剥离它们，它们通常不会出现在传入文件中；仍然带过是为了让这里保持一份完整的字段拷贝清单，这样手写文件的值不会被静默丢弃，将来给 `Anime` 新增字段时也不会在此处遗漏。
+- **备注：** 字段拷贝清单于 1.6.0 移入 `importedCopy`，这样测试无需接触文件系统就能检查它。
+
+### `static Anime importedCopy(Anime parsed, {required String id, required DateTime now, String? coverPath})` <a id="importedcopy"></a>
+- **种类：** `FileOpenService` 的静态方法，`@visibleForTesting`
+- **来源：** `lib/shared/services/file_open_service.dart`（约第 132 行）
+- **用途：** 从解析出的分享文件记录构建导入要写入的记录。
+- **输入：** `parsed`；`id` — 新的 UUID；`now` — UTC 导入时间；`coverPath` — 附带封面写入的位置（如有）。
+- **返回：** `Anime` — 永远不会覆盖既有数据的新记录。
+- **副作用：** 无。
+- **算法：** 从 `parsed` 复制每个字段，唯独 `id`（给定的）、`coverImage`（设置了 `coverPath` 时用它，否则用 `parsed.coverImage`）、`createdAt`/`modifiedAt`（都为 `now`）和 `seriesLink`（从不复制）不同。`extraJson` 复制时移除任何 `seriesLink` 键。
+- **备注：**
+  - **`seriesLink` 被丢弃**（1.6.0），即使手写文件带有它——包括它只作为无法解析的值留在 `extraJson` 中的情况。外来的 `seriesId` 在本片库中毫无意义，还会把记录钉在自动分组之外。
+  - **`externalMeta` 自 1.6.0 起会被带过。** 更早的版本导入时会丢弃它，尽管导出从不剥离它，因此分享的资料库信息会悄无声息地消失；它是关于作品的公开信息，不是个人数据。
+  - 个人字段（`episodeStatuses`、`episodeWeekOffsets`、`localArchive`）原样带过——剥离在导出时发生（见 [`stripPersonalData`](#strippersonaldata)）。由于导出会剥离它们，它们通常不存在；仍然带过是为了不静默丢弃手写文件的值。因此 `localArchive` 与 `seriesLink` 在导入时的不同处理是有意为之。
+  - 由 `test/bundle_import_test.dart` 覆盖。
 
 ### `static Future<ImportBundle?> parseBundle(String path)` <a id="parsebundle"></a>
 - **种类：** `FileOpenService` 的静态方法
@@ -192,7 +207,7 @@
 - **输入：** `anime` — 要导出的记录。
 - **返回：** `Future<String?>` — 写入文件的临时路径，失败为 `null`。
 - **副作用：** 读取封面图像文件（如有）并 base64 编码；在系统临时目录下写临时 `.myanimeitem` 文件。
-- **算法：** 经 `_stripPersonalData` 剥离个人字段；构建 `{version: 1, anime: <stripped json>, coverImage: <base64 or null>}`（有封面时加 `coverImageExt`）；经 [`_writeBundleFile`](#_writebundlefile) 用来自 `anime.displayTitle` 的净化文件名写入。
+- **算法：** 经 [`stripPersonalData`](#strippersonaldata) 剥离个人字段；构建 `{version: 1, anime: <stripped json>, coverImage: <base64 or null>}`（有封面时加 `coverImageExt`）；经 [`_writeBundleFile`](#_writebundlefile) 用来自 `anime.displayTitle` 的净化文件名写入。
 - **用法：**
   ```dart
   final filePath = await FileOpenService.exportAnimeItem(anime);
@@ -217,6 +232,16 @@
   ```
   （来自 [`share_service.md`](share_service.md) 的 `shareStatisticsData`，把当前统计视图的动画列表作为数据文件分享）
 - **备注：** 专门用捆绑版本 2，使单动画 v1 文件保持为不同的、向后兼容的格式。
+
+### `static Map<String, dynamic> stripPersonalData(Map<String, dynamic> json)` <a id="strippersonaldata"></a>
+- **种类：** `FileOpenService` 的静态方法，`@visibleForTesting`
+- **来源：** `lib/shared/services/file_open_service.dart`（约第 360 行）
+- **用途：** 从一条记录的 JSON 中移除分享文件不得携带的内容。
+- **输入：** `json` — 一条记录的 `toJson()` 输出。
+- **返回：** `Map<String, dynamic>` — 不含 `episodeStatuses`、`episodeWeekOffsets`、`localArchive` 和 `seriesLink` 的浅拷贝。
+- **副作用：** 无。
+- **用法：** [`exportAnimeItem`](#exportanimeitem) 与 [`exportAnimeBundle`](#exportanimebundle)，每条记录一次。
+- **备注：** 观看进度属于发送者本人；本地存档记录会泄露存储资料仓库代码和存档份数；系列链接的组 id 在另一个片库中毫无意义。1.6.0 之前名为 `_stripPersonalData`（私有），当时改为测试可见并加入了 `seriesLink`。`externalMeta` 刻意**不**剥离——见 [`../../../features/share-and-import.md`](../../../features/share-and-import.md)。
 
 ### `static Future<String?> _readCoverBase64(Anime anime)` <a id="_readcoverbase64"></a>
 - **种类：** `FileOpenService` 的静态方法

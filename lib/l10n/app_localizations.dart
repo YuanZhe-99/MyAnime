@@ -1217,6 +1217,102 @@ abstract class AppLocalizations {
   /// **'Next Season'**
   String get animeNextSeason;
 
+  /// No description provided for @seriesTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Series'**
+  String get seriesTitle;
+
+  /// No description provided for @seriesAuto.
+  ///
+  /// In en, this message translates to:
+  /// **'Grouped automatically'**
+  String get seriesAuto;
+
+  /// No description provided for @seriesCurated.
+  ///
+  /// In en, this message translates to:
+  /// **'Linked by you'**
+  String get seriesCurated;
+
+  /// No description provided for @seriesManage.
+  ///
+  /// In en, this message translates to:
+  /// **'Manage series…'**
+  String get seriesManage;
+
+  /// No description provided for @seriesLinkTo.
+  ///
+  /// In en, this message translates to:
+  /// **'Link to series…'**
+  String get seriesLinkTo;
+
+  /// No description provided for @seriesAddNext.
+  ///
+  /// In en, this message translates to:
+  /// **'Add next season'**
+  String get seriesAddNext;
+
+  /// No description provided for @seriesRemove.
+  ///
+  /// In en, this message translates to:
+  /// **'Remove from series'**
+  String get seriesRemove;
+
+  /// No description provided for @seriesLetAppDecide.
+  ///
+  /// In en, this message translates to:
+  /// **'Let the app decide'**
+  String get seriesLetAppDecide;
+
+  /// No description provided for @seriesSearchHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Search your library'**
+  String get seriesSearchHint;
+
+  /// No description provided for @seriesSuggestions.
+  ///
+  /// In en, this message translates to:
+  /// **'Suggestions'**
+  String get seriesSuggestions;
+
+  /// No description provided for @seriesMembers.
+  ///
+  /// In en, this message translates to:
+  /// **'In this series'**
+  String get seriesMembers;
+
+  /// No description provided for @seriesNoMatches.
+  ///
+  /// In en, this message translates to:
+  /// **'No matching anime'**
+  String get seriesNoMatches;
+
+  /// No description provided for @seriesSaveOrder.
+  ///
+  /// In en, this message translates to:
+  /// **'Save order'**
+  String get seriesSaveOrder;
+
+  /// No description provided for @syncSeriesLinked.
+  ///
+  /// In en, this message translates to:
+  /// **'Series: linked by you'**
+  String get syncSeriesLinked;
+
+  /// No description provided for @syncSeriesStandalone.
+  ///
+  /// In en, this message translates to:
+  /// **'Series: not in any series'**
+  String get syncSeriesStandalone;
+
+  /// No description provided for @syncSeriesAuto.
+  ///
+  /// In en, this message translates to:
+  /// **'Series: automatic'**
+  String get syncSeriesAuto;
+
   /// No description provided for @save.
   ///
   /// In en, this message translates to:

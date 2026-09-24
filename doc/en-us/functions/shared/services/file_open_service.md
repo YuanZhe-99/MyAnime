@@ -19,7 +19,8 @@ registers the `.myanimeitem` file association.
 | `setPendingFile` | method (`FileOpenService`) | B | Remember a file path opened before the app finished starting up. |
 | [`processPendingFile`](#processpendingfile) | method (`FileOpenService`) | A | Import and navigate to a previously-remembered pending file. |
 | [`handleFile`](#handlefile) | method (`FileOpenService`) | A | Import a `.myanimeitem` file (v1 or v2) directly into storage. |
-| [`_importOne`](#_importone) | method (`FileOpenService`) | A | Build a fresh `Anime` (new UUID, decoded cover image) from parsed JSON. |
+| [`_importOne`](#_importone) | method (`FileOpenService`) | A | Decode a parsed record's bundled cover, then build the new record through `importedCopy`. |
+| [`importedCopy`](#importedcopy) | method (`FileOpenService`), `@visibleForTesting` | A | Build the record an import writes: new id and timestamps, `seriesLink` dropped, `externalMeta` carried. |
 | [`parseBundle`](#parsebundle) | method (`FileOpenService`) | A | Parse a `.myanimeitem` file into an `ImportBundle` without writing storage. |
 | [`pickAndParseBundle`](#pickandparsebundle) | method (`FileOpenService`) | A | Let the user pick a `.myanimeitem` file and parse it into a bundle. |
 | [`applyBundle`](#applybundle) | method (`FileOpenService`) | A | Persist the chosen subset of a parsed bundle to storage. |
@@ -28,7 +29,7 @@ registers the `.myanimeitem` file association.
 | [`importFromPicker`](#importfrompicker) | method (`FileOpenService`) | A | Let the user pick and directly import a `.myanimeitem` file. |
 | [`exportAnimeItem`](#exportanimeitem) | method (`FileOpenService`) | A | Export one anime to a v1 `.myanimeitem` JSON file. |
 | [`exportAnimeBundle`](#exportanimebundle) | method (`FileOpenService`) | A | Export a collection of anime to a v2 multi-anime `.myanimeitem` file. |
-| `_stripPersonalData` | method (`FileOpenService`) | B | Remove `episodeStatuses`/`episodeWeekOffsets`/`localArchive` from exported JSON. |
+| [`stripPersonalData`](#strippersonaldata) | method (`FileOpenService`), `@visibleForTesting` | A | Remove `episodeStatuses`/`episodeWeekOffsets`/`localArchive`/`seriesLink` from exported JSON. |
 | [`_readCoverBase64`](#_readcoverbase64) | method (`FileOpenService`) | A | Read an anime's cover image file and base64-encode it. |
 | [`_writeBundleFile`](#_writebundlefile) | method (`FileOpenService`) | A | Write a JSON bundle to a temp `.myanimeitem` file. |
 | [`_sanitizeFileName`](#_sanitizefilename) | method (`FileOpenService`) | A | Sanitize a display name for use as a cross-platform filename. |
@@ -115,15 +116,35 @@ registers the `.myanimeitem` file association.
 - **Algorithm:**
   1. If `itemJson['coverImage']` exists, decode it and write it under a fresh UUID filename (using
      `coverImageExt` or `.jpg` as the extension).
-  2. Construct a new `Anime` copying every field from `parsed` except `id` (fresh UUID),
-     `coverImage` (the just-written local path, or `parsed.coverImage` if there was no embedded
-     image), and `createdAt`/`modifiedAt` (both set to now).
+  2. Return [`importedCopy`](#importedcopy)`(parsed, id: <fresh UUID>, now: <UTC now>, coverPath:
+     <the just-written path, if any>)`.
 - **Usage:** Called internally from [`handleFile`](#handlefile) and [`parseBundle`](#parsebundle).
-- **Notes:** Personal fields (`episodeStatuses`, `episodeWeekOffsets`, `localArchive`) are carried
-  over as-is from `parsed` — stripping only happens on export (see `_stripPersonalData`), not on
-  import. Since export strips them, they are normally absent from an incoming file; carrying them
-  anyway keeps this a complete field-copy list, so a hand-written file's values are not silently
-  dropped and a future field added to `Anime` is not forgotten here.
+- **Notes:** The field-copy list moved into `importedCopy` in 1.6.0 so tests can check it without
+  touching the file system.
+
+### `static Anime importedCopy(Anime parsed, {required String id, required DateTime now, String? coverPath})` <a id="importedcopy"></a>
+- **Kind:** static method of `FileOpenService`, `@visibleForTesting`
+- **Source:** `lib/shared/services/file_open_service.dart` (approx. line 132)
+- **Purpose:** Build the record an import writes from a parsed share-file record.
+- **Inputs:** `parsed`; `id` — the fresh UUID; `now` — the UTC import time; `coverPath` — where the
+  bundled cover was written, if any.
+- **Returns:** `Anime` — a new record that can never overwrite existing data.
+- **Side effects:** None.
+- **Algorithm:** Copy every field from `parsed` except `id` (the given one), `coverImage`
+  (`coverPath` when set, else `parsed.coverImage`), `createdAt`/`modifiedAt` (both `now`) and
+  `seriesLink` (never copied). `extraJson` is copied with any `seriesLink` key removed.
+- **Notes:**
+  - **`seriesLink` is dropped** (1.6.0), even when a hand-written file carries one — and also when it
+    only survives as an unparseable value in `extraJson`. A foreign `seriesId` means nothing in this
+    library and would pin the record out of automatic grouping.
+  - **`externalMeta` is carried** since 1.6.0. Earlier builds dropped it on import even though export
+    never stripped it, so shared database info silently vanished; it is public information about the
+    work, not personal data.
+  - Personal fields (`episodeStatuses`, `episodeWeekOffsets`, `localArchive`) are carried over as-is
+    — stripping happens on export (see [`stripPersonalData`](#strippersonaldata)). Since export
+    strips them they are normally absent; carrying them keeps a hand-written file's values from
+    being silently dropped. `localArchive` and `seriesLink` therefore differ on import on purpose.
+  - Covered by `test/bundle_import_test.dart`.
 
 ### `static Future<ImportBundle?> parseBundle(String path)` <a id="parsebundle"></a>
 - **Kind:** static method of `FileOpenService`
@@ -259,7 +280,7 @@ registers the `.myanimeitem` file association.
 - **Returns:** `Future<String?>` — the written file's temp path, or `null` on failure.
 - **Side effects:** Reads the cover image file (if any) and base64-encodes it; writes a temp
   `.myanimeitem` file under the system temp directory.
-- **Algorithm:** Strip personal fields via `_stripPersonalData`; build
+- **Algorithm:** Strip personal fields via [`stripPersonalData`](#strippersonaldata); build
   `{version: 1, anime: <stripped json>, coverImage: <base64 or null>}` (plus `coverImageExt` if a
   cover exists); write it via [`_writeBundleFile`](#_writebundlefile) using a sanitized filename
   from `anime.displayTitle`.
@@ -293,6 +314,22 @@ registers the `.myanimeitem` file association.
   statistics view's anime list as a data file)
 - **Notes:** Uses bundle version 2 specifically so single-anime v1 files remain a distinct,
   backward-compatible format.
+
+### `static Map<String, dynamic> stripPersonalData(Map<String, dynamic> json)` <a id="strippersonaldata"></a>
+- **Kind:** static method of `FileOpenService`, `@visibleForTesting`
+- **Source:** `lib/shared/services/file_open_service.dart` (approx. line 360)
+- **Purpose:** Remove what a share file must not carry from one record's JSON.
+- **Inputs:** `json` — one record's `toJson()` output.
+- **Returns:** `Map<String, dynamic>` — a shallow copy without `episodeStatuses`,
+  `episodeWeekOffsets`, `localArchive` and `seriesLink`.
+- **Side effects:** None.
+- **Usage:** [`exportAnimeItem`](#exportanimeitem) and [`exportAnimeBundle`](#exportanimebundle),
+  once per record.
+- **Notes:** Watch progress is the sender's own; the local-archive record would leak storage
+  repository codes and copy counts; the series link's group id means nothing in another library.
+  Named `_stripPersonalData` (private) until 1.6.0, when it became visible for testing and gained
+  `seriesLink`. `externalMeta` is deliberately **not** stripped — see
+  [`../../../features/share-and-import.md`](../../../features/share-and-import.md).
 
 ### `static Future<String?> _readCoverBase64(Anime anime)` <a id="_readcoverbase64"></a>
 - **Kind:** static method of `FileOpenService`

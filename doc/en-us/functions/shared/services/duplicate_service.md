@@ -243,10 +243,14 @@ grouping/merge algorithm write-up and how it differs from WebDAV sync's per-reco
      is a coherent description of one physical copy, so mixing a `source` from one record with a
      `location` from another would describe a copy that does not exist.
   6. **Cover image:** primary wins; falls back to the first non-null cover among `others`.
-  7. Builds the final `Anime` via `primary.copyWith(...)` for `endEpisode`, `manualType`,
+  7. **Series link** (1.6.0): taken whole — `primary.seriesLink` if it has one, else the first
+     non-null `seriesLink` among `others`. Records merged as duplicates usually share a series
+     already; this only keeps a curated membership or a `standalone` choice from being lost when
+     the primary had none.
+  8. Builds the final `Anime` via `primary.copyWith(...)` for `endEpisode`, `manualType`,
      `airDayOfWeek`, `airTime`, `firstAirDate` (primary-wins-else-first-non-null pattern),
      `episodeStatuses`, `episodeWeekOffsets`, `coverImage`, `infoUrl`, `watchUrl`, `notes`,
-     `rating`, `localArchive`, and a fresh UTC `modifiedAt`; then calls
+     `rating`, `localArchive`, `seriesLink`, and a fresh UTC `modifiedAt`; then calls
      `withPreservedUnknownJson([primary,
      ...others])` so unknown top-level JSON fields survive the merge (the `extraJson` pattern — see
      [`../../../data-formats.md`](../../../data-formats.md)).

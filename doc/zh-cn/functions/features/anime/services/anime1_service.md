@@ -6,7 +6,9 @@
 `bestSimilarity`、`harvestAliases`、`userAgent` 与 `decodeHtmlEntities`）；1.5.6 之前作为全部机制的 WordPress
 `?s=` 搜索只保留为最后手段。持久化的结果是 [`../models/anime.md`](../models/anime.md) 中的
 `AnimeWatchProgress`。仅完整版——由调用方门禁；各阶段、排序常量与后台刷新见
-[`../../../../features/watch-url-lookup.md`](../../../../features/watch-url-lookup.md)。
+[`../../../../features/watch-url-lookup.md`](../../../../features/watch-url-lookup.md)。`rank` 与 `search` 使用的季数序数读取函数
+`seasonOrdinal`（及其辅助 `_parseCjkNumber`）已于 1.6.0 原样移到共享的
+[`../../../shared/utils/season_label.md`](../../../shared/utils/season_label.md)，系列索引也使用它。
 
 ## 声明
 
@@ -30,8 +32,6 @@
 | [`parseEpisodes`](#parseepisodes) | 静态方法（`Anime1Service`） | A | 解析 `1-12+OVA` 或 `連載中(09)` 之类的集数单元格。 |
 | [`seasonIndex`](#seasonindex) | 静态方法（`Anime1Service`），`@visibleForTesting` | A | 把行的年份/季节放到连续的季度时间轴上。 |
 | [`quarterIndexFor`](#quarterindexfor) | 静态方法（`Anime1Service`），`@visibleForTesting` | A | 把首播日期放到同一时间轴上，晚首播向前贴靠。 |
-| [`seasonOrdinal`](#seasonordinal) | 静态方法（`Anime1Service`），`@visibleForTesting` | A | 从标题或标签中读出 第N季 / Season N 序数。 |
-| `_parseCjkNumber` | 静态方法（`Anime1Service`） | B | 解析小的中文或阿拉伯数字。 |
 | [`querySet`](#queryset) | 静态方法（`Anime1Service`），`@visibleForTesting` | A | 为一次查找构建归一化、去重的查询集合。 |
 | [`rank`](#rank) | 静态方法（`Anime1Service`），`@visibleForTesting` | A | 对索引行按归一化查询打分并排序。 |
 | [`search`](#search) | 静态方法（`Anime1Service`） | A | 为记录查找系列页面：索引、别名、抓取依次进行。 |
@@ -135,18 +135,9 @@
 - **备注：** anime1 把 9 月 29 日首播归入秋季而日历说是第三季度，因此晚首播向前贴靠；12 月 21 日及之后仅靠算术
   就落入下一年的冬季。
 
-### `static int? seasonOrdinal(String text)` <a id="seasonordinal"></a>
-- **种类：** `Anime1Service` 的静态方法，`@visibleForTesting`
-- **来源：** 约第 442 行
-- **用途：** 从标题或季度标签中读出季数序数——`第二季`、`第2期`、`Season 2`、`2nd Season`、`S2`、`Part 2`。
-- **返回：** `int?`——没有序数时为 `null`。
-- **副作用：** 无。
-- **备注：** 十以内的中文数字经 `_parseCjkNumber` 理解。`Anime.season` 是自由文本标签（"Season 1"），这正是
-  本函数既读标签也读标题的原因。
-
 ### `static List<String> querySet(String query, List<String> altQueries)` <a id="queryset"></a>
 - **种类：** `Anime1Service` 的静态方法，`@visibleForTesting`
-- **来源：** 约第 496 行
+- **来源：** 约第 449 行
 - **用途：** 为一次查找构建归一化的查询集合——归一化、去重、至多十二项。
 - **返回：** `List<String>`。
 - **副作用：** 无。
@@ -154,7 +145,7 @@
 
 ### `static List<Anime1Match> rank(List<Anime1IndexEntry> entries, List<String> foldedQueries, {int? quarterIndex, int? ordinal, double minScore = minScore, int limit = 10})` <a id="rank"></a>
 - **种类：** `Anime1Service` 的静态方法，`@visibleForTesting`
-- **来源：** 约第 520 行
+- **来源：** 约第 473 行
 - **用途：** 对索引行按归一化查询打分并排序。
 - **输入：** `entries`、`foldedQueries`；来自 [`quarterIndexFor`](#quarterindexfor) 的 `quarterIndex`；`ordinal`
   ——记录的季数序数；`minScore`；`limit`。
@@ -174,7 +165,7 @@
 
 ### `static Future<List<Anime1Match>> search(String query, {List<String> altQueries = const [], DateTime? firstAirDate, String? seasonText, bool harvestAliases = true})` <a id="search"></a>
 - **种类：** `Anime1Service` 的静态方法
-- **来源：** 约第 590 行
+- **来源：** 约第 543 行
 - **用途：** 索引优先地为一条记录查找 anime1.me 的系列页面。
 - **输入：** `query`——显示标题；`altQueries`——日文、英文、罗马音标题与已存别名；`firstAirDate`——启用档期
   加分；`seasonText`——从中读序数；`harvestAliases`——允许一次 bangumi.tv 查询。
@@ -201,7 +192,7 @@
 
 ### `static List<Anime1Match> _mergeMatches(List<Anime1Match> base, List<Anime1Match> again)` <a id="_mergematches"></a>
 - **种类：** `Anime1Service` 的静态方法
-- **来源：** 约第 646 行
+- **来源：** 约第 599 行
 - **用途：** 把别名辅助的排序合并进基础排序。
 - **返回：** 最佳在前、至多十条的 `List<Anime1Match>`。
 - **副作用：** 无。
@@ -210,7 +201,7 @@
 
 ### `static bool isAnime1Url(String? url)` <a id="isanime1url"></a>
 - **种类：** `Anime1Service` 的静态方法
-- **来源：** 约第 682 行
+- **来源：** 约第 635 行
 - **用途：** 报告 URL 是否指向 anime1.me（裸主机或任意子域）。
 - **返回：** `bool`；`null` 或空白为 `false`。
 - **副作用：** 无。
@@ -218,7 +209,7 @@
 
 ### `static int? catIdFromUrl(String url)` <a id="catidfromurl"></a>
 - **种类：** `Anime1Service` 的静态方法
-- **来源：** 约第 696 行
+- **来源：** 约第 649 行
 - **用途：** 从 `?cat=` URL 中读出分类 id。
 - **返回：** `int?`——`/category/…` slug 与其他一切为 `null`。
 - **副作用：** 无。
@@ -226,7 +217,7 @@
 
 ### `static ({int? catId, String? title, int? latestEpisode, String? categoryUrl}) parseCategoryPage(String html)` <a id="parsecategorypage"></a>
 - **种类：** `Anime1Service` 的静态方法，`@visibleForTesting`
-- **来源：** 约第 712 行
+- **来源：** 约第 665 行
 - **用途：** 从系列或单集页面中提取分类 id、标题、最新一集与分类链接。
 - **返回：** 一条记录；各字段缺失时为 `null`。
 - **副作用：** 无。
@@ -237,7 +228,7 @@
 
 ### `static Future<AnimeWatchProgress?> fetchProgress(String watchUrl, {List<Anime1IndexEntry>? index})` <a id="fetchprogress"></a>
 - **种类：** `Anime1Service` 的静态方法
-- **来源：** 约第 758 行
+- **来源：** 约第 711 行
 - **用途：** 读取 anime1.me 当前为已保存观看链接列出的内容。
 - **输入：** `watchUrl`；`index`——复用的已加载索引（后台循环会传入）。
 - **返回：** `Future<AnimeWatchProgress?>`——URL 不是 anime1.me 或什么都读不到时为 `null`。
@@ -257,7 +248,7 @@
 
 ### `static Future<List<Anime1Match>> _scrapeSearch(String query, List<String> altQueries)` <a id="_scrapesearch"></a>
 - **种类：** `Anime1Service` 的静态方法
-- **来源：** 约第 846 行
+- **来源：** 约第 799 行
 - **用途：** 搜索站点自己的 `?s=` 端点——1.5.7 之前的方法，保留为最后手段。
 - **返回：** 按 `bestSimilarity` 排序、至多十条的 `Future<List<Anime1Match>>`。
 - **副作用：** 至多六次串行 HTTP GET，一无所获时再加至多三次二字子串重试。
@@ -267,7 +258,7 @@
 
 ### `static Future<List<({String title, String url})>> _scrapeOne(String query)` <a id="_scrapeone"></a>
 - **种类：** `Anime1Service` 的静态方法
-- **来源：** 约第 905 行
+- **来源：** 约第 858 行
 - **用途：** 运行一次 `?s=` 查询，从 HTML 中提取系列（而非单集）的标题/URL 对。
 - **返回：** `Future<List<({String title, String url})>>`——非 200 响应时为空。
 - **副作用：** 一次 HTTP GET（10 秒超时）。

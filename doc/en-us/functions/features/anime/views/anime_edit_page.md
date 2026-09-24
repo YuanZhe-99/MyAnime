@@ -13,19 +13,26 @@ enum labels come from [`archive_labels.md`](archive_labels.md). It also defines 
 fields edited here (`manualType`, `airDayOfWeek`, `airTime`, `firstAirDate`) drive quarter placement
 and episode air-date computation.
 
+Since 1.6.0 the create route (`/anime/edit`, see [`../../../app/router.md`](../../../app/router.md))
+can carry a `NextSeasonPrefill` ([`../services/series_service.md`](../services/series_service.md#nextseasonprefill))
+as its `extra`: the series card's *Add next season* action opens the page with the titles copied,
+the season label incremented, and a pending link that [`_saveNew`](#_savenew) writes only when the
+new record is saved. The `prefill` constructor parameter is ignored when editing.
+
 ## Declarations
 
 | Declaration | Kind | Tier | Purpose |
 |---|---|---|---|
-| `AnimeEditPage.new` | constructor (`AnimeEditPage`) | B | Create an `AnimeEditPage`, optionally bound to an existing anime ID. |
+| `AnimeEditPage.new` | constructor (`AnimeEditPage`) | B | Create an `AnimeEditPage`, optionally bound to an existing anime ID, or (create route only) prefilled by a `NextSeasonPrefill`. |
 | `AnimeEditPage.createState` | method (`AnimeEditPage`) | B | Create the mutable state object for this widget. |
-| `_AnimeEditPageState.initState` | method (`_AnimeEditPageState`) | B | Set the default season text and trigger loading an existing record if editing. |
+| `_AnimeEditPageState.initState` | method (`_AnimeEditPageState`) | B | Set the default season text, apply a next-season prefill when creating, and trigger loading an existing record if editing. |
 | [`_loadExisting`](#_loadexisting) | method (`_AnimeEditPageState`) | A | Load an existing anime and populate every form field/controller from it. |
 | `_AnimeEditPageState.dispose` | method (`_AnimeEditPageState`) | B | Dispose all 17 owned `TextEditingController`s. |
 | [`_pickCoverImage`](#_pickcoverimage) | method (`_AnimeEditPageState`) | A | Let the user pick a cover image file and stage its path. |
 | [`_searchWatchUrl`](#_searchwatchurl) | method (`_AnimeEditPageState`) | A | Open the watch-URL search dialog with every known title, and apply the chosen URL plus its progress. |
 | [`_showSearchDialog`](#_showsearchdialog) | method (`_AnimeEditPageState`) | A | Open the online metadata search dialog and merge its result into the form. |
 | [`_pickFirstAirDate`](#_pickfirstairdate) | method (`_AnimeEditPageState`) | A | Show a date picker and stage the chosen `firstAirDate`. |
+| [`_saveNew`](#_savenew) | method (`_AnimeEditPageState`) | A | Write a newly created record, linking it into a series when opened by "Add next season". |
 | [`_save`](#_save) | method (`_AnimeEditPageState`) | A | Validate the form and create or update the anime record. |
 | [`_buildRating`](#_buildrating) | method (`_AnimeEditPageState`) | A | Assemble an `AnimeRating` from the rating text fields, or `null` if empty. |
 | [`_buildLocalArchive`](#_buildlocalarchive) | method (`_AnimeEditPageState`) | A | Assemble an `AnimeLocalArchive` from the archive controls, or `null` if untouched. |
@@ -191,14 +198,38 @@ and episode air-date computation.
 - **Notes:** A separate "clear" icon (`onPressed: () => setState(() => _firstAirDate = null)`)
   bypasses this method entirely to unset the date directly.
 
+### `Future<void> _saveNew(Anime anime)` <a id="_savenew"></a>
+- **Kind:** method of `_AnimeEditPageState`
+- **Source:** `lib/features/anime/views/anime_edit_page.dart` (approx. line 333)
+- **Purpose:** Write a newly created record, linking it into a series when the page was opened by
+  "Add next season" (1.6.0).
+- **Inputs:** `anime` — the new record.
+- **Returns:** `Future<void>`.
+- **Side effects:** Writes `anime_data.json` once.
+- **Algorithm:**
+  1. Without a `prefill`: `AnimeStorage.addOrUpdate(anime)`.
+  2. With one: reload the library, build a `SeriesIndex`, and look up `prefill.linkToAnimeId`. If
+     that record has disappeared in the meantime, save the new record unlinked.
+  3. Otherwise `SeriesEditor(index).link(anime, source)` and write the result — the new record plus
+     the materialised series — in one `AnimeStorage.addOrUpdateAll`.
+- **Usage:**
+  ```dart
+  await _saveNew(anime);
+  if (mounted) context.pop(anime.id);
+  ```
+  (`_save`, same file, create branch)
+- **Notes:** The link is pending until this point: leaving the page without saving writes nothing,
+  not even the materialised series.
+
 ### `Future<void> _save()` <a id="_save"></a>
 - **Kind:** method of `_AnimeEditPageState`
-- **Source:** `lib/features/anime/views/anime_edit_page.dart` (approx. line 262)
+- **Source:** `lib/features/anime/views/anime_edit_page.dart` (approx. line 359)
 - **Purpose:** Validate the form, reconcile the episode range, and either update the existing anime
   or create a new one, then leave the page.
 - **Inputs:** None (reads every controller/staged field).
 - **Returns:** `Future<void>`.
-- **Side effects:** May show a "missing fields" `AlertDialog`; calls `AnimeStorage.addOrUpdate`;
+- **Side effects:** May show a "missing fields" `AlertDialog`; calls `AnimeStorage.addOrUpdate` (or,
+  when creating, [`_saveNew`](#_savenew));
   pops the current route (with the new anime's ID, when creating).
 - **Algorithm:**
   1. Run the `Form`'s field validators (`_formKey.currentState!.validate()`); abort if invalid.
@@ -215,7 +246,8 @@ and episode air-date computation.
      `clearLocalArchive: localArchive == null`, and a fresh `modifiedAt`; save via
      `AnimeStorage.addOrUpdate`; pop with no result.
   6. When creating: auto-fill `title` from the Japanese title if the title field is empty, build a
-     new `Anime` via [`Anime.create`](../models/anime.md#anime-create), save it, and pop the route
+     new `Anime` via [`Anime.create`](../models/anime.md#anime-create), save it through
+     [`_saveNew`](#_savenew), and pop the route
      with the new anime's `id` as the result.
 - **Usage:**
   ```dart

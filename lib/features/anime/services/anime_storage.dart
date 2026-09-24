@@ -213,6 +213,25 @@ class AnimeStorage {
     await save(AnimeData(animes: list, extraJson: data.extraJson));
   }
 
+  /// Purpose: Add or replace several anime records in one write.
+  /// Inputs: `animes` — records keyed by `id`; a later duplicate id wins.
+  /// Returns: None.
+  /// Side effects: One load and one save of `anime_data.json`, so one
+  /// auto-sync notification. Does nothing for an empty input.
+  /// Notes: Used by series curation, which may rewrite every member of a
+  /// series at once. Callers stamp `modifiedAt` themselves; this method writes
+  /// the records exactly as given.
+  static Future<void> addOrUpdateAll(Iterable<Anime> animes) async {
+    final updates = {for (final a in animes) a.id: a};
+    if (updates.isEmpty) return;
+    final data = await load();
+    final list = [
+      for (final a in data.animes) updates.remove(a.id) ?? a,
+      ...updates.values,
+    ];
+    await save(AnimeData(animes: list, extraJson: data.extraJson));
+  }
+
   /// Purpose: Refresh cached external metadata without marking records edited.
   /// Inputs: `updates` — external metadata keyed by anime id.
   /// Returns: `Future<bool>` — whether anything was actually written.

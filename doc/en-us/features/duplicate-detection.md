@@ -12,6 +12,12 @@ Duplicate detection groups records by any of:
 - Same non-empty `infoUrl` or `watchUrl`.
 - Same normalized title + season + `firstAirDate`.
 
+Because the season label is part of the title rule, members of one series with different season
+labels (`Season 1`, `Season 2`) are never duplicates — `test/duplicate_service_test.dart` pins this
+since series linking arrived in 1.6.0. Grouping seasons together is
+[`series-linking.md`](series-linking.md)'s job, and it in turn refuses to link two records that look
+like duplicates.
+
 Groups are formed **transitively** using a union-find structure: if A matches B and B matches C
 (even if A doesn't directly match C), all three land in one group. Each anime appears in at most
 one group.
@@ -32,6 +38,9 @@ When merging a duplicate group down to one record:
   archive describes one physical copy, so combining a `source` from one record with a `location`
   from another would describe a copy that does not exist (see `AnimeLocalArchive` in
   [`../data-formats.md`](../data-formats.md)).
+- The series link (`seriesLink`, 1.6.0) is taken whole: the primary's if it has one, else the first
+  fallback's. This keeps a curated membership or a standalone choice from being lost when the
+  primary had none.
 - Notes are concatenated (not deduplicated against each other).
 - Unknown JSON fields are preserved via the `extraJson` pattern (see
   [`../data-formats.md`](../data-formats.md)), the same as every other merge path in the app.

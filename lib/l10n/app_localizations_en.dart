@@ -709,6 +709,54 @@ class AppLocalizationsEn extends AppLocalizations {
   String get animeNextSeason => 'Next Season';
 
   @override
+  String get seriesTitle => 'Series';
+
+  @override
+  String get seriesAuto => 'Grouped automatically';
+
+  @override
+  String get seriesCurated => 'Linked by you';
+
+  @override
+  String get seriesManage => 'Manage series…';
+
+  @override
+  String get seriesLinkTo => 'Link to series…';
+
+  @override
+  String get seriesAddNext => 'Add next season';
+
+  @override
+  String get seriesRemove => 'Remove from series';
+
+  @override
+  String get seriesLetAppDecide => 'Let the app decide';
+
+  @override
+  String get seriesSearchHint => 'Search your library';
+
+  @override
+  String get seriesSuggestions => 'Suggestions';
+
+  @override
+  String get seriesMembers => 'In this series';
+
+  @override
+  String get seriesNoMatches => 'No matching anime';
+
+  @override
+  String get seriesSaveOrder => 'Save order';
+
+  @override
+  String get syncSeriesLinked => 'Series: linked by you';
+
+  @override
+  String get syncSeriesStandalone => 'Series: not in any series';
+
+  @override
+  String get syncSeriesAuto => 'Series: automatic';
+
+  @override
   String get save => 'Save';
 
   @override

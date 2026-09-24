@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
 
 import '../../features/anime/models/anime.dart';
@@ -685,6 +687,18 @@ class _WebDAVConfigPageState extends State<WebDAVConfigPage> {
 class _ConflictDialog extends StatelessWidget {
   final RecordConflict<Anime> conflict;
 
+  /// Purpose: Describe one side's series membership.
+  /// Inputs: `anime`, `l10n`.
+  /// Returns: `String` — linked by the user, standalone, or automatic.
+  /// Side effects: None.
+  /// Notes: Shown only when the two sides' `seriesLink` differ.
+  static String _seriesLine(Anime anime, AppLocalizations l10n) {
+    final link = anime.seriesLink;
+    if (link?.standalone == true) return l10n.syncSeriesStandalone;
+    if (link?.curatedSeriesId != null) return l10n.syncSeriesLinked;
+    return l10n.syncSeriesAuto;
+  }
+
   /// Purpose: Create a conflict dialog instance.
   /// Inputs: None.
   /// Returns: A new `_ConflictDialog` instance.
@@ -702,6 +716,11 @@ class _ConflictDialog extends StatelessWidget {
     final l10n = AppLocalizations.of(context)!;
     final local = conflict.localRecord;
     final remote = conflict.remoteRecord;
+    // A conflict about the series alone would otherwise look like two
+    // identical versions, so name it when the two sides disagree.
+    final seriesDiffers =
+        jsonEncode(local.seriesLink?.toJson()) !=
+        jsonEncode(remote.seriesLink?.toJson());
 
     return AlertDialog(
       title: Text(l10n.syncConflictTitle(conflict.displayName)),
@@ -729,6 +748,7 @@ class _ConflictDialog extends StatelessWidget {
                     .length,
               ),
             ),
+            if (seriesDiffers) Text(_seriesLine(local, l10n)),
             const SizedBox(height: 12),
             Text(
               l10n.syncRemoteVersion,
@@ -746,6 +766,7 @@ class _ConflictDialog extends StatelessWidget {
                     .length,
               ),
             ),
+            if (seriesDiffers) Text(_seriesLine(remote, l10n)),
           ],
         ),
       ),

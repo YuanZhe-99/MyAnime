@@ -19,6 +19,7 @@ const _animeJsonKeys = {
   'notes',
   'rating',
   'localArchive',
+  'seriesLink',
   'externalMeta',
   'createdAt',
   'modifiedAt',
@@ -40,6 +41,8 @@ const _localArchiveJsonKeys = {
   'copies',
   'location',
 };
+
+const _seriesLinkJsonKeys = {'seriesId', 'order', 'standalone'};
 
 const _externalMetaJsonKeys = {
   'synonyms',
@@ -621,6 +624,136 @@ class AnimeLocalArchive {
       resolution: resolution,
       copies: copies,
       location: location,
+      extraJson: extraJson,
+    );
+  }
+}
+
+/// Optional record of the series a user placed an anime in.
+///
+/// Membership is a shared group id rather than prev/next pointers, so no
+/// record ever references another record's `id`: deleting, merging or
+/// importing a record cannot leave a dangling link. Synced and backed up, but
+/// stripped from `.myanimeitem` share files and dropped on import, because a
+/// foreign `seriesId` means nothing in another library.
+class AnimeSeriesLink {
+  /// Lowercase UUID shared by every member of one curated series.
+  final String? seriesId;
+
+  /// Position within the series after the user reordered it (1-based).
+  final int? order;
+
+  /// Whether the user took this record out of every series.
+  final bool standalone;
+
+  /// JSON fields this app version does not understand yet.
+  final Map<String, dynamic> extraJson;
+
+  /// Purpose: Create an anime series link instance.
+  /// Inputs: `seriesId`, `order`, `standalone`, `extraJson`.
+  /// Returns: A new `AnimeSeriesLink` instance.
+  /// Side effects: None.
+  /// Notes: None.
+  const AnimeSeriesLink({
+    this.seriesId,
+    this.order,
+    this.standalone = false,
+    this.extraJson = const {},
+  });
+
+  /// Purpose: Return the curated series this record belongs to, if any.
+  /// Inputs: None.
+  /// Returns: `String?` — `null` for standalone records and records without
+  /// a `seriesId`.
+  /// Side effects: None.
+  /// Notes: When a hand-edited file carries both `standalone` and `seriesId`,
+  /// `standalone` wins; the id is still written back untouched.
+  String? get curatedSeriesId => standalone ? null : seriesId;
+
+  /// Purpose: Report whether this link carries anything worth persisting.
+  /// Inputs: None.
+  /// Returns: `bool`.
+  /// Side effects: None.
+  /// Notes: When false the owning `Anime` omits the `seriesLink` key.
+  bool get hasAnyData =>
+      standalone || seriesId != null || order != null || extraJson.isNotEmpty;
+
+  /// Purpose: Create a copy with extra json.
+  /// Inputs: `extraJson`.
+  /// Returns: `AnimeSeriesLink`.
+  /// Side effects: None.
+  /// Notes: None.
+  AnimeSeriesLink withExtraJson(Map<String, dynamic> extraJson) =>
+      AnimeSeriesLink(
+        seriesId: seriesId,
+        order: order,
+        standalone: standalone,
+        extraJson: extraJson,
+      );
+
+  /// Purpose: Serialize this value into a JSON-compatible map.
+  /// Inputs: None.
+  /// Returns: `Map<String, dynamic>`.
+  /// Side effects: None.
+  /// Notes: `standalone` is written only when true.
+  Map<String, dynamic> toJson() {
+    final json = Map<String, dynamic>.from(extraJson);
+    if (seriesId != null) {
+      json['seriesId'] = seriesId;
+    } else if (!extraJson.containsKey('seriesId')) {
+      json.remove('seriesId');
+    }
+    if (order != null) {
+      json['order'] = order;
+    } else if (!extraJson.containsKey('order')) {
+      json.remove('order');
+    }
+    if (standalone) {
+      json['standalone'] = true;
+    } else if (!extraJson.containsKey('standalone')) {
+      json.remove('standalone');
+    }
+    return json;
+  }
+
+  /// Purpose: Create an instance from a JSON-compatible map.
+  /// Inputs: `json`.
+  /// Returns: A new `AnimeSeriesLink.fromJson` instance.
+  /// Side effects: None.
+  /// Notes: Unparseable values — a non-string or empty `seriesId`, an `order`
+  /// that is not a positive integer, a non-bool `standalone` — are preserved
+  /// verbatim in `extraJson` and treated as absent.
+  factory AnimeSeriesLink.fromJson(Map<String, dynamic> json) {
+    final extraJson = _unknownJson(json, _seriesLinkJsonKeys);
+
+    final rawSeriesId = json['seriesId'];
+    String? seriesId;
+    if (rawSeriesId is String && rawSeriesId.trim().isNotEmpty) {
+      seriesId = rawSeriesId;
+    } else if (json.containsKey('seriesId')) {
+      extraJson['seriesId'] = rawSeriesId;
+    }
+
+    final rawOrder = json['order'];
+    int? order;
+    if (rawOrder is int && rawOrder > 0) {
+      order = rawOrder;
+    } else if (json.containsKey('order')) {
+      extraJson['order'] = rawOrder;
+    }
+
+    final rawStandalone = json['standalone'];
+    var standalone = false;
+    if (rawStandalone is bool) {
+      standalone = rawStandalone;
+    } else if (json.containsKey('standalone')) {
+      extraJson['standalone'] = rawStandalone;
+    }
+
+    return AnimeSeriesLink(
+      seriesId: seriesId,
+      order: order,
+      standalone: standalone,
       extraJson: extraJson,
     );
   }
@@ -1342,6 +1475,9 @@ class Anime {
   /// Optional record of a downloaded local copy.
   final AnimeLocalArchive? localArchive;
 
+  /// Optional series membership set by the user (see [AnimeSeriesLink]).
+  final AnimeSeriesLink? seriesLink;
+
   /// Optional public metadata pulled from external anime databases.
   final AnimeExternalMeta? externalMeta;
 
@@ -1355,7 +1491,7 @@ class Anime {
   final Map<String, dynamic> extraJson;
 
   /// Purpose: Create a anime instance.
-  /// Inputs: `id`, `title`, `titleJa`, `season`, `startEpisode`, `endEpisode`, `manualType`, `airDayOfWeek`, `airTime`, `firstAirDate`, `episodeStatuses`, `coverImage`, `infoUrl`, `watchUrl`, `episodeWeekOffsets`, `notes`, `rating`, `localArchive`, `externalMeta`, `createdAt`, `modifiedAt`, `extraJson`.
+  /// Inputs: `id`, `title`, `titleJa`, `season`, `startEpisode`, `endEpisode`, `manualType`, `airDayOfWeek`, `airTime`, `firstAirDate`, `episodeStatuses`, `coverImage`, `infoUrl`, `watchUrl`, `episodeWeekOffsets`, `notes`, `rating`, `localArchive`, `seriesLink`, `externalMeta`, `createdAt`, `modifiedAt`, `extraJson`.
   /// Returns: A new `Anime` instance.
   /// Side effects: None.
   /// Notes: None.
@@ -1378,6 +1514,7 @@ class Anime {
     this.notes,
     this.rating,
     this.localArchive,
+    this.seriesLink,
     this.externalMeta,
     required this.createdAt,
     required this.modifiedAt,
@@ -1673,10 +1810,11 @@ class Anime {
   }
 
   /// Purpose: Create a copy with selected fields replaced.
-  /// Inputs: `title`, `titleJa`, `season`, `startEpisode`, `endEpisode`, `clearEndEpisode`, `manualType`, `clearManualType`, `airDayOfWeek`, `clearAirDayOfWeek`, `airTime`, `clearAirTime`, `firstAirDate`, `clearFirstAirDate`, `episodeStatuses`, `coverImage`, `clearCoverImage`, `infoUrl`, `clearInfoUrl`, `watchUrl`, `clearWatchUrl`, `episodeWeekOffsets`, `notes`, `clearNotes`, `rating`, `clearRating`, `localArchive`, `clearLocalArchive`, `externalMeta`, `clearExternalMeta`, `modifiedAt`.
+  /// Inputs: `title`, `titleJa`, `season`, `startEpisode`, `endEpisode`, `clearEndEpisode`, `manualType`, `clearManualType`, `airDayOfWeek`, `clearAirDayOfWeek`, `airTime`, `clearAirTime`, `firstAirDate`, `clearFirstAirDate`, `episodeStatuses`, `coverImage`, `clearCoverImage`, `infoUrl`, `clearInfoUrl`, `watchUrl`, `clearWatchUrl`, `episodeWeekOffsets`, `notes`, `clearNotes`, `rating`, `clearRating`, `localArchive`, `clearLocalArchive`, `seriesLink`, `clearSeriesLink`, `externalMeta`, `clearExternalMeta`, `modifiedAt`.
   /// Returns: `Anime`.
   /// Side effects: None.
-  /// Notes: None.
+  /// Notes: `modifiedAt` defaults to now, so a write that must not count as a
+  /// user edit has to pass the old value explicitly.
   Anime copyWith({
     String? title,
     String? titleJa,
@@ -1706,6 +1844,8 @@ class Anime {
     bool clearRating = false,
     AnimeLocalArchive? localArchive,
     bool clearLocalArchive = false,
+    AnimeSeriesLink? seriesLink,
+    bool clearSeriesLink = false,
     AnimeExternalMeta? externalMeta,
     bool clearExternalMeta = false,
     DateTime? modifiedAt,
@@ -1735,6 +1875,7 @@ class Anime {
       localArchive: clearLocalArchive
           ? null
           : (localArchive ?? this.localArchive),
+      seriesLink: clearSeriesLink ? null : (seriesLink ?? this.seriesLink),
       externalMeta: clearExternalMeta
           ? null
           : (externalMeta ?? this.externalMeta),
@@ -1768,6 +1909,7 @@ class Anime {
     notes: notes,
     rating: rating,
     localArchive: localArchive,
+    seriesLink: seriesLink,
     externalMeta: externalMeta,
     createdAt: createdAt,
     modifiedAt: modifiedAt,
@@ -1803,6 +1945,17 @@ class Anime {
               ? AnimeLocalArchive(extraJson: mergedArchiveExtraJson)
               : null);
 
+    final mergedSeriesLinkExtraJson = _mergeJsonMaps([
+      for (final source in sources)
+        if (source?.seriesLink != null) source!.seriesLink!.extraJson,
+      if (seriesLink != null) seriesLink!.extraJson,
+    ]);
+    final preservedSeriesLink = seriesLink != null
+        ? seriesLink!.withExtraJson(mergedSeriesLinkExtraJson)
+        : (mergedSeriesLinkExtraJson.isNotEmpty
+              ? AnimeSeriesLink(extraJson: mergedSeriesLinkExtraJson)
+              : null);
+
     final mergedExternalMetaExtraJson = _mergeJsonMaps([
       for (final source in sources)
         if (source?.externalMeta != null) source!.externalMeta!.extraJson,
@@ -1833,6 +1986,7 @@ class Anime {
       notes: notes,
       rating: preservedRating,
       localArchive: preservedLocalArchive,
+      seriesLink: preservedSeriesLink,
       externalMeta: preservedExternalMeta,
       createdAt: createdAt,
       modifiedAt: modifiedAt,
@@ -1944,6 +2098,11 @@ class Anime {
     } else if (!extraJson.containsKey('localArchive')) {
       json.remove('localArchive');
     }
+    if (seriesLink != null && seriesLink!.hasAnyData) {
+      json['seriesLink'] = seriesLink!.toJson();
+    } else if (!extraJson.containsKey('seriesLink')) {
+      json.remove('seriesLink');
+    }
     if (externalMeta != null && externalMeta!.hasAnyData) {
       json['externalMeta'] = externalMeta!.toJson();
     } else if (!extraJson.containsKey('externalMeta')) {
@@ -2030,6 +2189,17 @@ class Anime {
       extraJson['localArchive'] = rawArchiveValue;
     }
 
+    AnimeSeriesLink? seriesLink;
+    final rawSeriesLinkValue = json['seriesLink'];
+    if (rawSeriesLinkValue is Map) {
+      seriesLink = AnimeSeriesLink.fromJson(
+        _stringKeyedMap(rawSeriesLinkValue),
+      );
+      if (!seriesLink.hasAnyData) seriesLink = null;
+    } else if (json.containsKey('seriesLink')) {
+      extraJson['seriesLink'] = rawSeriesLinkValue;
+    }
+
     AnimeExternalMeta? externalMeta;
     final rawExternalMetaValue = json['externalMeta'];
     if (rawExternalMetaValue is Map) {
@@ -2062,6 +2232,7 @@ class Anime {
       notes: json['notes'] as String?,
       rating: rating,
       localArchive: localArchive,
+      seriesLink: seriesLink,
       externalMeta: externalMeta,
       createdAt: DateTime.parse(json['createdAt'] as String),
       modifiedAt: DateTime.parse(json['modifiedAt'] as String),

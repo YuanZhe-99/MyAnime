@@ -183,6 +183,13 @@ Not copied to the other repos — no other app has these.
 | needs manual selection | 需要手动选择 | 匹配不够可靠、被排除在批量更新之外的条目 |
 | backoff | 退避 | 连续失败后逐级拉长的重试间隔 |
 | cover prefetch | 封面预下载 | 提前下载候选封面到本地缓存，默认关闭 |
+| series | 系列 | 一部作品的各季、剧场版与 OVA 组成的有序分组；与 anime1.me 的「系列索引」（series index）无关，勿混用 |
+| curated series | 手动关联的系列 | 用户操作创建、共享同一 `seriesId` 的系列；成员完全按用户所设 |
+| derived series | 自动归入的系列 | 应用根据标题或关联关系算出的系列，不写入任何数据；界面文案为「自动归入」 |
+| series grouping (`SeriesIndex`) | 系列分组 | 1.6.0 起在内存中计算全部系列的结构；虽然类名叫 `SeriesIndex`，中文勿译成「系列索引」，那是 anime1.me 的片库表 |
+| standalone | 独立（不归入系列） | 用户把记录移出所有系列（`standalone: true`）；它不加入任何系列，也不吸引其他记录 |
+| next season | 下一季 | 「添加下一季」操作，预填标题与递增后的季标签 |
+| materialise (a series) | 固化（系列） | 首次手动整理时给自动归入的系列的每个成员写入同一 `seriesId` |
 
 ## 6. Review checklist (run before committing a Chinese page)
 

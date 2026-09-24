@@ -3,6 +3,7 @@ import 'package:my_anime/features/anime/services/anime1_service.dart';
 import 'package:my_anime/features/anime/services/anime_search_service.dart';
 import 'package:my_anime/features/anime/views/anime1_labels.dart';
 import 'package:my_anime/l10n/app_localizations_en.dart';
+import 'package:my_anime/shared/utils/season_label.dart';
 
 /// Purpose: Pure-function coverage for the anime1.me index lookup.
 /// Inputs: None.
@@ -141,15 +142,15 @@ void main() {
     });
 
     test('seasonOrdinal understands Chinese, English and short forms', () {
-      expect(Anime1Service.seasonOrdinal('葬送的芙莉蓮 第二季'), 2);
-      expect(Anime1Service.seasonOrdinal('第3期'), 3);
-      expect(Anime1Service.seasonOrdinal('第十季'), 10);
-      expect(Anime1Service.seasonOrdinal('Season 2'), 2);
-      expect(Anime1Service.seasonOrdinal('2nd Season'), 2);
-      expect(Anime1Service.seasonOrdinal('S3'), 3);
-      expect(Anime1Service.seasonOrdinal('Part 2'), 2);
-      expect(Anime1Service.seasonOrdinal('Season 1'), 1);
-      expect(Anime1Service.seasonOrdinal('孤獨搖滾！'), isNull);
+      expect(seasonOrdinal('葬送的芙莉蓮 第二季'), 2);
+      expect(seasonOrdinal('第3期'), 3);
+      expect(seasonOrdinal('第十季'), 10);
+      expect(seasonOrdinal('Season 2'), 2);
+      expect(seasonOrdinal('2nd Season'), 2);
+      expect(seasonOrdinal('S3'), 3);
+      expect(seasonOrdinal('Part 2'), 2);
+      expect(seasonOrdinal('Season 1'), 1);
+      expect(seasonOrdinal('孤獨搖滾！'), isNull);
     });
   });
 
@@ -201,7 +202,7 @@ void main() {
       final m = Anime1Service.rank(
         index,
         Anime1Service.querySet('葬送的芙莉莲', []),
-        ordinal: Anime1Service.seasonOrdinal('第二季'),
+        ordinal: seasonOrdinal('第二季'),
       );
       expect(top(m).catId, 1700);
     });

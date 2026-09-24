@@ -255,6 +255,7 @@ when the device unfolds" needs — no lifecycle work, and no state to save and r
 | `statistics_page.dart` (summary) | Yes | Gated by `canSplitLayout`, then by `useStatsSideBySide`; see above. |
 | `statistics_page.dart` (ranking filters) | No — width only | Pairing controls onto a row is a packing question, not a two-pane one. |
 | `metadata_updates_page.dart` | Yes | Gated by `canSplitLayout`, then by `columnCapacity` at `metaUpdateCardMinWidth`. Pushed **outside** the shell, so it measures the raw window — no `shellContentWidth`, no `shellListBottomInset`. |
+| `series_widgets.dart` (manage sheet) | Yes | `showSeriesManageSheet` (1.6.0) opens a `Dialog` capped at 560 × 640 when `canSplitLayout` holds and a modal bottom sheet otherwise — no new breakpoint. The series card itself needs no rule: it lives in `_buildDetailChildren`, so the detail page's own split puts it in the right pane. |
 | `shell_scaffold.dart` | No — `useNavigationRail` | Width only; see above. |
 
 **The `kana_page.dart` exception recorded here in 1.5.3 is resolved.** It used to carry its own

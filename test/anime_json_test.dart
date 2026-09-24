@@ -483,7 +483,11 @@ void main() {
     final meta = AnimeExternalMeta.fromJson({
       'refreshedAt': '2026-08-26T12:00:00.000Z',
       'ratings': [
-        {'source': 'AniList', 'score': 9.2, 'fetchedAt': '2026-08-26T12:00:00.000Z'},
+        {
+          'source': 'AniList',
+          'score': 9.2,
+          'fetchedAt': '2026-08-26T12:00:00.000Z',
+        },
       ],
     });
     expect(meta.refreshedAt!.isUtc, isTrue);
@@ -597,44 +601,47 @@ void main() {
     expect(refreshed.ratingFor('AniList')?.votes, 500);
   });
 
-  test('sync keeps unknown external metadata fields from the non-winning side', () {
-    final local = jsonEncode({
-      'animes': [
-        {
-          'id': 'anime-1',
-          'title': 'Local wins',
-          'season': 'Season 1',
-          'startEpisode': 1,
-          'endEpisode': 12,
-          'externalMeta': {'format': 'TV'},
-          'createdAt': createdAt,
-          'modifiedAt': '2026-01-03T00:00:00.000Z',
-        },
-      ],
-    });
-    final remote = jsonEncode({
-      'animes': [
-        {
-          'id': 'anime-1',
-          'title': 'Remote loses',
-          'season': 'Season 1',
-          'startEpisode': 1,
-          'endEpisode': 12,
-          'externalMeta': {'format': 'TV', 'futureMetric': 42},
-          'createdAt': createdAt,
-          'modifiedAt': '2026-01-02T00:00:00.000Z',
-        },
-      ],
-    });
+  test(
+    'sync keeps unknown external metadata fields from the non-winning side',
+    () {
+      final local = jsonEncode({
+        'animes': [
+          {
+            'id': 'anime-1',
+            'title': 'Local wins',
+            'season': 'Season 1',
+            'startEpisode': 1,
+            'endEpisode': 12,
+            'externalMeta': {'format': 'TV'},
+            'createdAt': createdAt,
+            'modifiedAt': '2026-01-03T00:00:00.000Z',
+          },
+        ],
+      });
+      final remote = jsonEncode({
+        'animes': [
+          {
+            'id': 'anime-1',
+            'title': 'Remote loses',
+            'season': 'Season 1',
+            'startEpisode': 1,
+            'endEpisode': 12,
+            'externalMeta': {'format': 'TV', 'futureMetric': 42},
+            'createdAt': createdAt,
+            'modifiedAt': '2026-01-02T00:00:00.000Z',
+          },
+        ],
+      });
 
-    final result = mergeAnimeData(local, remote, null, autoResolve: true);
-    final animeJson = result.merged.single.toJson();
-    final metaJson = animeJson['externalMeta'] as Map<String, dynamic>;
+      final result = mergeAnimeData(local, remote, null, autoResolve: true);
+      final animeJson = result.merged.single.toJson();
+      final metaJson = animeJson['externalMeta'] as Map<String, dynamic>;
 
-    expect(animeJson['title'], 'Local wins');
-    expect(metaJson['format'], 'TV');
-    expect(metaJson['futureMetric'], 42);
-  });
+      expect(animeJson['title'], 'Local wins');
+      expect(metaJson['format'], 'TV');
+      expect(metaJson['futureMetric'], 42);
+    },
+  );
 
   test('external scores are rebased onto ten before they are compared', () {
     // scoreMax is stored per entry, so a source on another scale must not be
@@ -731,31 +738,138 @@ void main() {
     expect((pinned.data!['sort'] as Map)['externalSource'], 'MyAnimeList');
 
     // Default is unchanged, so existing API clients keep their old answer.
-    final personal = LocalApiServer.buildRankingSnapshotForQuery(
-      [ownRatingOnly, databaseOnly, both],
-      const {},
-    );
+    final personal = LocalApiServer.buildRankingSnapshotForQuery([
+      ownRatingOnly,
+      databaseOnly,
+      both,
+    ], const {});
     expect(personal.data!['total'], 2);
     expect(
       (personal.data!['data'] as List).map((row) => row['title']).toList(),
       ['Mine', 'Both'],
     );
     expect((personal.data!['sort'] as Map)['scoreSource'], 'personal');
-    expect((personal.data!['sort'] as Map).containsKey('externalSource'), isFalse);
+    expect(
+      (personal.data!['sort'] as Map).containsKey('externalSource'),
+      isFalse,
+    );
   });
 
   test('pinning a database source without selecting one is rejected', () {
-    final result = LocalApiServer.buildRankingSnapshotForQuery(
-      const [],
-      {'externalSource': 'bangumi.tv'},
-    );
+    final result = LocalApiServer.buildRankingSnapshotForQuery(const [], {
+      'externalSource': 'bangumi.tv',
+    });
     expect(result.error, 'externalSource requires scoreSource=external');
     expect(
-      LocalApiServer.buildRankingSnapshotForQuery(
-        const [],
-        {'scoreSource': 'nonsense'},
-      ).error,
+      LocalApiServer.buildRankingSnapshotForQuery(const [], {
+        'scoreSource': 'nonsense',
+      }).error,
       'invalid scoreSource',
     );
+  });
+
+  group('seriesLink', () {
+    Map<String, dynamic> base([Map<String, dynamic> extra = const {}]) => {
+      'id': 's-1',
+      'title': 'Linked',
+      'season': 'Season 1',
+      'startEpisode': 1,
+      'endEpisode': 12,
+      'episodeStatuses': <String, dynamic>{},
+      'createdAt': '2026-01-01T00:00:00.000Z',
+      'modifiedAt': '2026-01-01T00:00:00.000Z',
+      ...extra,
+    };
+
+    test('round-trips a curated link', () {
+      final anime = Anime.fromJson(
+        base({
+          'seriesLink': {'seriesId': '0b5d0c1e', 'order': 2},
+        }),
+      );
+      expect(anime.seriesLink?.seriesId, '0b5d0c1e');
+      expect(anime.seriesLink?.order, 2);
+      expect(anime.seriesLink?.curatedSeriesId, '0b5d0c1e');
+      expect(anime.toJson()['seriesLink'], {
+        'seriesId': '0b5d0c1e',
+        'order': 2,
+      });
+    });
+
+    test('is omitted when empty, so old records serialize unchanged', () {
+      final anime = Anime.fromJson(base());
+      expect(anime.seriesLink, isNull);
+      expect(anime.toJson().containsKey('seriesLink'), isFalse);
+      expect(
+        anime
+            .copyWith(seriesLink: const AnimeSeriesLink())
+            .toJson()
+            .containsKey('seriesLink'),
+        isFalse,
+      );
+      expect(
+        Anime.fromJson(
+          base({'seriesLink': {}}),
+        ).toJson().containsKey('seriesLink'),
+        isFalse,
+      );
+    });
+
+    test('standalone wins over a seriesId, which is kept', () {
+      final anime = Anime.fromJson(
+        base({
+          'seriesLink': {'seriesId': 'abc', 'standalone': true},
+        }),
+      );
+      expect(anime.seriesLink?.standalone, isTrue);
+      expect(anime.seriesLink?.curatedSeriesId, isNull);
+      expect(anime.toJson()['seriesLink'], {
+        'seriesId': 'abc',
+        'standalone': true,
+      });
+    });
+
+    test('preserves unknown and unparseable values verbatim', () {
+      final anime = Anime.fromJson(
+        base({
+          'seriesLink': {
+            'seriesId': 42,
+            'order': 'second',
+            'standalone': 'yes',
+            'futureField': [1, 2],
+          },
+        }),
+      );
+      expect(anime.seriesLink?.seriesId, isNull);
+      expect(anime.seriesLink?.order, isNull);
+      expect(anime.seriesLink?.standalone, isFalse);
+      expect(anime.toJson()['seriesLink'], {
+        'seriesId': 42,
+        'order': 'second',
+        'standalone': 'yes',
+        'futureField': [1, 2],
+      });
+      final notAMap = Anime.fromJson(base({'seriesLink': 'odd'}));
+      expect(notAMap.toJson()['seriesLink'], 'odd');
+    });
+
+    test('withPreservedUnknownJson keeps newer link fields', () {
+      final newer = Anime.fromJson(
+        base({
+          'seriesLink': {'seriesId': 'abc', 'futureField': 'keep-me'},
+        }),
+      );
+      final older = Anime.fromJson(
+        base(),
+      ).copyWith(seriesLink: const AnimeSeriesLink(seriesId: 'abc', order: 1));
+      final preserved = older.withPreservedUnknownJson([newer]);
+      expect(preserved.toJson()['seriesLink'], {
+        'futureField': 'keep-me',
+        'seriesId': 'abc',
+        'order': 1,
+      });
+      final cleared = Anime.fromJson(base()).withPreservedUnknownJson([newer]);
+      expect(cleared.toJson()['seriesLink'], {'futureField': 'keep-me'});
+    });
   });
 }

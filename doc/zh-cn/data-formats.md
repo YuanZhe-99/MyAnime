@@ -144,7 +144,7 @@ enum AnimeType {
 | 备份包 | **是** |
 | 本地 HTTP API | **是** |
 | 分享图片卡片 | **否** —— 从不绘制 |
-| `.myanimeitem` 分享文件 | **是** —— 公开元数据，不是个人数据 |
+| `.myanimeitem` 分享文件 | **是** —— 公开元数据，不是个人数据；自 1.6.0 起导入会带过它（更早的版本导入时会丢弃） |
 
 ### `AnimeLocalArchive`
 
@@ -187,6 +187,41 @@ enum AnimeType {
 | `.myanimeitem` 分享文件 | **否**——与 `episodeStatuses`/`episodeWeekOffsets` 一起被剥离 |
 
 该表的分享一侧见 [`features/share-and-import.md`](features/share-and-import.md)。
+
+### `AnimeSeriesLink`
+
+可选（1.6.0）的记录，说明用户把动画放进了哪个**系列**——见 [`features/series-linking.md`](features/series-linking.md)。存放在 `seriesLink` 键下，有两种形状：
+
+```json
+"seriesLink": {
+  "seriesId": "0b5d0c1e-7f59-4f3e-9d5e-2a1c1b9e8f00",
+  "order": 2
+}
+```
+
+```json
+"seriesLink": { "standalone": true }
+```
+
+- `seriesId` — 同一手动关联的系列所有成员共享的小写 UUID v4。
+- `order` — 可选正整数：用户重排系列后该成员的位置。
+- `standalone` — 仅为 `true` 时写入：用户把记录移出了所有系列。手工编辑的文件同时带 `standalone` 与 `seriesId` 时，`standalone` 胜出，`seriesId` 原样保留。
+
+归属是共享的组 id，而不是前/后指针，因此任何记录都不会引用另一条记录的 `id`：删除、合并或导入记录不会留下悬空链接。没有该键的记录是由应用自行分组的**自动**记录；自动归入的系列不存储任何内容。
+
+**整个对象为空时省略**（`hasAnyData`），与 `AnimeLocalArchive` 相同，因此用户从未整理过的片库序列化结果与 1.5.7 逐字节相同，无需迁移。该对象有自己的 `extraJson`，由 `withPreservedUnknownJson` 深度合并；无法解析的值——数字 `seriesId`、字符串 `order`——原样保留并视为缺失。
+
+**它会去哪里、不会去哪里。**
+
+| 场景 | 是否包含？ |
+|---|---|
+| 磁盘上的 `anime_data.json` | **是** |
+| WebDAV 同步 | **是**，原样——走普通的整记录合并，无需改动同步层 |
+| 备份包 | **是**，原样 |
+| ZIP 导出与导入 | **是**，原样 |
+| 本地 HTTP API | **否**——未改动；API 自己的记录投影不包含它 |
+| 分享图片卡片 | **否** |
+| `.myanimeitem` 分享文件 | **否**——导出时剥离，**导入时也丢弃**。外来的 `seriesId` 在另一个片库中毫无意义，还会把导入的记录钉在自动分组之外。这与导入会带过的 `localArchive` 有意不同。 |
 
 ### 兼容性：未知 JSON 字段保留（`extraJson`）
 
@@ -265,4 +300,4 @@ WebDAV 连接详情和同步偏好（服务器 URL、凭据、自动同步开关
 - **版本 1**（单个动画）：`{"version": 1, "anime": {...}, "coverImage": "<base64>", "coverImageExt": ".jpg"}` — `coverImage`/`coverImageExt` 可选。
 - **版本 2**（多动画捆绑）：`{"version": 2, "items": [{"anime": {...}, "coverImage": "<base64>", "coverImageExt": ".jpg"}, ...]}` — 每个条目与 v1 有相同的可选封面字段。
 
-导出在写入前从每个 `anime` 负载中剥离个人观看数据（`episodeStatuses`、`episodeWeekOffsets`）。导入总是分配新 UUID，绝不覆盖既有的本地记录；多动画捆绑导入运行与 [`features/duplicate-detection.md`](features/duplicate-detection.md) 相同的冲突检测来判断传入记录是否与本地记录冲突，并为每个冲突提供保留本地/使用导入/合并选项。
+导出在写入前从每个 `anime` 负载中剥离个人数据（`episodeStatuses`、`episodeWeekOffsets`、`localArchive`，以及自 1.6.0 起的 `seriesLink`）。导入总是分配新 UUID，绝不覆盖既有的本地记录；它会丢弃文件携带的任何 `seriesLink`，并自 1.6.0 起带过 `externalMeta`（更早的版本导入时会丢弃它，尽管导出保留了它）；多动画捆绑导入运行与 [`features/duplicate-detection.md`](features/duplicate-detection.md) 相同的冲突检测来判断传入记录是否与本地记录冲突，并为每个冲突提供保留本地/使用导入/合并选项。

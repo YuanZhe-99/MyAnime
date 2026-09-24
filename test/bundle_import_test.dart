@@ -2,6 +2,7 @@ import 'dart:convert';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:my_anime/features/anime/models/anime.dart';
+import 'package:my_anime/shared/services/file_open_service.dart';
 
 /// Purpose: Test .myanimeitem multi-anime bundle export/import format.
 /// Inputs: None.
@@ -92,25 +93,25 @@ void main() {
     });
 
     test('export strips personal viewing data', () {
-      final anime = makeAnime(
-        title: 'Private Show',
-        episodeStatuses: {1: EpisodeStatus.watched, 2: EpisodeStatus.skippedThisWeek},
-      ).copyWith(
-        localArchive: const AnimeLocalArchive(
-          archived: true,
-          source: ArchiveSource.bd,
-          copies: 2,
-          location: 'NAS-01',
-        ),
-      );
+      final anime =
+          makeAnime(
+            title: 'Private Show',
+            episodeStatuses: {
+              1: EpisodeStatus.watched,
+              2: EpisodeStatus.skippedThisWeek,
+            },
+          ).copyWith(
+            localArchive: const AnimeLocalArchive(
+              archived: true,
+              source: ArchiveSource.bd,
+              copies: 2,
+              location: 'NAS-01',
+            ),
+          );
       // The archive record is only worth stripping if it was written at all.
       expect(anime.toJson().containsKey('localArchive'), isTrue);
 
-      // Simulate the strip logic used in exportAnimeItem/exportAnimeBundle.
-      final json = anime.toJson();
-      json.remove('episodeStatuses');
-      json.remove('episodeWeekOffsets');
-      json.remove('localArchive');
+      final json = FileOpenService.stripPersonalData(anime.toJson());
       expect(json.containsKey('episodeStatuses'), isFalse);
       expect(json.containsKey('episodeWeekOffsets'), isFalse);
       // Repository codes and copy counts never leave the user's devices.
@@ -118,6 +119,52 @@ void main() {
       // But other fields remain.
       expect(json['title'], 'Private Show');
       expect(json['endEpisode'], 12);
+    });
+
+    test('export strips the series link', () {
+      final anime = makeAnime(title: 'Linked').copyWith(
+        seriesLink: const AnimeSeriesLink(seriesId: 'sid-1', order: 2),
+      );
+      expect(anime.toJson().containsKey('seriesLink'), isTrue);
+      final json = FileOpenService.stripPersonalData(anime.toJson());
+      expect(json.containsKey('seriesLink'), isFalse);
+      expect(json['title'], 'Linked');
+    });
+
+    test('import drops a series link and keeps public metadata', () {
+      final parsed = Anime.fromJson({
+        ...makeAnime(title: 'Hand-written').toJson(),
+        'seriesLink': {'seriesId': 'foreign', 'futureField': 1},
+        'externalMeta': {
+          'genres': ['Drama'],
+        },
+        'futureTopLevel': 'keep-me',
+      });
+      final now = DateTime.utc(2026, 9, 24);
+      final imported = FileOpenService.importedCopy(
+        parsed,
+        id: 'fresh',
+        now: now,
+      );
+      expect(imported.id, 'fresh');
+      expect(imported.seriesLink, isNull);
+      expect(imported.toJson().containsKey('seriesLink'), isFalse);
+      expect(imported.externalMeta?.genres, ['Drama']);
+      expect(imported.toJson()['futureTopLevel'], 'keep-me');
+      expect(imported.modifiedAt, now);
+
+      final unparseable = Anime.fromJson({
+        ...makeAnime(title: 'Odd').toJson(),
+        'seriesLink': 'not-an-object',
+      });
+      expect(
+        FileOpenService.importedCopy(
+          unparseable,
+          id: 'x',
+          now: now,
+        ).toJson().containsKey('seriesLink'),
+        isFalse,
+      );
     });
 
     test('v2 bundle round-trips through JSON', () {

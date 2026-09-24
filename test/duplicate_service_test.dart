@@ -25,6 +25,7 @@ void main() {
     String? notes,
     AnimeRating? rating,
     AnimeLocalArchive? localArchive,
+    AnimeSeriesLink? seriesLink,
   }) {
     return Anime.fromJson({
       'id': id,
@@ -35,14 +36,14 @@ void main() {
       if (endEpisode != null) 'endEpisode': endEpisode,
       if (infoUrl != null) 'infoUrl': infoUrl,
       if (watchUrl != null) 'watchUrl': watchUrl,
-      if (firstAirDate != null)
-        'firstAirDate': firstAirDate.toIso8601String(),
+      if (firstAirDate != null) 'firstAirDate': firstAirDate.toIso8601String(),
       'episodeStatuses': {
         for (final e in episodeStatuses.entries) e.key.toString(): e.value.name,
       },
       if (notes != null) 'notes': notes,
       if (rating != null) 'rating': rating.toJson(),
       if (localArchive != null) 'localArchive': localArchive.toJson(),
+      if (seriesLink != null) 'seriesLink': seriesLink.toJson(),
       'createdAt': createdAt,
       'modifiedAt': modifiedAt,
     });
@@ -75,7 +76,11 @@ void main() {
     test('groups by same info URL', () {
       final animes = [
         makeAnime(id: 'a1', title: 'Alpha', infoUrl: 'https://example.com/a'),
-        makeAnime(id: 'a2', title: 'Alpha Clone', infoUrl: 'https://example.com/a'),
+        makeAnime(
+          id: 'a2',
+          title: 'Alpha Clone',
+          infoUrl: 'https://example.com/a',
+        ),
         makeAnime(id: 'a3', title: 'Beta'),
       ];
       final result = DuplicateService.detect(animes);
@@ -85,8 +90,16 @@ void main() {
 
     test('groups by same title and season', () {
       final animes = [
-        makeAnime(id: 'a1', title: 'Frieren', firstAirDate: DateTime(2026, 1, 5)),
-        makeAnime(id: 'a2', title: 'Frieren', firstAirDate: DateTime(2026, 1, 5)),
+        makeAnime(
+          id: 'a1',
+          title: 'Frieren',
+          firstAirDate: DateTime(2026, 1, 5),
+        ),
+        makeAnime(
+          id: 'a2',
+          title: 'Frieren',
+          firstAirDate: DateTime(2026, 1, 5),
+        ),
       ];
       final result = DuplicateService.detect(animes);
       expect(result.groups, hasLength(1));
@@ -95,8 +108,16 @@ void main() {
 
     test('does not group same title with different air dates', () {
       final animes = [
-        makeAnime(id: 'a1', title: 'Reboot', firstAirDate: DateTime(2025, 4, 1)),
-        makeAnime(id: 'a2', title: 'Reboot', firstAirDate: DateTime(2026, 4, 1)),
+        makeAnime(
+          id: 'a1',
+          title: 'Reboot',
+          firstAirDate: DateTime(2025, 4, 1),
+        ),
+        makeAnime(
+          id: 'a2',
+          title: 'Reboot',
+          firstAirDate: DateTime(2026, 4, 1),
+        ),
       ];
       final result = DuplicateService.detect(animes);
       expect(result.hasDuplicates, isFalse);
@@ -117,7 +138,11 @@ void main() {
       final local = [
         makeAnime(id: 'L1', title: 'Frieren', infoUrl: 'https://example.com/f'),
       ];
-      final candidate = makeAnime(id: 'NEW', title: 'Frieren', infoUrl: 'https://example.com/f');
+      final candidate = makeAnime(
+        id: 'NEW',
+        title: 'Frieren',
+        infoUrl: 'https://example.com/f',
+      );
       final match = DuplicateService.findConflict(local, candidate);
       expect(match, isNotNull);
       expect(match!.id, 'L1');
@@ -287,5 +312,48 @@ void main() {
       expect(merged.localArchive?.copies, isNull);
       expect(merged.localArchive?.location, isNull);
     });
+  });
+
+  group('series links', () {
+    test(
+      'members of a series with different season labels are not duplicates',
+      () {
+        final animes = [
+          makeAnime(id: 's1', title: 'Frieren', season: 'Season 1'),
+          makeAnime(id: 's2', title: 'Frieren', season: 'Season 2'),
+        ];
+        expect(DuplicateService.detect(animes).groups, isEmpty);
+      },
+    );
+
+    test('merge keeps the primary series link', () {
+      final merged = DuplicateService.merge(
+        makeAnime(
+          id: 'p1',
+          seriesLink: const AnimeSeriesLink(seriesId: 'primary'),
+        ),
+        [
+          makeAnime(
+            id: 'o1',
+            seriesLink: const AnimeSeriesLink(seriesId: 'other'),
+          ),
+        ],
+      );
+      expect(merged.seriesLink?.seriesId, 'primary');
+    });
+
+    test(
+      'merge takes the first fallback series link when primary has none',
+      () {
+        final merged = DuplicateService.merge(makeAnime(id: 'p1'), [
+          makeAnime(id: 'o1'),
+          makeAnime(
+            id: 'o2',
+            seriesLink: const AnimeSeriesLink(standalone: true),
+          ),
+        ]);
+        expect(merged.seriesLink?.standalone, isTrue);
+      },
+    );
   });
 }

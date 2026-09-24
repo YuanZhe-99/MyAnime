@@ -26,8 +26,9 @@
 | `_fillNextcloud` | 方法（组件辅助） | B | 用占位 Nextcloud URL/路径预填表单。 |
 | [`_syncStatusText`](#syncstatustext) | 方法（`_WebDAVConfigPageState`） | A | 构建短同步健康摘要行供显示。 |
 | `build` | 方法（组件构建） | B | 渲染 WebDAV 配置表单和同步/状态控件。 |
+| [`_seriesLine`](#seriesline) | 静态方法（`_ConflictDialog`） | A | 为冲突对话框描述一侧的系列归属。 |
 | `_ConflictDialog({required conflict})` | 构造函数（`_ConflictDialog`） | B | 创建冲突对话框实例。 |
-| `build` | 方法（组件构建） | B | 为一条冲突记录渲染本地-vs-远程比较。 |
+| `build` | 方法（组件构建） | B | 为一条冲突记录渲染本地-vs-远程比较；两侧 `seriesLink` 不同时每侧再加一行系列说明。 |
 
 ## 文档
 
@@ -297,3 +298,13 @@
     ...
   ```
 - **备注：** 这与主设置页 WebDAV 行（`functions/features/settings/views/settings_page.md`）也浮出的相同状态文本和错误-vs-冲突分支相同，那里直接从 `AutoSyncService.instance.lastError`/`hasPendingConflicts` 读取而不是经此辅助——两个页面独立格式化同一底层状态。
+
+### `static String _seriesLine(Anime anime, AppLocalizations l10n)` <a id="seriesline"></a>
+- **种类：** `_ConflictDialog` 的静态方法
+- **来源：** `lib/shared/views/webdav_config_page.dart`（约第 695 行）
+- **用途：** 在同步冲突对话框中描述一侧的系列归属（1.6.0）。
+- **输入：** `anime` — 本地或远程版本；`l10n`。
+- **返回：** `String` — 独立（不归入系列）的记录为*系列：独立（不归入系列）*，带 `curatedSeriesId` 时为*系列：手动关联*，否则为*系列：自动*。
+- **副作用：** 无。
+- **用法：** `_ConflictDialog.build` 在每侧摘要下各加一行，但仅当两侧 `seriesLink?.toJson()` 的 `jsonEncode` 结果不同时。
+- **备注：** 否则对话框只显示 `modifiedAt`、集数范围和已看集数，因此仅关于系列的冲突——在另一台设备上被同时编辑的固化系列——会看起来像两个完全相同的版本。见 [`../../../sync.md`](../../../sync.md) 与 [`../../../features/series-linking.md`](../../../features/series-linking.md)。

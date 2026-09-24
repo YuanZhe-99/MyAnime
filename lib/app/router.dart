@@ -2,6 +2,7 @@ import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../features/anime/services/series_service.dart';
 import '../features/anime/views/anime_detail_page.dart';
 import '../features/anime/views/anime_edit_page.dart';
 import '../features/anime/views/home_page.dart';
@@ -61,7 +62,13 @@ final appRouter = GoRouter(
     ),
     GoRoute(
       path: '/anime/edit',
-      builder: (context, state) => const AnimeEditPage(),
+      // `extra` may carry a NextSeasonPrefill from the series card's "Add next
+      // season" action.
+      builder: (context, state) => AnimeEditPage(
+        prefill: state.extra is NextSeasonPrefill
+            ? state.extra! as NextSeasonPrefill
+            : null,
+      ),
     ),
     GoRoute(
       path: '/anime/edit/:id',

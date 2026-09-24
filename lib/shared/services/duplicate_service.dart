@@ -164,9 +164,7 @@ class DuplicateService {
   /// Notes: Internal helper used within this file only. Returns true when both
   /// anime share a non-empty info URL or watch URL.
   static bool _urlsMatch(Anime a, Anime b) {
-    if (a.infoUrl != null &&
-        a.infoUrl!.isNotEmpty &&
-        a.infoUrl == b.infoUrl) {
+    if (a.infoUrl != null && a.infoUrl!.isNotEmpty && a.infoUrl == b.infoUrl) {
       return true;
     }
     if (a.watchUrl != null &&
@@ -186,9 +184,7 @@ class DuplicateService {
   static DuplicateReason? _duplicateReason(Anime a, Anime b) {
     if (a.id == b.id) return DuplicateReason.sameId;
     if (_urlsMatch(a, b)) return DuplicateReason.sameUrl;
-    if (_titlesMatch(a, b) &&
-        _seasonsMatch(a, b) &&
-        _datesMatch(a, b)) {
+    if (_titlesMatch(a, b) && _seasonsMatch(a, b) && _datesMatch(a, b)) {
       return DuplicateReason.sameTitleSeason;
     }
     return null;
@@ -250,14 +246,13 @@ class DuplicateService {
           }
         }
       }
-      groups.add(
-        DuplicateGroup(animes: members, reason: strongest),
-      );
+      groups.add(DuplicateGroup(animes: members, reason: strongest));
     }
 
     // Sort groups by first member's display title for stable UI order.
     groups.sort(
-      (a, b) => a.animes.first.displayTitle.compareTo(b.animes.first.displayTitle),
+      (a, b) =>
+          a.animes.first.displayTitle.compareTo(b.animes.first.displayTitle),
     );
     return DuplicateResult(groups: groups);
   }
@@ -294,7 +289,8 @@ class DuplicateService {
   /// Notes: Missing fields on `primary` are filled from `others`. Episode
   /// statuses merge with watched > skipped > unwatched. Rating sub-scores fill
   /// from fallbacks. Notes are concatenated. The local-archive record is taken
-  /// whole from the first source that has one. Unknown JSON is preserved.
+  /// whole from the first source that has one. The series link is the
+  /// primary's, else the first fallback's. Unknown JSON is preserved.
   static Anime merge(Anime primary, List<Anime> others) {
     // Episode statuses: union, watched wins over skipped wins over unwatched.
     final mergedStatuses = Map<int, EpisodeStatus>.of(primary.episodeStatuses);
@@ -329,17 +325,17 @@ class DuplicateService {
     AnimeRating? mergedRating;
     if (pRating != null) {
       mergedRating = AnimeRating(
-        overall: pRating.overall ??
-            _firstNonNull(allRatings.map((r) => r.overall)),
-        visual: pRating.visual ??
-            _firstNonNull(allRatings.map((r) => r.visual)),
-        story: pRating.story ??
-            _firstNonNull(allRatings.map((r) => r.story)),
-        character: pRating.character ??
+        overall:
+            pRating.overall ?? _firstNonNull(allRatings.map((r) => r.overall)),
+        visual:
+            pRating.visual ?? _firstNonNull(allRatings.map((r) => r.visual)),
+        story: pRating.story ?? _firstNonNull(allRatings.map((r) => r.story)),
+        character:
+            pRating.character ??
             _firstNonNull(allRatings.map((r) => r.character)),
-        music: pRating.music ??
-            _firstNonNull(allRatings.map((r) => r.music)),
-        enjoyment: pRating.enjoyment ??
+        music: pRating.music ?? _firstNonNull(allRatings.map((r) => r.music)),
+        enjoyment:
+            pRating.enjoyment ??
             _firstNonNull(allRatings.map((r) => r.enjoyment)),
       );
     } else {
@@ -370,12 +366,12 @@ class DuplicateService {
         notesParts.add(n);
       }
     }
-    final mergedNotes =
-        notesParts.isEmpty ? null : notesParts.join('\n');
+    final mergedNotes = notesParts.isEmpty ? null : notesParts.join('\n');
 
     // Local archive: whole-object, primary wins when it holds anything.
-    AnimeLocalArchive? mergedArchive =
-        primary.localArchive?.hasAnyData == true ? primary.localArchive : null;
+    AnimeLocalArchive? mergedArchive = primary.localArchive?.hasAnyData == true
+        ? primary.localArchive
+        : null;
     if (mergedArchive == null) {
       for (final other in others) {
         if (other.localArchive?.hasAnyData == true) {
@@ -396,28 +392,37 @@ class DuplicateService {
       }
     }
 
-    return primary.copyWith(
-      endEpisode: primary.endEpisode ??
-          _firstNonNull(others.map((o) => o.endEpisode)),
-      manualType: primary.manualType ??
-          _firstNonNull(others.map((o) => o.manualType)),
-      airDayOfWeek: primary.airDayOfWeek ??
-          _firstNonNull(others.map((o) => o.airDayOfWeek)),
-      airTime: primary.airTime ??
-          _firstNonNull(others.map((o) => o.airTime)),
-      firstAirDate: primary.firstAirDate ??
-          _firstNonNull(others.map((o) => o.firstAirDate)),
-      episodeStatuses: mergedStatuses,
-      episodeWeekOffsets: mergedOffsets,
-      coverImage: mergedCover,
-      infoUrl: primary.infoUrl ??
-          _firstNonNull(others.map((o) => o.infoUrl)),
-      watchUrl: primary.watchUrl ??
-          _firstNonNull(others.map((o) => o.watchUrl)),
-      notes: mergedNotes,
-      rating: mergedRating,
-      localArchive: mergedArchive,
-      modifiedAt: DateTime.now().toUtc(),
-    ).withPreservedUnknownJson([primary, ...others]);
+    return primary
+        .copyWith(
+          endEpisode:
+              primary.endEpisode ??
+              _firstNonNull(others.map((o) => o.endEpisode)),
+          manualType:
+              primary.manualType ??
+              _firstNonNull(others.map((o) => o.manualType)),
+          airDayOfWeek:
+              primary.airDayOfWeek ??
+              _firstNonNull(others.map((o) => o.airDayOfWeek)),
+          airTime:
+              primary.airTime ?? _firstNonNull(others.map((o) => o.airTime)),
+          firstAirDate:
+              primary.firstAirDate ??
+              _firstNonNull(others.map((o) => o.firstAirDate)),
+          episodeStatuses: mergedStatuses,
+          episodeWeekOffsets: mergedOffsets,
+          coverImage: mergedCover,
+          infoUrl:
+              primary.infoUrl ?? _firstNonNull(others.map((o) => o.infoUrl)),
+          watchUrl:
+              primary.watchUrl ?? _firstNonNull(others.map((o) => o.watchUrl)),
+          notes: mergedNotes,
+          rating: mergedRating,
+          localArchive: mergedArchive,
+          seriesLink:
+              primary.seriesLink ??
+              _firstNonNull(others.map((o) => o.seriesLink)),
+          modifiedAt: DateTime.now().toUtc(),
+        )
+        .withPreservedUnknownJson([primary, ...others]);
   }
 }
