@@ -3,7 +3,8 @@
 `ManagementPage` is the seasonal quarter browser: a swipeable `PageView` of quarters (2000–2040)
 plus a final "Other" page for anime with no `firstAirDate`, a jump-to-quarter picker
 ([`quarter_picker_dialog.md`](quarter_picker_dialog.md)), a global title search, and an AppBar
-local-archive filter (all / archived / not archived) that narrows every list on the page. It reads and
+local-archive filter (all / archived / not archived) that narrows every list on the page, and, while
+automatic categories are on (1.6.0 M4), a category filter beside it that works the same way. It reads and
 writes through `AnimeStorage` ([`../services/anime_storage.md`](../services/anime_storage.md)) and
 places anime into quarters using [`Anime.airsInQuarter`](../models/anime.md#airsinquarter). See
 [`../../../../features/home-management-statistics.md`](../../../../features/home-management-statistics.md)
@@ -28,7 +29,7 @@ for the quarter-placement rules this page's grouping relies on.
 | [`_animeForQuarter`](#_animeforquarter) | method (`_ManagementPageState`) | A | Filter and sort the anime airing in a given quarter. |
 | [`_otherAnime`](#_otheranime) | getter (`_ManagementPageState`) | A | Anime with no `firstAirDate`, sorted by title. |
 | [`_searchResults`](#_searchresults) | method (`_ManagementPageState`) | A | Filter and sort anime by a case-insensitive title substring match. |
-| [`_applyArchiveFilter`](#_applyarchivefilter) | method (`_ManagementPageState`) | A | Narrow a list to the selected local-archive filter. |
+| [`_applyArchiveFilter`](#_applyarchivefilter) | method (`_ManagementPageState`) | A | Narrow a list to the selected local-archive and category filters. |
 | `_archiveFilterLabel` | method (`_ManagementPageState`) | B | Localize an `_ArchiveFilter` value for the filter menu. |
 | `_quarterLabel` | method (`_ManagementPageState`) | B | Format a quarter as "`year` `season name`". |
 | `_dayLabel` | method (`_ManagementPageState`) | B | Localize a day-of-week number for the anime tile subtitle. |
@@ -82,9 +83,11 @@ for the quarter-placement rules this page's grouping relies on.
 - **Purpose:** Reload the full anime list from storage into `_allAnime`.
 - **Inputs:** None.
 - **Returns:** `Future<void>`.
-- **Side effects:** Calls `AnimeStorage.load()`; `setState`s `_allAnime`.
-- **Algorithm:** Await `AnimeStorage.load()`; if mounted, `setState(() => _allAnime =
-  data.animeList)`.
+- **Side effects:** Calls `AnimeStorage.load()`, `AnimeStorage.getOnDeviceAiEnabled()` and, only
+  while on-device AI is on, `AiInsightsCache.load()`; `setState`s `_allAnime` and `_insights`.
+- **Algorithm:** Await `AnimeStorage.load()`, then — only while on-device AI is on —
+  `AiInsightsCache.load()` (1.6.0 M4, without pruning; otherwise `_insights` is `null`, so
+  AI-suggested categories stop matching the filter once AI is off); if mounted, `setState` both `_allAnime = data.animeList` and `_insights`.
 - **Usage:**
   ```dart
   AutoSyncService.instance.addOnLocalDataChanged(_load);
@@ -154,14 +157,17 @@ for the quarter-placement rules this page's grouping relies on.
 ### `List<Anime> _applyArchiveFilter(List<Anime> animes)` <a id="_applyarchivefilter"></a>
 - **Kind:** method of `_ManagementPageState`
 - **Source:** `lib/features/anime/views/management_page.dart` (approx. line 130)
-- **Purpose:** Narrow a candidate list to the local-archive filter currently selected in the AppBar,
-  so one rule serves all three list builders on this page.
+- **Purpose:** Narrow a candidate list to the local-archive and category filters currently selected in
+  the AppBar, so one rule serves all three list builders on this page.
 - **Inputs:** `animes` — the unfiltered candidates (always `_allAnime` today).
 - **Returns:** `List<Anime>`.
-- **Side effects:** None (reads `_archiveFilter`).
-- **Algorithm:** `switch` on the private `_ArchiveFilter` enum — `all` returns the input untouched,
+- **Side effects:** None (reads `_archiveFilter`, `_categoryFilter`, `_insights` and
+  `appSettingsProvider`).
+- **Algorithm:** 1) `switch` on the private `_ArchiveFilter` enum — `all` returns the input untouched,
   `archived` keeps `a.localArchive?.archived == true`, `notArchived` keeps the complement
-  (`!= true`).
+  (`!= true`). 2) When `_categoryFilter` is set **and** `autoCategoriesEnabled` is on, keep only the
+  records whose [`resolveCategories`](../../categories/services/category_service.md#resolvecategories)
+  ids (own, mapped or AI, using `_insights`) contain it.
 - **Usage:**
   ```dart
   return _applyArchiveFilter(_allAnime).where((a) {
@@ -172,7 +178,12 @@ for the quarter-placement rules this page's grouping relies on.
 - **Notes:** `notArchived` deliberately folds together "never recorded" (`localArchive == null`) and
   "explicitly recorded as not kept" (`archived: false`), because the question the filter answers is
   "what still needs downloading". The filter is view state only — it is not persisted to
-  `storage_config.json` and resets to `all` whenever the shell rebuilds this page.
+  `storage_config.json` and resets to `all` whenever the shell rebuilds this page. The category
+  filter (`_categoryFilter`, `null` for all) is view state in exactly the same way, set from a
+  `PopupMenuButton` in the AppBar that appears only while automatic categories are on (*All
+  categories*, then every taxonomy id with its [`categoryLabel`](category_widgets.md#categorylabel)).
+  Turning automatic categories off hides the button and stops the filter applying, even if a value
+  is still held.
 ### `Future<void> _deleteAnime(Anime anime)` <a id="_deleteanime"></a>
 - **Kind:** method of `_ManagementPageState`
 - **Source:** `lib/features/anime/views/management_page.dart` (approx. line 176)

@@ -20,6 +20,7 @@ const _animeJsonKeys = {
   'rating',
   'localArchive',
   'seriesLink',
+  'categories',
   'externalMeta',
   'createdAt',
   'modifiedAt',
@@ -1654,6 +1655,12 @@ class Anime {
   /// Optional series membership set by the user (see [AnimeSeriesLink]).
   final AnimeSeriesLink? seriesLink;
 
+  /// The user's own classification, as category ids (see
+  /// `anime_category.dart`). **Absent means automatic**; present, even as an
+  /// empty list, means the user decided and it wins. Ids this build does not
+  /// know are kept and written back but not shown.
+  final List<String>? categories;
+
   /// Optional public metadata pulled from external anime databases.
   final AnimeExternalMeta? externalMeta;
 
@@ -1667,7 +1674,7 @@ class Anime {
   final Map<String, dynamic> extraJson;
 
   /// Purpose: Create a anime instance.
-  /// Inputs: `id`, `title`, `titleJa`, `season`, `startEpisode`, `endEpisode`, `manualType`, `airDayOfWeek`, `airTime`, `firstAirDate`, `episodeStatuses`, `coverImage`, `infoUrl`, `watchUrl`, `episodeWeekOffsets`, `notes`, `rating`, `localArchive`, `seriesLink`, `externalMeta`, `createdAt`, `modifiedAt`, `extraJson`.
+  /// Inputs: `id`, `title`, `titleJa`, `season`, `startEpisode`, `endEpisode`, `manualType`, `airDayOfWeek`, `airTime`, `firstAirDate`, `episodeStatuses`, `coverImage`, `infoUrl`, `watchUrl`, `episodeWeekOffsets`, `notes`, `rating`, `localArchive`, `seriesLink`, `categories`, `externalMeta`, `createdAt`, `modifiedAt`, `extraJson`.
   /// Returns: A new `Anime` instance.
   /// Side effects: None.
   /// Notes: None.
@@ -1691,6 +1698,7 @@ class Anime {
     this.rating,
     this.localArchive,
     this.seriesLink,
+    this.categories,
     this.externalMeta,
     required this.createdAt,
     required this.modifiedAt,
@@ -1986,7 +1994,7 @@ class Anime {
   }
 
   /// Purpose: Create a copy with selected fields replaced.
-  /// Inputs: `title`, `titleJa`, `season`, `startEpisode`, `endEpisode`, `clearEndEpisode`, `manualType`, `clearManualType`, `airDayOfWeek`, `clearAirDayOfWeek`, `airTime`, `clearAirTime`, `firstAirDate`, `clearFirstAirDate`, `episodeStatuses`, `coverImage`, `clearCoverImage`, `infoUrl`, `clearInfoUrl`, `watchUrl`, `clearWatchUrl`, `episodeWeekOffsets`, `notes`, `clearNotes`, `rating`, `clearRating`, `localArchive`, `clearLocalArchive`, `seriesLink`, `clearSeriesLink`, `externalMeta`, `clearExternalMeta`, `modifiedAt`.
+  /// Inputs: `title`, `titleJa`, `season`, `startEpisode`, `endEpisode`, `clearEndEpisode`, `manualType`, `clearManualType`, `airDayOfWeek`, `clearAirDayOfWeek`, `airTime`, `clearAirTime`, `firstAirDate`, `clearFirstAirDate`, `episodeStatuses`, `coverImage`, `clearCoverImage`, `infoUrl`, `clearInfoUrl`, `watchUrl`, `clearWatchUrl`, `episodeWeekOffsets`, `notes`, `clearNotes`, `rating`, `clearRating`, `localArchive`, `clearLocalArchive`, `seriesLink`, `clearSeriesLink`, `categories`, `clearCategories`, `externalMeta`, `clearExternalMeta`, `modifiedAt`.
   /// Returns: `Anime`.
   /// Side effects: None.
   /// Notes: `modifiedAt` defaults to now, so a write that must not count as a
@@ -2022,6 +2030,8 @@ class Anime {
     bool clearLocalArchive = false,
     AnimeSeriesLink? seriesLink,
     bool clearSeriesLink = false,
+    List<String>? categories,
+    bool clearCategories = false,
     AnimeExternalMeta? externalMeta,
     bool clearExternalMeta = false,
     DateTime? modifiedAt,
@@ -2052,6 +2062,7 @@ class Anime {
           ? null
           : (localArchive ?? this.localArchive),
       seriesLink: clearSeriesLink ? null : (seriesLink ?? this.seriesLink),
+      categories: clearCategories ? null : (categories ?? this.categories),
       externalMeta: clearExternalMeta
           ? null
           : (externalMeta ?? this.externalMeta),
@@ -2086,6 +2097,7 @@ class Anime {
     rating: rating,
     localArchive: localArchive,
     seriesLink: seriesLink,
+    categories: categories,
     externalMeta: externalMeta,
     createdAt: createdAt,
     modifiedAt: modifiedAt,
@@ -2163,6 +2175,7 @@ class Anime {
       rating: preservedRating,
       localArchive: preservedLocalArchive,
       seriesLink: preservedSeriesLink,
+      categories: categories,
       externalMeta: preservedExternalMeta,
       createdAt: createdAt,
       modifiedAt: modifiedAt,
@@ -2279,6 +2292,13 @@ class Anime {
     } else if (!extraJson.containsKey('seriesLink')) {
       json.remove('seriesLink');
     }
+    // The one field whose empty value is meaningful: [] is "the user chose
+    // none", so it is written; only null (automatic) omits the key.
+    if (categories != null) {
+      json['categories'] = List<String>.from(categories!);
+    } else if (!extraJson.containsKey('categories')) {
+      json.remove('categories');
+    }
     if (externalMeta != null && externalMeta!.hasAnyData) {
       json['externalMeta'] = externalMeta!.toJson();
     } else if (!extraJson.containsKey('externalMeta')) {
@@ -2376,6 +2396,14 @@ class Anime {
       extraJson['seriesLink'] = rawSeriesLinkValue;
     }
 
+    List<String>? categories;
+    final rawCategories = json['categories'];
+    if (rawCategories is List && rawCategories.every((c) => c is String)) {
+      categories = List<String>.from(rawCategories);
+    } else if (json.containsKey('categories')) {
+      extraJson['categories'] = rawCategories;
+    }
+
     AnimeExternalMeta? externalMeta;
     final rawExternalMetaValue = json['externalMeta'];
     if (rawExternalMetaValue is Map) {
@@ -2409,6 +2437,7 @@ class Anime {
       rating: rating,
       localArchive: localArchive,
       seriesLink: seriesLink,
+      categories: categories,
       externalMeta: externalMeta,
       createdAt: DateTime.parse(json['createdAt'] as String),
       modifiedAt: DateTime.parse(json['modifiedAt'] as String),

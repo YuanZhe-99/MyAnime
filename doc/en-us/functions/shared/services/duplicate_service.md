@@ -247,10 +247,13 @@ grouping/merge algorithm write-up and how it differs from WebDAV sync's per-reco
      non-null `seriesLink` among `others`. Records merged as duplicates usually share a series
      already; this only keeps a curated membership or a `standalone` choice from being lost when
      the primary had none.
-  8. Builds the final `Anime` via `primary.copyWith(...)` for `endEpisode`, `manualType`,
+  8. **Categories** (1.6.0): the user's `categories` override follows the same rule —
+     `primary.categories` if present (even `[]`), else the first non-null one among `others`; if none
+     has one, the merged record stays automatic.
+  9. Builds the final `Anime` via `primary.copyWith(...)` for `endEpisode`, `manualType`,
      `airDayOfWeek`, `airTime`, `firstAirDate` (primary-wins-else-first-non-null pattern),
      `episodeStatuses`, `episodeWeekOffsets`, `coverImage`, `infoUrl`, `watchUrl`, `notes`,
-     `rating`, `localArchive`, `seriesLink`, and a fresh UTC `modifiedAt`; then calls
+     `rating`, `localArchive`, `seriesLink`, `categories`, and a fresh UTC `modifiedAt`; then calls
      `withPreservedUnknownJson([primary,
      ...others])` so unknown top-level JSON fields survive the merge (the `extraJson` pattern — see
      [`../../../data-formats.md`](../../../data-formats.md)).

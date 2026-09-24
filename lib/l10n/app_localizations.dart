@@ -1313,6 +1313,222 @@ abstract class AppLocalizations {
   /// **'Series: automatic'**
   String get syncSeriesAuto;
 
+  /// No description provided for @syncCategories.
+  ///
+  /// In en, this message translates to:
+  /// **'Categories: {list}'**
+  String syncCategories(String list);
+
+  /// No description provided for @syncCategoriesAuto.
+  ///
+  /// In en, this message translates to:
+  /// **'Categories: automatic'**
+  String get syncCategoriesAuto;
+
+  /// No description provided for @categoryAction.
+  ///
+  /// In en, this message translates to:
+  /// **'Action'**
+  String get categoryAction;
+
+  /// No description provided for @categoryAdventure.
+  ///
+  /// In en, this message translates to:
+  /// **'Adventure'**
+  String get categoryAdventure;
+
+  /// No description provided for @categoryComedy.
+  ///
+  /// In en, this message translates to:
+  /// **'Comedy'**
+  String get categoryComedy;
+
+  /// No description provided for @categoryDrama.
+  ///
+  /// In en, this message translates to:
+  /// **'Drama'**
+  String get categoryDrama;
+
+  /// No description provided for @categoryRomance.
+  ///
+  /// In en, this message translates to:
+  /// **'Romance'**
+  String get categoryRomance;
+
+  /// No description provided for @categorySliceOfLife.
+  ///
+  /// In en, this message translates to:
+  /// **'Slice of life'**
+  String get categorySliceOfLife;
+
+  /// No description provided for @categoryFantasy.
+  ///
+  /// In en, this message translates to:
+  /// **'Fantasy'**
+  String get categoryFantasy;
+
+  /// No description provided for @categoryIsekai.
+  ///
+  /// In en, this message translates to:
+  /// **'Isekai'**
+  String get categoryIsekai;
+
+  /// No description provided for @categorySciFi.
+  ///
+  /// In en, this message translates to:
+  /// **'Sci-fi'**
+  String get categorySciFi;
+
+  /// No description provided for @categoryMecha.
+  ///
+  /// In en, this message translates to:
+  /// **'Mecha'**
+  String get categoryMecha;
+
+  /// No description provided for @categoryMystery.
+  ///
+  /// In en, this message translates to:
+  /// **'Mystery'**
+  String get categoryMystery;
+
+  /// No description provided for @categorySuspense.
+  ///
+  /// In en, this message translates to:
+  /// **'Suspense'**
+  String get categorySuspense;
+
+  /// No description provided for @categoryHorror.
+  ///
+  /// In en, this message translates to:
+  /// **'Horror'**
+  String get categoryHorror;
+
+  /// No description provided for @categoryPsychological.
+  ///
+  /// In en, this message translates to:
+  /// **'Psychological'**
+  String get categoryPsychological;
+
+  /// No description provided for @categorySupernatural.
+  ///
+  /// In en, this message translates to:
+  /// **'Supernatural'**
+  String get categorySupernatural;
+
+  /// No description provided for @categorySports.
+  ///
+  /// In en, this message translates to:
+  /// **'Sports'**
+  String get categorySports;
+
+  /// No description provided for @categoryMusic.
+  ///
+  /// In en, this message translates to:
+  /// **'Music'**
+  String get categoryMusic;
+
+  /// No description provided for @categorySchool.
+  ///
+  /// In en, this message translates to:
+  /// **'School'**
+  String get categorySchool;
+
+  /// No description provided for @categoryHistorical.
+  ///
+  /// In en, this message translates to:
+  /// **'Historical'**
+  String get categoryHistorical;
+
+  /// No description provided for @categoryMilitary.
+  ///
+  /// In en, this message translates to:
+  /// **'Military'**
+  String get categoryMilitary;
+
+  /// No description provided for @categoryGourmet.
+  ///
+  /// In en, this message translates to:
+  /// **'Gourmet'**
+  String get categoryGourmet;
+
+  /// No description provided for @categoryHealing.
+  ///
+  /// In en, this message translates to:
+  /// **'Healing'**
+  String get categoryHealing;
+
+  /// No description provided for @categoryMagicalGirl.
+  ///
+  /// In en, this message translates to:
+  /// **'Magical girl'**
+  String get categoryMagicalGirl;
+
+  /// No description provided for @categoriesTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Categories'**
+  String get categoriesTitle;
+
+  /// No description provided for @categoriesEdit.
+  ///
+  /// In en, this message translates to:
+  /// **'Edit categories'**
+  String get categoriesEdit;
+
+  /// No description provided for @categoriesReset.
+  ///
+  /// In en, this message translates to:
+  /// **'Reset to automatic'**
+  String get categoriesReset;
+
+  /// No description provided for @categoriesNone.
+  ///
+  /// In en, this message translates to:
+  /// **'No categories'**
+  String get categoriesNone;
+
+  /// No description provided for @categoriesYours.
+  ///
+  /// In en, this message translates to:
+  /// **'Chosen by you'**
+  String get categoriesYours;
+
+  /// No description provided for @settingsAutoCategories.
+  ///
+  /// In en, this message translates to:
+  /// **'Automatic categories'**
+  String get settingsAutoCategories;
+
+  /// No description provided for @settingsAutoCategoriesDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'Sort each anime into categories from the genres the databases report. Your own choices always win.'**
+  String get settingsAutoCategoriesDesc;
+
+  /// No description provided for @aiCategorizeNow.
+  ///
+  /// In en, this message translates to:
+  /// **'Categorise now'**
+  String get aiCategorizeNow;
+
+  /// No description provided for @aiCategorizeProgress.
+  ///
+  /// In en, this message translates to:
+  /// **'{pending} of {total} still to categorise'**
+  String aiCategorizeProgress(int pending, int total);
+
+  /// No description provided for @manageFilterCategory.
+  ///
+  /// In en, this message translates to:
+  /// **'Category'**
+  String get manageFilterCategory;
+
+  /// No description provided for @manageFilterAllCategories.
+  ///
+  /// In en, this message translates to:
+  /// **'All categories'**
+  String get manageFilterAllCategories;
+
   /// No description provided for @seriesMissingSequel.
   ///
   /// In en, this message translates to:

@@ -44,7 +44,7 @@ it. The user also accepted every recommendation in [§9](#9-decisions) on the sa
 - [x] **M1** Series linking core: model field, series index, series card, manual curation ([§2](#2-m1--series-linking-core))
 - [x] **M2** Relation metadata from AniList, MyAnimeList and bangumi.tv feeding the series index; full builds ([§3](#3-m2--relation-metadata-full-builds))
 - [x] **M3** On-device AI layer: Android AICore bridge, Apple Foundation Models bridge, Dart seam, Settings ([§4](#4-m3--on-device-ai-layer))
-- [ ] **M4** Automatic categories: taxonomy, genre mapping, AI gap-filling, user overrides, filter ([§5](#5-m4--automatic-categories))
+- [x] **M4** Automatic categories: taxonomy, genre mapping, AI gap-filling, user overrides, filter ([§5](#5-m4--automatic-categories))
 - [ ] **M5** Recommendations: deterministic ranking, series continuation, AI reasons ([§6](#6-m5--recommendations))
 - [ ] **M6** Wrap-up and the **1.6.0 release**: CI, privacy policy, glossary, version history, final doc pass, **delete `PLAN.md`**, version bump and tag ([§7](#7-ci-and-build)–[§10](#10-finishing-and-releasing-160))
 

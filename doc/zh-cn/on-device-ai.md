@@ -12,15 +12,17 @@ Apple Intelligence 的模型——为自动分类补缺，并为推荐写简短�
 ## 策略
 
 第 1–3、7 和 8 条在 `master` 的代码中强制执行，并由 `test/on_device_ai_test.dart` 和
-`test/ai_settings_tiles_ui_test.dart` 覆盖。第 4–6 条约束使用模型的功能，这些功能由里程碑 M4 和 M5 加入；
-`master` 上目前还不生成任何内容。
+`test/ai_settings_tiles_ui_test.dart` 覆盖。第 4–6 条约束使用模型的功能；对自动分类（1.6.0 M4）而言它们已经实现，
+并由 `test/categories_test.dart` 覆盖：AI 建议的分类标签带闪光图标，并以第 4 条的标注作为提示；类型标签映射是确定性的回退，
+模型只填补映射留空的记录；结果存放在 `ai_insights.json` 中。见
+[`features/categories-and-recommendations.md`](features/categories-and-recommendations.md)。
 
 1. **默认关闭。** 在用户打开开关之前，`storage_config.json` 中没有 `onDeviceAiEnabled`。
 2. **开关就是一道门。** 开关关闭时从不调用方法通道，连状态也不查询。
 3. **每次请求前都重新检查状态。** 系统可能在两次请求之间移除模型。
 4. **生成的输出带标注**「在本设备上生成——可能有误」。
 5. **回退方案就是应用本身。** 分类和推荐先走确定性逻辑；模型只负责补缺和添加理由。
-6. **生成的内容不同步也不备份。** 结果将存放在 `ai_insights.json` 中，该文件不会登记到
+6. **生成的内容不同步也不备份。** 结果存放在 `ai_insights.json` 中，该文件没有登记到
    `lib/app/data_modules.dart`。
 7. **绝不替用户下载任何东西。** 在 Android 上，模型下载只从设置中的「下载」按钮开始，并由 AICore 执行；在
    Apple 平台上由系统管理模型。
@@ -35,12 +37,15 @@ Apple Intelligence 的模型——为自动分类补缺，并为推荐写简短�
 | `lib/features/ai/services/genai_backend.dart` | Dart 接缝：`GenAiStatus`、`GenAiFailure`、`GenAiStatusReport`、`GenAiCoreInfo`、`GenAiBackend` 接口和 `MethodChannelGenAiBackend` |
 | `lib/features/ai/services/on_device_ai_service.dart` | `OnDeviceAiService`：开关、每次使用前的状态检查、单请求优先级队列、45 秒超时、生命周期、忙碌退避和每日配额停止 |
 | `lib/features/ai/services/output_validation.dart` | 解析选择应答、去除 Markdown、文字系统检查、清理单句 |
+| `lib/features/ai/services/prompt_templates.dart` | 带版本的分类指令与提示词（1.6.0 M4） |
+| `lib/features/ai/services/ai_insights_cache.dart` | `AiInsightsCache`：`ai_insights.json`，本设备的生成结果缓存（1.6.0 M4） |
 | `lib/features/ai/widgets/ai_settings_tiles.dart` | `AiSettingsTiles`：开关、状态行、尺寸偏好、说明和技术详情 |
+| `lib/features/categories/services/category_service.dart` | `CategoryClassifier`：每次会话的细流（至多 20 条记录）与*立即分类*（1.6.0 M4） |
 | `android/app/src/main/kotlin/com/yuanzhe/my_anime/GenAiChannel.kt` | 通往 ML Kit GenAI 的 Android 桥接 |
 | `packages/on_device_ai_apple/` | 一个本地 Flutter 插件，iOS 和 macOS 共用一份 Darwin 源码 |
 
-设置中的各行已经构建但**尚未显示**：`AiSettingsTiles` 没有放入 `settings_page.dart`，「分类与推荐」分区在
-`master` 上保持隐藏，直到 M4 加入一个让 AI 开关有所服务的功能开关。这两个开关以 `onDeviceAiEnabled` 和
+自 1.6.0（M4）起，设置中的各行显示在通用之后的「分类与推荐」分区中：先是*自动分类*开关，然后是 `AiSettingsTiles`，
+自动分类开启时再加上*立即分类*。只有自动分类开启时才能打开 AI 开关，关闭自动分类也会关闭它。这两个 AI 开关以 `onDeviceAiEnabled` 和
 `onDeviceAiPreferFast` 存放在 `storage_config.json` 中（见 [`data-formats.md`](data-formats.md)）。
 
 三个平台上的通道都是 `com.yuanzhe.my_anime/genai`。它的方法有 `status`（`force`、`preferFast`）、`info`

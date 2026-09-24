@@ -310,6 +310,30 @@ its own `extraJson`, which `withPreservedUnknownJson` deep-merges; unparseable v
 | Shared image cards | **No** |
 | `.myanimeitem` share files | **No** — stripped on export **and dropped on import**. A foreign `seriesId` means nothing in another library and would pin the imported record out of automatic grouping. This differs on purpose from `localArchive`, which import carries through. |
 
+### `categories`
+
+Since 1.6.0, the user's own classification (see
+[`features/categories-and-recommendations.md`](features/categories-and-recommendations.md)): a JSON
+list of category ids from the app's taxonomy.
+
+```json
+"categories": ["romance", "school"]
+```
+
+| Stored value | Meaning |
+|---|---|
+| key absent | Automatic: categories come from the genre mapping, else the on-device model |
+| a non-empty list | The user's choice; it wins |
+| `[]` | The user decided there are no categories; it wins too |
+
+**This is the one exception to omit-when-empty.** `[]` is written, synced and backed up, because
+dropping it would turn "none" back into automatic. Only an absent field (`null` in Dart) omits the
+key. Ids this build does not know are kept and written back but not shown; a value that is not a
+list of strings is preserved verbatim in `extraJson` and treated as absent. The field is not personal
+data: it syncs through the ordinary whole-record merge, is included in backups and ZIP export, and
+stays in `.myanimeitem` share files and survives their import. Classifications the model produced
+are **not** stored here — they live in `ai_insights.json` (below).
+
 ### Compatibility: unknown-JSON-field preservation (`extraJson`)
 
 `Anime`, `AnimeRating`, `AnimeLocalArchive`, `AnimeExternalMeta`, `AnimeExternalRating`, and
@@ -370,6 +394,7 @@ migrates data files, backups, and images.
 | Tray and launch-at-startup preferences | `storage_config.json` | No | Local desktop config |
 | Kana tab shown | `storage_config.json` | No | Device-specific `kanaTabEnabled`; absent means hidden (1.6.0) |
 | On-device AI switch and model-size preference | `storage_config.json` | No | Device-specific `onDeviceAiEnabled` and `onDeviceAiPreferFast` (Android); absent means off (1.6.0) |
+| Automatic categories | `storage_config.json` | No | Device-specific `autoCategoriesEnabled`; absent means off (1.6.0) |
 | WebDAV configuration | `webdav_config.json` | No | Local secret/config only |
 | Sync base snapshot | `.sync_base/anime_data.json` | No | Local merge tracking |
 | Local backups | `backups/backup_*.json` | No | Local recovery; v2 bundles reference deduplicated image blobs |
@@ -377,12 +402,17 @@ migrates data files, backups, and images.
 | Background update queue | `metadata_updates.json` | No | Per-device attempt/backoff state plus downloaded update candidates; rebuildable cache |
 | Prefetched candidate covers | `metadata_covers/` | No | Only when cover prefetch is enabled; pruned when its proposal is resolved |
 | Background update policy | `storage_config.json` | No | Device-specific `metadataAutoUpdate` (`off`/`noCellular`/`always`; absent means `noCellular` on mobile, `always` on desktop) and `metadataPrefetchCovers` |
+| On-device AI results | `ai_insights.json` | No | Per-device cache of AI category classifications (1.6.0); not backed up; rebuildable; pruned of deleted records on load |
 
 `metadata_updates.json` and `metadata_covers/` are neither synced nor backed up, and that needs no
 special handling: the sync and backup engines only touch the file names registered in
 `ModuleRegistry` plus `images/`, and neither is registered in `lib/app/data_modules.dart`. Both do
 live under `AnimeStorage.getAppDir()`, so a storage-path change carries them along. See
 [`features/metadata-auto-update.md`](features/metadata-auto-update.md).
+
+`ai_insights.json` (1.6.0) follows the same mechanism: it is not registered either, so it is neither
+synced nor backed up, and it moves with the storage path. Its schema is in
+[`features/categories-and-recommendations.md`](features/categories-and-recommendations.md).
 
 ### `storage_config.json`
 
@@ -394,7 +424,8 @@ metadata-update settings (`metadataAutoUpdate`, `metadataPrefetchCovers`), the p
 column counts (`homeListColumns`, `manageListColumns`, `statsListColumns`), whether the Kana
 tab is shown (`kanaTabEnabled`, written only when on), and the on-device AI switch and "Prefer the
 faster model" preference (`onDeviceAiEnabled`, `onDeviceAiPreferFast`, each written only when on;
-see [`on-device-ai.md`](on-device-ai.md)). None of this file is
+see [`on-device-ai.md`](on-device-ai.md)), and whether automatic categories are on
+(`autoCategoriesEnabled`, written only when on). None of this file is
 synced — it is intentionally device-specific, which is the right home for a network policy that
 should differ between a desktop on Ethernet and a phone on a data plan.
 
@@ -431,6 +462,7 @@ JSON file used for exporting/importing individual or multiple anime (see
 Export strips personal data (`episodeStatuses`, `episodeWeekOffsets`, `localArchive`, and since
 1.6.0 `seriesLink`) from each `anime` payload before writing. Import always assigns a new UUID and
 never overwrites an existing local record; it drops any `seriesLink` a file carries, and since 1.6.0
-it carries `externalMeta` through (earlier builds dropped it on import although export kept it); multi-anime bundle imports run the same conflict detection as
+it carries `externalMeta` through (earlier builds dropped it on import although export kept it);
+`categories` is neither stripped on export nor dropped on import (1.6.0); multi-anime bundle imports run the same conflict detection as
 [`features/duplicate-detection.md`](features/duplicate-detection.md) to decide whether an
 incoming record collides with a local one, offering keep-local/use-imported/merge per conflict.

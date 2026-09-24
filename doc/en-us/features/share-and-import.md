@@ -67,6 +67,10 @@ formats — see [`../data-formats.md`](../data-formats.md) for the exact JSON sh
   [`series-linking.md`](series-linking.md).
 - `externalMeta` (public database info) is never stripped, and since 1.6.0 import carries it
   through. Earlier builds exported it but silently dropped it on import.
+- `categories` (the user's own classification, 1.6.0) is not personal data either: it stays in
+  share files and survives import, including `[]` ("no categories") and ids the receiving build
+  does not know. A record without the field stays automatic on the receiving side. See
+  [`categories-and-recommendations.md`](categories-and-recommendations.md).
 - Statistics data-file and TXT exports go through the same stripping, so no share surface in the
   app emits `localArchive` or `seriesLink`.
 - Import always creates a new UUID for the incoming record and never overwrites an existing anime;

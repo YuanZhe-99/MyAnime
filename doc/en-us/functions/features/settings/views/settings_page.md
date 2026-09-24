@@ -1,7 +1,8 @@
 # lib/features/settings/views/settings_page.dart
 
 `SettingsPage` is the app's main Settings screen: theme/locale/calendar preferences (backed by
-`shared/providers/app_settings.dart`), the reminder toggle, the Kana-tab switch, data actions (WebDAV sync entry point,
+`shared/providers/app_settings.dart`), the reminder toggle, the Kana-tab switch, the *Categories & recommendations* section (automatic
+categories and on-device AI), data actions (WebDAV sync entry point,
 backup entry point, ZIP/Markdown export/import, duplicate check, storage location), desktop-only
 tray/auto-start/local-API-server controls, and the About section (version, privacy policy,
 licenses). It is a `ConsumerStatefulWidget` (Riverpod) that also listens to
@@ -142,6 +143,13 @@ lead to (`../../../shared/views/webdav_config_page.md`, `backup_page.md` in this
   Desktop and About sections. Since 1.6.0 General ends with the *Kana quick reference*
   `SwitchListTile`, bound to `settings.kanaTabEnabled` and `notifier.setKanaTabEnabled`; its
   description names MyNihongo!!!!! without a store link.
+  Since 1.6.0 (M4) a *Categories & recommendations* section (`aiSectionTitle`) follows General: the
+  *Automatic categories* `SwitchListTile` (`settings.autoCategoriesEnabled` /
+  `notifier.setAutoCategoriesEnabled`), then
+  [`AiSettingsTiles`](../../ai/widgets/ai_settings_tiles.md) with `featuresOn:` that switch, then —
+  only while automatic categories are on —
+  [`CategorizeNowTile`](../../categories/widgets/categorize_now_tile.md). On Windows the section holds
+  only the switch, because both AI widgets render nothing there.
 - **Usage:**
   ```dart
   final list = _buildSettingsList(l10n, settings, notifier, usesJapaneseCalendar);

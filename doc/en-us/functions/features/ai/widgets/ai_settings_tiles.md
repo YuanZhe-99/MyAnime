@@ -1,12 +1,12 @@
 # lib/features/ai/widgets/ai_settings_tiles.dart
 
-`AiSettingsTiles`, added in 1.6.0 (M3), builds the on-device AI rows of the planned *Categories &
-recommendations* Settings section: the "Use on-device AI" switch, the model status row with its
+`AiSettingsTiles`, added in 1.6.0 (M3), builds the on-device AI rows of the *Categories & recommendations*
+Settings section: the "Use on-device AI" switch, the model status row with its
 action, "Prefer the faster model" (Android, only when both sizes are served), the notes on who owns
 the model, and a collapsed *Technical details* tile. On Windows, Linux and the web it renders
-nothing. **It is not yet placed in `settings_page.dart`:** the section stays hidden on `master`
-until M4 adds the automatic-categories switch that gives the AI switch something to do, so on
-`master` it is reached only from `test/ai_settings_tiles_ui_test.dart`. See
+nothing. Since 1.6.0 (M4) `settings_page.dart` places it after the *Automatic categories* switch,
+with `featuresOn:` that switch, so the AI switch can be turned on only while automatic categories
+are on; turning automatic categories off also turns AI off. See
 [`../services/on_device_ai_service.md`](../services/on_device_ai_service.md) and
 [`../../../../on-device-ai.md`](../../../../on-device-ai.md).
 
@@ -58,7 +58,8 @@ The `featuresOn` field carries no `/// Purpose:` comment and is not a row.
   5. A collapsed *Technical details* tile with selectable text: status name and code, detail,
      variant, served and refused variants, model name, token limit, AICore version (or "not
      installed"), SDK, device, compatibility, OS version and locale support, each only when known.
-- **Usage:** `test/ai_settings_tiles_ui_test.dart` (per platform with
-  `debugDefaultTargetPlatformOverride`); Settings from M4.
+- **Usage:** `settings_page.dart`, the *Categories & recommendations* section
+  (`AiSettingsTiles(featuresOn: settings.autoCategoriesEnabled)`); `test/ai_settings_tiles_ui_test.dart`
+  (per platform with `debugDefaultTargetPlatformOverride`).
 - **Notes:** `unsupported` is worded as needing iOS 26 or macOS 26 with Apple Intelligence. It is
   what the Apple plugin reports on iOS and macOS older than 26.

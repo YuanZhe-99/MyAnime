@@ -56,6 +56,9 @@ The shared WebDAV sync, backup, and ZIP engines are not in this repository. They
   placement/tracking logic.
 - [`features/series-linking.md`](features/series-linking.md) — series linking (1.6.0): automatic
   grouping of a work's seasons, manual curation, the series card and the `seriesLink` field.
+- [`features/categories-and-recommendations.md`](features/categories-and-recommendations.md) — automatic
+  categories (1.6.0): the taxonomy, genre mapping, on-device AI gap-filling, the `categories` field
+  and the `ai_insights.json` cache.
 - [`features/home-management-statistics.md`](features/home-management-statistics.md) — the Home,
   Manage, and Stats tabs.
 - [`features/kana-reference.md`](features/kana-reference.md) — the UI-only kana quick-reference

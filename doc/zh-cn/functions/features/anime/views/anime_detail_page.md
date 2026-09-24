@@ -12,6 +12,8 @@
 
 系列卡片（1.6.0，[`series_widgets.md`](series_widgets.md) 中的 `SeriesCard`）在 `_buildDetailChildren` 中取代了原来的上一季/下一季行，位置不变，因此在双栏布局中它落在右栏。只有记录所属系列至少有两个成员时才会出现；其下方的上一季/下一季按钮现在由系列顺序驱动，放在 `Wrap` 中，窄屏手机上会换行堆叠而不会溢出。记录不属于任何系列（包括独立（不归入系列）的记录）时，卡片不出现，改由应用栏的关联菜单（*关联到系列…*、*添加下一季*，记录带 `seriesLink` 时还有*交给应用自动判断*）提供相同操作。系列卡片正上方是缺失续作提示（1.6.0 M2）：当资料库列出了系列最后一个成员的某部续作、而片库中没有它时，显示一张写着「下一部：<标题>（<来源>）」的卡片。与系列卡片不同，记录不在任何系列中时它也会出现。见 [`../../../../features/series-linking.md`](../../../../features/series-linking.md)。
 
+自动分类开启时（1.6.0 M4），`_buildHeaderChildren` 会在标签与进度条之间加一行分类标签（[`category_widgets.md`](category_widgets.md) 中的 `CategoryChips`），因此在双栏布局中它们留在左栏。其中的编辑标签打开分类编辑器。见 [`../../../../features/categories-and-recommendations.md`](../../../../features/categories-and-recommendations.md)。
+
 两种布局都由同样四个构建函数拼装——`_buildCover`、`_buildHeaderChildren`、`_buildDetailChildren`、`_buildEpisodeChildren`——因此每个区块的组件代码只有一份。`_buildHeaderChildren` 与 `_buildDetailChildren` 之间的分界**就是**分栏边界：把某个区块移过这条缝，它就会换栏。`_buildDetailChildren` 中每一项都自带前置的 `SizedBox(height: 12)`，正是这一点让同一份列表无论跟在进度条之后还是作为右栏开头都能正确呈现。
 
 ## 声明
@@ -22,6 +24,7 @@
 | `AnimeDetailPage.createState` | 方法（`AnimeDetailPage`） | B | 为此组件创建可变状态对象。 |
 | `_AnimeDetailPageState.initState` | 方法（`_AnimeDetailPageState`） | B | 触发首次数据加载。 |
 | [`_load`](#_load) | 方法（`_AnimeDetailPageState`） | A | 加载此动画并构建系列分组，找到它所属的系列。 |
+| [`_editCategories`](#_editcategories) | 方法（`_AnimeDetailPageState`） | A | 让用户设置本记录的分类。 |
 | [`_addMissingSequel`](#_addmissingsequel) | 方法（`_AnimeDetailPageState`） | A | 为资料库列出、但片库中没有的续作打开新建页。 |
 | [`_runSeriesAction`](#_runseriesaction) | 方法（`_AnimeDetailPageState`） | A | 运行系列卡片（或应用栏关联菜单）中的某个操作。 |
 | [`_toggleEpisode`](#_toggleepisode) | 方法（`_AnimeDetailPageState`） | A | 循环一集的观看状态并持久化它。 |
@@ -30,7 +33,7 @@
 | [`_delete`](#_delete) | 方法（`_AnimeDetailPageState`） | A | 确认并删除这条动画记录。 |
 | `_AnimeDetailPageState.build` | 方法（`_AnimeDetailPageState`，组件构建） | B | 构建详情页脚手架，并在单栏与双栏布局之间取舍。 |
 | `_buildCover` | 方法（组件辅助） | B | 按明确尺寸构建封面图块。 |
-| `_buildHeaderChildren` | 方法（组件辅助） | B | 构建头部块：日文标题、标签（含 anime1.me 进度标签）与已看集数条。 |
+| `_buildHeaderChildren` | 方法（组件辅助） | B | 构建头部块：日文标题、标签（含 anime1.me 进度标签）、自动分类开启时的分类标签，以及已看集数条。 |
 | `_buildDetailChildren` | 方法（组件辅助） | B | 构建进度条下方的卡片，以及缺失续作提示、系列卡片和上一季/下一季按钮。 |
 | `_buildEpisodeChildren` | 方法（组件辅助） | B | 构建剧集列表表头及每一集一行。 |
 | [`_toggleAllWatched`](#_toggleallwatched) | 方法（`_AnimeDetailPageState`） | A | 把每个被跟踪剧集标记为已看，已完整时则全部标记为未看。 |
@@ -59,11 +62,12 @@
 - **用途：** 加载 `widget.animeId` 标识的动画及其所属的系列。
 - **输入：** 无（`widget.animeId` 从外层组件读取）。
 - **返回：** `Future<void>`。
-- **副作用：** 调用 `AnimeStorage.load()`；`setState` `_anime`、`_seriesIndex`、`_series`、`_missingSequel`。不写入任何内容。
+- **副作用：** 调用 `AnimeStorage.load()`、`AnimeStorage.getAutoCategoriesEnabled()`，仅在后者与端侧 AI（`AnimeStorage.getOnDeviceAiEnabled()`）都开启时调用 `AiInsightsCache.load()`；`setState` `_anime`、`_seriesIndex`、`_series`、`_missingSequel`、`_categoriesOn` 和 `_categories`。不写入任何内容。
 - **算法：**
   1. Await `AnimeStorage.load()` 并找 `id == widget.animeId` 的记录。
   2. 在整个片库上构建 [`SeriesIndex`](../services/series_service.md#seriesindex-build)，向它查询该记录的系列。
   3. 用记录、索引和系列 `setState`——但只在该系列至少有两个成员时；否则 `_series` 为 `null`，不显示系列卡片。同时把 [`missingSequelFor`](../services/series_service.md#missingsequelfor) 的结果存为 `_missingSequel`，由它驱动缺失续作提示。
+  4. 把自动分类开关存为 `_categoriesOn`，把记录的 [`resolveCategories`](../../categories/services/category_service.md#resolvecategories) 结果（读取了 AI 缓存时带上缓存）存为 `_categories`。
 - **用法：**
   ```dart
   @override
@@ -74,6 +78,21 @@
   ```
   （`_AnimeDetailPageState.initState`，同一文件；编辑/删除/剧集操作后也调用它刷新页面）
 - **备注：** 1.6.0 之前，这里匹配 `displayTitle` 完全相同的记录，并用普通 `String.compareTo` 比较它们的 `season` 标签，结果把 `"Season 10"` 排在 `"Season 2"` 之前，而且标题稍有不同的续作永远找不到。现在不再比较字符串：顺序来自系列分组（显式 `order`，然后 `firstAirDate`、季数序数、`createdAt`、`id`），旧的相同标题规则只作为系列分组的一种边保留下来。见 [`../../../../features/series-linking.md`](../../../../features/series-linking.md)。
+
+### `Future<void> _editCategories()` <a id="_editcategories"></a>
+- **种类：** `_AnimeDetailPageState` 的方法
+- **来源：** `lib/features/anime/views/anime_detail_page.dart`（约第 108 行）
+- **用途：** 让用户设置本记录的分类。
+- **输入：** 无。
+- **返回：** `Future<void>`。
+- **副作用：** 可能调用 `AnimeStorage.addOrUpdate`（一次用户编辑，以 UTC 写入 `modifiedAt`）；经 `_load()` 重新加载。
+- **算法：**
+  1. 以当前生效的 id 和 `hasOverride: anime.categories != null` 打开 [`showCategoryEditor`](category_widgets.md#showcategoryeditor)。被关闭 → 返回。
+  2. `CategoriesChosen(ids)` → `copyWith(categories: [...ids, ...unknown])`，其中 `unknown` 是记录自身列表中本构建不认识的每个 id，使较新构建的 id 得以保留。什么都不选时写入 `[]`。
+  3. `CategoriesReset` → `copyWith(clearCategories: true)`，让记录回到自动分类。
+  4. 用 `AnimeStorage.addOrUpdate` 保存，然后 `_load()`。
+- **用法：** `_buildHeaderChildren` 中的 `CategoryChips(categories: _categories, onEdit: _editCategories)`。
+- **备注：** 编辑器从*当前生效的* id 开始，因此不做改动直接保存，会把映射或 AI 得出的分类变成用户自己的分类。这次写入是普通的用户编辑，同步方式与其他编辑相同。
 
 ### `Future<void> _addMissingSequel(AnimeExternalRelation relation)` <a id="_addmissingsequel"></a>
 - **种类：** `_AnimeDetailPageState` 的方法

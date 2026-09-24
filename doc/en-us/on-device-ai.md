@@ -14,8 +14,12 @@ facts behind that, how the code is laid out, and what still has to be checked on
 ## Policy
 
 Rules 1–3, 7 and 8 are enforced in code on `master` and covered by `test/on_device_ai_test.dart`
-and `test/ai_settings_tiles_ui_test.dart`. Rules 4–6 bind the features that use the model, which
-milestones M4 and M5 add; nothing on `master` generates anything yet.
+and `test/ai_settings_tiles_ui_test.dart`. Rules 4–6 bind the features that use the model; for
+automatic categories (1.6.0 M4) they are implemented and covered by `test/categories_test.dart`:
+AI-suggested category chips carry a sparkle and the rule 4 label as their tooltip, the genre
+mapping is the deterministic fallback and the model only fills records it leaves empty, and results
+live in `ai_insights.json`. See
+[`features/categories-and-recommendations.md`](features/categories-and-recommendations.md).
 
 1. **Off by default.** `onDeviceAiEnabled` is absent from `storage_config.json` until the user turns
    the switch on.
@@ -26,8 +30,8 @@ milestones M4 and M5 add; nothing on `master` generates anything yet.
 4. **Generated output is labelled** "Generated on this device — may be wrong".
 5. **The fallback is the app.** Categories and recommendations are deterministic first; the model
    only fills gaps and adds reasons.
-6. **Nothing generated is synced or backed up.** Results will live in `ai_insights.json`, which is
-   not to be registered in `lib/app/data_modules.dart`.
+6. **Nothing generated is synced or backed up.** Results live in `ai_insights.json`, which is not
+   registered in `lib/app/data_modules.dart`.
 7. **Nothing is downloaded on the user's behalf.** On Android the model download starts only from
    the Download button in Settings and is performed by AICore; on Apple platforms the system
    manages the model.
@@ -42,13 +46,17 @@ Both flavors ship the feature: it makes no network call of its own.
 | `lib/features/ai/services/genai_backend.dart` | The Dart seam: `GenAiStatus`, `GenAiFailure`, `GenAiStatusReport`, `GenAiCoreInfo`, the `GenAiBackend` interface and `MethodChannelGenAiBackend` |
 | `lib/features/ai/services/on_device_ai_service.dart` | `OnDeviceAiService`: the switch, status before every use, the single-flight priority queue, the 45-second timeout, lifecycle, busy backoff and the daily quota stop |
 | `lib/features/ai/services/output_validation.dart` | Parsing a choice reply, stripping Markdown, the script check, cleaning one sentence |
+| `lib/features/ai/services/prompt_templates.dart` | The versioned classification instructions and prompt (1.6.0 M4) |
+| `lib/features/ai/services/ai_insights_cache.dart` | `AiInsightsCache`: `ai_insights.json`, the per-device cache of generated results (1.6.0 M4) |
 | `lib/features/ai/widgets/ai_settings_tiles.dart` | `AiSettingsTiles`: the switch, the status row, the size preference, the notes and the technical details |
+| `lib/features/categories/services/category_service.dart` | `CategoryClassifier`: the per-session trickle (at most 20 records) and *Categorise now* (1.6.0 M4) |
 | `android/app/src/main/kotlin/com/yuanzhe/my_anime/GenAiChannel.kt` | The Android bridge to ML Kit GenAI |
 | `packages/on_device_ai_apple/` | A local Flutter plugin with one shared Darwin source for iOS and macOS |
 
-The Settings rows are built but **not yet shown**: `AiSettingsTiles` is not inserted into
-`settings_page.dart`, and the *Categories & recommendations* section stays hidden on `master` until
-M4 adds a feature switch for the AI switch to serve. The switches are stored as
+Since 1.6.0 (M4) the Settings rows are shown in the *Categories & recommendations* section after
+General: the *Automatic categories* switch, then `AiSettingsTiles`, then *Categorise now* while
+automatic categories are on. The AI switch can be turned on only while automatic categories are on,
+and turning automatic categories off turns it off too. The AI switches are stored as
 `onDeviceAiEnabled` and `onDeviceAiPreferFast` in `storage_config.json` (see
 [`data-formats.md`](data-formats.md)).
 

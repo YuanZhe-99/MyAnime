@@ -20,7 +20,7 @@ registers the `.myanimeitem` file association.
 | [`processPendingFile`](#processpendingfile) | method (`FileOpenService`) | A | Import and navigate to a previously-remembered pending file. |
 | [`handleFile`](#handlefile) | method (`FileOpenService`) | A | Import a `.myanimeitem` file (v1 or v2) directly into storage. |
 | [`_importOne`](#_importone) | method (`FileOpenService`) | A | Decode a parsed record's bundled cover, then build the new record through `importedCopy`. |
-| [`importedCopy`](#importedcopy) | method (`FileOpenService`), `@visibleForTesting` | A | Build the record an import writes: new id and timestamps, `seriesLink` dropped, `externalMeta` carried. |
+| [`importedCopy`](#importedcopy) | method (`FileOpenService`), `@visibleForTesting` | A | Build the record an import writes: new id and timestamps, `seriesLink` dropped, `externalMeta` and `categories` carried. |
 | [`parseBundle`](#parsebundle) | method (`FileOpenService`) | A | Parse a `.myanimeitem` file into an `ImportBundle` without writing storage. |
 | [`pickAndParseBundle`](#pickandparsebundle) | method (`FileOpenService`) | A | Let the user pick a `.myanimeitem` file and parse it into a bundle. |
 | [`applyBundle`](#applybundle) | method (`FileOpenService`) | A | Persist the chosen subset of a parsed bundle to storage. |
@@ -140,6 +140,9 @@ registers the `.myanimeitem` file association.
   - **`externalMeta` is carried** since 1.6.0. Earlier builds dropped it on import even though export
     never stripped it, so shared database info silently vanished; it is public information about the
     work, not personal data.
+  - **`categories` is carried** (1.6.0, M4). The user's classification describes the work, not the
+    viewer, so it stays in share files ([`stripPersonalData`](#strippersonaldata) keeps it) and an
+    import keeps it — including `[]` and ids this build does not know.
   - Personal fields (`episodeStatuses`, `episodeWeekOffsets`, `localArchive`) are carried over as-is
     — stripping happens on export (see [`stripPersonalData`](#strippersonaldata)). Since export
     strips them they are normally absent; carrying them keeps a hand-written file's values from

@@ -290,7 +290,8 @@ class DuplicateService {
   /// statuses merge with watched > skipped > unwatched. Rating sub-scores fill
   /// from fallbacks. Notes are concatenated. The local-archive record is taken
   /// whole from the first source that has one. The series link is the
-  /// primary's, else the first fallback's. Unknown JSON is preserved.
+  /// primary's, else the first fallback's. So is the user's `categories`
+  /// override. Unknown JSON is preserved.
   static Anime merge(Anime primary, List<Anime> others) {
     // Episode statuses: union, watched wins over skipped wins over unwatched.
     final mergedStatuses = Map<int, EpisodeStatus>.of(primary.episodeStatuses);
@@ -421,6 +422,9 @@ class DuplicateService {
           seriesLink:
               primary.seriesLink ??
               _firstNonNull(others.map((o) => o.seriesLink)),
+          categories:
+              primary.categories ??
+              _firstNonNull(others.map((o) => o.categories)),
           modifiedAt: DateTime.now().toUtc(),
         )
         .withPreservedUnknownJson([primary, ...others]);

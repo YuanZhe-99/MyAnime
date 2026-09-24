@@ -68,12 +68,16 @@ lib/
   features/
     ai/                       # on-device AI layer (1.6.0)
       services/
+        ai_insights_cache.dart  # ai_insights.json, the per-device AI cache (1.6.0)
         genai_backend.dart
         on_device_ai_service.dart
         output_validation.dart
+        prompt_templates.dart   # versioned classification prompt (1.6.0)
       widgets/ai_settings_tiles.dart
     anime/
-      models/anime.dart
+      models/
+        anime.dart
+        anime_category.dart     # category taxonomy and genre mapping (1.6.0)
       services/
         anime_search_service.dart
         anime_storage.dart
@@ -86,7 +90,11 @@ lib/
         anime_detail_page.dart
         anime_edit_page.dart
         anime_search_dialog.dart
+        category_widgets.dart   # category chips and editor (1.6.0)
         series_widgets.dart     # series card and manage sheet (1.6.0)
+    categories/               # automatic categories (1.6.0)
+      services/category_service.dart
+      widgets/categorize_now_tile.dart
     kana/views/kana_page.dart
     settings/views/
       backup_page.dart
@@ -139,6 +147,10 @@ Primary tests (mirroring the structure above where relevant):
 - `test/on_device_ai_test.dart` and `test/ai_settings_tiles_ui_test.dart` — the on-device AI gate,
   status mapping, queue, pacing and output parsing against a fake backend, and the Settings rows per
   platform (1.6.0).
+- `test/categories_test.dart` — the category taxonomy and ARB completeness, genre mapping, the
+  resolution order, golden prompt strings, fingerprinting, the AI cache load/save/prune, the
+  `categories` JSON round trip (including `[]` and unknown ids), the classifier's gates and the
+  chips and editor widgets (1.6.0).
 
 `tool/` contains ad hoc scripts (icon generation, search-source validation, the Chinese
 conversion-table generator) that are not part of

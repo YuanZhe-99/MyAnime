@@ -27,6 +27,8 @@
 - 导出经 `stripPersonalData`（1.6.0 之前为私有的 `_stripPersonalData`）从每条导出记录中剥离个人数据——`episodeStatuses`、`episodeWeekOffsets`、`localArchive`，以及自 1.6.0 起的 `seriesLink`。剥离存档记录的理由与观看字段不同：它泄露的不是发送者看了什么，而是发送者把东西存在哪里。手写文件中恰好带有 `localArchive` 时导入仍会带过，以便拷贝清单保持完整。
 - `seriesLink` 在导入时不同：即使手写文件带有它（包括保留在 `extraJson` 中的无法解析的值）也会被**丢弃**。外来的 `seriesId` 在接收方片库中毫无意义，还会把记录钉在自动分组之外——见 [`series-linking.md`](series-linking.md)。
 - `externalMeta`（公开的资料库信息）从不剥离，并自 1.6.0 起导入会带过它。更早的版本会导出它，却在导入时悄无声息地丢弃。
+- `categories`（用户自己的分类，1.6.0）也不是个人数据：它保留在分享文件中，导入后仍然存在，包括 `[]`（「无分类」）和接收方构建
+  不认识的 id。没有该字段的记录在接收方保持自动分类。见 [`categories-and-recommendations.md`](categories-and-recommendations.md)。
 - 统计数据文件导出和 TXT 导出走同一套剥离，因此应用中没有任何分享界面会输出 `localArchive` 或 `seriesLink`。
 - 导入总是为传入记录创建新 UUID，绝不覆盖既有动画；新记录由 `importedCopy`（[`../functions/shared/services/file_open_service.md`](../functions/shared/services/file_open_service.md#importedcopy)）构建。
 - 多动画捆绑导入检测与既有本地记录的冲突（复用 [`duplicate-detection.md`](duplicate-detection.md) 的分组逻辑），并为每个冲突显示提供保留本地、使用导入或合并选项的对话框。

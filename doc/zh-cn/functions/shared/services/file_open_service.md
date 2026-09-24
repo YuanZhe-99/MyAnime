@@ -11,7 +11,7 @@
 | [`processPendingFile`](#processpendingfile) | 方法（`FileOpenService`） | A | 导入并导航到先前记住的待处理文件。 |
 | [`handleFile`](#handlefile) | 方法（`FileOpenService`） | A | 直接把 `.myanimeitem` 文件（v1 或 v2）导入存储。 |
 | [`_importOne`](#_importone) | 方法（`FileOpenService`） | A | 解码解析记录附带的封面，再经 `importedCopy` 构建新记录。 |
-| [`importedCopy`](#importedcopy) | 方法（`FileOpenService`），`@visibleForTesting` | A | 构建导入要写入的记录：新 id 与时间戳，丢弃 `seriesLink`，带过 `externalMeta`。 |
+| [`importedCopy`](#importedcopy) | 方法（`FileOpenService`），`@visibleForTesting` | A | 构建导入要写入的记录：新 id 与时间戳，丢弃 `seriesLink`，带过 `externalMeta` 和 `categories`。 |
 | [`parseBundle`](#parsebundle) | 方法（`FileOpenService`） | A | 把 `.myanimeitem` 文件解析为 `ImportBundle`，不写存储。 |
 | [`pickAndParseBundle`](#pickandparsebundle) | 方法（`FileOpenService`） | A | 让用户选择 `.myanimeitem` 文件并解析为捆绑。 |
 | [`applyBundle`](#applybundle) | 方法（`FileOpenService`） | A | 把已解析捆绑的所选子集持久化到存储。 |
@@ -102,6 +102,7 @@
 - **备注：**
   - **`seriesLink` 被丢弃**（1.6.0），即使手写文件带有它——包括它只作为无法解析的值留在 `extraJson` 中的情况。外来的 `seriesId` 在本片库中毫无意义，还会把记录钉在自动分组之外。
   - **`externalMeta` 自 1.6.0 起会被带过。** 更早的版本导入时会丢弃它，尽管导出从不剥离它，因此分享的资料库信息会悄无声息地消失；它是关于作品的公开信息，不是个人数据。
+  - **`categories` 会被带过**（1.6.0，M4）。用户的分类描述的是作品而不是观看者，因此它保留在分享文件中（[`stripPersonalData`](#strippersonaldata) 不剥离它），导入时也保留——包括 `[]` 和本构建不认识的 id。
   - 个人字段（`episodeStatuses`、`episodeWeekOffsets`、`localArchive`）原样带过——剥离在导出时发生（见 [`stripPersonalData`](#strippersonaldata)）。由于导出会剥离它们，它们通常不存在；仍然带过是为了不静默丢弃手写文件的值。因此 `localArchive` 与 `seriesLink` 在导入时的不同处理是有意为之。
   - 由 `test/bundle_import_test.dart` 覆盖。
 

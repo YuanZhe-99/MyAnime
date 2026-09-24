@@ -253,6 +253,26 @@ enum AnimeType {
 | 分享图片卡片 | **否** |
 | `.myanimeitem` 分享文件 | **否**——导出时剥离，**导入时也丢弃**。外来的 `seriesId` 在另一个片库中毫无意义，还会把导入的记录钉在自动分组之外。这与导入会带过的 `localArchive` 有意不同。 |
 
+### `categories`
+
+自 1.6.0 起，用户自己的分类（见
+[`features/categories-and-recommendations.md`](features/categories-and-recommendations.md)）：一个由应用分类表中的分类 id 组成的 JSON 列表。
+
+```json
+"categories": ["romance", "school"]
+```
+
+| 存储值 | 含义 |
+|---|---|
+| 没有该键 | 自动：分类来自类型标签映射，否则来自端侧模型 |
+| 非空列表 | 用户的选择；它胜出 |
+| `[]` | 用户认定没有分类；同样胜出 |
+
+**这是「为空即省略」的唯一例外。** `[]` 会被写出、同步和备份，因为丢掉它会把「无」变回自动。只有字段不存在（Dart 中为 `null`）
+时才省略该键。本构建不认识的 id 会被保留并写回，但不显示；不是字符串列表的值原样保留在 `extraJson` 中并视为不存在。该字段不是个人数据：
+它经普通的整条记录合并同步，包含在备份和 ZIP 导出中，保留在 `.myanimeitem` 分享文件中，导入后仍然存在。模型产生的分类**不**存放在这里——
+它们在 `ai_insights.json` 中（见下文）。
+
 ### 兼容性：未知 JSON 字段保留（`extraJson`）
 
 `Anime`、`AnimeRating`、`AnimeLocalArchive`、`AnimeExternalMeta`、`AnimeExternalRating` 和 `AnimeData`（顶层 `{animes: [...]}` 容器）各携带一个 `extraJson` 映射，保存当前应用版本不认识的任何 JSON 键。模式：
@@ -294,6 +314,7 @@ enum AnimeType {
 | 托盘和开机自启偏好 | `storage_config.json` | 否 | 本地桌面配置 |
 | 是否显示假名标签 | `storage_config.json` | 否 | 设备特有的 `kanaTabEnabled`；缺省表示隐藏（1.6.0） |
 | 端侧 AI 开关与模型尺寸偏好 | `storage_config.json` | 否 | 设备特有的 `onDeviceAiEnabled` 与 `onDeviceAiPreferFast`（Android）；缺省表示关闭（1.6.0） |
+| 自动分类 | `storage_config.json` | 否 | 设备特有的 `autoCategoriesEnabled`；缺省表示关闭（1.6.0） |
 | WebDAV 配置 | `webdav_config.json` | 否 | 仅本地秘密/配置 |
 | 同步基线快照 | `.sync_base/anime_data.json` | 否 | 本地合并跟踪 |
 | 本地备份 | `backups/backup_*.json` | 否 | 本地恢复；v2 捆绑引用去重后的图像 blob |
@@ -301,15 +322,19 @@ enum AnimeType {
 | 后台更新队列 | `metadata_updates.json` | 否 | 设备本地的尝试/退避状态，以及已下载的更新候选；可重建的缓存 |
 | 预取的候选封面 | `metadata_covers/` | 否 | 仅在启用封面预下载时存在；对应建议被处理后即清理 |
 | 后台更新策略 | `storage_config.json` | 否 | 设备特有的 `metadataAutoUpdate`（`off`/`noCellular`/`always`；缺省表示移动端 `noCellular`、桌面 `always`）与 `metadataPrefetchCovers` |
+| 端侧 AI 结果 | `ai_insights.json` | 否 | 本设备的 AI 分类结果缓存（1.6.0）；不备份；可重建；加载时修剪已删除记录的条目 |
 
 `metadata_updates.json` 与 `metadata_covers/` 既不同步也不备份，而这不需要任何特殊处理：同步与备份引擎
 只会碰 `ModuleRegistry` 中注册的文件名外加 `images/`，而两者都没有注册进 `lib/app/data_modules.dart`。
 它们确实位于 `AnimeStorage.getAppDir()` 之下，所以更换存储路径时会跟着一起迁移。见
 [`features/metadata-auto-update.md`](features/metadata-auto-update.md)。
 
+`ai_insights.json`（1.6.0）遵循同样的机制：它也没有注册，因此既不同步也不备份，并随存储路径迁移。其 schema 见
+[`features/categories-and-recommendations.md`](features/categories-and-recommendations.md)。
+
 ### `storage_config.json`
 
-保存上表中除 WebDAV 配置外的每个设备本地偏好：主题模式、语言区域、日历周起始/布局/时间基准/视图格式偏好、存储路径覆盖、自动备份启用 + 保留天数（`backupRetentionDays`）、提醒设置、API 服务器启用/监听地址/端口/凭据、托盘/开机自启偏好，以及后台资料更新设置（`metadataAutoUpdate`、`metadataPrefetchCovers`）、分模块的列表列数（`homeListColumns`、`manageListColumns`、`statsListColumns`），是否显示假名标签（`kanaTabEnabled`，仅在开启时写入），以及端侧 AI 开关与「使用更快的模型」偏好（`onDeviceAiEnabled`、`onDeviceAiPreferFast`，都仅在开启时写入；见 [`on-device-ai.md`](on-device-ai.md)）。此文件的任何内容都不被同步——它刻意设备特有，而这正是网络策略应有的归宿：接有线网的桌面与走流量套餐的手机本就该不同。
+保存上表中除 WebDAV 配置外的每个设备本地偏好：主题模式、语言区域、日历周起始/布局/时间基准/视图格式偏好、存储路径覆盖、自动备份启用 + 保留天数（`backupRetentionDays`）、提醒设置、API 服务器启用/监听地址/端口/凭据、托盘/开机自启偏好，以及后台资料更新设置（`metadataAutoUpdate`、`metadataPrefetchCovers`）、分模块的列表列数（`homeListColumns`、`manageListColumns`、`statsListColumns`），是否显示假名标签（`kanaTabEnabled`，仅在开启时写入），以及端侧 AI 开关与「使用更快的模型」偏好（`onDeviceAiEnabled`、`onDeviceAiPreferFast`，都仅在开启时写入；见 [`on-device-ai.md`](on-device-ai.md)），以及是否开启自动分类（`autoCategoriesEnabled`，仅在开启时写入）。此文件的任何内容都不被同步——它刻意设备特有，而这正是网络策略应有的归宿：接有线网的桌面与走流量套餐的手机本就该不同。
 
 ### `webdav_config.json`
 
@@ -331,4 +356,4 @@ WebDAV 连接详情和同步偏好（服务器 URL、凭据、自动同步开关
 - **版本 1**（单个动画）：`{"version": 1, "anime": {...}, "coverImage": "<base64>", "coverImageExt": ".jpg"}` — `coverImage`/`coverImageExt` 可选。
 - **版本 2**（多动画捆绑）：`{"version": 2, "items": [{"anime": {...}, "coverImage": "<base64>", "coverImageExt": ".jpg"}, ...]}` — 每个条目与 v1 有相同的可选封面字段。
 
-导出在写入前从每个 `anime` 负载中剥离个人数据（`episodeStatuses`、`episodeWeekOffsets`、`localArchive`，以及自 1.6.0 起的 `seriesLink`）。导入总是分配新 UUID，绝不覆盖既有的本地记录；它会丢弃文件携带的任何 `seriesLink`，并自 1.6.0 起带过 `externalMeta`（更早的版本导入时会丢弃它，尽管导出保留了它）；多动画捆绑导入运行与 [`features/duplicate-detection.md`](features/duplicate-detection.md) 相同的冲突检测来判断传入记录是否与本地记录冲突，并为每个冲突提供保留本地/使用导入/合并选项。
+导出在写入前从每个 `anime` 负载中剥离个人数据（`episodeStatuses`、`episodeWeekOffsets`、`localArchive`，以及自 1.6.0 起的 `seriesLink`）。导入总是分配新 UUID，绝不覆盖既有的本地记录；它会丢弃文件携带的任何 `seriesLink`，并自 1.6.0 起带过 `externalMeta`（更早的版本导入时会丢弃它，尽管导出保留了它）；`categories` 导出时不剥离、导入时也不丢弃（1.6.0）；多动画捆绑导入运行与 [`features/duplicate-detection.md`](features/duplicate-detection.md) 相同的冲突检测来判断传入记录是否与本地记录冲突，并为每个冲突提供保留本地/使用导入/合并选项。

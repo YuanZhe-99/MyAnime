@@ -43,6 +43,8 @@
 | [`setKanaTabEnabled`](#setkanatabenabled) | 静态方法（`AnimeStorage`） | A | 持久化是否显示五十音速查标签。 |
 | [`getOnDeviceAiEnabled`](#getondeviceaienabled) | 静态方法（`AnimeStorage`） | A | 读取是否开启端侧 AI。 |
 | [`setOnDeviceAiEnabled`](#setondeviceaienabled) | 静态方法（`AnimeStorage`） | A | 持久化是否开启端侧 AI。 |
+| [`getAutoCategoriesEnabled`](#getautocategoriesenabled) | 静态方法（`AnimeStorage`） | A | 读取是否开启自动分类。 |
+| [`setAutoCategoriesEnabled`](#setautocategoriesenabled) | 静态方法（`AnimeStorage`） | A | 持久化是否开启自动分类。 |
 | [`getOnDeviceAiPreferFast`](#getondeviceaipreferfast) | 静态方法（`AnimeStorage`） | A | 读取是否优先使用更快的端侧模型。 |
 | [`setOnDeviceAiPreferFast`](#setondeviceaipreferfast) | 静态方法（`AnimeStorage`） | A | 持久化是否优先使用更快的端侧模型。 |
 | `_getListColumns` | 静态方法（`AnimeStorage`） | B | 读取某个模块存储的列表列数偏好。 |
@@ -599,6 +601,19 @@
 - **种类：** `AnimeStorage` 的静态方法
 - **副作用：** 写入 `storage_config.json`。
 - **备注：** 开启时写入 `onDeviceAiEnabled: true`，关闭时移除该键，形态与 `setKanaTabEnabled` 相同。
+
+### `static Future<bool> getAutoCategoriesEnabled()` <a id="getautocategoriesenabled"></a>
+- **种类：** `AnimeStorage` 的静态方法
+- **返回：** `Future<bool>` — 仅当 `storage_config.json` 含 `autoCategoriesEnabled: true` 时为 `true`。
+- **副作用：** 读取 `storage_config.json`。
+- **备注：** 1.6.0（M4）新增。默认关闭，且仅限本设备。由 `AppSettingsNotifier._loadPersisted` 读取并交给
+  `CategoryClassifier.instance.enabled`，详情页在显示分类标签前也会读取。见
+  [`../../../../features/categories-and-recommendations.md`](../../../../features/categories-and-recommendations.md)。
+
+### `static Future<void> setAutoCategoriesEnabled(bool enabled)` <a id="setautocategoriesenabled"></a>
+- **种类：** `AnimeStorage` 的静态方法
+- **副作用：** 写入 `storage_config.json`。
+- **备注：** 开启时写入 `autoCategoriesEnabled: true`，关闭时移除该键，形态与 `setOnDeviceAiEnabled` 相同。
 
 ### `static Future<bool> getOnDeviceAiPreferFast()` <a id="getondeviceaipreferfast"></a>
 - **种类：** `AnimeStorage` 的静态方法

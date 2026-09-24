@@ -24,6 +24,7 @@
 | `AppSettingsNotifier.setKanaTabEnabled` | 方法（`AppSettingsNotifier`） | B | 显示或隐藏假名标签并持久化该选择。 |
 | [`AppSettingsNotifier.setOnDeviceAiEnabled`](#appsettingsnotifier-setondeviceaienabled) | 方法（`AppSettingsNotifier`） | A | 开启或关闭端侧 AI，持久化该选择，并切换 `OnDeviceAiService`。 |
 | `AppSettingsNotifier.setOnDeviceAiPreferFast` | 方法（`AppSettingsNotifier`） | B | 在设备同时提供两种尺寸时优先使用更快的端侧模型；持久化该选择并告知 `OnDeviceAiService`。 |
+| [`AppSettingsNotifier.setAutoCategoriesEnabled`](#appsettingsnotifier-setautocategoriesenabled) | 方法（`AppSettingsNotifier`） | A | 开启或关闭自动分类，持久化该选择并切换 `CategoryClassifier`。 |
 | [`AppSettings.new`](#appsettings-new) | 构造函数（`AppSettings`） | A | 创建 `AppSettings` 实例。 |
 | [`AppSettings.effectiveWeekStartDay`](#appsettings-effectiveweekstartday) | getter（`AppSettings`） | A | 返回应应用于日历的周起始日。 |
 | [`AppSettings.copyWith`](#appsettings-copywith) | 方法（`AppSettings`） | A | 用所选字段创建副本。 |
@@ -107,7 +108,7 @@
 - **用途：** 从 `AnimeStorage` 读取每个持久化偏好，并用完全填充的 `AppSettings` 替换 `state`。
 - **输入：** 无。
 - **返回：** `Future<void>`。
-- **副作用：** 读取 `AnimeStorage.getThemeMode()`、`getLocaleTag()`、`getWeekStartDay()`、`getHomeCalendarLayout()`、`getHomeCalendarTimeBasis()` 和 `getHomeCalendarFormat()`（以及本页末尾所述的列表列数、假名标签和端侧 AI getter）；替换 `state`；随后用加载到的值调用 `OnDeviceAiService.instance.setPreferFast` 和 `setEnabled`。
+- **副作用：** 读取 `AnimeStorage.getThemeMode()`、`getLocaleTag()`、`getWeekStartDay()`、`getHomeCalendarLayout()`、`getHomeCalendarTimeBasis()` 和 `getHomeCalendarFormat()`（以及本页末尾所述的列表列数、假名标签、端侧 AI 和自动分类 getter）；替换 `state`；设置 `CategoryClassifier.instance.enabled`；用加载到的值调用 `OnDeviceAiService.instance.setPreferFast` 和 `setEnabled`；随后启动一次分类细流，不 await。
 - **算法：**
   1. Await 六个 `AnimeStorage` getter（主题模式字符串、语言区域标签、周起始日、主页日历布局字符串、主页日历时间基准字符串、主页日历格式字符串）。
   2. 经 `_parseHomeCalendarLayout`/`_parseHomeCalendarTimeBasis`/`_parseHomeCalendarFormat` 解析布局/时间基准/格式字符串。
@@ -116,6 +117,8 @@
   5. 用从解析值构建的新 `AppSettings(...)` 替换 `state`。
   6. 先把加载到的尺寸偏好、再把加载到的开关告知 `OnDeviceAiService.instance` —— 该服务自身不保存任何偏好。
      开关关闭时 `setEnabled(false)` 是无操作，因此默认启动不会调用平台的任何东西。
+  7. 在第 6 步之前，把加载到的自动分类开关交给 `CategoryClassifier.instance.enabled`；在其之后，不 await 地调用
+     `CategoryClassifier.instance.trickle()`。除非自动分类开启且模型可以生成，细流会立即返回，因此默认启动不做任何工作。
 - **用法：** 只在 `AppSettingsNotifier()` 的构造函数中调用；不是公共 API 的一部分。
 - **备注：** 有多个 `_` 的格式错误语言区域标签（如 `en_US_extra`）只用前两部分；除此之外没有显式校验。
 
@@ -220,9 +223,11 @@
 - **输入：** `enabled`。
 - **返回：** 无。
 - **副作用：** 更新 `state`；调用 `AnimeStorage.setOnDeviceAiEnabled(enabled)` 和
-  `OnDeviceAiService.instance.setEnabled(enabled)`，两者都不 await。
+  `OnDeviceAiService.instance.setEnabled(enabled)`，两者都不 await；后者完成后调用
+  `CategoryClassifier.instance.trickle()`。
 - **算法：** 1) `state = state.copyWith(onDeviceAiEnabled: enabled)`。2) 持久化。3) 切换服务：开启时探测模型，
-  关闭时取消正在运行的一切。
+  关闭时取消正在运行的一切。4) 完成后启动一次分类细流（1.6.0，M4），这样开启 AI 后无需等到下次回到前台就会填补
+  分类空缺；关闭后细流是无操作。
 - **用法：**
   ```dart
   onChanged: widget.featuresOn || settings.onDeviceAiEnabled
@@ -231,6 +236,28 @@
   ```
   （来自 `lib/features/ai/widgets/ai_settings_tiles.dart` 的「使用端侧 AI」开关）
 - **备注：** 默认关闭。`setOnDeviceAiPreferFast` 形态相同，并在开启期间让服务重新探测。
+
+### `void setAutoCategoriesEnabled(bool enabled)` <a id="appsettingsnotifier-setautocategoriesenabled"></a>
+- **种类：** `AppSettingsNotifier` 的方法
+- **来源：** `lib/shared/providers/app_settings.dart`（约第 279 行）
+- **用途：** 开启或关闭自动分类。
+- **输入：** `enabled`。
+- **返回：** 无。
+- **副作用：** 更新 `state`；不 await 地调用 `AnimeStorage.setAutoCategoriesEnabled(enabled)`；设置
+  `CategoryClassifier.instance.enabled`；可能启动一次细流或关闭端侧 AI。
+- **算法：** 1) `state = state.copyWith(autoCategoriesEnabled: enabled)`。2) 持久化。3) 设置
+  `CategoryClassifier.instance.enabled`。4) 开启时不 await 地启动 `CategoryClassifier.instance.trickle()`；关闭时若
+  `onDeviceAiEnabled` 开着，则调用 `setOnDeviceAiEnabled(false)`。
+- **用法：**
+  ```dart
+  SwitchListTile(
+    title: Text(l10n.settingsAutoCategories),
+    value: settings.autoCategoriesEnabled,
+    onChanged: notifier.setAutoCategoriesEnabled,
+  )
+  ```
+  （来自 `lib/features/settings/views/settings_page.dart` 的「分类与推荐」分区）
+- **备注：** 默认关闭。关闭它也会关闭端侧 AI，因为自动分类是唯一使用模型的功能，一个无事可做的 AI 开关只是噪音。
 
 ### `const AppSettings({...})` <a id="appsettings-new"></a>
 - **种类：** `AppSettings` 的构造函数
@@ -310,5 +337,13 @@
 `_loadPersisted` 中通过 `AnimeStorage.getOnDeviceAiEnabled()` 和 `getOnDeviceAiPreferFast()` 加载，由
 `setOnDeviceAiEnabled` 和 `setOnDeviceAiPreferFast` 写入。每个写入方法同时告知 `OnDeviceAiService.instance`，
 该服务自身不保存任何偏好；构造函数和 `copyWith` 都接受这两个字段。唯一的界面是
-[`AiSettingsTiles`](../../features/ai/widgets/ai_settings_tiles.md)，它在 `master` 上尚未显示在设置中。见
+[`AiSettingsTiles`](../../features/ai/widgets/ai_settings_tiles.md)，位于设置的「分类与推荐」分区。见
 [`../../../on-device-ai.md`](../../../on-device-ai.md)。
+
+## 自动分类偏好
+
+1.6.0（M4）新增 `autoCategoriesEnabled`，一个默认 `false` 的 `bool`，在 `_loadPersisted` 中通过
+`AnimeStorage.getAutoCategoriesEnabled()` 加载，由 `setAutoCategoriesEnabled` 写入。构造函数和 `copyWith` 都接受它。
+加载方法和写入方法都会告知 `CategoryClassifier.instance`，它只保存这一个开关。管理页读取它来提供分类筛选；
+详情页自己读取存储的键。见
+[`../../../features/categories-and-recommendations.md`](../../../features/categories-and-recommendations.md)。

@@ -10,6 +10,10 @@
 - **引用计数 GC：** 一个 blob 只在没有剩余备份引用它时才会被物理删除。GC 在创建/删除/保留清理之后运行，遇到任何剩余捆绑不可解析时整体中止（使损坏捆绑不可能造成错误的"未引用"删除），并且绝不删除比 **10 分钟宽限窗口**（`backup_service.dart` 中的 `_blobGcGrace = Duration(minutes: 10)`）更年轻的 blob——这保护正在被并发备份写入的 blob，防止它被从脚下回收。
 - **保留：** 可按天配置，备份设置 UI 中选项为 `[0, 3, 7, 14, 30, 60, 90]`（`0` = 永久保留）。包括一个专门为想要紧凑本地保留的用户准备的 3 天选项。
 - **带内联 base64 `_images` 的旧 v1 捆绑**仍可恢复——恢复先检查 `_imageRefs`（v2），缺失时回退到旧 `_images` 映射（v1）。
+- **不在捆绑中的内容：** 只备份已注册的数据模块和 `images/`。设备本地缓存——`metadata_updates.json`、`metadata_covers/`，以及自
+  1.6.0 起的端侧 AI 缓存 `ai_insights.json`——没有注册进 `lib/app/data_modules.dart`，因此从不备份，恢复既不会覆盖也不会清空它们。
+  它们都可以重建。用户自己的 `categories` 字段是每条记录的一部分，因此*会*被备份。见
+  [`features/categories-and-recommendations.md`](features/categories-and-recommendations.md)。
 
 ## 原子写入
 

@@ -26,8 +26,8 @@
 | [`OnDeviceAiService.refreshStatus`](#ondeviceaiservice-refreshstatus) | 方法（`OnDeviceAiService`） | A | 询问设备模型能做什么。 |
 | [`OnDeviceAiService.download`](#ondeviceaiservice-download) | 方法（`OnDeviceAiService`） | A | 请系统获取模型（Android）。 |
 | [`OnDeviceAiService.generate`](#ondeviceaiservice-generate) | 方法（`OnDeviceAiService`） | A | 通过队列生成一个回答。 |
-| `OnDeviceAiService.choose` | 方法（`OnDeviceAiService`） | B | 通过队列让模型从固定列表中选择（默认后台优先级）。 |
-| `OnDeviceAiService.prewarm` | 方法（`OnDeviceAiService`） | B | 在一批请求之前预先加载模型；关闭时什么也不做。 |
+| `OnDeviceAiService.choose` | 方法（`OnDeviceAiService`） | B | 通过队列让模型从固定列表中选择（默认后台优先级）。由 `CategoryClassifier` 调用（1.6.0 M4）。 |
+| `OnDeviceAiService.prewarm` | 方法（`OnDeviceAiService`） | B | 在一批请求之前预先加载模型；关闭时什么也不做。`CategoryClassifier` 在每轮之前调用它。 |
 | [`OnDeviceAiService.cancelBackground`](#ondeviceaiservice-cancelbackground) | 方法（`OnDeviceAiService`） | A | 停止正在运行的请求并丢弃排队的后台任务。 |
 | [`OnDeviceAiService.start`](#ondeviceaiservice-start) | 方法（`OnDeviceAiService`） | A | 开始跟随应用生命周期。 |
 | `OnDeviceAiService.handleLifecycle` | 方法（`OnDeviceAiService`） | B | 跟随应用生命周期：未 resumed 时暂停，resumed 时推进队列。 |

@@ -167,6 +167,8 @@ class FileOpenService {
       // a hand-written file's value is not silently dropped.
       localArchive: parsed.localArchive,
       externalMeta: parsed.externalMeta,
+      // Not personal data (D5), so a shared classification travels.
+      categories: parsed.categories,
       createdAt: now,
       modifiedAt: now,
       extraJson: Map.of(parsed.extraJson)..remove('seriesLink'),

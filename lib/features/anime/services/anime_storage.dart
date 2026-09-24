@@ -572,6 +572,31 @@ class AnimeStorage {
     await writeConfig(config);
   }
 
+  /// Purpose: Return whether automatic categories are turned on.
+  /// Inputs: None.
+  /// Returns: `Future<bool>` — defaults to false.
+  /// Side effects: Reads `storage_config.json`.
+  /// Notes: Off by default. Device-local, like every key in this file.
+  static Future<bool> getAutoCategoriesEnabled() async {
+    final config = await readConfig();
+    return config['autoCategoriesEnabled'] == true;
+  }
+
+  /// Purpose: Persist whether automatic categories are turned on.
+  /// Inputs: `enabled`.
+  /// Returns: None.
+  /// Side effects: Writes `storage_config.json`.
+  /// Notes: The default `false` is removed from config rather than stored.
+  static Future<void> setAutoCategoriesEnabled(bool enabled) async {
+    final config = await readConfig();
+    if (enabled) {
+      config['autoCategoriesEnabled'] = true;
+    } else {
+      config.remove('autoCategoriesEnabled');
+    }
+    await writeConfig(config);
+  }
+
   /// Purpose: Return whether the faster on-device model is preferred.
   /// Inputs: None.
   /// Returns: `Future<bool>` — defaults to false.

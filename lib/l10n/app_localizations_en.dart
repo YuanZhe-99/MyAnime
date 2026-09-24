@@ -757,6 +757,119 @@ class AppLocalizationsEn extends AppLocalizations {
   String get syncSeriesAuto => 'Series: automatic';
 
   @override
+  String syncCategories(String list) {
+    return 'Categories: $list';
+  }
+
+  @override
+  String get syncCategoriesAuto => 'Categories: automatic';
+
+  @override
+  String get categoryAction => 'Action';
+
+  @override
+  String get categoryAdventure => 'Adventure';
+
+  @override
+  String get categoryComedy => 'Comedy';
+
+  @override
+  String get categoryDrama => 'Drama';
+
+  @override
+  String get categoryRomance => 'Romance';
+
+  @override
+  String get categorySliceOfLife => 'Slice of life';
+
+  @override
+  String get categoryFantasy => 'Fantasy';
+
+  @override
+  String get categoryIsekai => 'Isekai';
+
+  @override
+  String get categorySciFi => 'Sci-fi';
+
+  @override
+  String get categoryMecha => 'Mecha';
+
+  @override
+  String get categoryMystery => 'Mystery';
+
+  @override
+  String get categorySuspense => 'Suspense';
+
+  @override
+  String get categoryHorror => 'Horror';
+
+  @override
+  String get categoryPsychological => 'Psychological';
+
+  @override
+  String get categorySupernatural => 'Supernatural';
+
+  @override
+  String get categorySports => 'Sports';
+
+  @override
+  String get categoryMusic => 'Music';
+
+  @override
+  String get categorySchool => 'School';
+
+  @override
+  String get categoryHistorical => 'Historical';
+
+  @override
+  String get categoryMilitary => 'Military';
+
+  @override
+  String get categoryGourmet => 'Gourmet';
+
+  @override
+  String get categoryHealing => 'Healing';
+
+  @override
+  String get categoryMagicalGirl => 'Magical girl';
+
+  @override
+  String get categoriesTitle => 'Categories';
+
+  @override
+  String get categoriesEdit => 'Edit categories';
+
+  @override
+  String get categoriesReset => 'Reset to automatic';
+
+  @override
+  String get categoriesNone => 'No categories';
+
+  @override
+  String get categoriesYours => 'Chosen by you';
+
+  @override
+  String get settingsAutoCategories => 'Automatic categories';
+
+  @override
+  String get settingsAutoCategoriesDesc =>
+      'Sort each anime into categories from the genres the databases report. Your own choices always win.';
+
+  @override
+  String get aiCategorizeNow => 'Categorise now';
+
+  @override
+  String aiCategorizeProgress(int pending, int total) {
+    return '$pending of $total still to categorise';
+  }
+
+  @override
+  String get manageFilterCategory => 'Category';
+
+  @override
+  String get manageFilterAllCategories => 'All categories';
+
+  @override
   String seriesMissingSequel(String title, String source) {
     return 'Next: $title ($source)';
   }

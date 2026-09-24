@@ -11,7 +11,10 @@ import '../../../shared/services/image_service.dart';
 import '../../../shared/services/share_service.dart';
 import '../../../shared/utils/detail_layout.dart';
 import '../../../shared/widgets/delete_confirm.dart';
+import '../../ai/services/ai_insights_cache.dart';
+import '../../categories/services/category_service.dart';
 import '../models/anime.dart';
+import '../models/anime_category.dart';
 import '../services/anime_search_service.dart';
 import '../services/anime1_service.dart';
 import '../services/anime_storage.dart';
@@ -19,6 +22,7 @@ import '../services/metadata_update_service.dart';
 import '../services/series_service.dart';
 import 'anime1_labels.dart';
 import 'archive_labels.dart';
+import 'category_widgets.dart';
 import 'series_widgets.dart';
 
 class AnimeDetailPage extends StatefulWidget {
@@ -45,6 +49,8 @@ class _AnimeDetailPageState extends State<AnimeDetailPage> {
   SeriesIndex? _seriesIndex;
   AnimeSeries? _series;
   AnimeExternalRelation? _missingSequel;
+  bool _categoriesOn = false;
+  EffectiveCategories _categories = EffectiveCategories.empty;
   bool _refreshingMeta = false;
   bool _checkingProgress = false;
 
@@ -72,6 +78,12 @@ class _AnimeDetailPageState extends State<AnimeDetailPage> {
     final found = data.animeList
         .where((a) => a.id == widget.animeId)
         .firstOrNull;
+    // Categories are shown only while automatic categories are on; the AI
+    // cache is read only while on-device AI is on too.
+    final categoriesOn = await AnimeStorage.getAutoCategoriesEnabled();
+    final insights = categoriesOn && await AnimeStorage.getOnDeviceAiEnabled()
+        ? await AiInsightsCache.load()
+        : null;
     if (!mounted) return;
     final index = SeriesIndex.build(data.animeList);
     final series = found == null ? null : index.seriesOf(found.id);
@@ -80,7 +92,47 @@ class _AnimeDetailPageState extends State<AnimeDetailPage> {
       _seriesIndex = index;
       _series = series != null && series.members.length >= 2 ? series : null;
       _missingSequel = found == null ? null : index.missingSequelFor(found.id);
+      _categoriesOn = categoriesOn;
+      _categories = found == null
+          ? EffectiveCategories.empty
+          : resolveCategories(found, insights: insights);
     });
+  }
+
+  /// Purpose: Let the user set this record's categories.
+  /// Inputs: None.
+  /// Returns: None.
+  /// Side effects: May write the record (a user edit, `modifiedAt` stamped);
+  /// reloads.
+  /// Notes: Internal helper used within this file only. Saving writes the
+  /// user's list, even an empty one, and keeps any ids this build does not
+  /// know; "Reset to automatic" removes the field.
+  Future<void> _editCategories() async {
+    final anime = _anime;
+    if (anime == null) return;
+    final result = await showCategoryEditor(
+      context,
+      initial: _categories.ids,
+      hasOverride: anime.categories != null,
+    );
+    if (result == null) return;
+    final now = DateTime.now().toUtc();
+    final Anime updated;
+    switch (result) {
+      case CategoriesChosen(:final ids):
+        final unknown = [
+          for (final id in anime.categories ?? const <String>[])
+            if (!animeCategoryIds.contains(id)) id,
+        ];
+        updated = anime.copyWith(
+          categories: [...ids, ...unknown],
+          modifiedAt: now,
+        );
+      case CategoriesReset():
+        updated = anime.copyWith(clearCategories: true, modifiedAt: now);
+    }
+    await AnimeStorage.addOrUpdate(updated);
+    await _load();
   }
 
   /// Purpose: Open the create page for a sequel the databases list but the
@@ -503,6 +555,10 @@ class _AnimeDetailPageState extends State<AnimeDetailPage> {
             ),
         ],
       ),
+      if (_categoriesOn) ...[
+        const SizedBox(height: 8),
+        CategoryChips(categories: _categories, onEdit: _editCategories),
+      ],
       const SizedBox(height: 8),
       LinearProgressIndicator(
         value: totalEps > 0 ? watchedCount / totalEps : 0,

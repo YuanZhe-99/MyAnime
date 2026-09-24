@@ -169,6 +169,13 @@ you / not in any series / automatic) whenever the two sides' `seriesLink` differ
 about the series alone does not look like two identical versions. See
 [`features/series-linking.md`](features/series-linking.md).
 
+`categories` (1.6.0) likewise rides the whole-record merge. Editing a record's categories, or
+resetting them to automatic, is an ordinary user edit with a fresh UTC `modifiedAt`, so a concurrent
+edit elsewhere is an ordinary conflict. AI classifications never touch the record: they live in the
+per-device `ai_insights.json`, which is not synced, so a device without a model still shows mapped
+categories and the user's own, but not another device's AI suggestions. See
+[`features/categories-and-recommendations.md`](features/categories-and-recommendations.md).
+
 ## Cached metadata and `modifiedAt`
 
 The background metadata updater writes `externalMeta` without touching `modifiedAt`, and that is

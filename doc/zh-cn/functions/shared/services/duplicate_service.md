@@ -183,7 +183,8 @@
   5. **本地存档：** 整体取用而非逐字段——`primary` 的记录 `hasAnyData` 时胜出，否则取 `others` 中第一个有数据的。与评分不同，一份存档是对同一份实体拷贝的完整描述，把一条记录的 `source` 和另一条的 `location` 混在一起会描述出一份并不存在的拷贝。
   6. **封面图像：** primary 胜出；回退到 `others` 中第一个非 null 封面。
   7. **系列链接**（1.6.0）：整体取用——`primary.seriesLink` 存在时用它，否则取 `others` 中第一个非 null 的 `seriesLink`。作为重复合并的记录通常本就同属一个系列；这只是避免 primary 没有链接时丢失手动关联的归属或 `standalone` 选择。
-  8. 对 `endEpisode`、`manualType`、`airDayOfWeek`、`airTime`、`firstAirDate`（primary 胜出-否则-第一个非 null 模式）、`episodeStatuses`、`episodeWeekOffsets`、`coverImage`、`infoUrl`、`watchUrl`、`notes`、`rating`、`localArchive`、`seriesLink` 和新 UTC `modifiedAt` 经 `primary.copyWith(...)` 构建最终 `Anime`；然后调用 `withPreservedUnknownJson([primary, ...others])`，使未知顶层 JSON 字段在合并中存活（`extraJson` 模式——见 [`../../../data-formats.md`](../../../data-formats.md)）。
+  8. **分类**（1.6.0）：用户的 `categories` 覆盖遵循同一规则——`primary.categories` 存在时（即使是 `[]`）用它，否则取 `others` 中第一个非 null 的；都没有时，合并后的记录保持自动分类。
+  9. 对 `endEpisode`、`manualType`、`airDayOfWeek`、`airTime`、`firstAirDate`（primary 胜出-否则-第一个非 null 模式）、`episodeStatuses`、`episodeWeekOffsets`、`coverImage`、`infoUrl`、`watchUrl`、`notes`、`rating`、`localArchive`、`seriesLink`、`categories` 和新 UTC `modifiedAt` 经 `primary.copyWith(...)` 构建最终 `Anime`；然后调用 `withPreservedUnknownJson([primary, ...others])`，使未知顶层 JSON 字段在合并中存活（`extraJson` 模式——见 [`../../../data-formats.md`](../../../data-formats.md)）。
 - **用法：**
   ```dart
   final merged = DuplicateService.merge(local, [imported]);

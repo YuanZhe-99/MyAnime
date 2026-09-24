@@ -709,6 +709,119 @@ class AppLocalizationsJa extends AppLocalizations {
   String get syncSeriesAuto => 'シリーズ：自動';
 
   @override
+  String syncCategories(String list) {
+    return '分類：$list';
+  }
+
+  @override
+  String get syncCategoriesAuto => '分類：自動';
+
+  @override
+  String get categoryAction => 'アクション';
+
+  @override
+  String get categoryAdventure => '冒険';
+
+  @override
+  String get categoryComedy => 'コメディ';
+
+  @override
+  String get categoryDrama => 'ドラマ';
+
+  @override
+  String get categoryRomance => '恋愛';
+
+  @override
+  String get categorySliceOfLife => '日常';
+
+  @override
+  String get categoryFantasy => 'ファンタジー';
+
+  @override
+  String get categoryIsekai => '異世界';
+
+  @override
+  String get categorySciFi => 'SF';
+
+  @override
+  String get categoryMecha => 'ロボット';
+
+  @override
+  String get categoryMystery => 'ミステリー';
+
+  @override
+  String get categorySuspense => 'サスペンス';
+
+  @override
+  String get categoryHorror => 'ホラー';
+
+  @override
+  String get categoryPsychological => '心理';
+
+  @override
+  String get categorySupernatural => '超常';
+
+  @override
+  String get categorySports => 'スポーツ';
+
+  @override
+  String get categoryMusic => '音楽';
+
+  @override
+  String get categorySchool => '学園';
+
+  @override
+  String get categoryHistorical => '歴史';
+
+  @override
+  String get categoryMilitary => 'ミリタリー';
+
+  @override
+  String get categoryGourmet => 'グルメ';
+
+  @override
+  String get categoryHealing => '癒し系';
+
+  @override
+  String get categoryMagicalGirl => '魔法少女';
+
+  @override
+  String get categoriesTitle => '分類';
+
+  @override
+  String get categoriesEdit => '分類を編集';
+
+  @override
+  String get categoriesReset => '自動に戻す';
+
+  @override
+  String get categoriesNone => '分類なし';
+
+  @override
+  String get categoriesYours => '自分で選択';
+
+  @override
+  String get settingsAutoCategories => '自動分類';
+
+  @override
+  String get settingsAutoCategoriesDesc =>
+      'データベースが報告するジャンルから、各アニメを分類します。自分で選んだ分類が常に優先されます。';
+
+  @override
+  String get aiCategorizeNow => '今すぐ分類';
+
+  @override
+  String aiCategorizeProgress(int pending, int total) {
+    return '未分類 $pending / $total';
+  }
+
+  @override
+  String get manageFilterCategory => '分類';
+
+  @override
+  String get manageFilterAllCategories => 'すべての分類';
+
+  @override
   String seriesMissingSequel(String title, String source) {
     return '次：$title（$source）';
   }

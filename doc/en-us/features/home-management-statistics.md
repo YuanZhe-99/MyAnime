@@ -36,6 +36,11 @@ model/quarter logic and [`../architecture.md`](../architecture.md) for how these
   [`anime-tracking.md`](anime-tracking.md)).
 - Creating a new anime navigates to the detail page, then returns Management to the anime's
   quarter when applicable.
+- While automatic categories are on (1.6.0), a category filter in the app bar, beside the
+  local-archive filter. Like that filter it is view state only — never persisted — and narrows the
+  quarter pages, "Other" and search results to records whose effective categories (the user's own,
+  mapped from genres, or AI-suggested) include the chosen one. See
+  [`categories-and-recommendations.md`](categories-and-recommendations.md).
 
 ## Statistics (`statistics_page.dart`)
 

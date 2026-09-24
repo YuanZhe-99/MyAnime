@@ -4,7 +4,8 @@ The core data model: `Anime` (one tracked series), `AnimeRating` (optional perso
 `AnimeLocalArchive` (optional record of a downloaded local copy), `AnimeSeriesLink` (optional series
 membership set by the user, 1.6.0), `AnimeExternalRelation` (one related work an external database
 lists, 1.6.0), `AnimeData` (the top-level
-`{animes: [...]}` persisted container), plus the `AnimeType`, `EpisodeStatus`,
+`{animes: [...]}` persisted container), and `Anime.categories` (the user's own category ids, 1.6.0),
+plus the `AnimeType`, `EpisodeStatus`,
 `AnimeViewingStatus`, `AnimeRatingField`, `ArchiveSource`, `ArchiveResolution`, and
 `AnimeRelationType` enums. This file
 owns `fromJson`/`toJson` for all four classes, the `extraJson` unknown-field-preservation pattern used
@@ -696,7 +697,7 @@ has 83 rows — the `AnimeData` default constructor has no doc comment at all in
 - **Algorithm:** Local `readString`/`readList` helpers type-check each key and push anything of the wrong shape into `extraJson`. `ratings` entries that are maps are parsed through [`AnimeExternalRating.fromJson`](#animeexternalrating-fromjson) and kept when they carry data or a source name; non-map entries are collected back into `extraJson['ratings']`. `relations` is read the same way: map entries go through [`AnimeExternalRelation.fromJson`](#animeexternalrelation-fromjson), non-map entries into `extraJson['relations']`, and a non-list value is kept there verbatim.
 - **Notes:** A `genres` value that is a string rather than a list survives verbatim in `extraJson` and re-serializes unchanged, so an older build cannot silently delete a newer build's shape change.
 
-### `const Anime({required id, title, titleJa, season = 'Season 1', startEpisode = 1, endEpisode = 13, manualType, airDayOfWeek, airTime, firstAirDate, episodeStatuses = const {}, coverImage, infoUrl, watchUrl, episodeWeekOffsets = const {}, notes, rating, localArchive, seriesLink, externalMeta, required createdAt, required modifiedAt, extraJson = const {}})` <a id="anime-new"></a>
+### `const Anime({required id, title, titleJa, season = 'Season 1', startEpisode = 1, endEpisode = 13, manualType, airDayOfWeek, airTime, firstAirDate, episodeStatuses = const {}, coverImage, infoUrl, watchUrl, episodeWeekOffsets = const {}, notes, rating, localArchive, seriesLink, categories, externalMeta, required createdAt, required modifiedAt, extraJson = const {}})` <a id="anime-new"></a>
 - **Kind:** constructor of `Anime`
 - **Source:** `lib/features/anime/models/anime.dart` (line 1498)
 - **Purpose:** Construct an `Anime` record from every persisted field directly.
@@ -946,7 +947,7 @@ has 83 rows — the `AnimeData` default constructor has no doc comment at all in
 - **Kind:** method of `Anime`
 - **Source:** `lib/features/anime/models/anime.dart` (line 1818)
 - **Purpose:** Create a copy with selected fields replaced, using `clearXxx` boolean flags to explicitly null out an otherwise-nullable field (since passing `null` for a parameter is indistinguishable from "not supplied").
-- **Inputs:** One optional parameter per mutable field, plus `clearEndEpisode`/`clearManualType`/`clearAirDayOfWeek`/`clearAirTime`/`clearFirstAirDate`/`clearCoverImage`/`clearInfoUrl`/`clearWatchUrl`/`clearNotes`/`clearRating`/`clearLocalArchive`/`clearSeriesLink`/`clearExternalMeta` (all default `false`); `modifiedAt` optional (defaults to `DateTime.now().toUtc()` if not supplied).
+- **Inputs:** One optional parameter per mutable field, plus `clearEndEpisode`/`clearManualType`/`clearAirDayOfWeek`/`clearAirTime`/`clearFirstAirDate`/`clearCoverImage`/`clearInfoUrl`/`clearWatchUrl`/`clearNotes`/`clearRating`/`clearLocalArchive`/`clearSeriesLink`/`clearCategories`/`clearExternalMeta` (all default `false`); `modifiedAt` optional (defaults to `DateTime.now().toUtc()` if not supplied).
 - **Returns:** A new `Anime`; `id`, `createdAt`, and `extraJson` are always carried over unchanged.
 - **Side effects:** None (though calling it without an explicit `modifiedAt` reads the current time).
 - **Algorithm:** For each nullable field with a `clearXxx` flag: if the flag is `true`, the field becomes `null`; else the supplied value is used if non-null, else the existing value is kept (`value ?? this.value`). Non-nullable fields (`season`, `startEpisode`) and `episodeStatuses`/`episodeWeekOffsets` just use `?? this.field` directly with no clear flag.
@@ -964,7 +965,7 @@ has 83 rows — the `AnimeData` default constructor has no doc comment at all in
   await AnimeStorage.addOrUpdate(updated);
   ```
   (`lib/features/anime/views/anime_edit_page.dart`, saving an edited anime)
-- **Notes:** `modifiedAt` always advances to "now" unless the caller passes an explicit value — every edit path in the UI passes `DateTime.now().toUtc()` explicitly so sync conflict detection (which compares `modifiedAt`) sees the edit. The converse matters as much: a write that must **not** count as a user edit has to pass the old `modifiedAt` back explicitly, as [`AnimeStorage.patchExternalMeta`](../services/anime_storage.md#patchexternalmeta) does. `seriesLink`/`clearSeriesLink` (1.6.0) follow the same `clearXxx` pattern; `SeriesEditor` passes its own UTC `now`, because every series curation is a user edit.
+- **Notes:** `modifiedAt` always advances to "now" unless the caller passes an explicit value — every edit path in the UI passes `DateTime.now().toUtc()` explicitly so sync conflict detection (which compares `modifiedAt`) sees the edit. The converse matters as much: a write that must **not** count as a user edit has to pass the old `modifiedAt` back explicitly, as [`AnimeStorage.patchExternalMeta`](../services/anime_storage.md#patchexternalmeta) does. `seriesLink`/`clearSeriesLink` (1.6.0) follow the same `clearXxx` pattern; `SeriesEditor` passes its own UTC `now`, because every series curation is a user edit. `categories`/`clearCategories` (1.6.0) follow it as well: passing `categories: []` stores "the user chose none", while `clearCategories: true` returns the record to automatic categories.
 
 ### `Anime withExtraJson(Map<String, dynamic> extraJson)` (`Anime`) <a id="withextrajson-anime"></a>
 - **Kind:** method of `Anime`
@@ -1019,6 +1020,7 @@ has 83 rows — the `AnimeData` default constructor has no doc comment at all in
   4. `episodeStatuses` is always written (even if empty); `episodeWeekOffsets` is only written when non-empty.
   5. `rating` is written via `rating!.toJson()` only when `rating != null && rating!.hasAnyData`.
   6. `localArchive` follows the same rule via `localArchive!.toJson()` and `hasAnyData`, so a record that never used the feature emits no `localArchive` key at all. `seriesLink` (1.6.0) follows it too, so a record the user never curated emits no `seriesLink` key.
+  7. `categories` (1.6.0) is the one exception to omit-when-empty: whenever the field is non-null it is written, **even as `[]`**, because an empty list means "the user chose none" and must beat automatic categories on every device. Only `null` (automatic) removes the key, and then only when `extraJson` does not hold a preserved raw value.
 - **Usage:**
   ```dart
   final jsonStr = const JsonEncoder.withIndent('  ').convert(data.toJson());
@@ -1043,7 +1045,8 @@ has 83 rows — the `AnimeData` default constructor has no doc comment at all in
   4. `episodeWeekOffsets` follows the identical pattern, requiring `int` values.
   5. `rating` parses via [`AnimeRating.fromJson`](#animerating-fromjson) when the raw value is a `Map` and collapses to `null` if the parsed rating has no data; a non-`Map` raw value is preserved into `extraJson['rating']`.
   6. `localArchive` follows the identical pattern via [`AnimeLocalArchive.fromJson`](#animelocalarchive-fromjson) and its `hasAnyData` gate, and so does `seriesLink` via [`AnimeSeriesLink.fromJson`](#animeserieslink-fromjson).
-  7. Required scalar fields (`id`, `createdAt`, `modifiedAt`) are read with `as` casts (throwing if absent/wrong-typed); everything else uses `as Type?` with sensible defaults (`season` → `'Season 1'`, `startEpisode` → `1`).
+  7. `categories` (1.6.0) parses when the raw value is a `List` of strings — kept whole, including `[]` and ids this build does not know. Any other present value (not a list, or a list holding a non-string) is preserved into `extraJson['categories']` and the field stays `null`.
+  8. Required scalar fields (`id`, `createdAt`, `modifiedAt`) are read with `as` casts (throwing if absent/wrong-typed); everything else uses `as Type?` with sensible defaults (`season` → `'Season 1'`, `startEpisode` → `1`).
 - **Usage:**
   ```dart
   final data = AnimeData.fromJson(jsonDecode(json) as Map<String, dynamic>);

@@ -51,12 +51,16 @@ lib/
   features/
     ai/                       # on-device AI layer (1.6.0)
       services/
+        ai_insights_cache.dart  # ai_insights.json, the per-device AI cache (1.6.0)
         genai_backend.dart
         on_device_ai_service.dart
         output_validation.dart
+        prompt_templates.dart   # versioned classification prompt (1.6.0)
       widgets/ai_settings_tiles.dart
     anime/
-      models/anime.dart
+      models/
+        anime.dart
+        anime_category.dart     # category taxonomy and genre mapping (1.6.0)
       services/
         anime_search_service.dart
         anime_storage.dart
@@ -69,7 +73,11 @@ lib/
         anime_detail_page.dart
         anime_edit_page.dart
         anime_search_dialog.dart
+        category_widgets.dart   # category chips and editor (1.6.0)
         series_widgets.dart     # series card and manage sheet (1.6.0)
+    categories/               # automatic categories (1.6.0)
+      services/category_service.dart
+      widgets/categorize_now_tile.dart
     kana/views/kana_page.dart
     settings/views/
       backup_page.dart
@@ -116,6 +124,8 @@ lib/
 - `test/widget_test.dart` — 基础组件冒烟覆盖。
 - `test/on_device_ai_test.dart` 和 `test/ai_settings_tiles_ui_test.dart` — 用假后端测试端侧 AI 的门、状态映射、
   队列、节奏控制和输出解析，并按平台测试设置中的各行（1.6.0）。
+- `test/categories_test.dart` — 分类表与 ARB 完整性、类型标签映射、解析顺序、黄金提示词字符串、指纹、AI 缓存的加载/保存/修剪、
+  `categories` 的 JSON 往返（包括 `[]` 和未知 id）、分类器的开关门控，以及分类标签与编辑器组件（1.6.0）。
 
 `tool/` 包含临时脚本（图标生成、搜索源校验、中文转换表生成器），不在发布关键路径上。例外是
 `tool/check_weak_link.sh`，iOS 和 macOS 的 CI 任务会运行它（见 [`ci-cd.md`](ci-cd.md)）。

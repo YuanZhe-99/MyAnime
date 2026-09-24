@@ -4,15 +4,15 @@ This is the top-level index of the hand-written Function Explanation Layer docum
 `lib/` in the MyAnime repo. Each row links to a per-source-file page under `doc/en-us/functions/`
 mirroring the `lib/` tree (with `.dart` replaced by `.md`).
 
-**Totals:** the repo's `/// Purpose:` comment count is **1061** (per the Function Explanation Layer
+**Totals:** the repo's `/// Purpose:` comment count is **1109** (per the Function Explanation Layer
 convention in `AGENTS.md`, excluding generated `lib/l10n/` code — see [l10n/INDEX.md](l10n/INDEX.md)).
-The rows below sum to **1043** documented declarations.
+The rows below sum to **1091** documented declarations.
 
 | Tier | Count |
 |---|---|
-| Tier A (full entry: Purpose/Inputs/Returns/Side effects/Algorithm/Usage/Notes) | 644 |
-| Tier B (index row only) | 399 |
-| **Total** | **1043** |
+| Tier A (full entry: Purpose/Inputs/Returns/Side effects/Algorithm/Usage/Notes) | 672 |
+| Tier B (index row only) | 419 |
+| **Total** | **1091** |
 
 **Known gap.** These two numbers do not match: 18 declarations carry a `/// Purpose:` comment in
 source but have no row here, so the index under-covers `lib/` by that much. The 1.5.7 recount found
@@ -44,6 +44,10 @@ changed ones (`app_settings.dart` and `anime_storage.dart`; `main.dart` changed 
 declaration); the gap stayed at 18, and again in 1.6.0 (M2, relation metadata), which added 15
 across four changed files (`anime.dart`, `anime_search_service.dart`, `series_service.dart` and
 `anime_detail_page.dart`; `anime_edit_page.dart` and `series_widgets.dart` changed without a new
+declaration); the gap stayed at 18, and again in 1.6.0 (M4, automatic categories), which added
+48 across six new files and four changed ones (`anime_storage.dart`, `app_settings.dart`,
+`anime_detail_page.dart` and `webdav_config_page.dart`; `anime.dart`, `management_page.dart`, `settings_page.dart`,
+`duplicate_service.dart`, `file_open_service.dart` and `main.dart` changed without a new
 declaration); the gap stayed at 18. The
 pre-1.4.0 figures (682
 `Purpose:` comments and 685 documented declarations) had drifted far from both the source and this
@@ -79,12 +83,15 @@ detail.
 
 | Source file | Page | Declarations | Tier A count |
 |---|---|---|---|
+| `lib/features/ai/services/ai_insights_cache.dart` | [features/ai/services/ai_insights_cache.md](features/ai/services/ai_insights_cache.md) | 10 | 4 |
 | `lib/features/ai/services/genai_backend.dart` | [features/ai/services/genai_backend.md](features/ai/services/genai_backend.md) | 25 | 7 |
 | `lib/features/ai/services/on_device_ai_service.dart` | [features/ai/services/on_device_ai_service.md](features/ai/services/on_device_ai_service.md) | 24 | 9 |
 | `lib/features/ai/services/output_validation.dart` | [features/ai/services/output_validation.md](features/ai/services/output_validation.md) | 6 | 4 |
+| `lib/features/ai/services/prompt_templates.dart` | [features/ai/services/prompt_templates.md](features/ai/services/prompt_templates.md) | 4 | 3 |
 | `lib/features/ai/widgets/ai_settings_tiles.dart` | [features/ai/widgets/ai_settings_tiles.md](features/ai/widgets/ai_settings_tiles.md) | 6 | 2 |
 
-The on-device AI layer (1.6.0, M3). Rows include the private `_AiJob` helpers and state methods
+The on-device AI layer (1.6.0, M3). `prompt_templates.dart` and `ai_insights_cache.dart` arrived with automatic
+categories (M4). Rows include the private `_AiJob` helpers and state methods
 that carry a `/// Purpose:` comment. See [../on-device-ai.md](../on-device-ai.md).
 
 ## features/anime/
@@ -92,18 +99,20 @@ that carry a `/// Purpose:` comment. See [../on-device-ai.md](../on-device-ai.md
 | Source file | Page | Declarations | Tier A count |
 |---|---|---|---|
 | `lib/features/anime/models/anime.dart` | [features/anime/models/anime.md](features/anime/models/anime.md) | 83 | 68 |
+| `lib/features/anime/models/anime_category.dart` | [features/anime/models/anime_category.md](features/anime/models/anime_category.md) | 2 | 1 |
 | `lib/features/anime/models/metadata_update.dart` | [features/anime/models/metadata_update.md](features/anime/models/metadata_update.md) | 22 | 9 |
-| `lib/features/anime/services/anime_storage.dart` | [features/anime/services/anime_storage.md](features/anime/services/anime_storage.md) | 47 | 39 |
+| `lib/features/anime/services/anime_storage.dart` | [features/anime/services/anime_storage.md](features/anime/services/anime_storage.md) | 49 | 41 |
 | `lib/features/anime/services/anime1_service.dart` | [features/anime/services/anime1_service.md](features/anime/services/anime1_service.md) | 31 | 17 |
 | `lib/features/anime/services/anime_search_service.dart` | [features/anime/services/anime_search_service.md](features/anime/services/anime_search_service.md) | 65 | 43 |
 | `lib/features/anime/services/metadata_cache.dart` | [features/anime/services/metadata_cache.md](features/anime/services/metadata_cache.md) | 10 | 7 |
 | `lib/features/anime/services/metadata_update_service.dart` | [features/anime/services/metadata_update_service.md](features/anime/services/metadata_update_service.md) | 44 | 27 |
 | `lib/features/anime/services/series_service.dart` | [features/anime/services/series_service.md](features/anime/services/series_service.md) | 30 | 18 |
 | `lib/features/anime/views/anime1_labels.dart` | [features/anime/views/anime1_labels.md](features/anime/views/anime1_labels.md) | 4 | 4 |
-| `lib/features/anime/views/anime_detail_page.dart` | [features/anime/views/anime_detail_page.md](features/anime/views/anime_detail_page.md) | 32 | 14 |
+| `lib/features/anime/views/anime_detail_page.dart` | [features/anime/views/anime_detail_page.md](features/anime/views/anime_detail_page.md) | 33 | 15 |
 | `lib/features/anime/views/anime_edit_page.dart` | [features/anime/views/anime_edit_page.md](features/anime/views/anime_edit_page.md) | 29 | 14 |
 | `lib/features/anime/views/anime_search_dialog.dart` | [features/anime/views/anime_search_dialog.md](features/anime/views/anime_search_dialog.md) | 34 | 17 |
 | `lib/features/anime/views/archive_labels.dart` | [features/anime/views/archive_labels.md](features/anime/views/archive_labels.md) | 3 | 3 |
+| `lib/features/anime/views/category_widgets.dart` | [features/anime/views/category_widgets.md](features/anime/views/category_widgets.md) | 9 | 4 |
 | `lib/features/anime/views/home_page.dart` | [features/anime/views/home_page.md](features/anime/views/home_page.md) | 24 | 9 |
 | `lib/features/anime/views/management_page.dart` | [features/anime/views/management_page.md](features/anime/views/management_page.md) | 27 | 12 |
 | `lib/features/anime/views/metadata_updates_page.dart` | [features/anime/views/metadata_updates_page.md](features/anime/views/metadata_updates_page.md) | 23 | 9 |
@@ -117,6 +126,16 @@ that page's own note). `anime_search_service.dart` used to share this property b
 `searchAnime1` carried a plain (non-`Purpose:`) comment; that method moved to `anime1_service.dart`
 in 1.5.7 with a full block, so the two now agree. `chinese_convert_data.dart` is generated data
 with no declarations of the documented kinds, hence its `0 | 0` row.
+
+## features/categories/
+
+| Source file | Page | Declarations | Tier A count |
+|---|---|---|---|
+| `lib/features/categories/services/category_service.dart` | [features/categories/services/category_service.md](features/categories/services/category_service.md) | 14 | 10 |
+| `lib/features/categories/widgets/categorize_now_tile.dart` | [features/categories/widgets/categorize_now_tile.md](features/categories/widgets/categorize_now_tile.md) | 4 | 1 |
+
+Automatic categories (1.6.0, M4). See
+[../features/categories-and-recommendations.md](../features/categories-and-recommendations.md).
 
 ## features/kana/
 
@@ -142,7 +161,7 @@ the 771 hand-documented declarations above).
 
 | Source file | Page | Declarations | Tier A count |
 |---|---|---|---|
-| `lib/shared/providers/app_settings.dart` | [shared/providers/app_settings.md](shared/providers/app_settings.md) | 21 | 15 |
+| `lib/shared/providers/app_settings.dart` | [shared/providers/app_settings.md](shared/providers/app_settings.md) | 22 | 16 |
 | `lib/shared/utils/adaptive_layout.dart` | [shared/utils/adaptive_layout.md](shared/utils/adaptive_layout.md) | 12 | 12 |
 | `lib/shared/utils/calendar_preferences.dart` | [shared/utils/calendar_preferences.md](shared/utils/calendar_preferences.md) | 4 | 4 |
 | `lib/shared/utils/chinese_convert.dart` | [shared/utils/chinese_convert.md](shared/utils/chinese_convert.md) | 5 | 4 |
@@ -170,7 +189,7 @@ the 771 hand-documented declarations above).
 | `lib/shared/services/tray_service.dart` | [shared/services/tray_service.md](shared/services/tray_service.md) | 16 | 8 |
 | `lib/shared/services/image_service.dart` | [shared/services/image_service.md](shared/services/image_service.md) | 6 | 6 |
 | `lib/shared/services/local_api_server.dart` | [shared/services/local_api_server.md](shared/services/local_api_server.md) | 45 | 36 |
-| `lib/shared/views/webdav_config_page.dart` | [shared/views/webdav_config_page.md](shared/views/webdav_config_page.md) | 23 | 13 |
+| `lib/shared/views/webdav_config_page.dart` | [shared/views/webdav_config_page.md](shared/views/webdav_config_page.md) | 24 | 14 |
 
 ## Area totals
 
@@ -178,9 +197,10 @@ the 771 hand-documented declarations above).
 |---|---|---|---|---|
 | Root (`lib/`) | 1 | 1 | 1 | 0 |
 | `app/` | 5 | 19 | 14 | 5 |
-| `features/ai/` | 4 | 61 | 22 | 39 |
-| `features/anime/` | 19 | 596 | 345 | 251 |
+| `features/ai/` | 6 | 75 | 29 | 46 |
+| `features/anime/` | 21 | 610 | 353 | 257 |
+| `features/categories/` | 2 | 18 | 11 | 7 |
 | `features/kana/` | 1 | 19 | 3 | 16 |
 | `features/settings/` | 4 | 49 | 28 | 21 |
-| `shared/` (utils, widgets, providers, services, views) | 29 | 298 | 231 | 67 |
-| **Total** | **63** | **1043** | **644** | **399** |
+| `shared/` (utils, widgets, providers, services, views) | 29 | 300 | 233 | 67 |
+| **Total** | **69** | **1091** | **672** | **419** |

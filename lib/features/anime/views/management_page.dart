@@ -14,9 +14,13 @@ import '../../../shared/widgets/anime_actions_sheet.dart';
 import '../../../shared/widgets/import_bundle_dialog.dart';
 import '../../../shared/services/image_service.dart';
 import '../../../shared/widgets/delete_confirm.dart';
+import '../../ai/services/ai_insights_cache.dart';
+import '../../categories/services/category_service.dart';
 import '../models/anime.dart';
+import '../models/anime_category.dart';
 import '../services/anime_storage.dart';
 import '../services/metadata_update_service.dart';
+import 'category_widgets.dart';
 import 'quarter_picker_dialog.dart';
 
 class ManagementPage extends ConsumerStatefulWidget {
@@ -40,6 +44,14 @@ class _ManagementPageState extends ConsumerState<ManagementPage> {
   List<Anime> _allAnime = [];
   String _searchQuery = '';
   _ArchiveFilter _archiveFilter = _ArchiveFilter.all;
+
+  /// The category to show, or null for all. View state only, like the
+  /// archive filter; offered only while automatic categories are on.
+  String? _categoryFilter;
+
+  /// The AI category cache, read only while on-device AI is on, so
+  /// AI-suggested categories stop matching once it is turned off.
+  AiInsights? _insights;
   late PageController _pageController;
   late int _currentQuarterIndex;
 
@@ -145,7 +157,15 @@ class _ManagementPageState extends ConsumerState<ManagementPage> {
   /// Notes: Internal helper used within this file only.
   Future<void> _load() async {
     final data = await AnimeStorage.load();
-    if (mounted) setState(() => _allAnime = data.animeList);
+    final insights = await AnimeStorage.getOnDeviceAiEnabled()
+        ? await AiInsightsCache.load()
+        : null;
+    if (mounted) {
+      setState(() {
+        _allAnime = data.animeList;
+        _insights = insights;
+      });
+    }
   }
 
   /// Purpose: Provide the internal anime for quarter helper for this file.
@@ -177,22 +197,34 @@ class _ManagementPageState extends ConsumerState<ManagementPage> {
       ..sort((a, b) => a.displayTitle.compareTo(b.displayTitle));
   }
 
-  /// Purpose: Narrow a list to the currently selected local-archive filter.
+  /// Purpose: Narrow a list to the selected local-archive and category filters.
   /// Inputs: `animes`.
   /// Returns: `List<Anime>`.
   /// Side effects: None.
   /// Notes: Internal helper used within this file only. "Not archived" folds
   /// together records never recorded and records explicitly marked as not
-  /// downloaded, which is what "what still needs downloading" means.
+  /// downloaded, which is what "what still needs downloading" means. The
+  /// category filter applies only while automatic categories are on, and
+  /// matches a record's effective categories (its own, mapped or AI).
   List<Anime> _applyArchiveFilter(List<Anime> animes) {
-    switch (_archiveFilter) {
-      case _ArchiveFilter.all:
-        return animes;
-      case _ArchiveFilter.archived:
-        return animes.where((a) => a.localArchive?.archived == true).toList();
-      case _ArchiveFilter.notArchived:
-        return animes.where((a) => a.localArchive?.archived != true).toList();
+    final byArchive = switch (_archiveFilter) {
+      _ArchiveFilter.all => animes,
+      _ArchiveFilter.archived =>
+        animes.where((a) => a.localArchive?.archived == true).toList(),
+      _ArchiveFilter.notArchived =>
+        animes.where((a) => a.localArchive?.archived != true).toList(),
+    };
+    final category = _categoryFilter;
+    if (category == null ||
+        !ref.read(appSettingsProvider).autoCategoriesEnabled) {
+      return byArchive;
     }
+    return byArchive
+        .where(
+          (a) =>
+              resolveCategories(a, insights: _insights).ids.contains(category),
+        )
+        .toList();
   }
 
   /// Purpose: Provide the internal archive filter label helper for this file.
@@ -451,6 +483,29 @@ class _ManagementPageState extends ConsumerState<ManagementPage> {
                 .read(appSettingsProvider.notifier)
                 .setManageListColumns(value),
           ),
+          if (settings.autoCategoriesEnabled)
+            PopupMenuButton<String>(
+              icon: Icon(
+                _categoryFilter == null
+                    ? Icons.category_outlined
+                    : Icons.category,
+              ),
+              tooltip: l10n.manageFilterCategory,
+              initialValue: _categoryFilter ?? '',
+              onSelected: (v) =>
+                  setState(() => _categoryFilter = v.isEmpty ? null : v),
+              itemBuilder: (context) => [
+                PopupMenuItem(
+                  value: '',
+                  child: Text(l10n.manageFilterAllCategories),
+                ),
+                for (final c in animeCategories)
+                  PopupMenuItem(
+                    value: c.id,
+                    child: Text(categoryLabel(c.id, l10n)),
+                  ),
+              ],
+            ),
           PopupMenuButton<_ArchiveFilter>(
             icon: Icon(
               _archiveFilter == _ArchiveFilter.all
@@ -703,7 +758,9 @@ class _ManagementPageState extends ConsumerState<ManagementPage> {
     final dayStr = _dayLabel(anime.airDayOfWeek);
     // The watch site's newest episode, when a valid check is stored.
     final siteLatest = anime.validWatchProgress?.latestEpisode;
-    final siteStr = siteLatest == null ? '' : ' · ${l10n.anime1Short(siteLatest)}';
+    final siteStr = siteLatest == null
+        ? ''
+        : ' · ${l10n.anime1Short(siteLatest)}';
 
     final tile = GestureDetector(
       onSecondaryTapUp: (_) => _showActions(anime),

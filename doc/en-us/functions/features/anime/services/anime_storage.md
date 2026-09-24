@@ -52,6 +52,8 @@ notifies `AutoSyncService`/`ReminderService` after every save. See
 | [`setKanaTabEnabled`](#setkanatabenabled) | static method (`AnimeStorage`) | A | Persist whether the Kana quick-reference tab is shown. |
 | [`getOnDeviceAiEnabled`](#getondeviceaienabled) | static method (`AnimeStorage`) | A | Read whether on-device AI is turned on. |
 | [`setOnDeviceAiEnabled`](#setondeviceaienabled) | static method (`AnimeStorage`) | A | Persist whether on-device AI is turned on. |
+| [`getAutoCategoriesEnabled`](#getautocategoriesenabled) | static method (`AnimeStorage`) | A | Read whether automatic categories are turned on. |
+| [`setAutoCategoriesEnabled`](#setautocategoriesenabled) | static method (`AnimeStorage`) | A | Persist whether automatic categories are turned on. |
 | [`getOnDeviceAiPreferFast`](#getondeviceaipreferfast) | static method (`AnimeStorage`) | A | Read whether the faster on-device model is preferred. |
 | [`setOnDeviceAiPreferFast`](#setondeviceaipreferfast) | static method (`AnimeStorage`) | A | Persist whether the faster on-device model is preferred. |
 | `_getListColumns` | static method (`AnimeStorage`) | B | Read a stored list column preference. |
@@ -634,6 +636,22 @@ notifies `AutoSyncService`/`ReminderService` after every save. See
 - **Side effects:** Writes `storage_config.json`.
 - **Notes:** Writes `onDeviceAiEnabled: true` when on and removes the key when off, the same shape as
   `setKanaTabEnabled`.
+
+### `static Future<bool> getAutoCategoriesEnabled()` <a id="getautocategoriesenabled"></a>
+- **Kind:** static method of `AnimeStorage`
+- **Returns:** `Future<bool>` — `true` only when `storage_config.json` holds
+  `autoCategoriesEnabled: true`.
+- **Side effects:** Reads `storage_config.json`.
+- **Notes:** Added in 1.6.0 (M4). Off by default and device-local. Read by
+  `AppSettingsNotifier._loadPersisted`, which hands it to `CategoryClassifier.instance.enabled`, and
+  by the detail page before it shows category chips. See
+  [`../../../../features/categories-and-recommendations.md`](../../../../features/categories-and-recommendations.md).
+
+### `static Future<void> setAutoCategoriesEnabled(bool enabled)` <a id="setautocategoriesenabled"></a>
+- **Kind:** static method of `AnimeStorage`
+- **Side effects:** Writes `storage_config.json`.
+- **Notes:** Writes `autoCategoriesEnabled: true` when on and removes the key when off, the same
+  shape as `setOnDeviceAiEnabled`.
 
 ### `static Future<bool> getOnDeviceAiPreferFast()` <a id="getondeviceaipreferfast"></a>
 - **Kind:** static method of `AnimeStorage`

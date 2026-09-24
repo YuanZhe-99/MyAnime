@@ -20,6 +20,9 @@
 - 动态年/季选择器。
 - 为没有 `firstAirDate`（无法季度归属——见 [`anime-tracking.md`](anime-tracking.md)）的动画准备的"其他"页。
 - 创建新动画会导航到详情页，然后酌情把管理页返回到该动画的季度。
+- 自动分类开启时（1.6.0），应用栏中本地存档筛选旁有一个分类筛选。与那个筛选一样，它仅是视图状态——从不持久化——并把季度页、
+  「其他」和搜索结果收窄为生效分类（用户自己的、由类型标签映射的或 AI 建议的）包含所选分类的记录。见
+  [`categories-and-recommendations.md`](categories-and-recommendations.md)。
 
 ## 统计（`statistics_page.dart`）
 

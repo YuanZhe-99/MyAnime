@@ -37,6 +37,7 @@ state/conflict-resolution logic" expected of this file.
 | [`_syncStatusText`](#syncstatustext) | method (`_WebDAVConfigPageState`) | A | Build a short sync health summary line for display. |
 | `build` | method (widget build) | B | Render the WebDAV config form and sync/status controls. |
 | [`_seriesLine`](#seriesline) | static method (`_ConflictDialog`) | A | Describe one side's series membership for the conflict dialog. |
+| [`_categoriesLine`](#categoriesline) | static method (`_ConflictDialog`) | A | Describe one side's own category choice for the conflict dialog. |
 | `_ConflictDialog({required conflict})` | constructor (`_ConflictDialog`) | B | Create a conflict dialog instance. |
 | `build` | method (widget build) | B | Render the local-vs-remote comparison for one conflicting record, plus a series line per side when the two `seriesLink`s differ. |
 
@@ -414,6 +415,20 @@ state/conflict-resolution logic" expected of this file.
   Settings page's WebDAV row (`functions/features/settings/views/settings_page.md`), read there
   directly from `AutoSyncService.instance.lastError`/`hasPendingConflicts` rather than through this
   helper — the two pages independently format the same underlying state.
+
+### `static String _categoriesLine(Anime anime, AppLocalizations l10n)` <a id="categoriesline"></a>
+- **Kind:** static method of `_ConflictDialog`
+- **Source:** `lib/shared/views/webdav_config_page.dart` (approx. line 695)
+- **Purpose:** Describe one side's own category choice in the sync conflict dialog (1.6.0).
+- **Inputs:** `anime` — the local or remote version; `l10n`.
+- **Returns:** `String` — *Categories: automatic* when `categories` is null, otherwise
+  *Categories: <ids>* (a dash for an empty list).
+- **Side effects:** None.
+- **Usage:** `_ConflictDialog.build` adds one such line under each side's summary, but only when
+  `jsonEncode` of the two sides' `categories` differ.
+- **Notes:** Without it, a conflict about categories alone would look like two identical versions.
+  Ids are shown raw, as a diagnostic. See
+  [`../../../features/categories-and-recommendations.md`](../../../features/categories-and-recommendations.md).
 
 ### `static String _seriesLine(Anime anime, AppLocalizations l10n)` <a id="seriesline"></a>
 - **Kind:** static method of `_ConflictDialog`

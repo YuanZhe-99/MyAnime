@@ -1,6 +1,6 @@
 # lib/features/anime/models/anime.dart
 
-核心数据模型：`Anime`（一部被跟踪的系列）、`AnimeRating`（可选个人评分）、`AnimeLocalArchive`（可选的本地下载存档记录）、`AnimeSeriesLink`（用户设置的可选系列归属，1.6.0）、`AnimeExternalRelation`（外部资料库列出的一部关联作品，1.6.0）、`AnimeData`（顶层 `{animes: [...]}` 持久化容器），外加 `AnimeType`、`EpisodeStatus`、`AnimeViewingStatus`、`AnimeRatingField`、`ArchiveSource`、`ArchiveResolution` 和 `AnimeRelationType` 枚举。本文件拥有全部四个类的 `fromJson`/`toJson`、同步合并使用的 `extraJson` 未知字段保留模式，以及驱动主页日历和按季度管理视图的季度归属/剧集播出日期逻辑。逐字段参考（身份、日程、剧集、`AnimeType` 阈值、`AnimeRating` 计分、`extraJson`）在 [`../../../../data-formats.md`](../../../../data-formats.md)；构建在这些字段之上的跟踪/季度归属算法在 [`../../../../features/anime-tracking.md`](../../../../features/anime-tracking.md) 中走查。使用者包括 `AnimeStorage`（[`../services/anime_storage.md`](../services/anime_storage.md)）、`WebDAVService`/`sync_merge.dart`（三方同步，[`../../../../algorithms/three-way-merge.md`](../../../../algorithms/three-way-merge.md)），以及 `lib/features/anime/views/` 下的每个视图。
+核心数据模型：`Anime`（一部被跟踪的系列）、`AnimeRating`（可选个人评分）、`AnimeLocalArchive`（可选的本地下载存档记录）、`AnimeSeriesLink`（用户设置的可选系列归属，1.6.0）、`AnimeExternalRelation`（外部资料库列出的一部关联作品，1.6.0）、`AnimeData`（顶层 `{animes: [...]}` 持久化容器）、`Anime.categories`（用户自己的分类 id，1.6.0），外加 `AnimeType`、`EpisodeStatus`、`AnimeViewingStatus`、`AnimeRatingField`、`ArchiveSource`、`ArchiveResolution` 和 `AnimeRelationType` 枚举。本文件拥有全部四个类的 `fromJson`/`toJson`、同步合并使用的 `extraJson` 未知字段保留模式，以及驱动主页日历和按季度管理视图的季度归属/剧集播出日期逻辑。逐字段参考（身份、日程、剧集、`AnimeType` 阈值、`AnimeRating` 计分、`extraJson`）在 [`../../../../data-formats.md`](../../../../data-formats.md)；构建在这些字段之上的跟踪/季度归属算法在 [`../../../../features/anime-tracking.md`](../../../../features/anime-tracking.md) 中走查。使用者包括 `AnimeStorage`（[`../services/anime_storage.md`](../services/anime_storage.md)）、`WebDAVService`/`sync_merge.dart`（三方同步，[`../../../../algorithms/three-way-merge.md`](../../../../algorithms/three-way-merge.md)），以及 `lib/features/anime/views/` 下的每个视图。
 
 ## 声明
 
@@ -655,7 +655,7 @@
 - **算法：** 局部 `readString`/`readList` 辅助函数对每个键做类型检查，把形态不对的内容推入 `extraJson`。`ratings` 中是 map 的条目经 [`AnimeExternalRating.fromJson`](#animeexternalrating-fromjson) 解析，携带数据或来源名时保留；非 map 条目被收集回 `extraJson['ratings']`。`relations` 的读法相同：map 条目经 [`AnimeExternalRelation.fromJson`](#animeexternalrelation-fromjson) 解析，非 map 条目进入 `extraJson['relations']`，非列表的值原样保留在那里。
 - **备注：** 若 `genres` 的值是字符串而非列表，它会原样存活在 `extraJson` 中并原样重新序列化，因此较旧版本无法静默删除较新版本的形态变更。
 
-### `const Anime({required id, title, titleJa, season = 'Season 1', startEpisode = 1, endEpisode = 13, manualType, airDayOfWeek, airTime, firstAirDate, episodeStatuses = const {}, coverImage, infoUrl, watchUrl, episodeWeekOffsets = const {}, notes, rating, localArchive, seriesLink, externalMeta, required createdAt, required modifiedAt, extraJson = const {}})` <a id="anime-new"></a>
+### `const Anime({required id, title, titleJa, season = 'Season 1', startEpisode = 1, endEpisode = 13, manualType, airDayOfWeek, airTime, firstAirDate, episodeStatuses = const {}, coverImage, infoUrl, watchUrl, episodeWeekOffsets = const {}, notes, rating, localArchive, seriesLink, categories, externalMeta, required createdAt, required modifiedAt, extraJson = const {}})` <a id="anime-new"></a>
 - **种类：** `Anime` 的构造函数
 - **来源：** `lib/features/anime/models/anime.dart`（第 1498 行）
 - **用途：** 直接从每个持久化字段构造 `Anime` 记录。
@@ -892,7 +892,7 @@
 - **种类：** `Anime` 的方法
 - **来源：** `lib/features/anime/models/anime.dart`（第 1818 行）
 - **用途：** 用所选字段创建副本，用 `clearXxx` 布尔标志显式清空本来可空的字段（因为给参数传 `null` 与"未提供"无法区分）。
-- **输入：** 每个可变字段一个可选参数，外加 `clearEndEpisode`/`clearManualType`/`clearAirDayOfWeek`/`clearAirTime`/`clearFirstAirDate`/`clearCoverImage`/`clearInfoUrl`/`clearWatchUrl`/`clearNotes`/`clearRating`/`clearLocalArchive`/`clearSeriesLink`/`clearExternalMeta`（全部默认 `false`）；`modifiedAt` 可选（未提供时默认为 `DateTime.now().toUtc()`）。
+- **输入：** 每个可变字段一个可选参数，外加 `clearEndEpisode`/`clearManualType`/`clearAirDayOfWeek`/`clearAirTime`/`clearFirstAirDate`/`clearCoverImage`/`clearInfoUrl`/`clearWatchUrl`/`clearNotes`/`clearRating`/`clearLocalArchive`/`clearSeriesLink`/`clearCategories`/`clearExternalMeta`（全部默认 `false`）；`modifiedAt` 可选（未提供时默认为 `DateTime.now().toUtc()`）。
 - **返回：** 新的 `Anime`；`id`、`createdAt` 和 `extraJson` 总是原样带过。
 - **副作用：** 无（但不带显式 `modifiedAt` 调用它会读取当前时间）。
 - **算法：** 对每个带 `clearXxx` 标志的可空字段：标志为 `true` 则字段变 `null`；否则提供值非 null 时用之，否则保留既有值（`value ?? this.value`）。不可空字段（`season`、`startEpisode`）和 `episodeStatuses`/`episodeWeekOffsets` 直接 `?? this.field`，无 clear 标志。
@@ -910,7 +910,7 @@
   await AnimeStorage.addOrUpdate(updated);
   ```
   （`lib/features/anime/views/anime_edit_page.dart`，保存编辑后的动画）
-- **备注：** 除非调用方传入显式值，`modifiedAt` 总是前进到"现在"——UI 中每个编辑路径都显式传 `DateTime.now().toUtc()`，使同步冲突检测（比较 `modifiedAt`）能看到该编辑。反过来同样重要：**不**应算作用户编辑的写入必须显式传回旧的 `modifiedAt`，就像 [`AnimeStorage.patchExternalMeta`](../services/anime_storage.md#patchexternalmeta) 那样。`seriesLink`/`clearSeriesLink`（1.6.0）遵循同一 `clearXxx` 模式；`SeriesEditor` 传入自己的 UTC `now`，因为每次系列整理都是一次用户编辑。
+- **备注：** 除非调用方传入显式值，`modifiedAt` 总是前进到"现在"——UI 中每个编辑路径都显式传 `DateTime.now().toUtc()`，使同步冲突检测（比较 `modifiedAt`）能看到该编辑。反过来同样重要：**不**应算作用户编辑的写入必须显式传回旧的 `modifiedAt`，就像 [`AnimeStorage.patchExternalMeta`](../services/anime_storage.md#patchexternalmeta) 那样。`seriesLink`/`clearSeriesLink`（1.6.0）遵循同一 `clearXxx` 模式；`SeriesEditor` 传入自己的 UTC `now`，因为每次系列整理都是一次用户编辑。`categories`/`clearCategories`（1.6.0）同样遵循此模式：传 `categories: []` 存下「用户选择了无」，而 `clearCategories: true` 让记录回到自动分类。
 
 ### `Anime withExtraJson(Map<String, dynamic> extraJson)`（`Anime`） <a id="withextrajson-anime"></a>
 - **种类：** `Anime` 的方法
@@ -960,6 +960,7 @@
   4. `episodeStatuses` 总是写入（即使为空）；`episodeWeekOffsets` 只在非空时写入。
   5. `rating` 只在 `rating != null && rating!.hasAnyData` 时通过 `rating!.toJson()` 写入。
   6. `localArchive` 通过 `localArchive!.toJson()` 和 `hasAnyData` 遵循同一规则，因此从未使用过该功能的记录完全不会产生 `localArchive` 键。`seriesLink`（1.6.0）同样遵循此规则，因此用户从未整理过的记录不会产生 `seriesLink` 键。
+  7. `categories`（1.6.0）是「为空即省略」的唯一例外：只要字段非 null 就写出，**即使是 `[]`**，因为空列表表示「用户选择了无」，必须在每台设备上胜过自动分类。只有 `null`（自动）才移除该键，且仅当 `extraJson` 中没有保留的原始值时。
 - **用法：**
   ```dart
   final jsonStr = const JsonEncoder.withIndent('  ').convert(data.toJson());
@@ -981,7 +982,8 @@
   4. `episodeWeekOffsets` 走完全相同的模式，要求 `int` 值。
   5. `rating` 在原始值是 `Map` 时经 [`AnimeRating.fromJson`](#animerating-fromjson) 解析，解析出的评分没有数据时收缩为 `null`；非 `Map` 原始值保留进 `extraJson['rating']`。
   6. `localArchive` 通过 [`AnimeLocalArchive.fromJson`](#animelocalarchive-fromjson) 及其 `hasAnyData` 闸门遵循完全相同的模式，`seriesLink` 通过 [`AnimeSeriesLink.fromJson`](#animeserieslink-fromjson) 亦然。
-  7. 必填标量字段（`id`、`createdAt`、`modifiedAt`）用 `as` 转型读取（缺失/类型错误时抛出）；其余用 `as Type?` 带合理默认值（`season` → `'Season 1'`，`startEpisode` → `1`）。
+  7. `categories`（1.6.0）在原始值是字符串 `List` 时解析——整体保留，包括 `[]` 和本构建不认识的 id。其他任何存在的值（不是列表，或列表中含非字符串）保留进 `extraJson['categories']`，字段保持 `null`。
+  8. 必填标量字段（`id`、`createdAt`、`modifiedAt`）用 `as` 转型读取（缺失/类型错误时抛出）；其余用 `as Type?` 带合理默认值（`season` → `'Season 1'`，`startEpisode` → `1`）。
 - **用法：**
   ```dart
   final data = AnimeData.fromJson(jsonDecode(json) as Map<String, dynamic>);

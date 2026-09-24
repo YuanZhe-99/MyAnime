@@ -91,6 +91,8 @@ WebDAV 页面上的前台同步操作——手动同步、冲突最终化上传�
 
 `seriesLink`（1.6.0）无需改动同步层：它像其他字段一样随普通的整记录合并传输。不过，系列整理可能**一次写入多条记录**——固化自动归入的系列会给每个成员写入同一个 `seriesId`，重排会给每个成员写入 `order`——而每一次写入都是带新 UTC `modifiedAt` 的普通用户编辑。因此另一台设备上对其中某条记录的并发编辑会成为普通的冲突，像其他冲突一样解决；不会自动解决任何冲突。由于冲突对话框原本只显示 `modifiedAt`、集数范围和已看集数，当两侧 `seriesLink` 不同时，它会每侧加一行系列说明（手动关联 / 独立（不归入系列） / 自动），使仅关于系列的冲突不会看起来像两个完全相同的版本。见 [`features/series-linking.md`](features/series-linking.md)。
 
+`categories`（1.6.0）同样随整记录合并传输。编辑记录的分类或把它恢复为自动，都是带新 UTC `modifiedAt` 的普通用户编辑，因此别处的并发编辑是普通的冲突。AI 分类结果从不触碰记录：它们存放在不同步的本设备 `ai_insights.json` 中，因此没有模型的设备仍会显示映射得出的分类和用户自己的分类，但不会显示另一台设备的 AI 建议。见 [`features/categories-and-recommendations.md`](features/categories-and-recommendations.md)。
+
 ## 缓存元数据与 `modifiedAt`
 
 后台资料更新器写入 `externalMeta` 时不碰 `modifiedAt`，这是刻意的 —— 它正是「缓存刷新」与「用户编辑」

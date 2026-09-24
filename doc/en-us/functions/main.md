@@ -44,6 +44,10 @@ before handing control to Flutter's widget tree via `runApp`. See
   7a. Start `OnDeviceAiService.instance` so its queue follows the app lifecycle. This calls nothing
       on the platform: the service stays off until `AppSettingsNotifier` loads the user's switch.
       See [`../on-device-ai.md`](../on-device-ai.md).
+  7b. Start `CategoryClassifier.instance`, which registers a lifecycle listener that resets the
+      per-session count and starts a classification trickle on every resume. It does nothing while
+      automatic categories or on-device AI are off. See
+      [`../features/categories-and-recommendations.md`](../features/categories-and-recommendations.md).
   8. Start `ReminderService.startPeriodicCheck()` (desktop 60-second in-process reminder check).
   8a. Under `AppFlavor.isFull` only, resolve the background metadata-update policy and start
       `MetadataUpdateService.instance` unless it is `off`. Started without awaiting, so a slow

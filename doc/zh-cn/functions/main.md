@@ -28,6 +28,9 @@
   7a. 启动 `OnDeviceAiService.instance`，使它的队列跟随应用生命周期。这不会调用平台的任何东西：在
       `AppSettingsNotifier` 加载用户的开关之前，该服务一直处于关闭状态。见
       [`../on-device-ai.md`](../on-device-ai.md)。
+  7b. 启动 `CategoryClassifier.instance`，它注册一个生命周期监听器，每次回到前台时重置本次会话计数并启动一次分类细流。
+      自动分类或端侧 AI 关闭时它什么也不做。见
+      [`../features/categories-and-recommendations.md`](../features/categories-and-recommendations.md)。
   8. 启动 `ReminderService.startPeriodicCheck()`（桌面 60 秒进程内提醒检查）。
   8a. 仅在 `AppFlavor.isFull` 下，解析后台资料更新策略，若不是 `off` 则启动
       `MetadataUpdateService.instance`。启动时不 await，因此一次缓慢的配置读取不会拖延首帧。这里的

@@ -37,6 +37,11 @@ sequel of the series' last member that is not in the library. Unlike the series 
 for a record in no series. See
 [`../../../../features/series-linking.md`](../../../../features/series-linking.md).
 
+While automatic categories are on (1.6.0 M4), `_buildHeaderChildren` adds a row of category chips
+(`CategoryChips` in [`category_widgets.md`](category_widgets.md)) between the chips and the progress
+bar, so in the two-pane layout they stay in the left pane. Its edit chip opens the category editor.
+See [`../../../../features/categories-and-recommendations.md`](../../../../features/categories-and-recommendations.md).
+
 Both layouts are assembled from the same four builders — `_buildCover`, `_buildHeaderChildren`,
 `_buildDetailChildren`, `_buildEpisodeChildren` — so there is exactly one copy of each section's
 widget code. The split between `_buildHeaderChildren` and `_buildDetailChildren` *is* the pane
@@ -52,6 +57,7 @@ list read correctly whether it follows the progress bar or opens the right pane.
 | `AnimeDetailPage.createState` | method (`AnimeDetailPage`) | B | Create the mutable state object for this widget. |
 | `_AnimeDetailPageState.initState` | method (`_AnimeDetailPageState`) | B | Trigger the first data load. |
 | [`_load`](#_load) | method (`_AnimeDetailPageState`) | A | Load this anime and build the series index to find the series it belongs to. |
+| [`_editCategories`](#_editcategories) | method (`_AnimeDetailPageState`) | A | Let the user set this record's categories. |
 | [`_addMissingSequel`](#_addmissingsequel) | method (`_AnimeDetailPageState`) | A | Open the create page for a sequel the databases list but the library lacks. |
 | [`_runSeriesAction`](#_runseriesaction) | method (`_AnimeDetailPageState`) | A | Run one of the series card's (or the app-bar link menu's) actions. |
 | [`_toggleEpisode`](#_toggleepisode) | method (`_AnimeDetailPageState`) | A | Cycle one episode's watch status and persist it. |
@@ -60,7 +66,7 @@ list read correctly whether it follows the progress bar or opens the right pane.
 | [`_delete`](#_delete) | method (`_AnimeDetailPageState`) | A | Confirm and delete this anime record. |
 | `_AnimeDetailPageState.build` | method (`_AnimeDetailPageState`, widget build) | B | Build the detail page scaffold, choosing the single-column or two-pane layout. |
 | `_buildCover` | method (widget helper) | B | Build the cover image block at an explicit size. |
-| `_buildHeaderChildren` | method (widget helper) | B | Build the header block: Japanese title, chips (including the anime1.me progress chip), and the watched-episode bar. |
+| `_buildHeaderChildren` | method (widget helper) | B | Build the header block: Japanese title, chips (including the anime1.me progress chip), the category chips while automatic categories are on, and the watched-episode bar. |
 | `_buildDetailChildren` | method (widget helper) | B | Build the cards below the progress bar, plus the missing-sequel hint, the series card and prev/next buttons. |
 | `_buildEpisodeChildren` | method (widget helper) | B | Build the episode list header and one row per tracked episode. |
 | [`_toggleAllWatched`](#_toggleallwatched) | method (`_AnimeDetailPageState`) | A | Mark every tracked episode watched, or all unwatched if already complete. |
@@ -89,8 +95,10 @@ list read correctly whether it follows the progress bar or opens the right pane.
 - **Purpose:** Load the anime identified by `widget.animeId` and the series it belongs to.
 - **Inputs:** None (`widget.animeId` is read from the enclosing widget).
 - **Returns:** `Future<void>`.
-- **Side effects:** Calls `AnimeStorage.load()`; `setState`s `_anime`, `_seriesIndex`, `_series`,
-  `_missingSequel`. Writes nothing.
+- **Side effects:** Calls `AnimeStorage.load()`, `AnimeStorage.getAutoCategoriesEnabled()` and, only
+  while that and on-device AI (`AnimeStorage.getOnDeviceAiEnabled()`) are both on,
+  `AiInsightsCache.load()`; `setState`s `_anime`, `_seriesIndex`, `_series`,
+  `_missingSequel`, `_categoriesOn` and `_categories`. Writes nothing.
 - **Algorithm:**
   1. Await `AnimeStorage.load()` and find the record whose `id == widget.animeId`.
   2. Build a [`SeriesIndex`](../services/series_service.md#seriesindex-build) over the whole
@@ -99,6 +107,9 @@ list read correctly whether it follows the progress bar or opens the right pane.
      least two members; otherwise `_series` is `null` and the series card is not shown. Also store
      [`missingSequelFor`](../services/series_service.md#missingsequelfor) as `_missingSequel`,
      which drives the missing-sequel hint.
+  4. Store the automatic-categories switch as `_categoriesOn` and
+     [`resolveCategories`](../../categories/services/category_service.md#resolvecategories) of the
+     record (with the AI cache when it was read) as `_categories`.
 - **Usage:**
   ```dart
   @override
@@ -115,6 +126,27 @@ list read correctly whether it follows the progress bar or opens the right pane.
   the series index (explicit `order`, then `firstAirDate`, season ordinal, `createdAt`, `id`), and
   the old identical-title rule survives only as one of the index's grouping edges. See
   [`../../../../features/series-linking.md`](../../../../features/series-linking.md).
+
+### `Future<void> _editCategories()` <a id="_editcategories"></a>
+- **Kind:** method of `_AnimeDetailPageState`
+- **Source:** `lib/features/anime/views/anime_detail_page.dart` (approx. line 108)
+- **Purpose:** Let the user set this record's categories.
+- **Inputs:** None.
+- **Returns:** `Future<void>`.
+- **Side effects:** May call `AnimeStorage.addOrUpdate` (a user edit, `modifiedAt` stamped in UTC);
+  reloads via `_load()`.
+- **Algorithm:**
+  1. Open [`showCategoryEditor`](category_widgets.md#showcategoryeditor) with the effective ids and
+     `hasOverride: anime.categories != null`. Dismissed → return.
+  2. `CategoriesChosen(ids)` → `copyWith(categories: [...ids, ...unknown])`, where `unknown` is every
+     id in the record's own list that this build does not know, so a newer build's ids survive.
+     An empty choice writes `[]`.
+  3. `CategoriesReset` → `copyWith(clearCategories: true)`, returning the record to automatic.
+  4. Save with `AnimeStorage.addOrUpdate`, then `_load()`.
+- **Usage:** `CategoryChips(categories: _categories, onEdit: _editCategories)` in
+  `_buildHeaderChildren`.
+- **Notes:** The editor starts from the *effective* ids, so saving without a change turns mapped or
+  AI categories into the user's own. The write is an ordinary user edit and syncs like one.
 
 ### `Future<void> _addMissingSequel(AnimeExternalRelation relation)` <a id="_addmissingsequel"></a>
 - **Kind:** method of `_AnimeDetailPageState`

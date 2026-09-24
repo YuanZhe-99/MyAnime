@@ -692,6 +692,20 @@ class _ConflictDialog extends StatelessWidget {
   /// Returns: `String` — linked by the user, standalone, or automatic.
   /// Side effects: None.
   /// Notes: Shown only when the two sides' `seriesLink` differ.
+  /// Purpose: Describe one side's own category choice.
+  /// Inputs: `anime`, `l10n`.
+  /// Returns: `String` — the chosen ids, or "automatic".
+  /// Side effects: None.
+  /// Notes: Shown only when the two sides' `categories` differ, so a conflict
+  /// about categories alone does not look like two identical versions. Ids
+  /// are shown raw: this is a diagnostic line.
+  static String _categoriesLine(Anime anime, AppLocalizations l10n) {
+    final ids = anime.categories;
+    return ids == null
+        ? l10n.syncCategoriesAuto
+        : l10n.syncCategories(ids.isEmpty ? '—' : ids.join(', '));
+  }
+
   static String _seriesLine(Anime anime, AppLocalizations l10n) {
     final link = anime.seriesLink;
     if (link?.standalone == true) return l10n.syncSeriesStandalone;
@@ -721,6 +735,8 @@ class _ConflictDialog extends StatelessWidget {
     final seriesDiffers =
         jsonEncode(local.seriesLink?.toJson()) !=
         jsonEncode(remote.seriesLink?.toJson());
+    final categoriesDiffer =
+        jsonEncode(local.categories) != jsonEncode(remote.categories);
 
     return AlertDialog(
       title: Text(l10n.syncConflictTitle(conflict.displayName)),
@@ -749,6 +765,7 @@ class _ConflictDialog extends StatelessWidget {
               ),
             ),
             if (seriesDiffers) Text(_seriesLine(local, l10n)),
+            if (categoriesDiffer) Text(_categoriesLine(local, l10n)),
             const SizedBox(height: 12),
             Text(
               l10n.syncRemoteVersion,
@@ -767,6 +784,7 @@ class _ConflictDialog extends StatelessWidget {
               ),
             ),
             if (seriesDiffers) Text(_seriesLine(remote, l10n)),
+            if (categoriesDiffer) Text(_categoriesLine(remote, l10n)),
           ],
         ),
       ),

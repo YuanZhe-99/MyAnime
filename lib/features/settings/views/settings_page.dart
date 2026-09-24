@@ -22,9 +22,11 @@ import '../../../shared/utils/calendar_preferences.dart';
 import '../../../shared/views/webdav_config_page.dart';
 import '../../../shared/widgets/duplicate_check_page.dart';
 import '../../../app/flavor.dart';
+import '../../ai/widgets/ai_settings_tiles.dart';
 import '../../anime/models/metadata_update.dart';
 import '../../anime/services/anime_storage.dart';
 import '../../anime/services/metadata_update_service.dart';
+import '../../categories/widgets/categorize_now_tile.dart';
 import 'backup_page.dart';
 import 'license_page.dart' as app_license;
 import 'privacy_policy_page.dart';
@@ -979,6 +981,22 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
             value: settings.kanaTabEnabled,
             onChanged: notifier.setKanaTabEnabled,
           ),
+        ]),
+
+        // ── Categories & recommendations ──
+        // Everything here is off by default. The on-device AI rows appear
+        // only on Android, iOS and macOS, and the AI switch is usable only
+        // while a feature that needs it is on.
+        _buildSection(l10n.aiSectionTitle, [
+          SwitchListTile(
+            secondary: const Icon(Icons.category_outlined),
+            title: Text(l10n.settingsAutoCategories),
+            subtitle: Text(l10n.settingsAutoCategoriesDesc),
+            value: settings.autoCategoriesEnabled,
+            onChanged: notifier.setAutoCategoriesEnabled,
+          ),
+          AiSettingsTiles(featuresOn: settings.autoCategoriesEnabled),
+          if (settings.autoCategoriesEnabled) const CategorizeNowTile(),
         ]),
 
         // ── Data ──

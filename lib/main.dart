@@ -11,6 +11,7 @@ import 'package:package_info_plus/package_info_plus.dart';
 import 'app/app.dart';
 import 'app/flavor.dart';
 import 'features/ai/services/on_device_ai_service.dart';
+import 'features/categories/services/category_service.dart';
 import 'features/anime/models/metadata_update.dart';
 import 'features/anime/services/metadata_update_service.dart';
 import 'shared/services/auto_sync_service.dart';
@@ -59,6 +60,7 @@ void main(List<String> args) async {
   // Let on-device AI follow the lifecycle; it stays off until the user's
   // switch (loaded by AppSettingsNotifier) turns it on.
   OnDeviceAiService.instance.start();
+  CategoryClassifier.instance.start();
 
   // Start periodic reminder check (every 60s)
   ReminderService.startPeriodicCheck();

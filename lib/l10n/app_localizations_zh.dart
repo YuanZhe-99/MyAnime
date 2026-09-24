@@ -706,6 +706,118 @@ class AppLocalizationsZh extends AppLocalizations {
   String get syncSeriesAuto => '系列：自动';
 
   @override
+  String syncCategories(String list) {
+    return '分类：$list';
+  }
+
+  @override
+  String get syncCategoriesAuto => '分类：自动';
+
+  @override
+  String get categoryAction => '动作';
+
+  @override
+  String get categoryAdventure => '冒险';
+
+  @override
+  String get categoryComedy => '喜剧';
+
+  @override
+  String get categoryDrama => '剧情';
+
+  @override
+  String get categoryRomance => '恋爱';
+
+  @override
+  String get categorySliceOfLife => '日常';
+
+  @override
+  String get categoryFantasy => '奇幻';
+
+  @override
+  String get categoryIsekai => '异世界';
+
+  @override
+  String get categorySciFi => '科幻';
+
+  @override
+  String get categoryMecha => '机战';
+
+  @override
+  String get categoryMystery => '悬疑';
+
+  @override
+  String get categorySuspense => '惊悚';
+
+  @override
+  String get categoryHorror => '恐怖';
+
+  @override
+  String get categoryPsychological => '心理';
+
+  @override
+  String get categorySupernatural => '超自然';
+
+  @override
+  String get categorySports => '运动';
+
+  @override
+  String get categoryMusic => '音乐';
+
+  @override
+  String get categorySchool => '校园';
+
+  @override
+  String get categoryHistorical => '历史';
+
+  @override
+  String get categoryMilitary => '军事';
+
+  @override
+  String get categoryGourmet => '美食';
+
+  @override
+  String get categoryHealing => '治愈';
+
+  @override
+  String get categoryMagicalGirl => '魔法少女';
+
+  @override
+  String get categoriesTitle => '分类';
+
+  @override
+  String get categoriesEdit => '编辑分类';
+
+  @override
+  String get categoriesReset => '恢复自动';
+
+  @override
+  String get categoriesNone => '无分类';
+
+  @override
+  String get categoriesYours => '由你选择';
+
+  @override
+  String get settingsAutoCategories => '自动分类';
+
+  @override
+  String get settingsAutoCategoriesDesc => '根据资料库给出的类型标签为每部番剧分类。你自己选的分类始终优先。';
+
+  @override
+  String get aiCategorizeNow => '立即分类';
+
+  @override
+  String aiCategorizeProgress(int pending, int total) {
+    return '还有 $pending / $total 部待分类';
+  }
+
+  @override
+  String get manageFilterCategory => '分类';
+
+  @override
+  String get manageFilterAllCategories => '全部分类';
+
+  @override
   String seriesMissingSequel(String title, String source) {
     return '下一部：$title（$source）';
   }
@@ -2413,6 +2525,118 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
 
   @override
   String get syncSeriesAuto => '系列：自動';
+
+  @override
+  String syncCategories(String list) {
+    return '分類：$list';
+  }
+
+  @override
+  String get syncCategoriesAuto => '分類：自動';
+
+  @override
+  String get categoryAction => '動作';
+
+  @override
+  String get categoryAdventure => '冒險';
+
+  @override
+  String get categoryComedy => '喜劇';
+
+  @override
+  String get categoryDrama => '劇情';
+
+  @override
+  String get categoryRomance => '戀愛';
+
+  @override
+  String get categorySliceOfLife => '日常';
+
+  @override
+  String get categoryFantasy => '奇幻';
+
+  @override
+  String get categoryIsekai => '異世界';
+
+  @override
+  String get categorySciFi => '科幻';
+
+  @override
+  String get categoryMecha => '機戰';
+
+  @override
+  String get categoryMystery => '懸疑';
+
+  @override
+  String get categorySuspense => '驚悚';
+
+  @override
+  String get categoryHorror => '恐怖';
+
+  @override
+  String get categoryPsychological => '心理';
+
+  @override
+  String get categorySupernatural => '超自然';
+
+  @override
+  String get categorySports => '運動';
+
+  @override
+  String get categoryMusic => '音樂';
+
+  @override
+  String get categorySchool => '校園';
+
+  @override
+  String get categoryHistorical => '歷史';
+
+  @override
+  String get categoryMilitary => '軍事';
+
+  @override
+  String get categoryGourmet => '美食';
+
+  @override
+  String get categoryHealing => '治癒';
+
+  @override
+  String get categoryMagicalGirl => '魔法少女';
+
+  @override
+  String get categoriesTitle => '分類';
+
+  @override
+  String get categoriesEdit => '編輯分類';
+
+  @override
+  String get categoriesReset => '恢復自動';
+
+  @override
+  String get categoriesNone => '無分類';
+
+  @override
+  String get categoriesYours => '由你選擇';
+
+  @override
+  String get settingsAutoCategories => '自動分類';
+
+  @override
+  String get settingsAutoCategoriesDesc => '根據資料庫提供的類型標籤為每部番劇分類。你自己選的分類始終優先。';
+
+  @override
+  String get aiCategorizeNow => '立即分類';
+
+  @override
+  String aiCategorizeProgress(int pending, int total) {
+    return '還有 $pending / $total 部待分類';
+  }
+
+  @override
+  String get manageFilterCategory => '分類';
+
+  @override
+  String get manageFilterAllCategories => '全部分類';
 
   @override
   String seriesMissingSequel(String title, String source) {

@@ -26,6 +26,12 @@ points at content-addressed image blobs under `backups/blobs/<sha256><ext>`.
   local retention.
 - **Legacy v1 bundles** with inline base64 `_images` remain restorable — restore checks for
   `_imageRefs` (v2) first, then falls back to the legacy `_images` map (v1) if absent.
+- **What is not in a bundle:** only registered data modules and `images/` are backed up. The
+  device-local caches — `metadata_updates.json`, `metadata_covers/` and, since 1.6.0, the on-device
+  AI cache `ai_insights.json` — are not registered in `lib/app/data_modules.dart`, so they are
+  never backed up and a restore neither overwrites nor clears them. They are rebuildable. The
+  user's own `categories` field is part of each record, so it *is* backed up. See
+  [`features/categories-and-recommendations.md`](features/categories-and-recommendations.md).
 
 ## Atomic writes
 

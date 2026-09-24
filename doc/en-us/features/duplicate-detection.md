@@ -41,6 +41,8 @@ When merging a duplicate group down to one record:
 - The series link (`seriesLink`, 1.6.0) is taken whole: the primary's if it has one, else the first
   fallback's. This keeps a curated membership or a standalone choice from being lost when the
   primary had none.
+- The user's categories (`categories`, 1.6.0) follow the same rule: the primary's if it has the field
+  — even `[]` — else the first fallback's; if none has it, the merged record stays automatic.
 - Notes are concatenated (not deduplicated against each other).
 - Unknown JSON fields are preserved via the `extraJson` pattern (see
   [`../data-formats.md`](../data-formats.md)), the same as every other merge path in the app.

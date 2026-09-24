@@ -173,6 +173,8 @@
 | canonical (database) key | 规范键 | `anilist:<id>` / `mal:<id>` / `bgm:<id>`，用于把关联目标与记录的页面匹配 |
 | on-device AI | 端侧 AI | 在本设备上运行的模型；与 MyNihongo 一致。勿译成「本地 AI」或「设备端 AI」 |
 | Apple Intelligence / AICore / Foundation Models | Apple Intelligence / AICore / Foundation Models | 平台与框架名，不翻译 |
+| category | 分类 | 本应用自己的分类表（`animeCategories`）中的一项；与资料库的「类型标签」（genre）不同，勿混用 |
+| automatic categories | 自动分类 | 由类型标签映射、必要时由端侧 AI 补全得出的分类；用户自己选的分类始终优先 |
 
 ## 6. 复查清单（提交中文页面之前运行）
 

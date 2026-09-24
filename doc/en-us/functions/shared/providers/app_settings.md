@@ -32,6 +32,7 @@ management conventions (Riverpod, no Provider/Bloc) and
 | `AppSettingsNotifier.setKanaTabEnabled` | method (`AppSettingsNotifier`) | B | Show or hide the Kana tab and persist the choice. |
 | [`AppSettingsNotifier.setOnDeviceAiEnabled`](#appsettingsnotifier-setondeviceaienabled) | method (`AppSettingsNotifier`) | A | Turn on-device AI on or off, persist it, and switch `OnDeviceAiService`. |
 | `AppSettingsNotifier.setOnDeviceAiPreferFast` | method (`AppSettingsNotifier`) | B | Prefer the faster on-device model where both sizes are served; persist it and tell `OnDeviceAiService`. |
+| [`AppSettingsNotifier.setAutoCategoriesEnabled`](#appsettingsnotifier-setautocategoriesenabled) | method (`AppSettingsNotifier`) | A | Turn automatic categories on or off, persist it, and switch `CategoryClassifier`. |
 | [`AppSettings.new`](#appsettings-new) | constructor (`AppSettings`) | A | Create an `AppSettings` instance. |
 | [`AppSettings.effectiveWeekStartDay`](#appsettings-effectiveweekstartday) | getter (`AppSettings`) | A | Return the week start day that should be applied to calendars. |
 | [`AppSettings.copyWith`](#appsettings-copywith) | method (`AppSettings`) | A | Create a copy with selected fields replaced. |
@@ -140,9 +141,10 @@ separate rows.
 - **Returns:** `Future<void>`.
 - **Side effects:** Reads `AnimeStorage.getThemeMode()`, `getLocaleTag()`, `getWeekStartDay()`,
   `getHomeCalendarLayout()`, `getHomeCalendarTimeBasis()`, and `getHomeCalendarFormat()` (plus the
-  list-column, Kana-tab and on-device AI getters described at the end of this page); replaces
-  `state`; then calls `OnDeviceAiService.instance.setPreferFast` and `setEnabled` with the loaded
-  values.
+  list-column, Kana-tab, on-device AI and automatic-categories getters described at the end of this
+  page); replaces `state`; sets `CategoryClassifier.instance.enabled`; calls
+  `OnDeviceAiService.instance.setPreferFast` and `setEnabled` with the loaded values; then starts one
+  classification trickle without awaiting it.
 - **Algorithm:**
   1. Await the six `AnimeStorage` getters (theme mode string, locale tag, week start day, home
      calendar layout string, home calendar time basis string, home calendar format string).
@@ -156,6 +158,10 @@ separate rows.
   6. Tell `OnDeviceAiService.instance` the loaded size preference, then the loaded switch — the
      service holds no preference of its own. While the switch is off, `setEnabled(false)` is a
      no-op, so a default start calls nothing on the platform.
+  7. Before step 6, hand the loaded automatic-categories switch to
+     `CategoryClassifier.instance.enabled`; after it, call `CategoryClassifier.instance.trickle()`
+     unawaited. The trickle returns at once unless automatic categories are on and the model can
+     generate, so a default start does no work.
 - **Usage:** Called only from `AppSettingsNotifier()`'s constructor; not part of the public API.
 - **Notes:** A malformed locale tag with more than one `_` (e.g. `en_US_extra`) only uses the first
   two parts; there is no explicit validation beyond that.
@@ -290,9 +296,12 @@ separate rows.
 - **Inputs:** `enabled`.
 - **Returns:** None.
 - **Side effects:** Updates `state`; calls `AnimeStorage.setOnDeviceAiEnabled(enabled)` and
-  `OnDeviceAiService.instance.setEnabled(enabled)`, both without awaiting.
+  `OnDeviceAiService.instance.setEnabled(enabled)`, both without awaiting; once the latter
+  completes, calls `CategoryClassifier.instance.trickle()`.
 - **Algorithm:** 1) `state = state.copyWith(onDeviceAiEnabled: enabled)`. 2) Persist. 3) Switch the
   service, which probes the model when turned on and cancels anything running when turned off.
+  4) When that finishes, start a classification trickle (1.6.0, M4), so turning AI on fills category
+  gaps without waiting for the next resume; after turning it off the trickle is a no-op.
 - **Usage:**
   ```dart
   onChanged: widget.featuresOn || settings.onDeviceAiEnabled
@@ -302,6 +311,30 @@ separate rows.
   (from `lib/features/ai/widgets/ai_settings_tiles.dart`, the "Use on-device AI" switch)
 - **Notes:** Off by default. `setOnDeviceAiPreferFast` has the same shape and makes the service
   re-probe while it is on.
+
+### `void setAutoCategoriesEnabled(bool enabled)` <a id="appsettingsnotifier-setautocategoriesenabled"></a>
+- **Kind:** method of `AppSettingsNotifier`
+- **Source:** `lib/shared/providers/app_settings.dart` (approx. line 279)
+- **Purpose:** Turn automatic categories on or off.
+- **Inputs:** `enabled`.
+- **Returns:** None.
+- **Side effects:** Updates `state`; calls `AnimeStorage.setAutoCategoriesEnabled(enabled)` without
+  awaiting; sets `CategoryClassifier.instance.enabled`; may start a trickle or turn on-device AI off.
+- **Algorithm:** 1) `state = state.copyWith(autoCategoriesEnabled: enabled)`. 2) Persist. 3) Set
+  `CategoryClassifier.instance.enabled`. 4) When turning on, start
+  `CategoryClassifier.instance.trickle()` unawaited; when turning off while `onDeviceAiEnabled` is
+  on, call `setOnDeviceAiEnabled(false)`.
+- **Usage:**
+  ```dart
+  SwitchListTile(
+    title: Text(l10n.settingsAutoCategories),
+    value: settings.autoCategoriesEnabled,
+    onChanged: notifier.setAutoCategoriesEnabled,
+  )
+  ```
+  (from `lib/features/settings/views/settings_page.dart`, the *Categories & recommendations* section)
+- **Notes:** Off by default. Turning it off also turns on-device AI off, because automatic
+  categories are the only feature that uses the model and an AI switch with nothing to do is noise.
 
 ### `const AppSettings({...})` <a id="appsettings-new"></a>
 - **Kind:** constructor of `AppSettings`
@@ -402,5 +435,14 @@ loaded in `_loadPersisted` through `AnimeStorage.getOnDeviceAiEnabled()` and
 `getOnDeviceAiPreferFast()` and written by `setOnDeviceAiEnabled` and `setOnDeviceAiPreferFast`.
 Each writer also tells `OnDeviceAiService.instance`, which keeps no preference of its own; the
 constructor and `copyWith` take both fields. The only UI is
-[`AiSettingsTiles`](../../features/ai/widgets/ai_settings_tiles.md), which is not yet shown in
-Settings on `master`. See [`../../../on-device-ai.md`](../../../on-device-ai.md).
+[`AiSettingsTiles`](../../features/ai/widgets/ai_settings_tiles.md), in the *Categories &
+recommendations* section of Settings. See [`../../../on-device-ai.md`](../../../on-device-ai.md).
+
+## Automatic categories preference
+
+1.6.0 (M4) adds `autoCategoriesEnabled`, a `bool` defaulting to `false`, loaded in `_loadPersisted`
+through `AnimeStorage.getAutoCategoriesEnabled()` and written by `setAutoCategoriesEnabled`. The
+constructor and `copyWith` take it. Both the loader and the setter tell
+`CategoryClassifier.instance`, which holds only this switch. The management page reads it to offer
+the category filter; the detail page reads the stored key itself. See
+[`../../../features/categories-and-recommendations.md`](../../../features/categories-and-recommendations.md).

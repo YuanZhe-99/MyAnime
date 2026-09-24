@@ -30,6 +30,7 @@
 
 - [`features/anime-tracking.md`](features/anime-tracking.md) — `Anime` 模型和季度归属/跟踪逻辑。
 - [`features/series-linking.md`](features/series-linking.md) — 系列关联（1.6.0）：自动把一部作品的各季归为系列、手动整理、系列卡片与 `seriesLink` 字段。
+- [`features/categories-and-recommendations.md`](features/categories-and-recommendations.md) — 自动分类（1.6.0）：分类表、类型标签映射、端侧 AI 补全、`categories` 字段与 `ai_insights.json` 缓存。
 - [`features/home-management-statistics.md`](features/home-management-statistics.md) — 主页、管理和统计三个标签。
 - [`features/kana-reference.md`](features/kana-reference.md) — 纯 UI 的假名速查模块，自 1.6.0 起默认关闭。
 - [`features/multi-source-search.md`](features/multi-source-search.md) — 多源动画搜索、去重、模糊匹配和风味门控。

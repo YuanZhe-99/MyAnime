@@ -29,8 +29,8 @@ on a device** (2026-09-24).
 | [`OnDeviceAiService.refreshStatus`](#ondeviceaiservice-refreshstatus) | method (`OnDeviceAiService`) | A | Ask the device what the model can do. |
 | [`OnDeviceAiService.download`](#ondeviceaiservice-download) | method (`OnDeviceAiService`) | A | Ask the system to fetch the model (Android). |
 | [`OnDeviceAiService.generate`](#ondeviceaiservice-generate) | method (`OnDeviceAiService`) | A | Generate one answer through the queue. |
-| `OnDeviceAiService.choose` | method (`OnDeviceAiService`) | B | Ask the model to pick from a fixed list, through the queue (background priority by default). |
-| `OnDeviceAiService.prewarm` | method (`OnDeviceAiService`) | B | Load the model ahead of a batch; does nothing while off. |
+| `OnDeviceAiService.choose` | method (`OnDeviceAiService`) | B | Ask the model to pick from a fixed list, through the queue (background priority by default). Called by `CategoryClassifier` (1.6.0 M4). |
+| `OnDeviceAiService.prewarm` | method (`OnDeviceAiService`) | B | Load the model ahead of a batch; does nothing while off. Called by `CategoryClassifier` before a pass. |
 | [`OnDeviceAiService.cancelBackground`](#ondeviceaiservice-cancelbackground) | method (`OnDeviceAiService`) | A | Stop the running request and drop queued background work. |
 | [`OnDeviceAiService.start`](#ondeviceaiservice-start) | method (`OnDeviceAiService`) | A | Start following the app lifecycle. |
 | `OnDeviceAiService.handleLifecycle` | method (`OnDeviceAiService`) | B | Follow the app lifecycle: pause while not resumed, pump the queue on resume. |
