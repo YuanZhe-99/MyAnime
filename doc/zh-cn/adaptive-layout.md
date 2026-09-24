@@ -221,6 +221,7 @@ bool useNavigationRail(double screenWidth) => screenWidth >= navRailMinWidth; //
 | `statistics_page.dart`（摘要） | 是 | 先由 `canSplitLayout` 门控，再由 `useStatsSideBySide` 门控；见上文。 |
 | `statistics_page.dart`（排行筛选） | 否——只看宽度 | 把控件打包到一行是排布问题，不是分栏问题。 |
 | `metadata_updates_page.dart` | 是 | 先由 `canSplitLayout` 门控，再由 `metaUpdateCardMinWidth` 上的 `columnCapacity` 门控。它被推到外壳**之外**，因此量的是原始窗口——不用 `shellContentWidth`，也不用 `shellListBottomInset`。 |
+| `recommendations_page.dart` | 是 | 通过 `listColumnCount`，使用**首页的列数偏好**（`homeListColumns`）；本页没有自己的列数按钮（1.6.0）。它被推到外壳之外，因此量的是原始窗口：屏幕宽度就是内容宽度。 |
 | `series_widgets.dart`（管理面板） | 是 | `showSeriesManageSheet`（1.6.0）在 `canSplitLayout` 成立时打开上限 560 × 640 的 `Dialog`，否则打开模态底部面板——没有新的断点。系列卡片本身不需要规则：它位于 `_buildDetailChildren` 中，因此由详情页自己的分栏把它放进右栏。 |
 | `category_widgets.dart`（分类编辑器） | 是 | `showCategoryEditor`（1.6.0）在 `canSplitLayout` 成立时打开宽度上限 560 的 `Dialog`，否则打开模态底部面板——与系列管理面板的做法相同。分类标签本身位于 `_buildHeaderChildren` 中，因此在详情页的双栏布局中留在左栏。 |
 | `shell_scaffold.dart` | 否——`useNavigationRail` | 只看宽度；见上文。 |

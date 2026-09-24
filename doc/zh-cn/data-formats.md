@@ -315,6 +315,7 @@ enum AnimeType {
 | 是否显示假名标签 | `storage_config.json` | 否 | 设备特有的 `kanaTabEnabled`；缺省表示隐藏（1.6.0） |
 | 端侧 AI 开关与模型尺寸偏好 | `storage_config.json` | 否 | 设备特有的 `onDeviceAiEnabled` 与 `onDeviceAiPreferFast`（Android）；缺省表示关闭（1.6.0） |
 | 自动分类 | `storage_config.json` | 否 | 设备特有的 `autoCategoriesEnabled`；缺省表示关闭（1.6.0） |
+| 推荐 | `storage_config.json` | 否 | 设备特有的 `recommendationsEnabled`；缺省表示关闭（1.6.0） |
 | WebDAV 配置 | `webdav_config.json` | 否 | 仅本地秘密/配置 |
 | 同步基线快照 | `.sync_base/anime_data.json` | 否 | 本地合并跟踪 |
 | 本地备份 | `backups/backup_*.json` | 否 | 本地恢复；v2 捆绑引用去重后的图像 blob |
@@ -322,19 +323,20 @@ enum AnimeType {
 | 后台更新队列 | `metadata_updates.json` | 否 | 设备本地的尝试/退避状态，以及已下载的更新候选；可重建的缓存 |
 | 预取的候选封面 | `metadata_covers/` | 否 | 仅在启用封面预下载时存在；对应建议被处理后即清理 |
 | 后台更新策略 | `storage_config.json` | 否 | 设备特有的 `metadataAutoUpdate`（`off`/`noCellular`/`always`；缺省表示移动端 `noCellular`、桌面 `always`）与 `metadataPrefetchCovers` |
-| 端侧 AI 结果 | `ai_insights.json` | 否 | 本设备的 AI 分类结果缓存（1.6.0）；不备份；可重建；加载时修剪已删除记录的条目 |
+| 端侧 AI 结果 | `ai_insights.json` | 否 | 本设备的 AI 分类结果缓存与推荐的*不感兴趣*列表（`hiddenRecommendations`）（1.6.0）；不备份；可重建；加载时修剪已删除记录的条目 |
 
 `metadata_updates.json` 与 `metadata_covers/` 既不同步也不备份，而这不需要任何特殊处理：同步与备份引擎
 只会碰 `ModuleRegistry` 中注册的文件名外加 `images/`，而两者都没有注册进 `lib/app/data_modules.dart`。
 它们确实位于 `AnimeStorage.getAppDir()` 之下，所以更换存储路径时会跟着一起迁移。见
 [`features/metadata-auto-update.md`](features/metadata-auto-update.md)。
 
-`ai_insights.json`（1.6.0）遵循同样的机制：它也没有注册，因此既不同步也不备份，并随存储路径迁移。其 schema 见
+`ai_insights.json`（1.6.0）遵循同样的机制：它也没有注册，因此既不同步也不备份，并随存储路径迁移。由于它还保存
+`hiddenRecommendations`，隐藏推荐仅限本设备。其 schema 见
 [`features/categories-and-recommendations.md`](features/categories-and-recommendations.md)。
 
 ### `storage_config.json`
 
-保存上表中除 WebDAV 配置外的每个设备本地偏好：主题模式、语言区域、日历周起始/布局/时间基准/视图格式偏好、存储路径覆盖、自动备份启用 + 保留天数（`backupRetentionDays`）、提醒设置、API 服务器启用/监听地址/端口/凭据、托盘/开机自启偏好，以及后台资料更新设置（`metadataAutoUpdate`、`metadataPrefetchCovers`）、分模块的列表列数（`homeListColumns`、`manageListColumns`、`statsListColumns`），是否显示假名标签（`kanaTabEnabled`，仅在开启时写入），以及端侧 AI 开关与「使用更快的模型」偏好（`onDeviceAiEnabled`、`onDeviceAiPreferFast`，都仅在开启时写入；见 [`on-device-ai.md`](on-device-ai.md)），以及是否开启自动分类（`autoCategoriesEnabled`，仅在开启时写入）。此文件的任何内容都不被同步——它刻意设备特有，而这正是网络策略应有的归宿：接有线网的桌面与走流量套餐的手机本就该不同。
+保存上表中除 WebDAV 配置外的每个设备本地偏好：主题模式、语言区域、日历周起始/布局/时间基准/视图格式偏好、存储路径覆盖、自动备份启用 + 保留天数（`backupRetentionDays`）、提醒设置、API 服务器启用/监听地址/端口/凭据、托盘/开机自启偏好，以及后台资料更新设置（`metadataAutoUpdate`、`metadataPrefetchCovers`）、分模块的列表列数（`homeListColumns`、`manageListColumns`、`statsListColumns`），是否显示假名标签（`kanaTabEnabled`，仅在开启时写入），以及端侧 AI 开关与「使用更快的模型」偏好（`onDeviceAiEnabled`、`onDeviceAiPreferFast`，都仅在开启时写入；见 [`on-device-ai.md`](on-device-ai.md)），以及是否开启自动分类（`autoCategoriesEnabled`，仅在开启时写入），以及是否开启推荐（`recommendationsEnabled`，仅在开启时写入）。此文件的任何内容都不被同步——它刻意设备特有，而这正是网络策略应有的归宿：接有线网的桌面与走流量套餐的手机本就该不同。
 
 ### `webdav_config.json`
 

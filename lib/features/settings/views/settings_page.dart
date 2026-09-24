@@ -995,7 +995,18 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
             value: settings.autoCategoriesEnabled,
             onChanged: notifier.setAutoCategoriesEnabled,
           ),
-          AiSettingsTiles(featuresOn: settings.autoCategoriesEnabled),
+          SwitchListTile(
+            secondary: const Icon(Icons.recommend_outlined),
+            title: Text(l10n.settingsRecommendations),
+            subtitle: Text(l10n.settingsRecommendationsDesc),
+            value: settings.recommendationsEnabled,
+            onChanged: notifier.setRecommendationsEnabled,
+          ),
+          AiSettingsTiles(
+            featuresOn:
+                settings.autoCategoriesEnabled ||
+                settings.recommendationsEnabled,
+          ),
           if (settings.autoCategoriesEnabled) const CategorizeNowTile(),
         ]),
 

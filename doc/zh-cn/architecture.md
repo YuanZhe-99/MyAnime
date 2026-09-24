@@ -13,7 +13,7 @@
   - 假名（`/kana`，`kana_page.dart`）——仅当**设置 › 通用 › 五十音速查**开启时出现；自 1.6.0 起默认关闭，关闭时 `/kana` 重定向到 `/home`（见 [`features/kana-reference.md`](features/kana-reference.md)）
   - 设置（`/settings`，`settings_page.dart`）
 
-  非标签路由（动画详情、动画编辑/新增、元数据更新审阅、重复检查）与外壳路由一起声明，并压栈在它之上（如 `/anime/detail/:id`、`/anime/edit`、`/anime/edit/:id`、`/metadata-updates`、`/duplicate-check`）。
+  非标签路由（动画详情、动画编辑/新增、元数据更新审阅、推荐、重复检查）与外壳路由一起声明，并压栈在它之上（如 `/anime/detail/:id`、`/anime/edit`、`/anime/edit/:id`、`/metadata-updates`、`/recommendations`、`/duplicate-check`）。`/recommendations`（1.6.0）只能从推荐开启时显示的首页应用栏操作进入（见 [`features/categories-and-recommendations.md`](features/categories-and-recommendations.md)）。
 - `lib/app/theme.dart` — 基于 `flex_color_scheme` 的 Material 3 视觉体系。
 - `lib/app/flavor.dart` — 构建风味逻辑（见下文）。
 
@@ -79,6 +79,12 @@ lib/
       services/category_service.dart
       widgets/categorize_now_tile.dart
     kana/views/kana_page.dart
+    recommendations/          # recommendations (1.6.0)
+      services/
+        recommendation_service.dart  # deterministic ranking
+        reason_prompt.dart
+        ai_reason_service.dart       # optional on-device AI reasons
+      views/recommendations_page.dart
     settings/views/
       backup_page.dart
       license_page.dart

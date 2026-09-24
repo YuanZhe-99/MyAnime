@@ -26,6 +26,10 @@ model/quarter logic and [`../architecture.md`](../architecture.md) for how these
   short viewports the row height shrinks (down to 34 from the usual 52), with tighter cell margins
   and smaller airing markers, so a six-week month still fits above the episode list.
 - Unwatched aired episodes are surfaced directly on the calendar.
+- While recommendations are on (1.6.0), a recommendations action in the app bar, before the column
+  button, opens "What to watch next" (`/recommendations`), which lays its cards out with Home's column
+  preference. With recommendations off (the default) the action is absent. See
+  [`categories-and-recommendations.md`](categories-and-recommendations.md).
 
 ## Management (`management_page.dart`)
 

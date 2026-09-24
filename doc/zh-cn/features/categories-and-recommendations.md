@@ -4,7 +4,10 @@
 类型标签，以及——只有前两者都没有结果时——端侧模型。该功能**默认关闭**（设置 › *分类与推荐* › *自动分类*），在所有平台上
 都能工作；只有 AI 这一步需要 Android、iOS 或 macOS。
 
-代码见 [`functions/features/anime/models/anime_category.md`](../functions/features/anime/models/anime_category.md)
+**推荐**（同样自 1.6.0 起）回答「**从我的片库里**接下来看什么」。它是一个独立的开关（设置 › *分类与推荐* › *推荐*），同样
+**默认关闭**，在所有平台上都可用；只有可选的生成理由需要模型。见下方的[推荐](#推荐)。
+
+分类的代码见 [`functions/features/anime/models/anime_category.md`](../functions/features/anime/models/anime_category.md)
 （分类表与类型标签映射）、
 [`functions/features/categories/services/category_service.md`](../functions/features/categories/services/category_service.md)
 （解析与分类器）、
@@ -133,5 +136,76 @@ AI 建议的分类标签带一个闪光图标和提示「在本设备上生成�
 - **仅限本设备。** 它没有注册进 `lib/app/data_modules.dart`，因此**既不同步也不备份**，写入也从不通知自动同步。
   更改存储路径时它仍会一起迁移。
 - **可重建。** 加载是容错的：格式错误的条目被丢弃，无法读取的文件读作空。
-- **加载时修剪。** 分类器用片库的 id 加载它，丢弃已删除记录的条目；下一次保存时写出。
+- **加载时修剪。** 分类器和推荐页用片库的 id 加载它，丢弃已删除记录的条目——分类和隐藏 id 都是；下一次保存时写出。
 - 写入是原子的（先写 tmp 再重命名），格式化且键已排序，因此未改变的缓存会写出相同的字节。
+- `hiddenRecommendations` 是*不感兴趣*列表（见[推荐](#推荐)）。由于该文件仅限本设备，在一台设备上隐藏的推荐不会在另一台
+  设备上隐藏。
+
+## 推荐
+
+代码见
+[`functions/features/recommendations/services/recommendation_service.md`](../functions/features/recommendations/services/recommendation_service.md)
+（排序）、
+[`functions/features/recommendations/services/reason_prompt.md`](../functions/features/recommendations/services/reason_prompt.md)、
+[`functions/features/recommendations/services/ai_reason_service.md`](../functions/features/recommendations/services/ai_reason_service.md)
+（AI 理由）和
+[`functions/features/recommendations/views/recommendations_page.md`](../functions/features/recommendations/views/recommendations_page.md)。
+
+### 范围
+
+只限片库。候选是用户自己未开始、或观看中且有已播出未看集数的记录。**从不要求模型说出作品名**：小型端侧模型并不可靠地
+知道有哪些作品，它编出来的任何东西都会是死胡同。两个与片库相邻的来源是事实而非猜测，因此在范围内：系列的下一个成员
+（[`series-linking.md`](series-linking.md)），以及来自资料库关联关系的缺失续作。
+
+### 确定性排序
+
+纯 Dart，不涉及模型。无论*自动分类*是否开启，排序都使用每条记录的有效分类（用户自己的、映射的或缓存的 AI 分类）。
+
+- **偏好**（每条记录）：有评分时为 `(effectiveOverall − 6) / 4`，钳制到 −1…1；没有评分时，已看完 `+0.5`，弃坑 `−0.7`，
+  其他 `0`。
+- **口味画像：** 以偏好加权的分类向量之和，再归一化。**制作公司亲和度：** 每个制作公司的偏好之和。
+- **候选：** 未开始，或观看中且有已播出未看的集，并且未被隐藏。**一个系列只有最早的未看完成员才是候选**——没看完第 1 季
+  的人绝不会被推荐第 3 季。如果该成员不满足条件（弃坑，或观看中但已追平），该系列就不提供候选。
+- **得分：** 各项贡献之和，权重来自 `RecommendationWeights`：
+
+| 贡献 | 权重 |
+|---|---|
+| 系列的上一个成员已看完 | `3.0`，其评分为 8 或更高时 `+1.0` |
+| 口味画像与候选分类的余弦 | `× 2.0` |
+| 最高的制作公司亲和度，钳制到 −1…1 | `× 0.5` |
+| 外部平均分减 7，钳制到 ±2 | `× 0.3` |
+| 观看中且有已播出未看的集 | `0.8` |
+| 正在播出 | `0.4` |
+
+- **冷启动**（全库既无评分也无已看完记录）：先是系列接续，再按外部评分，再按最近添加。
+- **推荐理由标签：** 取最大的正向贡献，至多三个——「《…》的下一部」、「与你评分高的作品相似：恋爱、校园」（至多两个
+  分类）、「与《…》同一制作公司」、「AniList 8.9」（单个最高的来源）以及「有新的集数待补」。正在播出只加分，没有标签。
+
+### AI 理由（可选）
+
+只在端侧 AI 开启且模型能够生成时。没有任何东西等待模型：确定性列表和标签立即渲染，应用栏下显示一条细进度条，理由
+到达时再填入。
+
+- **输入：** 排名前 **8** 的候选，带编号，含标题、分类、制作公司和「下一部」事实，以及一份**精简画像**——按偏好排名前三的分类和
+  制作公司，以及最近修改的三部已看完作品及其评分。从不包含备注，从不包含逐集记录。
+- **提示词：** `reason_prompt.dart`（`reasonPromptVersion = 1`），指令用英文，要求以界面语言写作。模型**按编号至多挑三个**，
+  为每个写一句不超过 20 个词的理由，写成 `<number>: <reason>` 行。它作为交互式请求运行，排在任何后台分类之前。
+- **校验：** 去掉 Markdown；只接受已知编号，不重复；至多 **140** 个字符；文字系统检查（`zh`、`zh_TW` 和 `ja` 以 CJK 为主，
+  `ja` 还需含假名；`en` 以拉丁字母为主）。任何无效内容都被丢弃，卡片保留其标签。
+- **中文变体：** 文字系统正确但属于另一种中文变体的回复会用 `chinese_convert.dart` 转换，而不是丢弃。
+- **Apple：** 当 `supportsLocale` 拒绝繁体中文时，改为请求简体再转换；当它拒绝其他任何界面语言时，跳过 AI 理由。若尚不知道界面语言区域的答复（本次会话还没打开过设置），推荐页会先带上该语言区域向系统询问一次，再作判断。
+- **仅在内存中：** 理由只保存于一次访问该页面期间，从不写入磁盘。
+
+每条 AI 理由都位于「在本设备上生成——可能有误」标签之下。
+
+### 页面
+
+- **入口：** 首页应用栏上、列数按钮旁的一个操作，只在推荐开启时显示。它压栈 `/recommendations`
+  （[`home-management-statistics.md`](home-management-statistics.md)）。
+- **布局：** 一列卡片——封面、标题、推荐理由标签、有 AI 理由时附带标注的理由——用 `listColumnCount` 按**首页的列数偏好**
+  排布；本页没有自己的列数按钮（[`../adaptive-layout.md`](../adaptive-layout.md)）。点击打开详情页。
+- ***不感兴趣***隐藏一个候选。其 id 写入 `ai_insights.json` 的 `hiddenRecommendations`，因此**隐藏仅限本设备**：既不同步
+  也不备份，除了删除该记录之外没有撤销的界面。
+- **缺失续作：** 在排好的卡片之后，对资料库列出但片库中没有的每部续作显示一张卡片——针对每条已看完且是所在系列最后一部的
+  记录——标注为**「番剧库里还没有」**。点击打开以该关联关系预填的创建页（搜索只在完整版中运行）。这些来自完整版抓取的关联
+  数据，因此商店版只对通过同步收到这些数据的记录显示它们。

@@ -395,6 +395,7 @@ migrates data files, backups, and images.
 | Kana tab shown | `storage_config.json` | No | Device-specific `kanaTabEnabled`; absent means hidden (1.6.0) |
 | On-device AI switch and model-size preference | `storage_config.json` | No | Device-specific `onDeviceAiEnabled` and `onDeviceAiPreferFast` (Android); absent means off (1.6.0) |
 | Automatic categories | `storage_config.json` | No | Device-specific `autoCategoriesEnabled`; absent means off (1.6.0) |
+| Recommendations | `storage_config.json` | No | Device-specific `recommendationsEnabled`; absent means off (1.6.0) |
 | WebDAV configuration | `webdav_config.json` | No | Local secret/config only |
 | Sync base snapshot | `.sync_base/anime_data.json` | No | Local merge tracking |
 | Local backups | `backups/backup_*.json` | No | Local recovery; v2 bundles reference deduplicated image blobs |
@@ -402,7 +403,7 @@ migrates data files, backups, and images.
 | Background update queue | `metadata_updates.json` | No | Per-device attempt/backoff state plus downloaded update candidates; rebuildable cache |
 | Prefetched candidate covers | `metadata_covers/` | No | Only when cover prefetch is enabled; pruned when its proposal is resolved |
 | Background update policy | `storage_config.json` | No | Device-specific `metadataAutoUpdate` (`off`/`noCellular`/`always`; absent means `noCellular` on mobile, `always` on desktop) and `metadataPrefetchCovers` |
-| On-device AI results | `ai_insights.json` | No | Per-device cache of AI category classifications (1.6.0); not backed up; rebuildable; pruned of deleted records on load |
+| On-device AI results | `ai_insights.json` | No | Per-device cache of AI category classifications and the recommendations *Not interested* list (`hiddenRecommendations`) (1.6.0); not backed up; rebuildable; pruned of deleted records on load |
 
 `metadata_updates.json` and `metadata_covers/` are neither synced nor backed up, and that needs no
 special handling: the sync and backup engines only touch the file names registered in
@@ -411,7 +412,8 @@ live under `AnimeStorage.getAppDir()`, so a storage-path change carries them alo
 [`features/metadata-auto-update.md`](features/metadata-auto-update.md).
 
 `ai_insights.json` (1.6.0) follows the same mechanism: it is not registered either, so it is neither
-synced nor backed up, and it moves with the storage path. Its schema is in
+synced nor backed up, and it moves with the storage path. Because it also holds
+`hiddenRecommendations`, hiding a recommendation is per device. Its schema is in
 [`features/categories-and-recommendations.md`](features/categories-and-recommendations.md).
 
 ### `storage_config.json`
@@ -425,7 +427,8 @@ column counts (`homeListColumns`, `manageListColumns`, `statsListColumns`), whet
 tab is shown (`kanaTabEnabled`, written only when on), and the on-device AI switch and "Prefer the
 faster model" preference (`onDeviceAiEnabled`, `onDeviceAiPreferFast`, each written only when on;
 see [`on-device-ai.md`](on-device-ai.md)), and whether automatic categories are on
-(`autoCategoriesEnabled`, written only when on). None of this file is
+(`autoCategoriesEnabled`, written only when on), and whether recommendations are on
+(`recommendationsEnabled`, written only when on). None of this file is
 synced — it is intentionally device-specific, which is the right home for a network policy that
 should differ between a desktop on Ethernet and a phone on a data plan.
 

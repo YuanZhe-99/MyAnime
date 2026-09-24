@@ -2,8 +2,9 @@
 
 端侧模型输出的共享解析与检查，1.6.0（M3）新增。模型说的每句话在显示或缓存之前都经过这里，两个平台都一样：
 小模型会无视格式、把回答包进 Markdown，有时还会用错文字。这里不信任任何应答；不符合的内容直接丢弃，而不是
-修补。所有函数都是纯函数。在 `master` 上唯一的调用方是 Android 上的 `MethodChannelGenAiBackend.choose`；其余
-函数为 M4 和 M5 的功能准备好了。见 [`../../../../on-device-ai.md`](../../../../on-device-ai.md)。
+修补。所有函数都是纯函数。`parseChoiceReply` 由 Android 上的
+`MethodChannelGenAiBackend.choose` 调用；自 1.6.0（M5）起，`ai_reason_service.dart` 中的 `parseReasonReply` 用
+`stripMarkdown`、`matchesScript` 和 `cleanSentence` 处理推荐理由。见 [`../../../../on-device-ai.md`](../../../../on-device-ai.md)。
 
 ## 声明
 
@@ -29,7 +30,7 @@
 - **副作用：** 无。
 - **算法：** 去除代码围栏（连同语言标记），再去除粗体和斜体标记、行内代码反引号、标题符号，以及行首的
   项目符号和列表编号；修剪。
-- **用法：** `parseChoiceReply` 和 `cleanSentence`。
+- **用法：** `parseChoiceReply`、`cleanSentence` 和 `parseReasonReply`。
 - **备注：** 保留换行，因为选择解析器按每行一个 id 读取。
 
 ### `ChoiceParse parseChoiceReply(String reply, List<String> options, {int maxItems = 3})` <a id="parsechoicereply"></a>
@@ -60,7 +61,7 @@
 - **副作用：** 无。
 - **算法：** 统计汉字、假名和拉丁字母。没有字母时为 false。`zh`：汉字加假名至少占字母的 60%，且有汉字。
   `ja`：同样的 60%，且至少一个假名。其他语言：拉丁字母至少占 60%。
-- **用法：** `master` 上尚无调用方；用于 M5 的推荐理由。
+- **用法：** `lib/features/recommendations/services/ai_reason_service.dart` 中的 `parseReasonReply`（1.6.0，M5）。
 - **备注：** 用比例而不是绝对规则，因为理由里可能引用另一种文字的标题。它分辨不出简体和繁体中文。
 
 ### `String? cleanSentence(String text, {int maxLength = 140})` <a id="cleansentence"></a>
@@ -71,5 +72,5 @@
 - **返回：** `String?` —— 单行、无 Markdown 的句子；为空或过长时为 null。
 - **副作用：** 无。
 - **算法：** 去除 Markdown，把所有空白折叠为单个空格，修剪，然后检查长度。
-- **用法：** `master` 上尚无调用方；用于 M5 的推荐理由。
+- **用法：** `lib/features/recommendations/services/ai_reason_service.dart` 中的 `parseReasonReply`（1.6.0，M5）。
 - **备注：** 过长的输出被丢弃而不是截断，因为被截断的句子读起来像是错的。

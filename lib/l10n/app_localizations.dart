@@ -1313,6 +1313,66 @@ abstract class AppLocalizations {
   /// **'Series: automatic'**
   String get syncSeriesAuto;
 
+  /// No description provided for @recommendationsTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'What to watch next'**
+  String get recommendationsTitle;
+
+  /// No description provided for @recommendationsEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'Nothing to recommend yet. Add anime you have not started, or finish a season to get the next one suggested.'**
+  String get recommendationsEmpty;
+
+  /// No description provided for @recommendationsNotInterested.
+  ///
+  /// In en, this message translates to:
+  /// **'Not interested'**
+  String get recommendationsNotInterested;
+
+  /// No description provided for @recommendationsNotInLibrary.
+  ///
+  /// In en, this message translates to:
+  /// **'Not in your library yet'**
+  String get recommendationsNotInLibrary;
+
+  /// No description provided for @reasonNextAfter.
+  ///
+  /// In en, this message translates to:
+  /// **'Next after {title}'**
+  String reasonNextAfter(String title);
+
+  /// No description provided for @reasonLikeCategories.
+  ///
+  /// In en, this message translates to:
+  /// **'Like titles you rated highly: {categories}'**
+  String reasonLikeCategories(String categories);
+
+  /// No description provided for @reasonSameStudio.
+  ///
+  /// In en, this message translates to:
+  /// **'Same studio as {title}'**
+  String reasonSameStudio(String title);
+
+  /// No description provided for @reasonCatchUp.
+  ///
+  /// In en, this message translates to:
+  /// **'New episodes to catch up on'**
+  String get reasonCatchUp;
+
+  /// No description provided for @settingsRecommendations.
+  ///
+  /// In en, this message translates to:
+  /// **'Recommendations'**
+  String get settingsRecommendations;
+
+  /// No description provided for @settingsRecommendationsDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'Suggest what to watch next from your own library. \"Not interested\" hides a suggestion on this device only.'**
+  String get settingsRecommendationsDesc;
+
   /// No description provided for @syncCategories.
   ///
   /// In en, this message translates to:

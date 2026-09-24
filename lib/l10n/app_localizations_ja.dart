@@ -709,6 +709,44 @@ class AppLocalizationsJa extends AppLocalizations {
   String get syncSeriesAuto => 'シリーズ：自動';
 
   @override
+  String get recommendationsTitle => '次に観るもの';
+
+  @override
+  String get recommendationsEmpty =>
+      'おすすめできる作品がまだありません。未視聴のアニメを追加するか、シーズンを観終えると次のシーズンを提案します。';
+
+  @override
+  String get recommendationsNotInterested => '興味なし';
+
+  @override
+  String get recommendationsNotInLibrary => 'まだライブラリにありません';
+
+  @override
+  String reasonNextAfter(String title) {
+    return '「$title」の次';
+  }
+
+  @override
+  String reasonLikeCategories(String categories) {
+    return '高く評価した作品と同じ系統：$categories';
+  }
+
+  @override
+  String reasonSameStudio(String title) {
+    return '「$title」と同じスタジオ';
+  }
+
+  @override
+  String get reasonCatchUp => '未視聴の新しい話があります';
+
+  @override
+  String get settingsRecommendations => 'おすすめ';
+
+  @override
+  String get settingsRecommendationsDesc =>
+      '自分のライブラリから次に観る作品を提案します。「興味なし」はこの端末でのみ非表示になります。';
+
+  @override
   String syncCategories(String list) {
     return '分類：$list';
   }

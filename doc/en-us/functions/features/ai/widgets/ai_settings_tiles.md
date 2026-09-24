@@ -4,9 +4,10 @@
 Settings section: the "Use on-device AI" switch, the model status row with its
 action, "Prefer the faster model" (Android, only when both sizes are served), the notes on who owns
 the model, and a collapsed *Technical details* tile. On Windows, Linux and the web it renders
-nothing. Since 1.6.0 (M4) `settings_page.dart` places it after the *Automatic categories* switch,
-with `featuresOn:` that switch, so the AI switch can be turned on only while automatic categories
-are on; turning automatic categories off also turns AI off. See
+nothing. Since 1.6.0 (M4) `settings_page.dart` places it after the feature switches; since M5 it passes
+`featuresOn: autoCategoriesEnabled || recommendationsEnabled`, so the AI switch can be turned on only
+while automatic categories or recommendations are on, and turning the last of them off also turns AI
+off. See
 [`../services/on_device_ai_service.md`](../services/on_device_ai_service.md) and
 [`../../../../on-device-ai.md`](../../../../on-device-ai.md).
 
@@ -59,7 +60,7 @@ The `featuresOn` field carries no `/// Purpose:` comment and is not a row.
      variant, served and refused variants, model name, token limit, AICore version (or "not
      installed"), SDK, device, compatibility, OS version and locale support, each only when known.
 - **Usage:** `settings_page.dart`, the *Categories & recommendations* section
-  (`AiSettingsTiles(featuresOn: settings.autoCategoriesEnabled)`); `test/ai_settings_tiles_ui_test.dart`
+  (`AiSettingsTiles(featuresOn: settings.autoCategoriesEnabled || settings.recommendationsEnabled)`); `test/ai_settings_tiles_ui_test.dart`
   (per platform with `debugDefaultTargetPlatformOverride`).
 - **Notes:** `unsupported` is worded as needing iOS 26 or macOS 26 with Apple Intelligence. It is
   what the Apple plugin reports on iOS and macOS older than 26.

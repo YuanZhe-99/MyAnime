@@ -33,6 +33,8 @@ management conventions (Riverpod, no Provider/Bloc) and
 | [`AppSettingsNotifier.setOnDeviceAiEnabled`](#appsettingsnotifier-setondeviceaienabled) | method (`AppSettingsNotifier`) | A | Turn on-device AI on or off, persist it, and switch `OnDeviceAiService`. |
 | `AppSettingsNotifier.setOnDeviceAiPreferFast` | method (`AppSettingsNotifier`) | B | Prefer the faster on-device model where both sizes are served; persist it and tell `OnDeviceAiService`. |
 | [`AppSettingsNotifier.setAutoCategoriesEnabled`](#appsettingsnotifier-setautocategoriesenabled) | method (`AppSettingsNotifier`) | A | Turn automatic categories on or off, persist it, and switch `CategoryClassifier`. |
+| [`AppSettingsNotifier.setRecommendationsEnabled`](#appsettingsnotifier-setrecommendationsenabled) | method (`AppSettingsNotifier`) | A | Turn recommendations on or off and persist it. |
+| [`AppSettingsNotifier._dropAiIfUnused`](#appsettingsnotifier_dropaiifunused) | method (`AppSettingsNotifier`) | A | Turn on-device AI off once no feature uses it. |
 | [`AppSettings.new`](#appsettings-new) | constructor (`AppSettings`) | A | Create an `AppSettings` instance. |
 | [`AppSettings.effectiveWeekStartDay`](#appsettings-effectiveweekstartday) | getter (`AppSettings`) | A | Return the week start day that should be applied to calendars. |
 | [`AppSettings.copyWith`](#appsettings-copywith) | method (`AppSettings`) | A | Create a copy with selected fields replaced. |
@@ -314,7 +316,7 @@ separate rows.
 
 ### `void setAutoCategoriesEnabled(bool enabled)` <a id="appsettingsnotifier-setautocategoriesenabled"></a>
 - **Kind:** method of `AppSettingsNotifier`
-- **Source:** `lib/shared/providers/app_settings.dart` (approx. line 279)
+- **Source:** `lib/shared/providers/app_settings.dart` (approx. line 283)
 - **Purpose:** Turn automatic categories on or off.
 - **Inputs:** `enabled`.
 - **Returns:** None.
@@ -322,8 +324,8 @@ separate rows.
   awaiting; sets `CategoryClassifier.instance.enabled`; may start a trickle or turn on-device AI off.
 - **Algorithm:** 1) `state = state.copyWith(autoCategoriesEnabled: enabled)`. 2) Persist. 3) Set
   `CategoryClassifier.instance.enabled`. 4) When turning on, start
-  `CategoryClassifier.instance.trickle()` unawaited; when turning off while `onDeviceAiEnabled` is
-  on, call `setOnDeviceAiEnabled(false)`.
+  `CategoryClassifier.instance.trickle()` unawaited; when turning off, call
+  [`_dropAiIfUnused`](#appsettingsnotifier_dropaiifunused).
 - **Usage:**
   ```dart
   SwitchListTile(
@@ -333,8 +335,44 @@ separate rows.
   )
   ```
   (from `lib/features/settings/views/settings_page.dart`, the *Categories & recommendations* section)
-- **Notes:** Off by default. Turning it off also turns on-device AI off, because automatic
-  categories are the only feature that uses the model and an AI switch with nothing to do is noise.
+- **Notes:** Off by default. Turning it off also turns on-device AI off when recommendations are off
+  too, because an AI switch with nothing to do is noise (1.6.0, M5; before M5 it always did).
+
+### `void setRecommendationsEnabled(bool enabled)` <a id="appsettingsnotifier-setrecommendationsenabled"></a>
+- **Kind:** method of `AppSettingsNotifier`
+- **Source:** `lib/shared/providers/app_settings.dart` (approx. line 300)
+- **Purpose:** Turn recommendations on or off.
+- **Inputs:** `enabled`.
+- **Returns:** None.
+- **Side effects:** Updates `state`; calls `AnimeStorage.setRecommendationsEnabled(enabled)` without
+  awaiting; may turn on-device AI off.
+- **Algorithm:** 1) `state = state.copyWith(recommendationsEnabled: enabled)`. 2) Persist. 3) When
+  turning off, call [`_dropAiIfUnused`](#appsettingsnotifier_dropaiifunused).
+- **Usage:**
+  ```dart
+  SwitchListTile(
+    title: Text(l10n.settingsRecommendations),
+    value: settings.recommendationsEnabled,
+    onChanged: notifier.setRecommendationsEnabled,
+  )
+  ```
+  (from `lib/features/settings/views/settings_page.dart`, the *Categories & recommendations* section)
+- **Notes:** Added in 1.6.0 (M5). Off by default. Home shows the recommendations action only while
+  this is on. See
+  [`../../../features/categories-and-recommendations.md`](../../../features/categories-and-recommendations.md).
+
+### `void _dropAiIfUnused()` <a id="appsettingsnotifier_dropaiifunused"></a>
+- **Kind:** method of `AppSettingsNotifier` (private)
+- **Source:** `lib/shared/providers/app_settings.dart` (approx. line 312)
+- **Purpose:** Turn on-device AI off once no feature uses it.
+- **Inputs:** None.
+- **Returns:** None.
+- **Side effects:** May call `setOnDeviceAiEnabled(false)`, which persists and switches the service.
+- **Algorithm:** When `onDeviceAiEnabled` is on and both `autoCategoriesEnabled` and
+  `recommendationsEnabled` are off, call `setOnDeviceAiEnabled(false)`.
+- **Usage:** `setAutoCategoriesEnabled(false)` and `setRecommendationsEnabled(false)`.
+- **Notes:** Added in 1.6.0 (M5). Mirrors `AiSettingsTiles`, which enables the AI switch only while
+  either feature is on.
 
 ### `const AppSettings({...})` <a id="appsettings-new"></a>
 - **Kind:** constructor of `AppSettings`
@@ -445,4 +483,14 @@ through `AnimeStorage.getAutoCategoriesEnabled()` and written by `setAutoCategor
 constructor and `copyWith` take it. Both the loader and the setter tell
 `CategoryClassifier.instance`, which holds only this switch. The management page reads it to offer
 the category filter; the detail page reads the stored key itself. See
+[`../../../features/categories-and-recommendations.md`](../../../features/categories-and-recommendations.md).
+
+## Recommendations preference
+
+1.6.0 (M5) adds `recommendationsEnabled`, a `bool` defaulting to `false`, loaded in `_loadPersisted`
+through `AnimeStorage.getRecommendationsEnabled()` and written by `setRecommendationsEnabled`. The
+constructor and `copyWith` take it. `HomePage` watches it to show the recommendations app-bar action,
+and Settings passes `autoCategoriesEnabled || recommendationsEnabled` to `AiSettingsTiles` as
+`featuresOn`. Turning either feature off calls `_dropAiIfUnused`, so on-device AI goes off only once
+neither is on. See
 [`../../../features/categories-and-recommendations.md`](../../../features/categories-and-recommendations.md).

@@ -223,3 +223,11 @@
 长按某一行——在桌面端为右键点击——会打开
 [`showAnimeActionsSheet`](../../../shared/widgets/anime_actions_sheet.md)，它完整、不截断地展示每一个已存储的
 标题，并提供编辑与删除。行本身仍然截断为单行，而这正是该面板存在的原因。
+
+## 推荐操作
+
+自 1.6.0（M5）起，当 `AppSettings.recommendationsEnabled` 开启时，`build` 会在应用栏最前面、`listColumnsButton`
+之前放一个 `IconButton`（`Icons.recommend_outlined`，提示文字为 `recommendationsTitle`），点击后压栈
+`/recommendations`。推荐关闭时（默认）没有该操作。见
+[`../../recommendations/views/recommendations_page.md`](../../recommendations/views/recommendations_page.md)
+和 [`../../../../features/categories-and-recommendations.md`](../../../../features/categories-and-recommendations.md)。

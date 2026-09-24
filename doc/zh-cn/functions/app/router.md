@@ -44,6 +44,11 @@
 | `/anime/edit` | `AnimeEditPage` | 创建流程（无 `animeId`）；`extra` 可携带来自"添加下一季"的 `NextSeasonPrefill`（1.6.0，见 [`../features/anime/services/series_service.md`](../features/anime/services/series_service.md#nextseasonprefill)）；其他 `extra` 被忽略 |
 | `/anime/edit/:id` | `AnimeEditPage` | 编辑流程（`animeId` 来自路径）；`extra: true` 会在加载后打开在线搜索 |
 | `/metadata-updates` | `MetadataUpdatesPage` | 压栈在外壳之上；`extra` 可携带当前页的动画 id |
+| `/recommendations` | `RecommendationsPage` | 从首页应用栏操作压栈在外壳之上（1.6.0，M5） |
 | `/duplicate-check` | `DuplicateCheckPage` | 压栈在外壳之上 |
+
+`/recommendations` 没有重定向：它不像 `/kana` 那样是外壳标签，而它唯一的入口——首页应用栏操作——只在
+`AppSettings.recommendationsEnabled` 开启时显示。见
+[`../features/recommendations/views/recommendations_page.md`](../features/recommendations/views/recommendations_page.md)。
 
 外壳路由包在 `ShellRoute` 中，其 `builder` 渲染 `ShellScaffold(child: child)`（见 [`../shared/widgets/shell_scaffold.md`](../shared/widgets/shell_scaffold.md)），后者提供常驻的底栏或侧边导航栏。

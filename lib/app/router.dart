@@ -10,6 +10,7 @@ import '../features/anime/views/management_page.dart';
 import '../features/anime/views/metadata_updates_page.dart';
 import '../features/anime/views/statistics_page.dart';
 import '../features/kana/views/kana_page.dart';
+import '../features/recommendations/views/recommendations_page.dart';
 import '../features/settings/views/settings_page.dart';
 import '../shared/providers/app_settings.dart';
 import '../shared/widgets/duplicate_check_page.dart';
@@ -89,6 +90,10 @@ final appRouter = GoRouter(
             ? state.extra! as List<String>
             : const [],
       ),
+    ),
+    GoRoute(
+      path: '/recommendations',
+      builder: (context, state) => const RecommendationsPage(),
     ),
     GoRoute(
       path: '/duplicate-check',

@@ -328,6 +328,14 @@ class _HomePageState extends ConsumerState<HomePage> {
       appBar: AppBar(
         title: Text(l10n.appTitle),
         actions: [
+          // Recommendations are off by default; the action appears only
+          // while they are on.
+          if (settings.recommendationsEnabled)
+            IconButton(
+              icon: const Icon(Icons.recommend_outlined),
+              tooltip: l10n.recommendationsTitle,
+              onPressed: () => context.push('/recommendations'),
+            ),
           listColumnsButton(
             context,
             preference: settings.homeListColumns,

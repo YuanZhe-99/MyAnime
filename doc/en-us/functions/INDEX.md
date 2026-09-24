@@ -4,15 +4,15 @@ This is the top-level index of the hand-written Function Explanation Layer docum
 `lib/` in the MyAnime repo. Each row links to a per-source-file page under `doc/en-us/functions/`
 mirroring the `lib/` tree (with `.dart` replaced by `.md`).
 
-**Totals:** the repo's `/// Purpose:` comment count is **1109** (per the Function Explanation Layer
+**Totals:** the repo's `/// Purpose:` comment count is **1146** (per the Function Explanation Layer
 convention in `AGENTS.md`, excluding generated `lib/l10n/` code — see [l10n/INDEX.md](l10n/INDEX.md)).
-The rows below sum to **1091** documented declarations.
+The rows below sum to **1128** documented declarations.
 
 | Tier | Count |
 |---|---|
-| Tier A (full entry: Purpose/Inputs/Returns/Side effects/Algorithm/Usage/Notes) | 672 |
-| Tier B (index row only) | 419 |
-| **Total** | **1091** |
+| Tier A (full entry: Purpose/Inputs/Returns/Side effects/Algorithm/Usage/Notes) | 694 |
+| Tier B (index row only) | 434 |
+| **Total** | **1128** |
 
 **Known gap.** These two numbers do not match: 18 declarations carry a `/// Purpose:` comment in
 source but have no row here, so the index under-covers `lib/` by that much. The 1.5.7 recount found
@@ -48,7 +48,10 @@ declaration); the gap stayed at 18, and again in 1.6.0 (M4, automatic categories
 48 across six new files and four changed ones (`anime_storage.dart`, `app_settings.dart`,
 `anime_detail_page.dart` and `webdav_config_page.dart`; `anime.dart`, `management_page.dart`, `settings_page.dart`,
 `duplicate_service.dart`, `file_open_service.dart` and `main.dart` changed without a new
-declaration); the gap stayed at 18. The
+declaration); the gap stayed at 18, and again in 1.6.0 (M5, recommendations), which added 37
+across four new files and two changed ones (`anime_storage.dart` and `app_settings.dart`;
+`router.dart`, `home_page.dart` and `settings_page.dart` changed without a new declaration); the gap
+stayed at 18. The
 pre-1.4.0 figures (682
 `Purpose:` comments and 685 documented declarations) had drifted far from both the source and this
 file's own per-file rows, which summed to 615 at the time. If you change these numbers, measure
@@ -101,7 +104,7 @@ that carry a `/// Purpose:` comment. See [../on-device-ai.md](../on-device-ai.md
 | `lib/features/anime/models/anime.dart` | [features/anime/models/anime.md](features/anime/models/anime.md) | 83 | 68 |
 | `lib/features/anime/models/anime_category.dart` | [features/anime/models/anime_category.md](features/anime/models/anime_category.md) | 2 | 1 |
 | `lib/features/anime/models/metadata_update.dart` | [features/anime/models/metadata_update.md](features/anime/models/metadata_update.md) | 22 | 9 |
-| `lib/features/anime/services/anime_storage.dart` | [features/anime/services/anime_storage.md](features/anime/services/anime_storage.md) | 49 | 41 |
+| `lib/features/anime/services/anime_storage.dart` | [features/anime/services/anime_storage.md](features/anime/services/anime_storage.md) | 51 | 43 |
 | `lib/features/anime/services/anime1_service.dart` | [features/anime/services/anime1_service.md](features/anime/services/anime1_service.md) | 31 | 17 |
 | `lib/features/anime/services/anime_search_service.dart` | [features/anime/services/anime_search_service.md](features/anime/services/anime_search_service.md) | 65 | 43 |
 | `lib/features/anime/services/metadata_cache.dart` | [features/anime/services/metadata_cache.md](features/anime/services/metadata_cache.md) | 10 | 7 |
@@ -143,6 +146,18 @@ Automatic categories (1.6.0, M4). See
 |---|---|---|---|
 | `lib/features/kana/views/kana_page.dart` | [features/kana/views/kana_page.md](features/kana/views/kana_page.md) | 19 | 3 |
 
+## features/recommendations/
+
+| Source file | Page | Declarations | Tier A count |
+|---|---|---|---|
+| `lib/features/recommendations/services/ai_reason_service.dart` | [features/recommendations/services/ai_reason_service.md](features/recommendations/services/ai_reason_service.md) | 5 | 3 |
+| `lib/features/recommendations/services/reason_prompt.dart` | [features/recommendations/services/reason_prompt.md](features/recommendations/services/reason_prompt.md) | 3 | 2 |
+| `lib/features/recommendations/services/recommendation_service.dart` | [features/recommendations/services/recommendation_service.md](features/recommendations/services/recommendation_service.md) | 14 | 6 |
+| `lib/features/recommendations/views/recommendations_page.dart` | [features/recommendations/views/recommendations_page.md](features/recommendations/views/recommendations_page.md) | 11 | 7 |
+
+Recommendations (1.6.0, M5). See
+[../features/categories-and-recommendations.md](../features/categories-and-recommendations.md).
+
 ## features/settings/
 
 | Source file | Page | Declarations | Tier A count |
@@ -161,7 +176,7 @@ the 771 hand-documented declarations above).
 
 | Source file | Page | Declarations | Tier A count |
 |---|---|---|---|
-| `lib/shared/providers/app_settings.dart` | [shared/providers/app_settings.md](shared/providers/app_settings.md) | 22 | 16 |
+| `lib/shared/providers/app_settings.dart` | [shared/providers/app_settings.md](shared/providers/app_settings.md) | 24 | 18 |
 | `lib/shared/utils/adaptive_layout.dart` | [shared/utils/adaptive_layout.md](shared/utils/adaptive_layout.md) | 12 | 12 |
 | `lib/shared/utils/calendar_preferences.dart` | [shared/utils/calendar_preferences.md](shared/utils/calendar_preferences.md) | 4 | 4 |
 | `lib/shared/utils/chinese_convert.dart` | [shared/utils/chinese_convert.md](shared/utils/chinese_convert.md) | 5 | 4 |
@@ -198,9 +213,10 @@ the 771 hand-documented declarations above).
 | Root (`lib/`) | 1 | 1 | 1 | 0 |
 | `app/` | 5 | 19 | 14 | 5 |
 | `features/ai/` | 6 | 75 | 29 | 46 |
-| `features/anime/` | 21 | 610 | 353 | 257 |
+| `features/anime/` | 21 | 612 | 355 | 257 |
 | `features/categories/` | 2 | 18 | 11 | 7 |
 | `features/kana/` | 1 | 19 | 3 | 16 |
+| `features/recommendations/` | 4 | 33 | 18 | 15 |
 | `features/settings/` | 4 | 49 | 28 | 21 |
-| `shared/` (utils, widgets, providers, services, views) | 29 | 300 | 233 | 67 |
-| **Total** | **69** | **1091** | **672** | **419** |
+| `shared/` (utils, widgets, providers, services, views) | 29 | 302 | 235 | 67 |
+| **Total** | **73** | **1128** | **694** | **434** |

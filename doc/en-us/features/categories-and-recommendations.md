@@ -6,7 +6,12 @@ databases report, and — only where both give nothing — the on-device model. 
 default** (Settings › *Categories & recommendations* › *Automatic categories*) and works on every
 platform; only the AI step needs Android, iOS or macOS.
 
-The code is [`functions/features/anime/models/anime_category.md`](../functions/features/anime/models/anime_category.md)
+**Recommendations** (also since 1.6.0) answer "what should I watch next **from my library**". They
+are a separate switch (Settings › *Categories & recommendations* › *Recommendations*), also **off
+by default** and available on every platform; only the optional generated reasons need a model. See
+[Recommendations](#recommendations) below.
+
+The code for categories is [`functions/features/anime/models/anime_category.md`](../functions/features/anime/models/anime_category.md)
 (the taxonomy and genre mapping),
 [`functions/features/categories/services/category_service.md`](../functions/features/categories/services/category_service.md)
 (resolution and the classifier),
@@ -155,7 +160,102 @@ Owned by `AiInsightsCache`, under `AnimeStorage.getAppDir()`:
   synced nor backed up**, and writes never notify auto-sync. It still moves with a storage-path
   change.
 - **Rebuildable.** Load is tolerant: a malformed entry is dropped, an unreadable file reads as empty.
-- **Pruned on load.** The classifier loads it with the library's ids and drops entries for deleted
-  records; the next save writes that out.
+- **Pruned on load.** The classifier and the recommendations page load it with the library's ids and
+  drop entries — categories and hidden ids — for deleted records; the next save writes that out.
 - Writes are atomic (tmp then rename) and pretty-printed with sorted keys, so an unchanged cache
   writes identical bytes.
+- `hiddenRecommendations` is the *Not interested* list (see [Recommendations](#recommendations)).
+  Because the file is per device, hiding a recommendation on one device does not hide it on another.
+
+## Recommendations
+
+The code is
+[`functions/features/recommendations/services/recommendation_service.md`](../functions/features/recommendations/services/recommendation_service.md)
+(ranking),
+[`functions/features/recommendations/services/reason_prompt.md`](../functions/features/recommendations/services/reason_prompt.md),
+[`functions/features/recommendations/services/ai_reason_service.md`](../functions/features/recommendations/services/ai_reason_service.md)
+(AI reasons) and
+[`functions/features/recommendations/views/recommendations_page.md`](../functions/features/recommendations/views/recommendations_page.md).
+
+### Scope
+
+Only the library. The candidates are the user's own records that are not started, or being watched
+with aired but unwatched episodes. **The model is never asked to name titles**: a small on-device
+model does not reliably know what exists, and anything it invented would be a dead end. Two
+library-adjacent sources are facts rather than guesses and are in scope: the next member of a series
+([`series-linking.md`](series-linking.md)) and a missing sequel from the databases' relation data.
+
+### Deterministic ranking
+
+Pure Dart, no model. Ranking uses each record's effective categories (own, mapped or cached AI)
+whether or not *Automatic categories* is on.
+
+- **Preference** per record: with a rating, `(effectiveOverall − 6) / 4`, clamped to −1…1; without
+  one, completed `+0.5`, dropped `−0.7`, anything else `0`.
+- **Taste profile:** the preference-weighted sum of the category vectors, normalised. **Studio
+  affinity:** the preference sum per studio.
+- **Candidates:** not started, or watching with aired unwatched episodes, and not hidden. **Within a
+  series only its earliest member that is not completed is a candidate** — season 3 is never
+  offered to someone who has not finished season 1. If that member is not eligible (dropped, or
+  watching but caught up), the series offers nothing.
+- **Score:** the sum of the contributions, with the weights from `RecommendationWeights`:
+
+| Contribution | Weight |
+|---|---|
+| Previous member of the series is completed | `3.0`, `+1.0` when it was rated 8 or higher |
+| Cosine of taste profile and the candidate's categories | `× 2.0` |
+| Best studio affinity, clamped to −1…1 | `× 0.5` |
+| External average score minus 7, clamped to ±2 | `× 0.3` |
+| Being watched with aired unwatched episodes | `0.8` |
+| Currently airing | `0.4` |
+
+- **Cold start** (no rating and nothing completed anywhere): series continuation first, then the
+  external score, then the most recently added.
+- **Reason chips:** from the largest positive contributions, at most three — "Next after <title>",
+  "Like titles you rated highly: romance, school" (at most two categories), "Same studio as
+  <title>", "AniList 8.9" (the best single source), and "New episodes to catch up on". Airing adds
+  score but no chip.
+
+### AI reasons (optional)
+
+Only with on-device AI on and a model that can generate. Nothing waits on the model: the
+deterministic list and chips render at once, a thin progress bar shows under the app bar, and the
+reasons fill in when they arrive.
+
+- **Input:** the top **8** candidates, numbered, with their title, categories, studios and "next after" facts,
+  and a **compact profile** — the top three categories and studios by preference, and the three
+  most recently modified completed titles with their ratings. Never notes, never episode history.
+- **Prompt:** `reason_prompt.dart` (`reasonPromptVersion = 1`), instructions in English with the
+  prose requested in the UI language. The model **picks up to three by number** and writes one
+  reason of under 20 words for each, as `<number>: <reason>` lines. It runs as an interactive
+  request, ahead of any background classification.
+- **Validation:** Markdown stripped; only known numbers, no duplicates; at most **140** characters;
+  a script check (mostly CJK for `zh`, `zh_TW` and `ja`, with some kana for `ja`; mostly Latin for
+  `en`).
+  Anything invalid is dropped and the card keeps its chips.
+- **Chinese variants:** a reply in the right script but the other Chinese variant is converted with
+  `chinese_convert.dart` rather than discarded.
+- **Apple:** when `supportsLocale` rejects Traditional Chinese, Simplified is requested and
+  converted; when it rejects any other UI language, AI reasons are skipped. If the answer for the UI
+  locale is not known yet (Settings has not been opened this session), the page asks the system once
+  with the locale before deciding.
+- **Memory only:** reasons are kept for one visit to the page, never written to disk.
+
+Each AI reason sits under the "Generated on this device — may be wrong" label.
+
+### The page
+
+- **Entry:** an app-bar action on Home, beside the list-columns button, shown only while
+  recommendations are on. It pushes `/recommendations`
+  ([`home-management-statistics.md`](home-management-statistics.md)).
+- **Layout:** a list of cards — cover, title, reason chips, the labelled AI reason when there is
+  one — laid out with `listColumnCount` using **Home's column preference**; the page has no column
+  button of its own ([`../adaptive-layout.md`](../adaptive-layout.md)). A tap opens the detail page.
+- ***Not interested*** hides a candidate. The id goes to `hiddenRecommendations` in
+  `ai_insights.json`, so **hiding is per device**: it is neither synced nor backed up, and there is
+  no UI to undo it short of deleting the record.
+- **Missing sequels:** after the ranked cards, one card per sequel the databases list but the
+  library lacks — for each completed record that is the last of its series — marked **"Not in
+  your library yet"**. A tap opens the create page prefilled from the relation (the search runs
+  only in full builds). These come from relation data fetched by full builds, so a store build shows
+  them only for records that received it through sync.

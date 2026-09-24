@@ -105,7 +105,7 @@
   ```dart
   _missingSequel = found == null ? null : index.missingSequelFor(found.id);
   ```
-  （`lib/features/anime/views/anime_detail_page.dart`，`_load`）
+  （`lib/features/anime/views/anime_detail_page.dart`，`_load`）；另有 `_RecommendationsPageState._load`（1.6.0，M5），用于缺失续作卡片
 - **备注：** 驱动「下一部：<标题>（<来源>）」提示。关联数据可能经同步到达商店版构建，因此提示在那里也会出现；只有其背后的在线查找受 `AppFlavor.isFull` 限制。从最后一个成员查询，意味着提示总是给出用户已有的最新一季之后的那一季。
 
 ### `String? canonicalDatabaseKey(String? url)` <a id="canonicaldatabasekey"></a>

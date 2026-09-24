@@ -94,7 +94,7 @@
 - **返回：** `Future<String>`；失败时抛出 `GenAiException`。
 - **副作用：** 轮到它时在设备上运行模型。
 - **算法：** 用 [`_enqueue`](#ondeviceaiservice-_enqueue) 包装 `backend.generate`。
-- **用法：** `master` 上尚无调用方；计划中的调用方是 M5 的推荐理由。
+- **用法：** `lib/features/recommendations/services/ai_reason_service.dart` 中的 `writeAiReasons`（1.6.0，M5），使用 `AiPriority.interactive`。
 - **备注：** 开关关闭时立即以 `unavailable` 拒绝。`choose` 形态相同，默认后台优先级。
 
 ### `Future<void> cancelBackground()` <a id="ondeviceaiservice-cancelbackground"></a>

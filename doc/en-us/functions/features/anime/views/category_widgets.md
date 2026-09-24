@@ -31,7 +31,7 @@ for the feature.
 - **Returns:** `String` — the `category*` string, or the id itself for an id this build does not
   know.
 - **Side effects:** None.
-- **Usage:** `CategoryChips`, the editor, the management page's category filter menu.
+- **Usage:** `CategoryChips`, the editor, the management page's category filter menu, and the recommendations page's category reason chip (1.6.0, M5).
 - **Notes:** Every id in `animeCategories` has a label in all four UI languages;
   `test/categories_test.dart` checks that.
 

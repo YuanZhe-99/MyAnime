@@ -706,6 +706,43 @@ class AppLocalizationsZh extends AppLocalizations {
   String get syncSeriesAuto => '系列：自动';
 
   @override
+  String get recommendationsTitle => '接下来看什么';
+
+  @override
+  String get recommendationsEmpty => '暂时没有可推荐的番剧。添加还没开始看的番剧，或看完一季后会推荐下一季。';
+
+  @override
+  String get recommendationsNotInterested => '不感兴趣';
+
+  @override
+  String get recommendationsNotInLibrary => '番剧库里还没有';
+
+  @override
+  String reasonNextAfter(String title) {
+    return '《$title》的下一部';
+  }
+
+  @override
+  String reasonLikeCategories(String categories) {
+    return '与你评分高的作品相似：$categories';
+  }
+
+  @override
+  String reasonSameStudio(String title) {
+    return '与《$title》同一制作公司';
+  }
+
+  @override
+  String get reasonCatchUp => '有新的集数待补';
+
+  @override
+  String get settingsRecommendations => '推荐';
+
+  @override
+  String get settingsRecommendationsDesc =>
+      '从你自己的番剧库中推荐接下来看什么。「不感兴趣」只在本设备上隐藏该推荐。';
+
+  @override
   String syncCategories(String list) {
     return '分类：$list';
   }
@@ -2525,6 +2562,43 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
 
   @override
   String get syncSeriesAuto => '系列：自動';
+
+  @override
+  String get recommendationsTitle => '接下來看什麼';
+
+  @override
+  String get recommendationsEmpty => '暫時沒有可推薦的番劇。新增還沒開始看的番劇，或看完一季後會推薦下一季。';
+
+  @override
+  String get recommendationsNotInterested => '不感興趣';
+
+  @override
+  String get recommendationsNotInLibrary => '番劇庫裡還沒有';
+
+  @override
+  String reasonNextAfter(String title) {
+    return '《$title》的下一部';
+  }
+
+  @override
+  String reasonLikeCategories(String categories) {
+    return '與你評分高的作品相似：$categories';
+  }
+
+  @override
+  String reasonSameStudio(String title) {
+    return '與《$title》同一製作公司';
+  }
+
+  @override
+  String get reasonCatchUp => '有新的集數待補';
+
+  @override
+  String get settingsRecommendations => '推薦';
+
+  @override
+  String get settingsRecommendationsDesc =>
+      '從你自己的番劇庫中推薦接下來看什麼。「不感興趣」只在本裝置上隱藏該推薦。';
 
   @override
   String syncCategories(String list) {

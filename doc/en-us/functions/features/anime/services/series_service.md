@@ -164,7 +164,8 @@ each class carry no `/// Purpose:` comment and are not indexed as rows.
   ```dart
   _missingSequel = found == null ? null : index.missingSequelFor(found.id);
   ```
-  (`lib/features/anime/views/anime_detail_page.dart`, `_load`)
+  (`lib/features/anime/views/anime_detail_page.dart`, `_load`); also
+  `_RecommendationsPageState._load` (1.6.0, M5), for the missing-sequel cards
 - **Notes:** Drives the "Next: <title> (<source>)" hint. Relation data may reach a store build
   through sync, so the hint can show there too; only the online lookup behind it is gated on
   `AppFlavor.isFull`. Asking from the last member means the hint always offers the season after the

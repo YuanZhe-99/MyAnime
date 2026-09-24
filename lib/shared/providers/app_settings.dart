@@ -90,6 +90,8 @@ class AppSettingsNotifier extends StateNotifier<AppSettings> {
     final onDeviceAiEnabled = await AnimeStorage.getOnDeviceAiEnabled();
     final onDeviceAiPreferFast = await AnimeStorage.getOnDeviceAiPreferFast();
     final autoCategoriesEnabled = await AnimeStorage.getAutoCategoriesEnabled();
+    final recommendationsEnabled =
+        await AnimeStorage.getRecommendationsEnabled();
 
     final themeMode = switch (modeStr) {
       'light' => ThemeMode.light,
@@ -117,6 +119,7 @@ class AppSettingsNotifier extends StateNotifier<AppSettings> {
       onDeviceAiEnabled: onDeviceAiEnabled,
       onDeviceAiPreferFast: onDeviceAiPreferFast,
       autoCategoriesEnabled: autoCategoriesEnabled,
+      recommendationsEnabled: recommendationsEnabled,
     );
     CategoryClassifier.instance.enabled = autoCategoriesEnabled;
     // The service holds no preference of its own; it is told once here and
@@ -275,15 +278,41 @@ class AppSettingsNotifier extends StateNotifier<AppSettings> {
   /// Inputs: `enabled`.
   /// Returns: None.
   /// Side effects: Persists the preference and switches the classifier.
-  /// Notes: Off by default. Turning it off also turns on-device AI off,
-  /// since nothing else would use it until recommendations exist.
+  /// Notes: Off by default. Turning it off also turns on-device AI off when
+  /// recommendations are off too, since nothing else would use it.
   void setAutoCategoriesEnabled(bool enabled) {
     state = state.copyWith(autoCategoriesEnabled: enabled);
     AnimeStorage.setAutoCategoriesEnabled(enabled);
     CategoryClassifier.instance.enabled = enabled;
     if (enabled) {
       unawaited(CategoryClassifier.instance.trickle());
-    } else if (state.onDeviceAiEnabled) {
+    } else {
+      _dropAiIfUnused();
+    }
+  }
+
+  /// Purpose: Turn recommendations on or off.
+  /// Inputs: `enabled`.
+  /// Returns: None.
+  /// Side effects: Persists the preference; may turn on-device AI off.
+  /// Notes: Off by default. The Home app bar shows the recommendations
+  /// action only while this is on.
+  void setRecommendationsEnabled(bool enabled) {
+    state = state.copyWith(recommendationsEnabled: enabled);
+    AnimeStorage.setRecommendationsEnabled(enabled);
+    if (!enabled) _dropAiIfUnused();
+  }
+
+  /// Purpose: Turn on-device AI off once no feature uses it.
+  /// Inputs: None.
+  /// Returns: None.
+  /// Side effects: May switch on-device AI off and persist that.
+  /// Notes: Internal helper used within this file only. The AI switch is
+  /// only usable while automatic categories or recommendations are on.
+  void _dropAiIfUnused() {
+    if (state.onDeviceAiEnabled &&
+        !state.autoCategoriesEnabled &&
+        !state.recommendationsEnabled) {
       setOnDeviceAiEnabled(false);
     }
   }
@@ -318,8 +347,11 @@ class AppSettings {
   /// Whether automatic categories are on. Off by default.
   final bool autoCategoriesEnabled;
 
+  /// Whether recommendations are on. Off by default.
+  final bool recommendationsEnabled;
+
   /// Purpose: Create a app settings instance.
-  /// Inputs: `themeMode`, `locale`, `weekStartDay`, `homeCalendarLayout`, `homeCalendarTimeBasis`, `homeCalendarFormat`, `homeListColumns`, `manageListColumns`, `statsListColumns`, `kanaTabEnabled`, `onDeviceAiEnabled`, `onDeviceAiPreferFast`, `autoCategoriesEnabled`.
+  /// Inputs: `themeMode`, `locale`, `weekStartDay`, `homeCalendarLayout`, `homeCalendarTimeBasis`, `homeCalendarFormat`, `homeListColumns`, `manageListColumns`, `statsListColumns`, `kanaTabEnabled`, `onDeviceAiEnabled`, `onDeviceAiPreferFast`, `autoCategoriesEnabled`, `recommendationsEnabled`.
   /// Returns: A new `AppSettings` instance.
   /// Side effects: None.
   /// Notes: `weekStartDay` stores the local-calendar preference; Japanese layout uses Sunday effectively.
@@ -337,6 +369,7 @@ class AppSettings {
     this.onDeviceAiEnabled = false,
     this.onDeviceAiPreferFast = false,
     this.autoCategoriesEnabled = false,
+    this.recommendationsEnabled = false,
   });
 
   /// Purpose: Return the week start day that should be applied to calendars.
@@ -350,7 +383,7 @@ class AppSettings {
       : weekStartDay;
 
   /// Purpose: Create a copy with selected fields replaced.
-  /// Inputs: `themeMode`, `locale`, `weekStartDay`, `homeCalendarLayout`, `homeCalendarTimeBasis`, `homeCalendarFormat`, `homeListColumns`, `manageListColumns`, `statsListColumns`, `kanaTabEnabled`, `onDeviceAiEnabled`, `onDeviceAiPreferFast`, `autoCategoriesEnabled`, `clearLocale`.
+  /// Inputs: `themeMode`, `locale`, `weekStartDay`, `homeCalendarLayout`, `homeCalendarTimeBasis`, `homeCalendarFormat`, `homeListColumns`, `manageListColumns`, `statsListColumns`, `kanaTabEnabled`, `onDeviceAiEnabled`, `onDeviceAiPreferFast`, `autoCategoriesEnabled`, `recommendationsEnabled`, `clearLocale`.
   /// Returns: `AppSettings`.
   /// Side effects: None.
   /// Notes: None.
@@ -368,6 +401,7 @@ class AppSettings {
     bool? onDeviceAiEnabled,
     bool? onDeviceAiPreferFast,
     bool? autoCategoriesEnabled,
+    bool? recommendationsEnabled,
     bool clearLocale = false,
   }) {
     return AppSettings(
@@ -386,6 +420,8 @@ class AppSettings {
       onDeviceAiPreferFast: onDeviceAiPreferFast ?? this.onDeviceAiPreferFast,
       autoCategoriesEnabled:
           autoCategoriesEnabled ?? this.autoCategoriesEnabled,
+      recommendationsEnabled:
+          recommendationsEnabled ?? this.recommendationsEnabled,
     );
   }
 }

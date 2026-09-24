@@ -14,7 +14,8 @@ Apple Intelligence 的模型——为自动分类补缺，并为推荐写简短�
 第 1–3、7 和 8 条在 `master` 的代码中强制执行，并由 `test/on_device_ai_test.dart` 和
 `test/ai_settings_tiles_ui_test.dart` 覆盖。第 4–6 条约束使用模型的功能；对自动分类（1.6.0 M4）而言它们已经实现，
 并由 `test/categories_test.dart` 覆盖：AI 建议的分类标签带闪光图标，并以第 4 条的标注作为提示；类型标签映射是确定性的回退，
-模型只填补映射留空的记录；结果存放在 `ai_insights.json` 中。见
+模型只填补映射留空的记录；结果存放在 `ai_insights.json` 中。对推荐（1.6.0 M5）而言它们同样已经实现，并由
+`test/recommendations_test.dart` 和 `test/recommendations_page_ui_test.dart` 覆盖：每条 AI 理由都位于第 4 条的标注之下；确定性排序及其标签先渲染，模型失败或回复无效时保持不变；理由只保存在内存中——不写入任何东西。见
 [`features/categories-and-recommendations.md`](features/categories-and-recommendations.md)。
 
 1. **默认关闭。** 在用户打开开关之前，`storage_config.json` 中没有 `onDeviceAiEnabled`。
@@ -41,11 +42,12 @@ Apple Intelligence 的模型——为自动分类补缺，并为推荐写简短�
 | `lib/features/ai/services/ai_insights_cache.dart` | `AiInsightsCache`：`ai_insights.json`，本设备的生成结果缓存（1.6.0 M4） |
 | `lib/features/ai/widgets/ai_settings_tiles.dart` | `AiSettingsTiles`：开关、状态行、尺寸偏好、说明和技术详情 |
 | `lib/features/categories/services/category_service.dart` | `CategoryClassifier`：每次会话的细流（至多 20 条记录）与*立即分类*（1.6.0 M4） |
+| `lib/features/recommendations/services/ai_reason_service.dart` | 推荐理由：排名前八的候选、回复解析、请求语言与中文变体转换（1.6.0 M5）；提示词在 `reason_prompt.dart` 中 |
 | `android/app/src/main/kotlin/com/yuanzhe/my_anime/GenAiChannel.kt` | 通往 ML Kit GenAI 的 Android 桥接 |
 | `packages/on_device_ai_apple/` | 一个本地 Flutter 插件，iOS 和 macOS 共用一份 Darwin 源码 |
 
 自 1.6.0（M4）起，设置中的各行显示在通用之后的「分类与推荐」分区中：先是*自动分类*开关，然后是 `AiSettingsTiles`，
-自动分类开启时再加上*立即分类*。只有自动分类开启时才能打开 AI 开关，关闭自动分类也会关闭它。这两个 AI 开关以 `onDeviceAiEnabled` 和
+自动分类开启时再加上*立即分类*；自 M5 起*推荐*开关位于前两者之间。只有自动分类或推荐开启时才能打开 AI 开关，关闭其中最后一个开着的功能也会关闭它。这两个 AI 开关以 `onDeviceAiEnabled` 和
 `onDeviceAiPreferFast` 存放在 `storage_config.json` 中（见 [`data-formats.md`](data-formats.md)）。
 
 三个平台上的通道都是 `com.yuanzhe.my_anime/genai`。它的方法有 `status`（`force`、`preferFast`）、`info`
@@ -77,7 +79,7 @@ iOS 26 或 macOS 26"。
 
 ### 队列 <a id="the-queue"></a>
 
-一次只运行一个请求。交互请求（推荐理由）排在后台请求（分类）之前。应用不处于
+一次只运行一个请求。交互请求（推荐理由，每次访问该页面一次）排在后台请求（分类）之前。应用不处于
 `AppLifecycleState.resumed` 时什么都不运行。遇到 `busy` 后，后台任务等待 5 秒，逐次翻倍，最长 5 分钟；遇到
 `quota` 后，后台任务在当天剩余时间停止；遇到 `background` 后，队列等待下一次 resume。
 
@@ -115,7 +117,7 @@ iOS 26 或 macOS 26"。
 - `choose` 使用带运行时词表的引导式生成：
   `DynamicGenerationSchema(arrayOf: DynamicGenerationSchema(name:description:anyOf:),
   minimumElements: 0, maximumElements: n)`，并通过 `GeneratedContent.jsonString` 读回。
-- 列出的语言包括 en-US、ja-JP 和 zh-CN；繁体中文不在列表中。`info` 会报告应用语言区域的 `supportsLocale`。
+- 列出的语言包括 en-US、ja-JP 和 zh-CN；繁体中文不在列表中。`info` 会报告应用语言区域的 `supportsLocale`。推荐理由（1.6.0 M5）读取最近一次的回答：拒绝繁体中文时改为请求简体再转换，拒绝其他任何界面语言时跳过，未知时按界面语言照常请求。
 - 上下文窗口为 4,096 token。后台调用会被限速。
 - 26 SDK 上的错误类型是 `LanguageModelSession.GenerationError`：`rateLimited` → `quota`，
   `concurrentRequests` → `busy`，`guardrailViolation` 和 `refusal` → `guardrail`，

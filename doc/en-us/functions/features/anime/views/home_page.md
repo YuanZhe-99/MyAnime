@@ -296,3 +296,12 @@ Long-pressing a row — or right-clicking it on desktop — opens
 [`showAnimeActionsSheet`](../../../shared/widgets/anime_actions_sheet.md), which shows every stored
 title in full, untruncated, plus edit and delete. The rows themselves still truncate to one line,
 which is exactly why the sheet exists.
+
+## Recommendations action
+
+Since 1.6.0 (M5), while `AppSettings.recommendationsEnabled` is on, `build` puts an `IconButton`
+(`Icons.recommend_outlined`, tooltip `recommendationsTitle`) first in the app bar, before the
+`listColumnsButton`; it pushes `/recommendations`. With recommendations off (the default) the action
+is absent. See
+[`../../recommendations/views/recommendations_page.md`](../../recommendations/views/recommendations_page.md)
+and [`../../../../features/categories-and-recommendations.md`](../../../../features/categories-and-recommendations.md).

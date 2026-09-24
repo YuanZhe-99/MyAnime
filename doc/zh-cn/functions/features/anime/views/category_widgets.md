@@ -28,7 +28,7 @@
 - **输入：** `id`、`l10n`。
 - **返回：** `String` — 对应的 `category*` 字符串；本构建不认识的 id 则返回 id 本身。
 - **副作用：** 无。
-- **用法：** `CategoryChips`、编辑器、管理页的分类筛选菜单。
+- **用法：** `CategoryChips`、编辑器、管理页的分类筛选菜单，以及推荐页的分类理由标签（1.6.0，M5）。
 - **备注：** `animeCategories` 中的每个 id 在全部四种界面语言中都有名称；`test/categories_test.dart` 会检查这一点。
 
 ### `Widget build(BuildContext context)`（`CategoryChips`） <a id="categorychips-build"></a>

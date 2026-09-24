@@ -18,7 +18,10 @@ and `test/ai_settings_tiles_ui_test.dart`. Rules 4–6 bind the features that us
 automatic categories (1.6.0 M4) they are implemented and covered by `test/categories_test.dart`:
 AI-suggested category chips carry a sparkle and the rule 4 label as their tooltip, the genre
 mapping is the deterministic fallback and the model only fills records it leaves empty, and results
-live in `ai_insights.json`. See
+live in `ai_insights.json`. For recommendations (1.6.0 M5) they are implemented and covered by
+`test/recommendations_test.dart` and `test/recommendations_page_ui_test.dart`: each AI reason sits
+under the rule 4 label, the deterministic ranking and its chips render first and stay whenever the
+model fails or its reply is invalid, and reasons are kept in memory only — nothing is written. See
 [`features/categories-and-recommendations.md`](features/categories-and-recommendations.md).
 
 1. **Off by default.** `onDeviceAiEnabled` is absent from `storage_config.json` until the user turns
@@ -50,13 +53,15 @@ Both flavors ship the feature: it makes no network call of its own.
 | `lib/features/ai/services/ai_insights_cache.dart` | `AiInsightsCache`: `ai_insights.json`, the per-device cache of generated results (1.6.0 M4) |
 | `lib/features/ai/widgets/ai_settings_tiles.dart` | `AiSettingsTiles`: the switch, the status row, the size preference, the notes and the technical details |
 | `lib/features/categories/services/category_service.dart` | `CategoryClassifier`: the per-session trickle (at most 20 records) and *Categorise now* (1.6.0 M4) |
+| `lib/features/recommendations/services/ai_reason_service.dart` | Recommendation reasons: the top eight candidates, the reply parser, the request language and Chinese variant conversion (1.6.0 M5); the prompt is in `reason_prompt.dart` |
 | `android/app/src/main/kotlin/com/yuanzhe/my_anime/GenAiChannel.kt` | The Android bridge to ML Kit GenAI |
 | `packages/on_device_ai_apple/` | A local Flutter plugin with one shared Darwin source for iOS and macOS |
 
 Since 1.6.0 (M4) the Settings rows are shown in the *Categories & recommendations* section after
 General: the *Automatic categories* switch, then `AiSettingsTiles`, then *Categorise now* while
-automatic categories are on. The AI switch can be turned on only while automatic categories are on,
-and turning automatic categories off turns it off too. The AI switches are stored as
+automatic categories are on; since M5 the *Recommendations* switch sits between the first two. The AI
+switch can be turned on only while automatic categories or recommendations are on, and turning the
+last of them off turns it off too. The AI switches are stored as
 `onDeviceAiEnabled` and `onDeviceAiPreferFast` in `storage_config.json` (see
 [`data-formats.md`](data-formats.md)).
 
@@ -90,8 +95,8 @@ The Apple plugin answers `unsupported` on iOS and macOS before 26, which Setting
 
 ### The queue
 
-One request runs at a time. Interactive requests (recommendation reasons) go ahead of background
-ones (classification). Nothing runs unless the app is `AppLifecycleState.resumed`. After `busy`,
+One request runs at a time. Interactive requests (recommendation reasons, one per visit to the page) go ahead of
+background ones (classification). Nothing runs unless the app is `AppLifecycleState.resumed`. After `busy`,
 background work waits 5 seconds, doubling up to 5 minutes; after `quota`, background work stops
 for the rest of the day; after `background`, the queue waits for the next resume.
 
@@ -135,7 +140,10 @@ Sources: <https://developers.google.com/ml-kit/genai>,
   `DynamicGenerationSchema(arrayOf: DynamicGenerationSchema(name:description:anyOf:),
   minimumElements: 0, maximumElements: n)`, read back through `GeneratedContent.jsonString`.
 - The listed languages include en-US, ja-JP and zh-CN; Traditional Chinese is not listed.
-  `info` reports `supportsLocale` for the app's locale.
+  `info` reports `supportsLocale` for the app's locale. Recommendation reasons (1.6.0 M5) read the
+  last answer: when it rejects Traditional Chinese they ask for Simplified and convert, when it
+  rejects any other UI language they are skipped, and when it is unknown they go ahead in the UI
+  language.
 - The context window is 4,096 tokens. Background calls are rate limited.
 - Errors on the 26 SDK are `LanguageModelSession.GenerationError`: `rateLimited` → `quota`,
   `concurrentRequests` → `busy`, `guardrailViolation` and `refusal` → `guardrail`,

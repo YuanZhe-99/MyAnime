@@ -3,9 +3,10 @@
 Shared parsing and checking of on-device model output, added in 1.6.0 (M3). Everything a model says
 passes through here before it is shown or cached, on both platforms: a small model ignores formats,
 wraps answers in Markdown, and sometimes answers in the wrong script. Nothing here trusts the reply;
-anything that does not fit is dropped rather than repaired. All functions are pure. On `master` the
-only caller is `MethodChannelGenAiBackend.choose` on Android; the rest are ready for the M4 and M5
-features. See [`../../../../on-device-ai.md`](../../../../on-device-ai.md).
+anything that does not fit is dropped rather than repaired. All functions are pure. `parseChoiceReply` is called by
+`MethodChannelGenAiBackend.choose` on Android; since 1.6.0 (M5) `parseReasonReply` in
+`ai_reason_service.dart` uses `stripMarkdown`, `matchesScript` and `cleanSentence` for recommendation
+reasons. See [`../../../../on-device-ai.md`](../../../../on-device-ai.md).
 
 ## Declarations
 
@@ -32,7 +33,7 @@ features. See [`../../../../on-device-ai.md`](../../../../on-device-ai.md).
 - **Side effects:** None.
 - **Algorithm:** Remove code fences (with any language tag), then bold and italic markers, inline
   code ticks, heading marks, bullets and list numbers at line starts; trim.
-- **Usage:** `parseChoiceReply` and `cleanSentence`.
+- **Usage:** `parseChoiceReply`, `cleanSentence` and `parseReasonReply`.
 - **Notes:** Line breaks are kept, because the choice parser reads one id per line.
 
 ### `ChoiceParse parseChoiceReply(String reply, List<String> options, {int maxItems = 3})` <a id="parsechoicereply"></a>
@@ -64,7 +65,7 @@ features. See [`../../../../on-device-ai.md`](../../../../on-device-ai.md).
 - **Algorithm:** Count Han, kana and Latin letters. With no letters, false. `zh`: Han plus kana at
   least 60% of letters, and some Han. `ja`: the same 60%, and at least one kana. Any other language:
   Latin at least 60%.
-- **Usage:** No caller on `master` yet; M5's recommendation reasons.
+- **Usage:** `parseReasonReply` in `lib/features/recommendations/services/ai_reason_service.dart` (1.6.0, M5).
 - **Notes:** A proportion rather than an absolute rule, because a reason may quote a title in
   another script. It cannot tell Simplified from Traditional Chinese.
 
@@ -78,6 +79,6 @@ features. See [`../../../../on-device-ai.md`](../../../../on-device-ai.md).
 - **Side effects:** None.
 - **Algorithm:** Strip Markdown, collapse all whitespace to single spaces, trim, then check the
   length.
-- **Usage:** No caller on `master` yet; M5's recommendation reasons.
+- **Usage:** `parseReasonReply` in `lib/features/recommendations/services/ai_reason_service.dart` (1.6.0, M5).
 - **Notes:** Over-long output is dropped rather than truncated, because a cut sentence reads as a
   wrong one.

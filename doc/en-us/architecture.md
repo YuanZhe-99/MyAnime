@@ -20,9 +20,12 @@ Architecture" section. See [`data-formats.md`](data-formats.md) for the data mod
     [`features/kana-reference.md`](features/kana-reference.md))
   - Settings (`/settings`, `settings_page.dart`)
 
-  Non-tab routes (anime detail, anime edit/add, metadata-update review, duplicate-check) are
-  declared alongside the shell route and pushed on top of it (e.g. `/anime/detail/:id`,
-  `/anime/edit`, `/anime/edit/:id`, `/metadata-updates`, `/duplicate-check`).
+  Non-tab routes (anime detail, anime edit/add, metadata-update review, recommendations,
+  duplicate-check) are declared alongside the shell route and pushed on top of it (e.g.
+  `/anime/detail/:id`, `/anime/edit`, `/anime/edit/:id`, `/metadata-updates`, `/recommendations`,
+  `/duplicate-check`). `/recommendations` (1.6.0) is reached only from the Home app-bar action shown
+  while recommendations are on (see
+  [`features/categories-and-recommendations.md`](features/categories-and-recommendations.md)).
 - `lib/app/theme.dart` — the visual system, built on Material 3 via `flex_color_scheme`.
 - `lib/app/flavor.dart` — build flavor logic (see below).
 
@@ -96,6 +99,12 @@ lib/
       services/category_service.dart
       widgets/categorize_now_tile.dart
     kana/views/kana_page.dart
+    recommendations/          # recommendations (1.6.0)
+      services/
+        recommendation_service.dart  # deterministic ranking
+        reason_prompt.dart
+        ai_reason_service.dart       # optional on-device AI reasons
+      views/recommendations_page.dart
     settings/views/
       backup_page.dart
       license_page.dart

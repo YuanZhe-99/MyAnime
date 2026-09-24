@@ -175,6 +175,9 @@
 | Apple Intelligence / AICore / Foundation Models | Apple Intelligence / AICore / Foundation Models | 平台与框架名，不翻译 |
 | category | 分类 | 本应用自己的分类表（`animeCategories`）中的一项；与资料库的「类型标签」（genre）不同，勿混用 |
 | automatic categories | 自动分类 | 由类型标签映射、必要时由端侧 AI 补全得出的分类；用户自己选的分类始终优先 |
+| recommendation | 推荐 | 从用户自己的片库中挑出接下来看什么；界面标题为「接下来看什么」。模型只按编号挑选，从不自己说出作品名 |
+| reason chip | 推荐理由标签 | 推荐卡片上说明理由的小标签，如「《…》的下一部」 |
+| Not interested | 不感兴趣 | 只在本设备上隐藏一条推荐，不同步 |
 
 ## 6. 复查清单（提交中文页面之前运行）
 

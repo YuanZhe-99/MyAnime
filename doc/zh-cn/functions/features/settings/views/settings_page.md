@@ -1,6 +1,6 @@
 # lib/features/settings/views/settings_page.dart
 
-`SettingsPage` 是应用的主设置屏：主题/语言区域/日历偏好（由 `shared/providers/app_settings.dart` 支撑）、提醒开关、假名标签开关、「分类与推荐」分区（自动分类与端侧 AI）、数据操作（WebDAV 同步入口、备份入口、ZIP/Markdown 导出/导入、重复检查、存储位置）、纯桌面托盘/开机自启/本地 API 服务器控件，以及关于小节（版本、隐私政策、许可证）。它是一个 `ConsumerStatefulWidget`（Riverpod），也监听 `AutoSyncService.addOnStatusChanged`，使 WebDAV 行的错误/冲突副标题无需导航离开就保持实时。与 `license_page.dart`/`privacy_policy_page.dart` 不同，它大多数非 `build` 方法都是真实操作处理器——读写 `AnimeStorage` 的 JSON 配置、调用 `ImportExportService`、`LocalApiServer`、`ReminderService`、`TrayService` 和 `launch_at_startup`——因此这个"视图"文件有巨大的 Tier A 表面。
+`SettingsPage` 是应用的主设置屏：主题/语言区域/日历偏好（由 `shared/providers/app_settings.dart` 支撑）、提醒开关、假名标签开关、「分类与推荐」分区（自动分类、推荐与端侧 AI）、数据操作（WebDAV 同步入口、备份入口、ZIP/Markdown 导出/导入、重复检查、存储位置）、纯桌面托盘/开机自启/本地 API 服务器控件，以及关于小节（版本、隐私政策、许可证）。它是一个 `ConsumerStatefulWidget`（Riverpod），也监听 `AutoSyncService.addOnStatusChanged`，使 WebDAV 行的错误/冲突副标题无需导航离开就保持实时。与 `license_page.dart`/`privacy_policy_page.dart` 不同，它大多数非 `build` 方法都是真实操作处理器——读写 `AnimeStorage` 的 JSON 配置、调用 `ImportExportService`、`LocalApiServer`、`ReminderService`、`TrayService` 和 `launch_at_startup`——因此这个"视图"文件有巨大的 Tier A 表面。
 
 自 1.5.4 起它同时也是一个列表-详情布局。在全应用拆分规则允许的窗口上，一级列表留在左边，它所通向的二级
 页面填满右边，与系统设置应用的行为一致；在更窄的窗口上，每一行仍与从前完全一样全屏推入。私有的
@@ -118,9 +118,11 @@
 - **算法：** 与 `build` 从前直接返回的内容一致：通用、数据、Debug、桌面与关于各小节。自 1.6.0 起通用小节以*五十音速查* `SwitchListTile`
   结尾，绑定 `settings.kanaTabEnabled` 与 `notifier.setKanaTabEnabled`；其说明提到 MyNihongo!!!!!，但不附商店链接。
   自 1.6.0（M4）起，通用之后是「分类与推荐」分区（`aiSectionTitle`）：先是*自动分类* `SwitchListTile`
-  （`settings.autoCategoriesEnabled` / `notifier.setAutoCategoriesEnabled`），然后是以该开关作为 `featuresOn:` 的
+  （`settings.autoCategoriesEnabled` / `notifier.setAutoCategoriesEnabled`），然后——自 1.6.0（M5）起——是*推荐*
+  `SwitchListTile`（`settings.recommendationsEnabled` / `notifier.setRecommendationsEnabled`），然后是以
+  `featuresOn: autoCategoriesEnabled || recommendationsEnabled` 构建的
   [`AiSettingsTiles`](../../ai/widgets/ai_settings_tiles.md)，最后——仅在自动分类开启时——是
-  [`CategorizeNowTile`](../../categories/widgets/categorize_now_tile.md)。在 Windows 上该分区只有这个开关，因为两个
+  [`CategorizeNowTile`](../../categories/widgets/categorize_now_tile.md)。在 Windows 上该分区只有这两个开关，因为两个
   AI 组件在那里什么也不渲染。
 - **用法：**
   ```dart

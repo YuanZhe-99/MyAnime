@@ -757,6 +757,44 @@ class AppLocalizationsEn extends AppLocalizations {
   String get syncSeriesAuto => 'Series: automatic';
 
   @override
+  String get recommendationsTitle => 'What to watch next';
+
+  @override
+  String get recommendationsEmpty =>
+      'Nothing to recommend yet. Add anime you have not started, or finish a season to get the next one suggested.';
+
+  @override
+  String get recommendationsNotInterested => 'Not interested';
+
+  @override
+  String get recommendationsNotInLibrary => 'Not in your library yet';
+
+  @override
+  String reasonNextAfter(String title) {
+    return 'Next after $title';
+  }
+
+  @override
+  String reasonLikeCategories(String categories) {
+    return 'Like titles you rated highly: $categories';
+  }
+
+  @override
+  String reasonSameStudio(String title) {
+    return 'Same studio as $title';
+  }
+
+  @override
+  String get reasonCatchUp => 'New episodes to catch up on';
+
+  @override
+  String get settingsRecommendations => 'Recommendations';
+
+  @override
+  String get settingsRecommendationsDesc =>
+      'Suggest what to watch next from your own library. \"Not interested\" hides a suggestion on this device only.';
+
+  @override
   String syncCategories(String list) {
     return 'Categories: $list';
   }

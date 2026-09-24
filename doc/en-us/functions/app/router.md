@@ -55,7 +55,12 @@ For reference, the route table is:
 | `/anime/edit` | `AnimeEditPage` | Create flow (no `animeId`); `extra` may carry a `NextSeasonPrefill` from "Add next season" (1.6.0, see [`../features/anime/services/series_service.md`](../features/anime/services/series_service.md#nextseasonprefill)); any other `extra` is ignored |
 | `/anime/edit/:id` | `AnimeEditPage` | Edit flow (`animeId` from path); `extra: true` opens the online search on load |
 | `/metadata-updates` | `MetadataUpdatesPage` | Pushed on top of the shell; `extra` may carry the current page's anime ids |
+| `/recommendations` | `RecommendationsPage` | Pushed on top of the shell from Home's app-bar action (1.6.0, M5) |
 | `/duplicate-check` | `DuplicateCheckPage` | Pushed on top of the shell |
+
+`/recommendations` has no redirect: unlike `/kana` it is not a shell tab, and its only entry point,
+the Home app-bar action, is shown only while `AppSettings.recommendationsEnabled` is on. See
+[`../features/recommendations/views/recommendations_page.md`](../features/recommendations/views/recommendations_page.md).
 
 The shell routes are wrapped in a `ShellRoute` whose `builder` renders
 `ShellScaffold(child: child)` (see

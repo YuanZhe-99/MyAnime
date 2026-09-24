@@ -102,7 +102,8 @@ top-level `onDeviceAiServiceProvider` — a plain `Provider` over the singleton,
 - **Returns:** `Future<String>`; throws `GenAiException` on failure.
 - **Side effects:** Runs the model on the device when its turn comes.
 - **Algorithm:** Wraps `backend.generate` in [`_enqueue`](#ondeviceaiservice-_enqueue).
-- **Usage:** No caller on `master` yet; M5's recommendation reasons are the planned one.
+- **Usage:** `writeAiReasons` in `lib/features/recommendations/services/ai_reason_service.dart`
+  (1.6.0, M5), with `AiPriority.interactive`.
 - **Notes:** Refused at once with `unavailable` while the switch is off. `choose` is the same shape
   with background priority by default.
 
