@@ -104,7 +104,8 @@ page's app-bar link menu hand to `_runSeriesAction`.
 - **Algorithm:**
   1. A search field (*Search your library*).
   2. With text: the `_search` results, or *No matching anime*.
-  3. Without text: *Suggestions* from `SeriesIndex.suggestionsFor`, then — when the record's series
+  3. Without text: *Suggestions* from `SeriesIndex.suggestionsFor` — a relation suggestion's
+     subtitle appends *Spin-off* or *Alternative version* to the season label — then — when the record's series
      has at least two members — *In this series* as a `SliverReorderableList` with drag handles, and
      a *Save order* button enabled once the order changed.
   4. Tapping any suggestion or search result applies `SeriesEditor.link(current, tapped)`; *Save

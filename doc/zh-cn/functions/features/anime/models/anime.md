@@ -1,6 +1,6 @@
 # lib/features/anime/models/anime.dart
 
-核心数据模型：`Anime`（一部被跟踪的系列）、`AnimeRating`（可选个人评分）、`AnimeLocalArchive`（可选的本地下载存档记录）、`AnimeSeriesLink`（用户设置的可选系列归属，1.6.0）、`AnimeData`（顶层 `{animes: [...]}` 持久化容器），外加 `AnimeType`、`EpisodeStatus`、`AnimeViewingStatus`、`AnimeRatingField`、`ArchiveSource` 和 `ArchiveResolution` 枚举。本文件拥有全部四个类的 `fromJson`/`toJson`、同步合并使用的 `extraJson` 未知字段保留模式，以及驱动主页日历和按季度管理视图的季度归属/剧集播出日期逻辑。逐字段参考（身份、日程、剧集、`AnimeType` 阈值、`AnimeRating` 计分、`extraJson`）在 [`../../../../data-formats.md`](../../../../data-formats.md)；构建在这些字段之上的跟踪/季度归属算法在 [`../../../../features/anime-tracking.md`](../../../../features/anime-tracking.md) 中走查。使用者包括 `AnimeStorage`（[`../services/anime_storage.md`](../services/anime_storage.md)）、`WebDAVService`/`sync_merge.dart`（三方同步，[`../../../../algorithms/three-way-merge.md`](../../../../algorithms/three-way-merge.md)），以及 `lib/features/anime/views/` 下的每个视图。
+核心数据模型：`Anime`（一部被跟踪的系列）、`AnimeRating`（可选个人评分）、`AnimeLocalArchive`（可选的本地下载存档记录）、`AnimeSeriesLink`（用户设置的可选系列归属，1.6.0）、`AnimeExternalRelation`（外部资料库列出的一部关联作品，1.6.0）、`AnimeData`（顶层 `{animes: [...]}` 持久化容器），外加 `AnimeType`、`EpisodeStatus`、`AnimeViewingStatus`、`AnimeRatingField`、`ArchiveSource`、`ArchiveResolution` 和 `AnimeRelationType` 枚举。本文件拥有全部四个类的 `fromJson`/`toJson`、同步合并使用的 `extraJson` 未知字段保留模式，以及驱动主页日历和按季度管理视图的季度归属/剧集播出日期逻辑。逐字段参考（身份、日程、剧集、`AnimeType` 阈值、`AnimeRating` 计分、`extraJson`）在 [`../../../../data-formats.md`](../../../../data-formats.md)；构建在这些字段之上的跟踪/季度归属算法在 [`../../../../features/anime-tracking.md`](../../../../features/anime-tracking.md) 中走查。使用者包括 `AnimeStorage`（[`../services/anime_storage.md`](../services/anime_storage.md)）、`WebDAVService`/`sync_merge.dart`（三方同步，[`../../../../algorithms/three-way-merge.md`](../../../../algorithms/three-way-merge.md)），以及 `lib/features/anime/views/` 下的每个视图。
 
 ## 声明
 
@@ -49,6 +49,10 @@
 | `hasAnyData` | getter（`AnimeWatchProgress`） | B | 是否有来源 URL、集数数据、时间戳或保留的 `extraJson`。 |
 | [`toJson`](#tojson-animewatchprogress) | 方法（`AnimeWatchProgress`） | A | 序列化为存于 `externalMeta.watchProgress` 下的对象。 |
 | [`AnimeWatchProgress.fromJson`](#animewatchprogress-fromjson) | 工厂构造函数 | A | 解析观看进度记录，无法解析的值转入 `extraJson`。 |
+| [`isSameSeries`](#issameseries) | getter（`AnimeRelationType`） | A | 该关联关系是否把两部作品置于同一系列（前作、续作、主线、番外、总集篇）。 |
+| [`AnimeExternalRelation(...)`](#animeexternalrelation-new) | 构造函数（`AnimeExternalRelation`） | A | 创建外部资料库为一部番剧列出的一部关联作品。 |
+| [`toJson`](#tojson-animeexternalrelation) | 方法（`AnimeExternalRelation`） | A | 序列化为 `externalMeta.relations` 的一条记录。 |
+| [`AnimeExternalRelation.fromJson`](#animeexternalrelation-fromjson) | 工厂构造函数 | A | 解析一条关联关系记录，把未知的 `type` 保留在 `extraJson` 中。 |
 | [`AnimeExternalMeta(...)`](#animeexternalmeta-new) | 构造函数（`AnimeExternalMeta`） | A | 创建从外部资料库拉取的公开元数据记录。 |
 | `hasAnyData` | getter（`AnimeExternalMeta`） | B | 是否有任何值得持久化的内容。 |
 | [`ratingFor`](#ratingfor) | 方法（`AnimeExternalMeta`） | A | 查找本记录中某个来源的评分。 |
@@ -86,7 +90,7 @@
 | [`toJson`](#tojson-animedata) | 方法（`AnimeData`） | A | 序列化为 `{...extraJson, animes: [...]}`。 |
 | [`AnimeData.fromJson`](#animedata-fromjson) | 工厂构造函数 | A | 从 JSON 解析 `{animes: [...]}` 容器。 |
 
-关于校验计数的说明：源文件有 78 个 `/// Purpose:` 文档注释，但本表有 79 行——`AnimeData` 默认构造函数在源码中完全没有文档注释（与本文件其他构造函数不同），但它仍是真实声明，被索引在上（Tier B：无逻辑的平凡默认值构造函数）。
+关于校验计数的说明：源文件有 82 个 `/// Purpose:` 文档注释，但本表有 83 行——`AnimeData` 默认构造函数在源码中完全没有文档注释（与本文件其他构造函数不同），但它仍是真实声明，被索引在上（Tier B：无逻辑的平凡默认值构造函数）。
 
 ## 文档
 
@@ -532,13 +536,48 @@
 - **算法：** 经 `_unknownJson` 计算 `extraJson`，随后逐个带类型检查地读取已知键；存在但类型不对的值会被写回 `extraJson` 而非丢弃。缺失或非数值的 `scoreMax` 回退为 `10`。
 - **备注：** 与 [`AnimeLocalArchive.fromJson`](#animelocalarchive-fromjson) 同一套纪律——较新版本的数据必须能在较旧版本的编辑中存活。
 
-### `const AnimeExternalMeta({synonyms = const [], titleRomaji, titleEn, format, status, durationMinutes, genres = const [], studios = const [], endDate, ratings = const [], refreshedAt, watchProgress, extraJson = const {}})` <a id="animeexternalmeta-new"></a>
+### `bool get isSameSeries`（`AnimeRelationType`） <a id="issameseries"></a>
+- **种类：** `AnimeRelationType` 枚举的 getter
+- **来源：** `lib/features/anime/models/anime.dart`（约第 1117 行）
+- **用途：** 报告该关联关系是否把两部作品置于同一系列。
+- **返回：** `bool` —— `prequel`、`sequel`、`parent`、`sideStory` 和 `summary` 为 true；`spinOff`、`alternative` 和 `other` 为 false。
+- **副作用：** 无。
+- **备注：** 系列关联中 E1 边的分界线：同系列的关联关系会自动把两条记录连在一起，而衍生作品和不同版本只作为建议给出。见 [`../../../../features/series-linking.md`](../../../../features/series-linking.md)。
+
+### `const AnimeExternalRelation({required source, required type, targetUrl, title, format, extraJson = const {}})` <a id="animeexternalrelation-new"></a>
+- **种类：** `AnimeExternalRelation` 的构造函数
+- **来源：** `lib/features/anime/models/anime.dart`（约第 1161 行）
+- **用途：** 创建外部资料库为一部番剧列出的一部关联作品。
+- **输入：** `source` —— 资料库显示名（如 `AniList`）；`type` —— 归一后的 `AnimeRelationType`；`targetUrl` —— 关联作品在该资料库上的页面；`title` 和 `format` 取资料库报告的原值；`extraJson`，当来源的原始关联名映射为 `other` 时也以 `rawType` 保存该原始名。
+- **返回：** 新的 `AnimeExternalRelation`。
+- **副作用：** 无。
+- **备注：** 与 [`AnimeExternalMeta`](#animeexternalmeta-new) 的其余部分一样是公开元数据：会同步、会备份、保留在分享文件中，且只经 `AnimeStorage.patchExternalMeta` 写入，绝不推进 `modifiedAt`。由 [`../services/anime_search_service.md`](../services/anime_search_service.md#mapanilistrelations) 中的映射函数构建。
+
+### `Map<String, dynamic> toJson()`（`AnimeExternalRelation`） <a id="tojson-animeexternalrelation"></a>
+- **种类：** `AnimeExternalRelation` 的方法
+- **来源：** `lib/features/anime/models/anime.dart`（约第 1176 行）
+- **用途：** 序列化为 `externalMeta.relations` 的一条记录。
+- **返回：** `Map<String, dynamic>`。
+- **副作用：** 无。
+- **算法：** 从 `extraJson` 的副本出发；仅当 `extraJson` 未携带时才写入 `source` 和 `type`（枚举名），随后在有值时写入 `targetUrl`、`title` 和 `format`。
+- **备注：** 由于 `fromJson` 把未知的 `type` 保留在 `extraJson` 中，它会被原样写回而不是写成 `other`——较旧版本绝不会把较新版本的关联类型降级。
+
+### `factory AnimeExternalRelation.fromJson(Map<String, dynamic> json)` <a id="animeexternalrelation-fromjson"></a>
+- **种类：** `AnimeExternalRelation` 的工厂构造函数
+- **来源：** `lib/features/anime/models/anime.dart`（约第 1192 行）
+- **用途：** 从 JSON 解析一条关联关系记录。
+- **返回：** 新的 `AnimeExternalRelation`；缺失的 `source` 读为空字符串。
+- **副作用：** 无。
+- **算法：** 未知键经 `_unknownJson` 进入 `extraJson`。每个字符串字段都做类型检查，类型不对时保留在 `extraJson` 中。`type` 若是某个 `AnimeRelationType` 值的名字则采用；否则读为 `other`，原始值保留在 `extraJson['type']` 中。
+- **备注：** 由 `test/relations_test.dart` 覆盖。
+
+### `const AnimeExternalMeta({synonyms = const [], titleRomaji, titleEn, format, status, durationMinutes, genres = const [], studios = const [], endDate, ratings = const [], refreshedAt, watchProgress, relations = const [], extraJson = const {}})` <a id="animeexternalmeta-new"></a>
 - **种类：** `AnimeExternalMeta` 的构造函数
-- **来源：** `lib/features/anime/models/anime.dart`（第 826 行）
+- **来源：** `lib/features/anime/models/anime.dart`（约第 1270 行）
 - **用途：** 创建一条从外部番剧资料库拉取的公开元数据记录。
 - **返回：** 新的 `AnimeExternalMeta`。
 - **副作用：** 无。
-- **备注：** 与 [`AnimeLocalArchive`](#animelocalarchive-new) 不同，这是关于作品本身的公开信息而非个人基础设施信息，因此**不会**从 `.myanimeitem` 分享文件中剥离——见 [`../../../../data-formats.md`](../../../../data-formats.md) 中的流转表。`format` 是描述性元数据，切勿与驱动排期的 `AnimeType` 混淆。
+- **备注：** 与 [`AnimeLocalArchive`](#animelocalarchive-new) 不同，这是关于作品本身的公开信息而非个人基础设施信息，因此**不会**从 `.myanimeitem` 分享文件中剥离——见 [`../../../../data-formats.md`](../../../../data-formats.md) 中的流转表。`format` 是描述性元数据，切勿与驱动排期的 `AnimeType` 混淆。`relations`（1.6.0）保存各资料库列出的关联作品——见 [`AnimeExternalRelation`](#animeexternalrelation-new)。
 
 ### `AnimeExternalRating? ratingFor(String source)` <a id="ratingfor"></a>
 - **种类：** `AnimeExternalMeta` 的方法
@@ -576,12 +615,12 @@
 
 ### `AnimeExternalMeta mergedWith(AnimeExternalMeta other, {DateTime? refreshedAt})` <a id="mergedwith"></a>
 - **种类：** `AnimeExternalMeta` 的方法
-- **来源：** `lib/features/anime/models/anime.dart`（第 879 行）
+- **来源：** `lib/features/anime/models/anime.dart`（约第 1367 行）
 - **用途：** 把新抓取的元数据折叠进本记录。
 - **输入：** `other` —— 新抓取的记录；`refreshedAt` —— 覆盖结果时间戳。
 - **返回：** `AnimeExternalMeta`。
 - **副作用：** 无。
-- **算法：** 评分以 `source` 为键放入映射，`other` 的记录覆盖本记录的，因此刷新某个来源只会替换该来源的记录。别名取并集。每个标量字段仅在 `other` 的值非 null 时采用；`genres`/`studios` 仅在 `other` 非空时采用。`extraJson` 经 `_mergeJsonMaps` 深度合并。
+- **算法：** 评分以 `source` 为键放入映射，`other` 的记录覆盖本记录的，因此刷新某个来源只会替换该来源的记录。别名取并集。每个标量字段仅在 `other` 的值非 null 时采用；`genres`/`studios` 仅在 `other` 非空时采用。关联关系同样按来源替换：凡在 `other.relations` 中出现的来源，丢弃其旧记录并追加 `other` 的记录，其他来源的记录保留——因此不带关联关系的抓取（搜索结果）不会抹掉任何关联关系。`extraJson` 经 `_mergeJsonMaps` 深度合并。
 - **用法：**
   ```dart
   merged = merged.mergedWith(
@@ -601,19 +640,19 @@
 
 ### `Map<String, dynamic> toJson()`（`AnimeExternalMeta`） <a id="tojson-animeexternalmeta"></a>
 - **种类：** `AnimeExternalMeta` 的方法
-- **来源：** `lib/features/anime/models/anime.dart`（第 932 行）
+- **来源：** `lib/features/anime/models/anime.dart`（约第 1430 行）
 - **用途：** 序列化为 `Anime.externalMeta` 下存储的 JSON 形态。
 - **返回：** `Map<String, dynamic>`。
 - **副作用：** 无。
-- **算法：** 从 `extraJson` 的副本出发；局部 `writeString`/`writeList` 辅助函数在键有值时覆盖它，只有在 `extraJson` 未携带该键时才移除。`endDate`/`refreshedAt` 写为 UTC ISO-8601 字符串，`ratings` 写为 [`AnimeExternalRating.toJson`](#tojson-animeexternalrating) 映射的数组。
+- **算法：** 从 `extraJson` 的副本出发；局部 `writeString`/`writeList` 辅助函数在键有值时覆盖它，只有在 `extraJson` 未携带该键时才移除。`endDate`/`refreshedAt` 写为 UTC ISO-8601 字符串，`ratings` 写为 [`AnimeExternalRating.toJson`](#tojson-animeexternalrating) 映射的数组，`relations` 仅在非空时写为 [`AnimeExternalRelation.toJson`](#tojson-animeexternalrelation) 映射的数组。
 
 ### `factory AnimeExternalMeta.fromJson(Map<String, dynamic> json)` <a id="animeexternalmeta-fromjson"></a>
 - **种类：** `AnimeExternalMeta` 的工厂构造函数
-- **来源：** `lib/features/anime/models/anime.dart`（第 987 行）
+- **来源：** `lib/features/anime/models/anime.dart`（约第 1495 行）
 - **用途：** 从 JSON 解析一条外部元数据记录。
 - **返回：** 新的 `AnimeExternalMeta`。
 - **副作用：** 无。
-- **算法：** 局部 `readString`/`readList` 辅助函数对每个键做类型检查，把形态不对的内容推入 `extraJson`。`ratings` 中是 map 的条目经 [`AnimeExternalRating.fromJson`](#animeexternalrating-fromjson) 解析，携带数据或来源名时保留；非 map 条目被收集回 `extraJson['ratings']`。
+- **算法：** 局部 `readString`/`readList` 辅助函数对每个键做类型检查，把形态不对的内容推入 `extraJson`。`ratings` 中是 map 的条目经 [`AnimeExternalRating.fromJson`](#animeexternalrating-fromjson) 解析，携带数据或来源名时保留；非 map 条目被收集回 `extraJson['ratings']`。`relations` 的读法相同：map 条目经 [`AnimeExternalRelation.fromJson`](#animeexternalrelation-fromjson) 解析，非 map 条目进入 `extraJson['relations']`，非列表的值原样保留在那里。
 - **备注：** 若 `genres` 的值是字符串而非列表，它会原样存活在 `extraJson` 中并原样重新序列化，因此较旧版本无法静默删除较新版本的形态变更。
 
 ### `const Anime({required id, title, titleJa, season = 'Season 1', startEpisode = 1, endEpisode = 13, manualType, airDayOfWeek, airTime, firstAirDate, episodeStatuses = const {}, coverImage, infoUrl, watchUrl, episodeWeekOffsets = const {}, notes, rating, localArchive, seriesLink, externalMeta, required createdAt, required modifiedAt, extraJson = const {}})` <a id="anime-new"></a>

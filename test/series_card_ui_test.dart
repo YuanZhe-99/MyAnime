@@ -53,6 +53,19 @@ void main() {
           record('s10', 'Railgun', 'Season 10'),
           record('s2', 'Railgun', 'Season 2'),
           record('solo', 'Mushishi', 'Season 1'),
+          {
+            ...record('seq', 'Frieren', 'Season 1'),
+            'externalMeta': {
+              'relations': [
+                {
+                  'source': 'AniList',
+                  'type': 'sequel',
+                  'targetUrl': 'https://anilist.co/anime/182255',
+                  'title': 'Frieren S2',
+                },
+              ],
+            },
+          },
         ],
       }),
     );
@@ -137,5 +150,11 @@ void main() {
     expect(find.text('Link to series…'), findsOneWidget);
     expect(find.text('Add next season'), findsOneWidget);
     expect(find.text('Let the app decide'), findsNothing);
+  });
+
+  testWidgets('a sequel missing from the library is offered', (tester) async {
+    await pumpAt(tester, 412, 915, 'seq');
+    expect(find.text('Next: Frieren S2 (AniList)'), findsOneWidget);
+    expect(tester.takeException(), isNull);
   });
 }

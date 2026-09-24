@@ -190,6 +190,11 @@ Not copied to the other repos — no other app has these.
 | standalone | 独立（不归入系列） | 用户把记录移出所有系列（`standalone: true`）；它不加入任何系列，也不吸引其他记录 |
 | next season | 下一季 | 「添加下一季」操作，预填标题与递增后的季标签 |
 | materialise (a series) | 固化（系列） | 首次手动整理时给自动归入的系列的每个成员写入同一 `seriesId` |
+| relation (database) / related work | 关联关系 / 关联作品 | `externalMeta.relations`：资料库列出的前作、续作等；与用户的「手动关联」（series link）不同，勿混写 |
+| spin-off | 衍生作品 | `spinOff`；共享世界观但不同系列，只作建议 |
+| alternative version | 不同版本 | `alternative`；只作建议 |
+| missing sequel | 缺失续作 | 资料库列出、但片库中没有的续作；界面文案为「下一部：<标题>（<来源>）」 |
+| canonical (database) key | 规范键 | `anilist:<id>` / `mal:<id>` / `bgm:<id>`，用于把关联目标与记录的页面匹配 |
 | on-device AI | 端侧 AI | 在本设备上运行的模型；与 MyNihongo 一致。勿译成「本地 AI」或「设备端 AI」 |
 | Apple Intelligence / AICore / Foundation Models | Apple Intelligence / AICore / Foundation Models | 平台与框架名，不翻译 |
 

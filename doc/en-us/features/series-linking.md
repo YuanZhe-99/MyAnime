@@ -19,7 +19,7 @@ could be corrected.
 |---|---|
 | **Series** | An ordered group of records that belong to one work. |
 | **Curated series** | Records sharing a `seriesLink.seriesId` created by a user action. Membership is exactly what the user said. |
-| **Derived series** | A group the app computed from titles. Nothing about it is stored; it is keyed in memory as `auto:<smallest member id>`. |
+| **Derived series** | A group the app computed from titles and database relations. Nothing about it is stored; it is keyed in memory as `auto:<smallest member id>`. |
 | **Auto record** | A record without a `seriesLink`. The app may place it in a derived or a curated series. |
 | **Standalone record** | `seriesLink.standalone == true`: the user took it out of every series. It never joins a series, and nothing joins it. |
 
@@ -63,7 +63,7 @@ record; standalone records get none.
 
 | Edge | Strength | Condition |
 |---|---|---|
-| E1 relation | 3 | One record's database relations name the other. **Not active yet:** the kind is defined, but relation metadata arrives with a later milestone (M2) and nothing adds this edge in 1.6.0. |
+| E1 relation | 3 | One record's `externalMeta.relations` names the other through a same-series relation — `prequel`, `sequel`, `parent`, `sideStory` or `summary` — in either direction. See [Database relations](#database-relations). |
 | E2 legacy | 2 | Identical `displayTitle` and a different trimmed `season` label — the pre-1.6.0 rule, kept so nothing linked before stops being linked. |
 | E3 base title | 1 | The two records share a base key, **unless** they look like duplicates rather than seasons: the same season ordinal, and either the same `firstAirDate` day or no `firstAirDate` on one side. Duplicates are [`duplicate-detection.md`](duplicate-detection.md)'s job. |
 
@@ -79,8 +79,8 @@ record; standalone records get none.
 4. Components that joined nothing and have at least two members become derived series.
 
 The result is deterministic: the same records in any order give the same series, so every device
-computes the same grouping from the same data. Records are indexed by title and base key in hash
-maps, so the build is roughly linear in library size.
+computes the same grouping from the same data. Records are indexed by title, base key and database
+key in hash maps, so the build is roughly linear in library size.
 
 **Order within a series.** Members with an `order` in that series come first, ascending. The rest
 follow by `firstAirDate` (missing sorts last), then season ordinal, then `createdAt`, then `id`.
@@ -93,7 +93,52 @@ The manage sheet also offers **suggestions**, which are never automatic links: r
 series where some pair of base keys reaches 0.6 under `AnimeSearchService.similarityRaw` **and** 0.5
 under the order-aware `orderedSimilarity`, best first, at most eight. They catch pairs a base key
 cannot and that would be wrong to link automatically — `Love Live!` against `Love Live! Sunshine!!`,
-or arc subtitles such as `鬼灭之刃 游郭篇`. (Relation-based suggestions arrive with M2.)
+or arc subtitles such as `鬼灭之刃 游郭篇`.
+
+**Relation suggestions** come first: records a database lists as a `spinOff` or an `alternative` of
+this one, or that list this one so, in either direction. They score 1.0, and their row's subtitle
+appends *Spin-off* or *Alternative version* to the season label. A spin-off shares a world but is
+not the same series, so it is offered and never linked.
+
+## Database relations
+
+Since 1.6.0 (M2), a refresh stores the related works each database lists in
+`externalMeta.relations` — see [`../data-formats.md`](../data-formats.md) for the shape and
+[`multi-source-search.md`](multi-source-search.md) for where they come from. Titles alone cannot
+link a first season recorded under its Japanese title to a sequel recorded under its Chinese one;
+the databases know the answer.
+
+**Matching.** A relation's `targetUrl` and a record's pages are reduced to **canonical keys** by
+`canonicalDatabaseKey`: `anilist:<id>` for `anilist.co/anime/<id>`, `mal:<id>` for
+`myanimelist.net/anime/<id>`, and `bgm:<id>` for `/subject/<id>` on bgm.tv, bangumi.tv or chii.in —
+the three bangumi hosts count as one site. A record's keys are those of its `infoUrl` and of every
+`externalMeta.ratings[].sourceUrl`. A relation names a record when its key is one of the record's
+keys, whatever scheme, host alias or trailing slug either URL uses.
+
+**What each type does.**
+
+| Relation type | Effect |
+|---|---|
+| `prequel`, `sequel`, `parent`, `sideStory`, `summary` | E1 edge (strength 3), in either direction |
+| `spinOff`, `alternative` | Suggestion only, tagged in the manage sheet |
+| `other` | Nothing |
+
+A relation only needs to be listed on one side: a sequel that has never been refreshed is still
+linked by its prequel's `sequel` relation. Standalone records get no relation edges on either end,
+and curated series still never move — a relation edge only attaches auto records, like every other
+edge.
+
+**Missing-sequel hint.** When the last member of a record's series (or the record itself, when it
+is in no series) lists a `sequel` whose page no record in the library came from, the detail page
+shows a card directly above the series card: **Next: <title> (<source>)**, for example
+`Next: 葬送のフリーレン 第2期 (AniList)`, with the hint *Listed by the database but not in your
+library. Tap to add it.* Tapping it opens the create page through the same `extra` prefill as *Add
+next season* (`NextSeasonPrefill.fromRelation`): the relation's title, the next season label, and a
+pending link to that last member, written only on save. In a **full** build the create page also
+starts the online search with the title straight away, as `autoSearch` does. A **store** build gets
+the title pre-filled and no search. Relation data can reach a store build through sync — it is
+public metadata inside `externalMeta` — so the hint can appear there too; only the online lookup is
+gated on `AppFlavor.isFull`.
 
 ## Manual curation
 
@@ -132,6 +177,8 @@ If that is wrong, open that record and use *Remove from series* or link it where
   the series is *Linked by you* or *Grouped automatically*. Its menu holds *Manage series…*, *Add
   next season*, *Remove from series* and, when applicable, *Let the app decide*. The prev/next
   buttons stay below it, now driven by the series order, in a `Wrap` so they stack on a narrow phone.
+- **Missing-sequel hint.** A card above the series card, shown whenever
+  [a database-listed sequel is missing](#database-relations) — also for a record in no series.
 - **App-bar link menu.** When the record belongs to no series — including a standalone one — the
   card is absent and a link icon in the app bar offers *Link to series…*, *Add next season* and,
   when the record carries a `seriesLink`, *Let the app decide*.
@@ -166,6 +213,9 @@ part of 1.6.0. The index would support it; the list layout does not yet.
 `test/series_service_test.dart` covers the grouping over a realistic fixture library (including the
 cases that must **not** link automatically, such as `Fate/Zero` and `Fate/stay night`), curated
 series never fusing, ties attaching nothing, standalone records, ordering, identical output for
-shuffled input, and every `SeriesEditor` operation. `test/series_card_ui_test.dart` covers the card
-in both detail layouts; `test/anime_json_test.dart`, `test/bundle_import_test.dart` and
+shuffled input, and every `SeriesEditor` operation. `test/relations_test.dart` covers the three
+relation mappers, `mergedWith` keeping other sources' relations, JSON preservation of unknown
+relation types, canonical keys, E1 grouping, spin-offs staying suggestions, standalone records and
+the missing sequel. `test/series_card_ui_test.dart` covers the card in both detail layouts and the
+missing-sequel hint; `test/anime_json_test.dart`, `test/bundle_import_test.dart` and
 `test/duplicate_service_test.dart` cover the field, the share strip and drop, and the merge.

@@ -45,7 +45,11 @@ remote *did* change the record, the remote wins and the local cache update is dr
 correct, because it is a cache and the refresh queue will fetch it again.
 
 `AnimeStorage.patchExternalMeta` is the only write path for cached metadata, and both the background
-service and the detail page's manual refresh chip go through it.
+service and the detail page's manual refresh chip go through it. Since 1.6.0 that includes
+`externalMeta.relations`: a refresh brings each source's related works back with the rest and
+writes them the same way, without bumping `modifiedAt`, so a new relation reaches other devices as
+cached data rather than as an edit. Series grouping reads them when it is computed and writes
+nothing — see [`series-linking.md`](series-linking.md).
 
 > **Trap:** `Anime.copyWith` defaults `modifiedAt` to *now* whenever the argument is omitted. It does
 > not preserve the existing value. Every caller that means to preserve it must pass it back in
@@ -123,10 +127,15 @@ minute; AniList allows 90 per minute.
 
 | | Gap |
 |---|---|
-| Between refreshes (≤3 parallel requests each) | 5 s |
+| Between refreshes (≤3 parallel fetches each; a bangumi.tv fetch is two sequential requests) | 5 s |
 | Between discovery searches (five sources, up to two rounds) | 15 s |
 | Idle poll when there is nothing to do | 3 min |
 | Re-searching a record that found no usable match | 30 days |
+
+Since 1.6.0 a bangumi.tv refresh makes a second request, `GET /v0/subjects/{id}/subjects`, for the
+subject's relations. The gaps were not changed for it: the 5 s gap still separates records, so
+bangumi.tv normally sees two requests every 5 s from the background loop. A failing relations
+request is swallowed and never counts as a failure.
 
 Consecutive failures back off **1 h → 6 h → 24 h → 7 days**, clamped at the last rung, recorded per
 anime in the local cache.
@@ -233,7 +242,7 @@ what the APIs document:
 
 | | Gap | Requests per host |
 |---|---|---|
-| Refresh | 2 s | ≤1 per item, so ≤30/min |
+| Refresh | 2 s | ≤1 per item, so ≤30/min (bangumi.tv: 2 per item since 1.6.0, so ≤60/min) |
 | Discovery | 6 s | ≤2 per item (both rounds), so ≤20/min |
 
 The background timer is cancelled for the duration. Two workers hitting the same APIs at once would

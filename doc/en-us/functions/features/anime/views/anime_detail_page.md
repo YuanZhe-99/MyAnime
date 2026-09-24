@@ -31,7 +31,10 @@ right pane. It appears only when the record's series has at least two members; t
 below it, now driven by the series order, sit in a `Wrap` so they stack rather than overflow on a
 narrow phone. When the record belongs to no series — including a standalone one — the card is
 absent and an app-bar link menu (*Link to series…*, *Add next season*, and *Let the app decide* when
-the record carries a `seriesLink`) reaches the same actions. See
+the record carries a `seriesLink`) reaches the same actions. Directly above the series card sits the
+missing-sequel hint (1.6.0 M2): a card reading "Next: <title> (<source>)" when a database lists a
+sequel of the series' last member that is not in the library. Unlike the series card it also appears
+for a record in no series. See
 [`../../../../features/series-linking.md`](../../../../features/series-linking.md).
 
 Both layouts are assembled from the same four builders — `_buildCover`, `_buildHeaderChildren`,
@@ -49,6 +52,7 @@ list read correctly whether it follows the progress bar or opens the right pane.
 | `AnimeDetailPage.createState` | method (`AnimeDetailPage`) | B | Create the mutable state object for this widget. |
 | `_AnimeDetailPageState.initState` | method (`_AnimeDetailPageState`) | B | Trigger the first data load. |
 | [`_load`](#_load) | method (`_AnimeDetailPageState`) | A | Load this anime and build the series index to find the series it belongs to. |
+| [`_addMissingSequel`](#_addmissingsequel) | method (`_AnimeDetailPageState`) | A | Open the create page for a sequel the databases list but the library lacks. |
 | [`_runSeriesAction`](#_runseriesaction) | method (`_AnimeDetailPageState`) | A | Run one of the series card's (or the app-bar link menu's) actions. |
 | [`_toggleEpisode`](#_toggleepisode) | method (`_AnimeDetailPageState`) | A | Cycle one episode's watch status and persist it. |
 | [`_shiftFromEpisode`](#_shiftfromepisode) | method (`_AnimeDetailPageState`) | A | Shift an episode's broadcast week by a delta and persist it. |
@@ -57,7 +61,7 @@ list read correctly whether it follows the progress bar or opens the right pane.
 | `_AnimeDetailPageState.build` | method (`_AnimeDetailPageState`, widget build) | B | Build the detail page scaffold, choosing the single-column or two-pane layout. |
 | `_buildCover` | method (widget helper) | B | Build the cover image block at an explicit size. |
 | `_buildHeaderChildren` | method (widget helper) | B | Build the header block: Japanese title, chips (including the anime1.me progress chip), and the watched-episode bar. |
-| `_buildDetailChildren` | method (widget helper) | B | Build the cards below the progress bar, plus the series card and prev/next buttons. |
+| `_buildDetailChildren` | method (widget helper) | B | Build the cards below the progress bar, plus the missing-sequel hint, the series card and prev/next buttons. |
 | `_buildEpisodeChildren` | method (widget helper) | B | Build the episode list header and one row per tracked episode. |
 | [`_toggleAllWatched`](#_toggleallwatched) | method (`_AnimeDetailPageState`) | A | Mark every tracked episode watched, or all unwatched if already complete. |
 | `_buildAbandonOrResume` | method (widget helper) | B | Render the "Abandon"/"Resume" action button for the episode list header. |
@@ -81,18 +85,20 @@ list read correctly whether it follows the progress bar or opens the right pane.
 
 ### `Future<void> _load()` <a id="_load"></a>
 - **Kind:** method of `_AnimeDetailPageState`
-- **Source:** `lib/features/anime/views/anime_detail_page.dart` (approx. line 61)
+- **Source:** `lib/features/anime/views/anime_detail_page.dart` (approx. line 70)
 - **Purpose:** Load the anime identified by `widget.animeId` and the series it belongs to.
 - **Inputs:** None (`widget.animeId` is read from the enclosing widget).
 - **Returns:** `Future<void>`.
-- **Side effects:** Calls `AnimeStorage.load()`; `setState`s `_anime`, `_seriesIndex`, `_series`.
-  Writes nothing.
+- **Side effects:** Calls `AnimeStorage.load()`; `setState`s `_anime`, `_seriesIndex`, `_series`,
+  `_missingSequel`. Writes nothing.
 - **Algorithm:**
   1. Await `AnimeStorage.load()` and find the record whose `id == widget.animeId`.
   2. Build a [`SeriesIndex`](../services/series_service.md#seriesindex-build) over the whole
      library and ask it for the record's series.
   3. `setState` with the record, the index, and the series — but only when that series has at
-     least two members; otherwise `_series` is `null` and the series card is not shown.
+     least two members; otherwise `_series` is `null` and the series card is not shown. Also store
+     [`missingSequelFor`](../services/series_service.md#missingsequelfor) as `_missingSequel`,
+     which drives the missing-sequel hint.
 - **Usage:**
   ```dart
   @override
@@ -110,9 +116,25 @@ list read correctly whether it follows the progress bar or opens the right pane.
   the old identical-title rule survives only as one of the index's grouping edges. See
   [`../../../../features/series-linking.md`](../../../../features/series-linking.md).
 
+### `Future<void> _addMissingSequel(AnimeExternalRelation relation)` <a id="_addmissingsequel"></a>
+- **Kind:** method of `_AnimeDetailPageState`
+- **Source:** `lib/features/anime/views/anime_detail_page.dart` (approx. line 93)
+- **Purpose:** Open the create page for a sequel the databases list but the library lacks.
+- **Inputs:** `relation` — the `sequel` from `_missingSequel`.
+- **Returns:** `Future<void>`.
+- **Side effects:** Pushes `/anime/edit`; reloads via `_load()` when it returns.
+- **Algorithm:** Returns early without `_anime`; otherwise pushes
+  `context.push('/anime/edit', extra: NextSeasonPrefill.fromRelation(last, relation))`, where
+  `last` is the series' last member (or this record when there is no series).
+- **Usage:** The missing-sequel hint card's `onTap` in `_buildDetailChildren`, same file.
+- **Notes:** Full builds also start the online search on the create page; store builds get the title
+  pre-filled only — see
+  [`NextSeasonPrefill.fromRelation`](../services/series_service.md#nextseasonprefill-fromrelation).
+  The new record is linked to `last` only when the user saves it.
+
 ### `Future<void> _runSeriesAction(SeriesAction action)` <a id="_runseriesaction"></a>
 - **Kind:** method of `_AnimeDetailPageState`
-- **Source:** `lib/features/anime/views/anime_detail_page.dart` (approx. line 85)
+- **Source:** `lib/features/anime/views/anime_detail_page.dart` (approx. line 111)
 - **Purpose:** Run one of the series card's menu actions, or the app-bar link menu's when the
   record is in no series.
 - **Inputs:** `action` — a `SeriesAction` ([`series_widgets.md`](series_widgets.md)).
@@ -274,7 +296,7 @@ list read correctly whether it follows the progress bar or opens the right pane.
 
 ### `Future<void> _refreshExternalMeta(Anime anime)` <a id="_refreshexternalmeta"></a>
 - **Kind:** method of `_AnimeDetailPageState`
-- **Source:** `lib/features/anime/views/anime_detail_page.dart` (line 635)
+- **Source:** `lib/features/anime/views/anime_detail_page.dart` (approx. line 851)
 - **Purpose:** Re-fetch external metadata from every remembered source page.
 - **Inputs:** `anime`.
 - **Returns:** None.
@@ -284,6 +306,10 @@ list read correctly whether it follows the progress bar or opens the right pane.
   2. `await AnimeSearchService.refreshAll(urls)`; a fully empty result is reported the same way rather than treated as success.
   3. Fold each fetched result into the existing `externalMeta` with `AnimeExternalMeta.mergedWith`, stamping one shared UTC `now` as both `fetchedAt` and `refreshedAt`.
   4. Save via `AnimeStorage.patchExternalMeta({anime.id: merged})`, reload, and confirm.
+
+  Since 1.6.0 the fetched results carry each source's `relations`, which `mergedWith` replaces per
+  source; the reload then recomputes the series index, so a new relation can link a series or show
+  the missing-sequel hint straight away.
 - **Notes:** **Only external metadata is touched.** The user's own `rating`, episode progress, and manual edits are left exactly as they are — that separation is the whole reason external scores live in `externalMeta.ratings` rather than in `AnimeRating`. Callers must gate on `AppFlavor.isFull`, since store builds do not ship online lookups; see [`../../../../features/multi-source-search.md`](../../../../features/multi-source-search.md).
 
   Until 1.5.0 step 4 was `copyWith(externalMeta: merged, modifiedAt: now)`, which bumped

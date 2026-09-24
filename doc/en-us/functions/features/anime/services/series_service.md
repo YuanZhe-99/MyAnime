@@ -5,7 +5,9 @@ edits a user's curation makes. `SeriesIndex.build` groups the whole library on d
 nothing; `SeriesEditor` turns each curation action into the list of records to write, which the
 caller persists with `AnimeStorage.addOrUpdateAll`
 ([`anime_storage.md`](anime_storage.md#addorupdateall)); `NextSeasonPrefill` carries "Add next
-season" to the create page. The stored field is `Anime.seriesLink`
+season" and the missing-sequel hint to the create page. Database relations
+(`externalMeta.relations`, 1.6.0 M2) feed the E1 edges, the relation suggestions and the
+missing-sequel lookup through the canonical keys of [`canonicalDatabaseKey`](#canonicaldatabasekey). The stored field is `Anime.seriesLink`
 ([`../models/anime.md`](../models/anime.md#animeserieslink-new)); the season helpers come from
 [`../../../shared/utils/season_label.md`](../../../shared/utils/season_label.md), and title folding
 and similarity from [`anime_search_service.md`](anime_search_service.md). The UI on top is
@@ -23,14 +25,17 @@ in [`../../../../features/series-linking.md`](../../../../features/series-linkin
 | `indexOfId` | method (`AnimeSeries`) | B | A member's zero-based position, or `-1`. |
 | `previousOf` | method (`AnimeSeries`) | B | The member before a record, or `null`; drives the previous-season button. |
 | `nextOf` | method (`AnimeSeries`) | B | The member after a record, or `null`; drives the next-season button. |
-| `SeriesSuggestion(...)` | constructor (`SeriesSuggestion`) | B | Create a suggestion: a record and its best base-key similarity. |
-| `SeriesIndex._` | constructor (`SeriesIndex`) | B | Internal constructor from precomputed parts; use `SeriesIndex.build`. |
+| `SeriesSuggestion(...)` | constructor (`SeriesSuggestion`) | B | Create a suggestion: a record, its best base-key similarity (1.0 for a relation suggestion), and the `relation` behind it, if any. |
+| `SeriesIndex._` | constructor (`SeriesIndex`) | B | Internal constructor from precomputed parts, including the database-key owner map; use `SeriesIndex.build`. |
 | [`SeriesIndex.build`](#seriesindex-build) | factory constructor | A | Group a whole library into curated and derived series. |
 | [`_ordered`](#_ordered) | static method (`SeriesIndex`) | A | Order the members of one series. |
 | [`seriesOf`](#seriesof) | method (`SeriesIndex`) | A | Return the series a record belongs to. |
 | `animeById` | method (`SeriesIndex`) | B | Look a record up by id. |
 | `all` | getter (`SeriesIndex`) | B | Every record the index was built from, in `id` order; the manage sheet searches it. |
 | [`suggestionsFor`](#suggestionsfor) | method (`SeriesIndex`) | A | Offer records that may belong in the same series, never linking them. |
+| [`missingSequelFor`](#missingsequelfor) | method (`SeriesIndex`) | A | Find a sequel the databases list that is not in the library. |
+| [`canonicalDatabaseKey`](#canonicaldatabasekey) | top-level function | A | Reduce a database page URL to `anilist:<id>`, `mal:<id>` or `bgm:<id>`. |
+| [`databaseKeysOf`](#databasekeysof) | top-level function | A | Collect the canonical keys of the database pages a record came from. |
 | [`seriesTitlesOf`](#seriestitlesof) | top-level function | A | Collect every non-empty title a record is known by. |
 | [`seriesBaseKeys`](#seriesbasekeys) | top-level function | A | Compute the base keys two seasons of one work share. |
 | [`seriesOrdinalOf`](#seriesordinalof) | top-level function | A | Return the season ordinal the index sorts a record by. |
@@ -41,18 +46,19 @@ in [`../../../../features/series-linking.md`](../../../../features/series-linkin
 | [`removeFromSeries`](#removefromseries) | method (`SeriesEditor`) | A | Take a record out of every series (`standalone`). |
 | [`letAppDecide`](#letappdecide) | method (`SeriesEditor`) | A | Hand a record back to automatic grouping. |
 | [`reorder`](#reorder) | method (`SeriesEditor`) | A | Reorder a series, writing a dense `order` to every member. |
-| `NextSeasonPrefill(...)` | constructor (`NextSeasonPrefill`) | B | Create a prefill: copied titles, a season label, and the id to link to on save. |
+| `NextSeasonPrefill(...)` | constructor (`NextSeasonPrefill`) | B | Create a prefill: copied titles, a season label, the id to link to on save, and whether to start the online search (`autoSearch`). |
 | [`NextSeasonPrefill.after`](#nextseasonprefill) | factory constructor | A | Build the prefill for the season after a record. |
+| [`NextSeasonPrefill.fromRelation`](#nextseasonprefill-fromrelation) | factory constructor | A | Build the prefill for a sequel the databases list but the library lacks. |
 
 The `seriesSuggestionMinScore` (`0.6`) and `seriesSuggestionMinOrderedScore` (`0.5`) constants, the
-`SeriesEdgeKind` values and the fields of each class carry no `/// Purpose:` comment and are not
-indexed as rows.
+`_anilistPage` / `_malPage` / `_bangumiPage` regexes, the `SeriesEdgeKind` values and the fields of
+each class carry no `/// Purpose:` comment and are not indexed as rows.
 
 ## Documentation
 
 ### `factory SeriesIndex.build(Iterable<Anime> library)` <a id="seriesindex-build"></a>
 - **Kind:** factory constructor of `SeriesIndex`
-- **Source:** `lib/features/anime/services/series_service.dart` (line 145)
+- **Source:** `lib/features/anime/services/series_service.dart` (approx. line 156)
 - **Purpose:** Group a whole library into series.
 - **Inputs:** `library` — every anime record.
 - **Returns:** `SeriesIndex` — every curated series (including one with a single member) and every
@@ -60,12 +66,18 @@ indexed as rows.
 - **Side effects:** None; writes nothing.
 - **Algorithm:**
   1. Sort the records by `id`, then precompute each record's base keys
-     ([`seriesBaseKeys`](#seriesbasekeys)) and ordinal ([`seriesOrdinalOf`](#seriesordinalof)).
+     ([`seriesBaseKeys`](#seriesbasekeys)) and ordinal ([`seriesOrdinalOf`](#seriesordinalof)),
+     and map every record — standalone ones included — by each of its
+     [`databaseKeysOf`](#databasekeysof).
   2. Partition: standalone records are skipped entirely; records with a
      `seriesLink.curatedSeriesId` go into their curated series; everything else is an **auto**
      record.
   3. Index every auto and curated record by trimmed `displayTitle` and by base key in hash maps.
-  4. For each auto record, add edges: **legacy** to every record with the identical `displayTitle`
+  4. **Relation** edges first: for every auto or curated record, each relation whose type
+     [`isSameSeries`](../models/anime.md#issameseries) and whose
+     [`canonicalDatabaseKey`](#canonicaldatabasekey) matches another non-standalone record adds
+     an edge in both directions (each direction only from a record that is not curated). Then,
+     for each auto record, add edges: **legacy** to every record with the identical `displayTitle`
      and a different trimmed `season` label; **base title** to every record sharing a base key,
      unless the pair looks like a duplicate (same ordinal, and either the same `firstAirDate` day
      or no `firstAirDate` on one side). An edge to another auto record unions the two
@@ -84,13 +96,15 @@ indexed as rows.
   `_saveNew`)
 - **Notes:** Deterministic — the same records in any order give the same series in the same order,
   so every device computes the same grouping from the same data. Curated series never move and never
-  fuse: automatic grouping only attaches auto records, and a tie attaches nothing. The
-  `SeriesEdgeKind.relation` edge (strength 3) is defined for M2's database relations but nothing adds
-  one yet. The hash-map indexing keeps the build roughly linear in library size.
+  fuse: automatic grouping only attaches auto records, and a tie attaches nothing. Since M2 the
+  `SeriesEdgeKind.relation` edge (strength 3, the strongest) is live, so a relation beats a base
+  title when an auto component chooses a curated series, and it links titles that share no text at
+  all. Spin-offs and alternatives add no edge. The hash-map indexing keeps the build roughly linear
+  in library size.
 
 ### `static List<Anime> _ordered(List<Anime> members, String? seriesId, Map<String, int> ordinals)` <a id="_ordered"></a>
 - **Kind:** static method of `SeriesIndex`
-- **Source:** `lib/features/anime/services/series_service.dart` (line 299)
+- **Source:** `lib/features/anime/services/series_service.dart` (approx. line 338)
 - **Purpose:** Order the members of one series.
 - **Inputs:** `members`; `seriesId` — the curated id, or `null` for a derived series; `ordinals` —
   precomputed season ordinals.
@@ -105,7 +119,7 @@ indexed as rows.
 
 ### `AnimeSeries? seriesOf(String animeId)` <a id="seriesof"></a>
 - **Kind:** method of `SeriesIndex`
-- **Source:** `lib/features/anime/services/series_service.dart` (line 342)
+- **Source:** `lib/features/anime/services/series_service.dart` (approx. line 381)
 - **Purpose:** Return the series a record belongs to.
 - **Returns:** `AnimeSeries?` — `null` for a standalone record or one that joined nothing.
 - **Side effects:** None.
@@ -114,13 +128,16 @@ indexed as rows.
 
 ### `List<SeriesSuggestion> suggestionsFor(String animeId, {int limit = 8})` <a id="suggestionsfor"></a>
 - **Kind:** method of `SeriesIndex`
-- **Source:** `lib/features/anime/services/series_service.dart` (line 367)
+- **Source:** `lib/features/anime/services/series_service.dart` (approx. line 408)
 - **Purpose:** Offer records that may belong in the same series as `animeId`.
 - **Inputs:** `animeId`; `limit` — at most this many results (default 8).
 - **Returns:** `List<SeriesSuggestion>` — best score first (ties by `id`), excluding the record's own
-  series and the record itself.
+  series and the record itself; empty when `animeId` is unknown.
 - **Side effects:** None.
-- **Algorithm:** For every other record, compare every pair of base keys. A pair counts only when
+- **Algorithm:** First, relation suggestions: records that this record lists as a `spinOff` or
+  `alternative`, and records that list this record so, matched by canonical database key in either
+  direction. Each gets score 1.0 and its `relation` type, so it sorts first. Then, for every other
+  record not already suggested, compare every pair of base keys. A pair counts only when
   `AnimeSearchService.orderedSimilarity` reaches `seriesSuggestionMinOrderedScore` (0.5); the
   record's score is the best `similarityRaw` among counted pairs, and it qualifies at
   `seriesSuggestionMinScore` (0.6).
@@ -128,11 +145,57 @@ indexed as rows.
   ([`../views/series_widgets.md`](../views/series_widgets.md#seriesmanagesheet)).
 - **Notes:** Suggestions are never automatic links. They catch pairs a base key cannot and that
   would be wrong to link automatically — `Love Live!` finds `Love Live! Sunshine!!` this way. The
-  order-aware floor stops short Latin keys that merely share letters from being offered.
+  order-aware floor stops short Latin keys that merely share letters from being offered. The
+  manage sheet tags relation suggestions *Spin-off* or *Alternative version*.
+
+### `AnimeExternalRelation? missingSequelFor(String animeId)` <a id="missingsequelfor"></a>
+- **Kind:** method of `SeriesIndex`
+- **Source:** `lib/features/anime/services/series_service.dart` (approx. line 481)
+- **Purpose:** Find a sequel the databases list that is not in the library.
+- **Inputs:** `animeId`.
+- **Returns:** `AnimeExternalRelation?` — the first `sequel` relation of the last member of the
+  record's series (or of the record itself when its series has fewer than two members) whose
+  target page no record came from; `null` when there is none.
+- **Side effects:** None.
+- **Algorithm:** A relation counts as missing when its [`canonicalDatabaseKey`](#canonicaldatabasekey)
+  is non-null and no record — standalone ones included — owns that key through
+  [`databaseKeysOf`](#databasekeysof).
+- **Usage:**
+  ```dart
+  _missingSequel = found == null ? null : index.missingSequelFor(found.id);
+  ```
+  (`lib/features/anime/views/anime_detail_page.dart`, `_load`)
+- **Notes:** Drives the "Next: <title> (<source>)" hint. Relation data may reach a store build
+  through sync, so the hint can show there too; only the online lookup behind it is gated on
+  `AppFlavor.isFull`. Asking from the last member means the hint always offers the season after the
+  newest one the user has.
+
+### `String? canonicalDatabaseKey(String? url)` <a id="canonicaldatabasekey"></a>
+- **Kind:** top-level function
+- **Source:** `lib/features/anime/services/series_service.dart` (approx. line 509)
+- **Purpose:** Reduce a database page URL to a canonical key.
+- **Inputs:** `url` — any string, or `null`.
+- **Returns:** `String?` — `anilist:<id>` for `anilist.co/anime/<id>`, `mal:<id>` for
+  `myanimelist.net/anime/<id>`, `bgm:<id>` for `bgm.tv`, `bangumi.tv` or `chii.in` `/subject/<id>`;
+  `null` for anything else.
+- **Side effects:** None.
+- **Notes:** Lets a relation's `targetUrl` match a record's `infoUrl` or rating `sourceUrl` whatever
+  scheme, host alias or trailing slug either one uses. The three regexes are unanchored, so
+  `https://anilist.co/anime/1/Title` and `anilist.co/anime/1` give the same key.
+
+### `Set<String> databaseKeysOf(Anime anime)` <a id="databasekeysof"></a>
+- **Kind:** top-level function
+- **Source:** `lib/features/anime/services/series_service.dart` (approx. line 526)
+- **Purpose:** Collect the database pages a record came from.
+- **Returns:** `Set<String>` — the canonical keys of `infoUrl` and of every
+  `externalMeta.ratings[].sourceUrl`; unrecognised URLs are dropped.
+- **Side effects:** None.
+- **Notes:** What a relation's target is matched against. A source that supplied metadata but no
+  score leaves no rating entry, so it is matched only through `infoUrl`.
 
 ### `List<String> seriesTitlesOf(Anime anime)` <a id="seriestitlesof"></a>
 - **Kind:** top-level function
-- **Source:** `lib/features/anime/services/series_service.dart` (line 406)
+- **Source:** `lib/features/anime/services/series_service.dart` (approx. line 542)
 - **Purpose:** Collect every non-empty title a record is known by.
 - **Returns:** `List<String>` — `title`, `titleJa`, `externalMeta.titleRomaji`,
   `externalMeta.titleEn`, then each `externalMeta.synonyms` entry, blanks dropped.
@@ -142,7 +205,7 @@ indexed as rows.
 
 ### `Set<String> seriesBaseKeys(Anime anime)` <a id="seriesbasekeys"></a>
 - **Kind:** top-level function
-- **Source:** `lib/features/anime/services/series_service.dart` (line 434)
+- **Source:** `lib/features/anime/services/series_service.dart` (approx. line 570)
 - **Purpose:** Compute the base keys two seasons of one work share.
 - **Returns:** `Set<String>` — `AnimeSearchService.foldTitle(stripSeasonMarkers(t))` for every title
   from [`seriesTitlesOf`](#seriestitlesof), keeping keys of at least 2 Han or kana characters or at
@@ -154,7 +217,7 @@ indexed as rows.
 
 ### `int seriesOrdinalOf(Anime anime)` <a id="seriesordinalof"></a>
 - **Kind:** top-level function
-- **Source:** `lib/features/anime/services/series_service.dart` (line 453)
+- **Source:** `lib/features/anime/services/series_service.dart` (approx. line 589)
 - **Purpose:** Return the season ordinal the series index sorts a record by.
 - **Returns:** `int` — the first ordinal any title implies
   ([`titleSeasonOrdinal`](../../../shared/utils/season_label.md#titleseasonordinal)), else the one in
@@ -165,7 +228,7 @@ indexed as rows.
 
 ### `SeriesEditor(SeriesIndex index, {DateTime? now, String Function()? newId})` <a id="serieseditor"></a>
 - **Kind:** constructor of `SeriesEditor`
-- **Source:** `lib/features/anime/services/series_service.dart` (line 479)
+- **Source:** `lib/features/anime/services/series_service.dart` (approx. line 615)
 - **Purpose:** Create a series editor: pure curation operations over one index.
 - **Inputs:** `index`; `now` — defaults to the current time, stored as UTC; `newId` — defaults to a
   lowercase UUID v4.
@@ -183,7 +246,7 @@ indexed as rows.
 
 ### `(String, Map<String, Anime>) materialise(AnimeSeries series)` <a id="materialise"></a>
 - **Kind:** method of `SeriesEditor`
-- **Source:** `lib/features/anime/services/series_service.dart` (line 502)
+- **Source:** `lib/features/anime/services/series_service.dart` (approx. line 638)
 - **Purpose:** Give every member of a series the same curated `seriesId`.
 - **Inputs:** `series`.
 - **Returns:** `(String, Map<String, Anime>)` — the series id, and the records that changed keyed by
@@ -198,7 +261,7 @@ indexed as rows.
 
 ### `List<Anime> link(Anime record, Anime target)` <a id="link"></a>
 - **Kind:** method of `SeriesEditor`
-- **Source:** `lib/features/anime/services/series_service.dart` (line 526)
+- **Source:** `lib/features/anime/services/series_service.dart` (approx. line 662)
 - **Purpose:** Put `record` into the series `target` belongs to.
 - **Inputs:** `record` — may be a new record not yet in the index; `target`.
 - **Returns:** `List<Anime>` — the records to write; empty when `record` and `target` are the same.
@@ -216,7 +279,7 @@ indexed as rows.
 
 ### `List<Anime> removeFromSeries(Anime record)` <a id="removefromseries"></a>
 - **Kind:** method of `SeriesEditor`
-- **Source:** `lib/features/anime/services/series_service.dart` (line 564)
+- **Source:** `lib/features/anime/services/series_service.dart` (approx. line 700)
 - **Purpose:** Take a record out of every series.
 - **Returns:** `List<Anime>` — the one record, now `{"standalone": true}` (its link's `extraJson`
   kept).
@@ -226,7 +289,7 @@ indexed as rows.
 
 ### `List<Anime> letAppDecide(Anime record)` <a id="letappdecide"></a>
 - **Kind:** method of `SeriesEditor`
-- **Source:** `lib/features/anime/services/series_service.dart` (line 580)
+- **Source:** `lib/features/anime/services/series_service.dart` (approx. line 716)
 - **Purpose:** Hand a record back to automatic grouping.
 - **Returns:** `List<Anime>` — empty when the record had no link; otherwise the record with its
   `seriesLink` removed.
@@ -236,7 +299,7 @@ indexed as rows.
 
 ### `List<Anime> reorder(AnimeSeries series, List<String> orderedIds)` <a id="reorder"></a>
 - **Kind:** method of `SeriesEditor`
-- **Source:** `lib/features/anime/services/series_service.dart` (line 596)
+- **Source:** `lib/features/anime/services/series_service.dart` (approx. line 732)
 - **Purpose:** Reorder a series.
 - **Inputs:** `series`; `orderedIds` — member ids in the new order. Ids that are not members are
   ignored; members left out keep their current relative order after the listed ones.
@@ -248,7 +311,7 @@ indexed as rows.
 
 ### `factory NextSeasonPrefill.after(Anime source)` <a id="nextseasonprefill"></a>
 - **Kind:** factory constructor of `NextSeasonPrefill`
-- **Source:** `lib/features/anime/services/series_service.dart` (line 653)
+- **Source:** `lib/features/anime/services/series_service.dart` (approx. line 794)
 - **Purpose:** Build the prefill for the season after `source`.
 - **Inputs:** `source` — normally the last member of its series.
 - **Returns:** `NextSeasonPrefill` — `source`'s `title` and `titleJa`, the next season label, and
@@ -270,3 +333,25 @@ indexed as rows.
 - **Notes:** The prefill travels as the route's `extra` (see
   [`../../../app/router.md`](../../../app/router.md)); the link it carries is written only when the
   new record is saved ([`../views/anime_edit_page.md`](../views/anime_edit_page.md#_savenew)).
+
+### `factory NextSeasonPrefill.fromRelation(Anime source, AnimeExternalRelation relation)` <a id="nextseasonprefill-fromrelation"></a>
+- **Kind:** factory constructor of `NextSeasonPrefill`
+- **Source:** `lib/features/anime/services/series_service.dart` (approx. line 821)
+- **Purpose:** Build the prefill for a sequel the databases list but the library lacks.
+- **Inputs:** `source` — the member the relation came from (the last of its series); `relation` —
+  the sequel from [`missingSequelFor`](#missingsequelfor).
+- **Returns:** `NextSeasonPrefill` — the relation's `title` (falling back to `source`'s), no
+  `titleJa`, the next season label from [`NextSeasonPrefill.after`](#nextseasonprefill),
+  `linkToAnimeId = source.id`, and `autoSearch: true`.
+- **Side effects:** None.
+- **Usage:**
+  ```dart
+  await context.push(
+    '/anime/edit',
+    extra: NextSeasonPrefill.fromRelation(last, relation),
+  );
+  ```
+  (`lib/features/anime/views/anime_detail_page.dart`, `_addMissingSequel`)
+- **Notes:** A store build gets the title pre-filled and no search, because the create page checks
+  `AppFlavor.isFull` before honouring `autoSearch`
+  ([`../views/anime_edit_page.md`](../views/anime_edit_page.md)).

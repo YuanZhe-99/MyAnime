@@ -60,8 +60,12 @@ class AnimeSearchResult {
   final String? coverImageUrl;
   final String? summary;
 
+  /// Related works the source lists; empty when the fetch did not ask for
+  /// them (search results never do).
+  final List<AnimeExternalRelation> relations;
+
   /// Purpose: Create a anime search result instance.
-  /// Inputs: `source`, `sourceUrl`, `title`, `titleJa`, `titleRomaji`, `titleEn`, `synonyms`, `episodes`, `firstAirDate`, `airDayOfWeek`, `airTime`, `endDate`, `format`, `status`, `durationMinutes`, `genres`, `studios`, `score`, `scoreMax`, `scoreVotes`, `scoreRank`, `coverImageUrl`, `summary`.
+  /// Inputs: `source`, `sourceUrl`, `title`, `titleJa`, `titleRomaji`, `titleEn`, `synonyms`, `episodes`, `firstAirDate`, `airDayOfWeek`, `airTime`, `endDate`, `format`, `status`, `durationMinutes`, `genres`, `studios`, `score`, `scoreMax`, `scoreVotes`, `scoreRank`, `coverImageUrl`, `summary`, `relations`.
   /// Returns: A new `AnimeSearchResult` instance.
   /// Side effects: None.
   /// Notes: Only `source` is required — no single source supplies every field.
@@ -89,6 +93,7 @@ class AnimeSearchResult {
     this.scoreRank,
     this.coverImageUrl,
     this.summary,
+    this.relations = const [],
   });
 
   /// Purpose: Collect every title this result knows about, in display order.
@@ -107,6 +112,40 @@ class AnimeSearchResult {
     }
     return titles;
   }
+
+  /// Purpose: Return a copy carrying `relations`.
+  /// Inputs: `relations`.
+  /// Returns: `AnimeSearchResult`.
+  /// Side effects: None.
+  /// Notes: Used by the bangumi.tv by-id fetch, whose relations arrive from a
+  /// second request.
+  AnimeSearchResult withRelations(List<AnimeExternalRelation> relations) =>
+      AnimeSearchResult(
+        source: source,
+        sourceUrl: sourceUrl,
+        title: title,
+        titleJa: titleJa,
+        titleRomaji: titleRomaji,
+        titleEn: titleEn,
+        synonyms: synonyms,
+        episodes: episodes,
+        firstAirDate: firstAirDate,
+        airDayOfWeek: airDayOfWeek,
+        airTime: airTime,
+        endDate: endDate,
+        format: format,
+        status: status,
+        durationMinutes: durationMinutes,
+        genres: genres,
+        studios: studios,
+        score: score,
+        scoreMax: scoreMax,
+        scoreVotes: scoreVotes,
+        scoreRank: scoreRank,
+        coverImageUrl: coverImageUrl,
+        summary: summary,
+        relations: relations,
+      );
 
   /// Purpose: Return the best title to show as the result's headline.
   /// Inputs: None.
@@ -137,8 +176,7 @@ class AnimeSearchResult {
     if (titleEn != null) 'titleEn': titleEn,
     if (synonyms.isNotEmpty) 'synonyms': synonyms,
     if (episodes != null) 'episodes': episodes,
-    if (firstAirDate != null)
-      'firstAirDate': firstAirDate!.toIso8601String(),
+    if (firstAirDate != null) 'firstAirDate': firstAirDate!.toIso8601String(),
     if (airDayOfWeek != null) 'airDayOfWeek': airDayOfWeek,
     if (airTime != null) 'airTime': airTime,
     if (endDate != null) 'endDate': endDate!.toIso8601String(),
@@ -153,6 +191,8 @@ class AnimeSearchResult {
     if (scoreRank != null) 'scoreRank': scoreRank,
     if (coverImageUrl != null) 'coverImageUrl': coverImageUrl,
     if (summary != null) 'summary': summary,
+    if (relations.isNotEmpty)
+      'relations': [for (final r in relations) r.toJson()],
   };
 
   /// Purpose: Rebuild a cached result from its JSON form.
@@ -164,9 +204,8 @@ class AnimeSearchResult {
   /// empty string so a malformed entry is still readable and can be discarded
   /// by the caller.
   factory AnimeSearchResult.fromJson(Map<String, dynamic> json) {
-    List<String> stringList(Object? value) => value is List
-        ? value.whereType<String>().toList()
-        : const <String>[];
+    List<String> stringList(Object? value) =>
+        value is List ? value.whereType<String>().toList() : const <String>[];
     DateTime? date(Object? value) =>
         value is String ? DateTime.tryParse(value) : null;
     double? number(Object? value) => value is num ? value.toDouble() : null;
@@ -199,6 +238,12 @@ class AnimeSearchResult {
       scoreRank: json['scoreRank'] is int ? json['scoreRank'] as int : null,
       coverImageUrl: json['coverImageUrl'] as String?,
       summary: json['summary'] as String?,
+      relations: [
+        if (json['relations'] is List)
+          for (final r in json['relations'] as List)
+            if (r is Map)
+              AnimeExternalRelation.fromJson(Map<String, dynamic>.from(r)),
+      ],
     );
   }
 }
@@ -367,10 +412,7 @@ class AnimeSearchService {
           onProgress: onProgress,
         );
         for (final entry in secondRound.entries) {
-          combined[entry.key] = [
-            ...?combined[entry.key],
-            ...entry.value,
-          ];
+          combined[entry.key] = [...?combined[entry.key], ...entry.value];
         }
       }
     }
@@ -386,10 +428,11 @@ class AnimeSearchService {
     }
 
     deduped.sort((a, b) {
-      final cmp = relevance(b, variants, preferredLanguage: preferredLanguage)
-          .compareTo(
-            relevance(a, variants, preferredLanguage: preferredLanguage),
-          );
+      final cmp = relevance(
+        b,
+        variants,
+        preferredLanguage: preferredLanguage,
+      ).compareTo(relevance(a, variants, preferredLanguage: preferredLanguage));
       if (cmp != 0) return cmp;
       return a.source.compareTo(b.source);
     });
@@ -498,6 +541,7 @@ class AnimeSearchService {
               ),
             ]
           : const [],
+      relations: result.relations,
       refreshedAt: now,
     );
   }
@@ -534,13 +578,13 @@ class AnimeSearchService {
   /// Side effects: One HTTP request per recognized URL, issued in parallel.
   /// Notes: A failing or unrecognized URL is skipped rather than failing the
   /// whole refresh, matching how `searchAll` tolerates a dead source.
-  static Future<List<AnimeSearchResult>> refreshAll(Iterable<String> urls) async {
+  static Future<List<AnimeSearchResult>> refreshAll(
+    Iterable<String> urls,
+  ) async {
     final distinct = urls.where((u) => u.trim().isNotEmpty).toSet().toList();
     if (distinct.isEmpty) return [];
     final fetched = await Future.wait(
-      distinct.map(
-        (u) => fetchByUrl(u).catchError((_) => null),
-      ),
+      distinct.map((u) => fetchByUrl(u).catchError((_) => null)),
     );
     return fetched.whereType<AnimeSearchResult>().toList();
   }
@@ -773,7 +817,8 @@ class AnimeSearchService {
         .timeout(const Duration(seconds: 15));
     if (resp.statusCode != 200) return [];
 
-    final json = jsonDecode(utf8.decode(resp.bodyBytes)) as Map<String, dynamic>;
+    final json =
+        jsonDecode(utf8.decode(resp.bodyBytes)) as Map<String, dynamic>;
     final list = json['data'] as List<dynamic>?;
     if (list == null) return [];
 
@@ -787,10 +832,13 @@ class AnimeSearchService {
   /// Purpose: Fetch one bangumi.tv subject by its numeric id.
   /// Inputs: `id`.
   /// Returns: `Future<AnimeSearchResult?>` — `null` on a non-200 response.
-  /// Side effects: One HTTP GET (10s timeout) to `api.bgm.tv`.
+  /// Side effects: Two HTTP GETs (10s timeout each) to `api.bgm.tv`: the
+  /// subject, then its related subjects.
   /// Notes: Internal helper used within this file only. The v0 subject endpoint
   /// is `/v0/subjects/{id}` — **plural**; the singular path 404s. It returns the
-  /// same object shape as v0 search, so one mapper serves both.
+  /// same object shape as v0 search, so one mapper serves both. Since 1.6.0 the
+  /// related subjects are fetched too; if that second request fails, the
+  /// subject is returned without relations.
   static Future<AnimeSearchResult?> _fetchBangumiById(int id) async {
     final url = Uri.parse('https://api.bgm.tv/v0/subjects/$id');
     final resp = await http
@@ -800,9 +848,36 @@ class AnimeSearchService {
         )
         .timeout(const Duration(seconds: 10));
     if (resp.statusCode != 200) return null;
-    final json = jsonDecode(utf8.decode(resp.bodyBytes)) as Map<String, dynamic>;
+    final json =
+        jsonDecode(utf8.decode(resp.bodyBytes)) as Map<String, dynamic>;
     if (json['id'] == null) return null;
-    return mapBangumiSubject(json);
+    final subject = mapBangumiSubject(json);
+    final relations = await _fetchBangumiRelations(id);
+    return relations.isEmpty ? subject : subject.withRelations(relations);
+  }
+
+  /// Purpose: Fetch the works bangumi.tv lists as related to a subject.
+  /// Inputs: `id`.
+  /// Returns: `Future<List<AnimeExternalRelation>>` — empty on any failure.
+  /// Side effects: One HTTP GET (10s timeout) to `api.bgm.tv`.
+  /// Notes: Internal helper used within this file only. Never throws: the
+  /// relations are an extra, and a subject without them still refreshes.
+  static Future<List<AnimeExternalRelation>> _fetchBangumiRelations(
+    int id,
+  ) async {
+    try {
+      final resp = await http
+          .get(
+            Uri.parse('https://api.bgm.tv/v0/subjects/$id/subjects'),
+            headers: {'User-Agent': userAgent, 'Accept': 'application/json'},
+          )
+          .timeout(const Duration(seconds: 10));
+      if (resp.statusCode != 200) return const [];
+      final json = jsonDecode(utf8.decode(resp.bodyBytes));
+      return json is List ? mapBangumiRelations(json) : const [];
+    } catch (_) {
+      return const [];
+    }
   }
 
   /// Purpose: Map one bangumi.tv v0 subject object onto an `AnimeSearchResult`.
@@ -827,7 +902,9 @@ class AnimeSearchService {
     final rawTags = m['tags'];
     if (rawTags is List) {
       for (final tag in rawTags.take(5)) {
-        if (tag is Map && tag['name'] is String) genres.add(tag['name'] as String);
+        if (tag is Map && tag['name'] is String) {
+          genres.add(tag['name'] as String);
+        }
       }
     }
 
@@ -842,9 +919,7 @@ class AnimeSearchService {
           ? DateTime.tryParse(m['date'] as String)
           : _parseCjkDate(_bangumiInfoboxText(infobox, '放送开始')),
       endDate: _parseCjkDate(_bangumiInfoboxText(infobox, '播放结束')),
-      airDayOfWeek: parseBangumiWeekday(
-        _bangumiInfoboxText(infobox, '放送星期'),
-      ),
+      airDayOfWeek: parseBangumiWeekday(_bangumiInfoboxText(infobox, '放送星期')),
       studios: _bangumiInfoboxList(infobox, '动画制作'),
       genres: genres,
       coverImageUrl:
@@ -948,8 +1023,9 @@ class AnimeSearchService {
   /// dates are prose, unlike the ISO `date` field on the subject itself.
   static DateTime? _parseCjkDate(String? value) {
     if (value == null) return null;
-    final m = RegExp(r'(\d{4})\s*年\s*(\d{1,2})\s*月\s*(\d{1,2})\s*日')
-        .firstMatch(value);
+    final m = RegExp(
+      r'(\d{4})\s*年\s*(\d{1,2})\s*月\s*(\d{1,2})\s*日',
+    ).firstMatch(value);
     if (m == null) return null;
     return DateTime(
       int.parse(m.group(1)!),
@@ -993,7 +1069,8 @@ class AnimeSearchService {
   /// Returns: `Future<AnimeSearchResult?>` — `null` on a non-200 response.
   /// Side effects: One HTTP GET (10s timeout) to `api.jikan.moe`.
   /// Notes: Internal helper used within this file only. The `/full` variant
-  /// returns the same object shape as search, plus relations this app ignores.
+  /// returns the same object shape as search, plus the relations that
+  /// [mapJikanRelations] reads (since 1.6.0).
   static Future<AnimeSearchResult?> _fetchMalById(int id) async {
     final url = Uri.parse('https://api.jikan.moe/v4/anime/$id/full');
     final resp = await http
@@ -1110,6 +1187,7 @@ class AnimeSearchService {
           jpgImages?['large_image_url'] as String? ??
           jpgImages?['image_url'] as String?,
       summary: m['synopsis'] as String?,
+      relations: mapJikanRelations(m),
     );
   }
 
@@ -1403,6 +1481,12 @@ class AnimeSearchService {
       siteUrl
 ''';
 
+  /// Relation edges, asked for only by the by-id refresh: search results
+  /// never need them, and they would multiply the search payload.
+  static const _aniListRelationFields = r'''
+      relations { edges { relationType(version: 2) node { id type format siteUrl title { romaji english native } } } }
+''';
+
   /// Purpose: AniList — GraphQL API.
   /// Inputs: `query`.
   /// Returns: `Future<List<AnimeSearchResult>>`.
@@ -1438,7 +1522,7 @@ $_aniListMediaFields    }
         '''
 query (\$id: Int) {
   Media(id: \$id, type: ANIME) {
-$_aniListMediaFields  }
+$_aniListMediaFields$_aniListRelationFields  }
 }
 ''';
     final json = await _postAniList(graphqlQuery, {'id': id});
@@ -1541,7 +1625,8 @@ $_aniListMediaFields  }
       titleJa: titles?['native'] as String?,
       titleRomaji: titles?['romaji'] as String?,
       titleEn: titles?['english'] as String?,
-      synonyms: (m['synonyms'] as List?)?.whereType<String>().toList() ?? const [],
+      synonyms:
+          (m['synonyms'] as List?)?.whereType<String>().toList() ?? const [],
       episodes: m['episodes'] as int?,
       firstAirDate: airDate,
       airDayOfWeek: airDayOfWeek,
@@ -1556,7 +1641,169 @@ $_aniListMediaFields  }
       scoreVotes: m['popularity'] as int?,
       coverImageUrl: coverImg?['large'] as String?,
       summary: summary,
+      relations: mapAniListRelations(m),
     );
+  }
+
+  // ──── Relations ────
+
+  /// AniList `relationType(version: 2)` values, normalised.
+  static const _aniListRelationTypes = {
+    'PREQUEL': AnimeRelationType.prequel,
+    'SEQUEL': AnimeRelationType.sequel,
+    'PARENT': AnimeRelationType.parent,
+    'SIDE_STORY': AnimeRelationType.sideStory,
+    'SUMMARY': AnimeRelationType.summary,
+    'COMPILATION': AnimeRelationType.summary,
+    'SPIN_OFF': AnimeRelationType.spinOff,
+    'ALTERNATIVE': AnimeRelationType.alternative,
+  };
+
+  /// Jikan (MyAnimeList) relation names, normalised.
+  static const _jikanRelationTypes = {
+    'Prequel': AnimeRelationType.prequel,
+    'Sequel': AnimeRelationType.sequel,
+    'Parent Story': AnimeRelationType.parent,
+    'Full Story': AnimeRelationType.parent,
+    'Side Story': AnimeRelationType.sideStory,
+    'Summary': AnimeRelationType.summary,
+    'Spin-Off': AnimeRelationType.spinOff,
+    'Alternative Setting': AnimeRelationType.alternative,
+    'Alternative Version': AnimeRelationType.alternative,
+  };
+
+  /// bangumi.tv relation names, normalised. Checked against the live
+  /// `/v0/subjects/{id}/subjects` endpoint on 2026-09-24.
+  static const _bangumiRelationTypes = {
+    '前传': AnimeRelationType.prequel,
+    '续集': AnimeRelationType.sequel,
+    '主线故事': AnimeRelationType.parent,
+    '番外篇': AnimeRelationType.sideStory,
+    '总集篇': AnimeRelationType.summary,
+    '衍生': AnimeRelationType.spinOff,
+    '不同演绎': AnimeRelationType.alternative,
+    '不同世界观': AnimeRelationType.alternative,
+  };
+
+  /// Purpose: Build one relation from a source's raw relation name.
+  /// Inputs: `source`, `raw` — the source's own name; `table`; `targetUrl`,
+  /// `title`, `format`.
+  /// Returns: `AnimeExternalRelation`.
+  /// Side effects: None.
+  /// Notes: Internal helper used within this file only. A name the table does
+  /// not know becomes `other`, with the raw name kept as `rawType`.
+  static AnimeExternalRelation _relation(
+    String source,
+    String raw,
+    Map<String, AnimeRelationType> table, {
+    String? targetUrl,
+    String? title,
+    String? format,
+  }) {
+    final type = table[raw];
+    return AnimeExternalRelation(
+      source: source,
+      type: type ?? AnimeRelationType.other,
+      targetUrl: targetUrl,
+      title: title,
+      format: format,
+      extraJson: type == null ? {'rawType': raw} : const {},
+    );
+  }
+
+  /// Purpose: Map AniList relation edges onto relations.
+  /// Inputs: `m` — a media object from the by-id query.
+  /// Returns: `List<AnimeExternalRelation>` — anime targets only; empty when
+  /// the object carries no `relations` (search results).
+  /// Side effects: None.
+  /// Notes: The title is the native one where known, else romaji, else English.
+  @visibleForTesting
+  static List<AnimeExternalRelation> mapAniListRelations(
+    Map<String, dynamic> m,
+  ) {
+    final edges = (m['relations'] as Map?)?['edges'];
+    if (edges is! List) return const [];
+    final out = <AnimeExternalRelation>[];
+    for (final edge in edges) {
+      if (edge is! Map) continue;
+      final node = edge['node'];
+      final raw = edge['relationType'];
+      if (node is! Map || raw is! String || node['type'] != 'ANIME') continue;
+      final titles = node['title'] is Map ? node['title'] as Map : const {};
+      final id = node['id'];
+      out.add(
+        _relation(
+          AnimeSearchSource.anilist,
+          raw,
+          _aniListRelationTypes,
+          targetUrl:
+              node['siteUrl'] as String? ??
+              (id is int ? 'https://anilist.co/anime/$id' : null),
+          title:
+              titles['native'] as String? ??
+              titles['romaji'] as String? ??
+              titles['english'] as String?,
+          format: node['format'] as String?,
+        ),
+      );
+    }
+    return out;
+  }
+
+  /// Purpose: Map Jikan's `/full` relations onto relations.
+  /// Inputs: `m` — an anime object from `/anime/{id}/full`.
+  /// Returns: `List<AnimeExternalRelation>` — entries whose `type` is `anime`.
+  /// Side effects: None.
+  /// Notes: Search results carry no `relations`, so they map to an empty list.
+  @visibleForTesting
+  static List<AnimeExternalRelation> mapJikanRelations(Map<String, dynamic> m) {
+    final groups = m['relations'];
+    if (groups is! List) return const [];
+    final out = <AnimeExternalRelation>[];
+    for (final group in groups) {
+      if (group is! Map || group['relation'] is! String) continue;
+      final entries = group['entry'];
+      if (entries is! List) continue;
+      for (final e in entries) {
+        if (e is! Map || e['type'] != 'anime') continue;
+        final id = e['mal_id'];
+        out.add(
+          _relation(
+            AnimeSearchSource.mal,
+            group['relation'] as String,
+            _jikanRelationTypes,
+            targetUrl: id is int ? 'https://myanimelist.net/anime/$id' : null,
+            title: e['name'] as String?,
+          ),
+        );
+      }
+    }
+    return out;
+  }
+
+  /// Purpose: Map bangumi.tv's related-subjects list onto relations.
+  /// Inputs: `list` — the body of `GET /v0/subjects/{id}/subjects`.
+  /// Returns: `List<AnimeExternalRelation>` — anime targets (`type == 2`) only.
+  /// Side effects: None.
+  /// Notes: The title is `name_cn` when present, else `name`.
+  @visibleForTesting
+  static List<AnimeExternalRelation> mapBangumiRelations(List<dynamic> list) {
+    final out = <AnimeExternalRelation>[];
+    for (final s in list) {
+      if (s is! Map || s['type'] != 2 || s['relation'] is! String) continue;
+      final id = s['id'];
+      final cn = s['name_cn'];
+      out.add(
+        _relation(
+          AnimeSearchSource.bangumi,
+          s['relation'] as String,
+          _bangumiRelationTypes,
+          targetUrl: id is int ? 'https://bgm.tv/subject/$id' : null,
+          title: cn is String && cn.isNotEmpty ? cn : s['name'] as String?,
+        ),
+      );
+    }
+    return out;
   }
 
   /// Purpose: Build a `DateTime` from an AniList `{year, month, day}` object.
@@ -1627,7 +1874,9 @@ $_aniListMediaFields  }
     final mm = minute.toString().padLeft(2, '0');
     if (hour < _lateNightBoundaryHour) {
       // 1 (Mon) .. 7 (Sun): stepping back from Monday wraps to Sunday.
-      final previous = weekday == DateTime.monday ? DateTime.sunday : weekday - 1;
+      final previous = weekday == DateTime.monday
+          ? DateTime.sunday
+          : weekday - 1;
       return (weekday: previous, time: '${hour + 24}:$mm', dayShift: 1);
     }
     return (

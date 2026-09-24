@@ -757,6 +757,21 @@ class AppLocalizationsEn extends AppLocalizations {
   String get syncSeriesAuto => 'Series: automatic';
 
   @override
+  String seriesMissingSequel(String title, String source) {
+    return 'Next: $title ($source)';
+  }
+
+  @override
+  String get seriesMissingSequelHint =>
+      'Listed by the database but not in your library. Tap to add it.';
+
+  @override
+  String get seriesSuggestionSpinOff => 'Spin-off';
+
+  @override
+  String get seriesSuggestionAlternative => 'Alternative version';
+
+  @override
   String get aiSectionTitle => 'Categories & recommendations';
 
   @override

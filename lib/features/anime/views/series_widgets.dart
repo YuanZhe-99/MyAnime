@@ -311,10 +311,10 @@ class _SeriesManageSheetState extends State<SeriesManageSheet> {
     final results = query.trim().isEmpty ? null : _search(query);
     final suggestions = widget.index.suggestionsFor(widget.anime.id);
 
-    Widget recordTile(Anime a) => ListTile(
+    Widget recordTile(Anime a, {String? tag}) => ListTile(
       leading: Icon(viewingStatusIcon(a.viewingStatus)),
       title: Text(a.displayTitle, maxLines: 2, overflow: TextOverflow.ellipsis),
-      subtitle: Text(a.season),
+      subtitle: Text(tag == null ? a.season : '${a.season} · $tag'),
       trailing: const Icon(Icons.link),
       enabled: !_busy,
       onTap: () => _apply(editor.link(widget.anime, a)),
@@ -351,7 +351,17 @@ class _SeriesManageSheetState extends State<SeriesManageSheet> {
                         ),
                         SliverList.list(
                           children: [
-                            for (final s in suggestions) recordTile(s.anime),
+                            for (final s in suggestions)
+                              recordTile(
+                                s.anime,
+                                tag: switch (s.relation) {
+                                  AnimeRelationType.spinOff =>
+                                    l10n.seriesSuggestionSpinOff,
+                                  AnimeRelationType.alternative =>
+                                    l10n.seriesSuggestionAlternative,
+                                  _ => null,
+                                },
+                              ),
                           ],
                         ),
                       ],

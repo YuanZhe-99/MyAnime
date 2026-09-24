@@ -44,6 +44,7 @@ class _AnimeDetailPageState extends State<AnimeDetailPage> {
   Anime? _anime;
   SeriesIndex? _seriesIndex;
   AnimeSeries? _series;
+  AnimeExternalRelation? _missingSequel;
   bool _refreshingMeta = false;
   bool _checkingProgress = false;
 
@@ -78,7 +79,26 @@ class _AnimeDetailPageState extends State<AnimeDetailPage> {
       _anime = found;
       _seriesIndex = index;
       _series = series != null && series.members.length >= 2 ? series : null;
+      _missingSequel = found == null ? null : index.missingSequelFor(found.id);
     });
+  }
+
+  /// Purpose: Open the create page for a sequel the databases list but the
+  /// library lacks.
+  /// Inputs: `relation`.
+  /// Returns: None.
+  /// Side effects: Pushes `/anime/edit`; reloads afterwards.
+  /// Notes: Internal helper used within this file only. Full builds also start
+  /// the online search; store builds get the title pre-filled only.
+  Future<void> _addMissingSequel(AnimeExternalRelation relation) async {
+    final anime = _anime;
+    if (anime == null) return;
+    final last = _series?.members.last ?? anime;
+    await context.push(
+      '/anime/edit',
+      extra: NextSeasonPrefill.fromRelation(last, relation),
+    );
+    await _load();
   }
 
   /// Purpose: Run one of the series card's menu actions.
@@ -523,6 +543,23 @@ class _AnimeDetailPageState extends State<AnimeDetailPage> {
       if (anime.notes != null && anime.notes!.isNotEmpty) ...[
         const SizedBox(height: 12),
         Text(anime.notes!, style: theme.textTheme.bodyMedium),
+      ],
+
+      // A sequel the databases list that the library lacks.
+      if (_missingSequel case final sequel?) ...[
+        const SizedBox(height: 12),
+        Card(
+          margin: EdgeInsets.zero,
+          child: ListTile(
+            leading: const Icon(Icons.new_releases_outlined),
+            title: Text(
+              l10n.seriesMissingSequel(sequel.title ?? '?', sequel.source),
+            ),
+            subtitle: Text(l10n.seriesMissingSequelHint),
+            trailing: const Icon(Icons.add),
+            onTap: () => _addMissingSequel(sequel),
+          ),
+        ),
       ],
 
       // Series card, then prev/next driven by the series index.

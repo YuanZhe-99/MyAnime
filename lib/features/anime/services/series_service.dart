@@ -99,15 +99,19 @@ class SeriesSuggestion {
   /// The suggested record.
   final Anime anime;
 
-  /// Best base-key similarity, `0.0..1.0`.
+  /// Best base-key similarity, `0.0..1.0`; 1.0 for a relation suggestion.
   final double score;
 
+  /// The database relation behind the suggestion (a spin-off or an
+  /// alternative), or `null` for a title-similarity suggestion.
+  final AnimeRelationType? relation;
+
   /// Purpose: Create a series suggestion.
-  /// Inputs: `anime`, `score`.
+  /// Inputs: `anime`, `score`, `relation`.
   /// Returns: A new `SeriesSuggestion`.
   /// Side effects: None.
   /// Notes: None.
-  const SeriesSuggestion(this.anime, this.score);
+  const SeriesSuggestion(this.anime, this.score, {this.relation});
 }
 
 /// Every series in one library, computed on demand and never persisted.
@@ -120,17 +124,24 @@ class SeriesIndex {
   final Map<String, AnimeSeries> _byAnimeId;
   final Map<String, Anime> _byId;
   final Map<String, Set<String>> _keysById;
+  final Map<String, List<Anime>> _dbOwners;
 
   /// All series, curated and derived, including curated series with a
   /// single member, ordered by key.
   final List<AnimeSeries> series;
 
   /// Purpose: Create a series index from precomputed parts.
-  /// Inputs: `series`, `byAnimeId`, `byId`, `keysById`.
+  /// Inputs: `series`, `byAnimeId`, `byId`, `keysById`, `dbOwners`.
   /// Returns: A new `SeriesIndex`.
   /// Side effects: None.
   /// Notes: Internal; use [SeriesIndex.build].
-  SeriesIndex._(this.series, this._byAnimeId, this._byId, this._keysById);
+  SeriesIndex._(
+    this.series,
+    this._byAnimeId,
+    this._byId,
+    this._keysById,
+    this._dbOwners,
+  );
 
   /// Purpose: Group a whole library into series.
   /// Inputs: `library` — every anime record.
@@ -147,6 +158,14 @@ class SeriesIndex {
     final byId = {for (final a in records) a.id: a};
     final keysById = {for (final a in records) a.id: seriesBaseKeys(a)};
     final ordinals = {for (final a in records) a.id: seriesOrdinalOf(a)};
+    // Every record by the database pages it came from, standalone ones
+    // included, for relation edges and the missing-sequel hint.
+    final dbOwners = <String, List<Anime>>{};
+    for (final a in records) {
+      for (final k in databaseKeysOf(a)) {
+        dbOwners.putIfAbsent(k, () => []).add(a);
+      }
+    }
 
     final curated = <String, List<Anime>>{};
     final autos = <Anime>[];
@@ -222,6 +241,26 @@ class SeriesIndex {
       return da.year == db.year && da.month == db.month && da.day == db.day;
     }
 
+    // E1: a same-series relation in either direction. Standalone records
+    // are skipped on both ends.
+    for (final x in [...autos, for (final l in curated.values) ...l]) {
+      for (final r
+          in x.externalMeta?.relations ?? const <AnimeExternalRelation>[]) {
+        if (!r.type.isSameSeries) continue;
+        final k = canonicalDatabaseKey(r.targetUrl);
+        if (k == null) continue;
+        for (final y in dbOwners[k] ?? const <Anime>[]) {
+          if (y.id == x.id || y.seriesLink?.standalone == true) continue;
+          if (!curatedIdOf.containsKey(x.id)) {
+            addEdge(x, y, SeriesEdgeKind.relation);
+          }
+          if (!curatedIdOf.containsKey(y.id)) {
+            addEdge(y, x, SeriesEdgeKind.relation);
+          }
+        }
+      }
+    }
+
     for (final a in autos) {
       final title = a.displayTitle.trim();
       if (title.isNotEmpty) {
@@ -286,7 +325,7 @@ class SeriesIndex {
       for (final s in series)
         for (final a in s.members) a.id: s,
     };
-    return SeriesIndex._(series, byAnimeId, byId, keysById);
+    return SeriesIndex._(series, byAnimeId, byId, keysById, dbOwners);
   }
 
   /// Purpose: Order the members of one series.
@@ -364,16 +403,50 @@ class SeriesIndex {
   /// [seriesSuggestionMinScore] under `AnimeSearchService.similarityRaw` and
   /// [seriesSuggestionMinOrderedScore] under `orderedSimilarity`. This is how
   /// `Love Live!` finds `Love Live! Sunshine!!` without being linked to it.
+  /// Records a database lists as a spin-off or an alternative of this one, in
+  /// either direction, come first with score 1.0 and their relation type.
   List<SeriesSuggestion> suggestionsFor(String animeId, {int limit = 8}) {
-    final own = _keysById[animeId];
-    if (own == null || own.isEmpty) return const [];
+    final self = _byId[animeId];
+    if (self == null) return const [];
+    final own = _keysById[animeId] ?? const <String>{};
     final sameSeries = {
       for (final a in seriesOf(animeId)?.members ?? const <Anime>[]) a.id,
       animeId,
     };
     final out = <SeriesSuggestion>[];
+    final related = <String, AnimeRelationType>{};
+    void relate(Anime to, AnimeRelationType type) {
+      if (!sameSeries.contains(to.id)) related.putIfAbsent(to.id, () => type);
+    }
+
+    final selfKeys = databaseKeysOf(self);
+    for (final r
+        in self.externalMeta?.relations ?? const <AnimeExternalRelation>[]) {
+      if (r.type != AnimeRelationType.spinOff &&
+          r.type != AnimeRelationType.alternative) {
+        continue;
+      }
+      final k = canonicalDatabaseKey(r.targetUrl);
+      for (final y in _dbOwners[k] ?? const <Anime>[]) {
+        relate(y, r.type);
+      }
+    }
+    for (final y in _byId.values) {
+      for (final r
+          in y.externalMeta?.relations ?? const <AnimeExternalRelation>[]) {
+        if ((r.type == AnimeRelationType.spinOff ||
+                r.type == AnimeRelationType.alternative) &&
+            selfKeys.contains(canonicalDatabaseKey(r.targetUrl))) {
+          relate(y, r.type);
+        }
+      }
+    }
+    for (final e in related.entries) {
+      out.add(SeriesSuggestion(_byId[e.key]!, 1.0, relation: e.value));
+    }
+
     for (final e in _keysById.entries) {
-      if (sameSeries.contains(e.key)) continue;
+      if (sameSeries.contains(e.key) || related.containsKey(e.key)) continue;
       var best = 0.0;
       for (final a in own) {
         for (final b in e.value) {
@@ -395,7 +468,70 @@ class SeriesIndex {
     });
     return out.length > limit ? out.sublist(0, limit) : out;
   }
+
+  /// Purpose: Find a sequel the databases list that is not in the library.
+  /// Inputs: `animeId`.
+  /// Returns: `AnimeExternalRelation?` — the first `sequel` relation of the
+  /// last member of the record's series (or of the record itself when it is
+  /// in none) whose target page no record came from.
+  /// Side effects: None.
+  /// Notes: Drives the "Next: <title>" hint. The relation data may reach a
+  /// store build through sync; only the online lookup behind the hint is
+  /// gated on `AppFlavor.isFull`.
+  AnimeExternalRelation? missingSequelFor(String animeId) {
+    final series = seriesOf(animeId);
+    final last = series != null && series.members.length >= 2
+        ? series.members.last
+        : _byId[animeId];
+    if (last == null) return null;
+    for (final r
+        in last.externalMeta?.relations ?? const <AnimeExternalRelation>[]) {
+      if (r.type != AnimeRelationType.sequel) continue;
+      final k = canonicalDatabaseKey(r.targetUrl);
+      if (k == null || _dbOwners.containsKey(k)) continue;
+      return r;
+    }
+    return null;
+  }
 }
+
+final _anilistPage = RegExp(r'anilist\.co/anime/(\d+)');
+final _malPage = RegExp(r'myanimelist\.net/anime/(\d+)');
+final _bangumiPage = RegExp(r'(?:bgm\.tv|bangumi\.tv|chii\.in)/subject/(\d+)');
+
+/// Purpose: Reduce a database page URL to a canonical key.
+/// Inputs: `url`.
+/// Returns: `String?` — `anilist:<id>`, `mal:<id>` or `bgm:<id>` (bgm.tv,
+/// bangumi.tv and chii.in are one site); `null` for anything else.
+/// Side effects: None.
+/// Notes: Lets a relation's `targetUrl` match a record's `infoUrl` or rating
+/// `sourceUrl` whatever host alias or trailing slug either one uses.
+String? canonicalDatabaseKey(String? url) {
+  if (url == null) return null;
+  final a = _anilistPage.firstMatch(url);
+  if (a != null) return 'anilist:${a.group(1)}';
+  final m = _malPage.firstMatch(url);
+  if (m != null) return 'mal:${m.group(1)}';
+  final b = _bangumiPage.firstMatch(url);
+  if (b != null) return 'bgm:${b.group(1)}';
+  return null;
+}
+
+/// Purpose: Collect the database pages a record came from.
+/// Inputs: `anime`.
+/// Returns: `Set<String>` — canonical keys of `infoUrl` and every
+/// `externalMeta.ratings[].sourceUrl`.
+/// Side effects: None.
+/// Notes: What a relation's target is matched against.
+Set<String> databaseKeysOf(Anime anime) => {
+  for (final url in [
+    anime.infoUrl,
+    for (final r
+        in anime.externalMeta?.ratings ?? const <AnimeExternalRating>[])
+      r.sourceUrl,
+  ])
+    ?canonicalDatabaseKey(url),
+};
 
 /// Purpose: Collect every non-empty title a record is known by.
 /// Inputs: `anime`.
@@ -630,8 +766,12 @@ class NextSeasonPrefill {
   /// Id of the record the new one joins when it is saved.
   final String linkToAnimeId;
 
+  /// Whether the create page should start the online search on load (the
+  /// missing-sequel hint). Honoured only in full builds.
+  final bool autoSearch;
+
   /// Purpose: Create a next-season prefill.
-  /// Inputs: `title`, `titleJa`, `season`, `linkToAnimeId`.
+  /// Inputs: `title`, `titleJa`, `season`, `linkToAnimeId`, `autoSearch`.
   /// Returns: A new `NextSeasonPrefill`.
   /// Side effects: None.
   /// Notes: Passed as the `extra` of `/anime/edit`.
@@ -640,6 +780,7 @@ class NextSeasonPrefill {
     this.titleJa,
     required this.season,
     required this.linkToAnimeId,
+    this.autoSearch = false,
   });
 
   /// Purpose: Build the prefill for the season after `source`.
@@ -666,6 +807,27 @@ class NextSeasonPrefill {
       titleJa: source.titleJa,
       season: label,
       linkToAnimeId: source.id,
+    );
+  }
+
+  /// Purpose: Build the prefill for a sequel the databases list but the
+  /// library lacks.
+  /// Inputs: `source` — the member the relation came from; `relation`.
+  /// Returns: `NextSeasonPrefill` — the relation's title, the next season
+  /// label, a link to `source`, and `autoSearch` on.
+  /// Side effects: None.
+  /// Notes: A store build gets the title pre-filled and no search, because
+  /// the create page checks `AppFlavor.isFull` before searching.
+  factory NextSeasonPrefill.fromRelation(
+    Anime source,
+    AnimeExternalRelation relation,
+  ) {
+    final base = NextSeasonPrefill.after(source);
+    return NextSeasonPrefill(
+      title: relation.title ?? base.title,
+      season: base.season,
+      linkToAnimeId: source.id,
+      autoSearch: true,
     );
   }
 }

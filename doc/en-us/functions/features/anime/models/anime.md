@@ -2,9 +2,11 @@
 
 The core data model: `Anime` (one tracked series), `AnimeRating` (optional personal rating),
 `AnimeLocalArchive` (optional record of a downloaded local copy), `AnimeSeriesLink` (optional series
-membership set by the user, 1.6.0), `AnimeData` (the top-level
+membership set by the user, 1.6.0), `AnimeExternalRelation` (one related work an external database
+lists, 1.6.0), `AnimeData` (the top-level
 `{animes: [...]}` persisted container), plus the `AnimeType`, `EpisodeStatus`,
-`AnimeViewingStatus`, `AnimeRatingField`, `ArchiveSource`, and `ArchiveResolution` enums. This file
+`AnimeViewingStatus`, `AnimeRatingField`, `ArchiveSource`, `ArchiveResolution`, and
+`AnimeRelationType` enums. This file
 owns `fromJson`/`toJson` for all four classes, the `extraJson` unknown-field-preservation pattern used
 by sync merges, and the quarter-placement / episode-air-date logic that drives the home calendar
 and management-by-quarter views. Field-by-field reference (identity, schedule, episodes,
@@ -64,6 +66,10 @@ every view under `lib/features/anime/views/`.
 | `hasAnyData` | getter (`AnimeWatchProgress`) | B | Whether there's a source URL, episode data, a timestamp, or preserved `extraJson`. |
 | [`toJson`](#tojson-animewatchprogress) | method (`AnimeWatchProgress`) | A | Serialize to the object stored under `externalMeta.watchProgress`. |
 | [`AnimeWatchProgress.fromJson`](#animewatchprogress-fromjson) | factory constructor | A | Parse a watch-progress record, routing unparseable values into `extraJson`. |
+| [`isSameSeries`](#issameseries) | getter (`AnimeRelationType`) | A | Whether a relation places both works in one series (prequel, sequel, parent, side story, summary). |
+| [`AnimeExternalRelation(...)`](#animeexternalrelation-new) | constructor (`AnimeExternalRelation`) | A | Create one related work an external database lists for an anime. |
+| [`toJson`](#tojson-animeexternalrelation) | method (`AnimeExternalRelation`) | A | Serialize to one entry of `externalMeta.relations`. |
+| [`AnimeExternalRelation.fromJson`](#animeexternalrelation-fromjson) | factory constructor | A | Parse one relation entry, keeping an unknown `type` in `extraJson`. |
 | [`AnimeExternalMeta(...)`](#animeexternalmeta-new) | constructor (`AnimeExternalMeta`) | A | Create a public-metadata record pulled from external databases. |
 | `hasAnyData` | getter (`AnimeExternalMeta`) | B | Whether there's anything worth persisting. |
 | [`ratingFor`](#ratingfor) | method (`AnimeExternalMeta`) | A | Look up this record's rating for one source. |
@@ -101,8 +107,8 @@ every view under `lib/features/anime/views/`.
 | [`toJson`](#tojson-animedata) | method (`AnimeData`) | A | Serialize to `{...extraJson, animes: [...]}`. |
 | [`AnimeData.fromJson`](#animedata-fromjson) | factory constructor | A | Parse the `{animes: [...]}` container from JSON. |
 
-Note on the verification count: the source file has 78 `/// Purpose:` doc comments, but this table
-has 79 rows — the `AnimeData` default constructor has no doc comment at all in source
+Note on the verification count: the source file has 82 `/// Purpose:` doc comments, but this table
+has 83 rows — the `AnimeData` default constructor has no doc comment at all in source
 (unlike every other constructor in this file), yet is still a real declaration and is indexed above
 (Tier B: a plain default-value constructor with no logic).
 
@@ -571,13 +577,48 @@ has 79 rows — the `AnimeData` default constructor has no doc comment at all in
 - **Algorithm:** Computes `extraJson` via `_unknownJson`, then reads each known key with a type check; any value present but of the wrong type is written back into `extraJson` rather than dropped. A missing or non-numeric `scoreMax` falls back to `10`.
 - **Notes:** Same discipline as [`AnimeLocalArchive.fromJson`](#animelocalarchive-fromjson) — a newer build's data must survive an older build's edits.
 
-### `const AnimeExternalMeta({synonyms = const [], titleRomaji, titleEn, format, status, durationMinutes, genres = const [], studios = const [], endDate, ratings = const [], refreshedAt, watchProgress, extraJson = const {}})` <a id="animeexternalmeta-new"></a>
+### `bool get isSameSeries` (`AnimeRelationType`) <a id="issameseries"></a>
+- **Kind:** getter of the `AnimeRelationType` enum
+- **Source:** `lib/features/anime/models/anime.dart` (approx. line 1117)
+- **Purpose:** Report whether a relation places both works in one series.
+- **Returns:** `bool` — true for `prequel`, `sequel`, `parent`, `sideStory` and `summary`; false for `spinOff`, `alternative` and `other`.
+- **Side effects:** None.
+- **Notes:** The split behind series linking's E1 edges: a same-series relation links two records automatically, while spin-offs and alternatives are only offered as suggestions. See [`../../../../features/series-linking.md`](../../../../features/series-linking.md).
+
+### `const AnimeExternalRelation({required source, required type, targetUrl, title, format, extraJson = const {}})` <a id="animeexternalrelation-new"></a>
+- **Kind:** constructor of `AnimeExternalRelation`
+- **Source:** `lib/features/anime/models/anime.dart` (approx. line 1161)
+- **Purpose:** Create one related work an external database lists for an anime.
+- **Inputs:** `source` — the database's display name (e.g. `AniList`); `type` — the normalised `AnimeRelationType`; `targetUrl` — the related work's page on that database; `title` and `format` as the database reports them; `extraJson`, which also holds the source's raw relation name as `rawType` when it mapped to `other`.
+- **Returns:** A new `AnimeExternalRelation`.
+- **Side effects:** None.
+- **Notes:** Public metadata like the rest of [`AnimeExternalMeta`](#animeexternalmeta-new): it syncs, is backed up and stays in share files, and is written only through `AnimeStorage.patchExternalMeta`, never bumping `modifiedAt`. Built by the mappers in [`../services/anime_search_service.md`](../services/anime_search_service.md#mapanilistrelations).
+
+### `Map<String, dynamic> toJson()` (`AnimeExternalRelation`) <a id="tojson-animeexternalrelation"></a>
+- **Kind:** method of `AnimeExternalRelation`
+- **Source:** `lib/features/anime/models/anime.dart` (approx. line 1176)
+- **Purpose:** Serialize to one entry of `externalMeta.relations`.
+- **Returns:** `Map<String, dynamic>`.
+- **Side effects:** None.
+- **Algorithm:** Starts from a copy of `extraJson`; writes `source` and `type` (the enum name) only when `extraJson` does not already carry them, then `targetUrl`, `title` and `format` when set.
+- **Notes:** Because `fromJson` keeps an unknown `type` in `extraJson`, it is written back verbatim instead of as `other` — an older build never downgrades a newer build's relation type.
+
+### `factory AnimeExternalRelation.fromJson(Map<String, dynamic> json)` <a id="animeexternalrelation-fromjson"></a>
+- **Kind:** factory constructor of `AnimeExternalRelation`
+- **Source:** `lib/features/anime/models/anime.dart` (approx. line 1192)
+- **Purpose:** Parse one relation entry from JSON.
+- **Returns:** A new `AnimeExternalRelation`; a missing `source` reads as empty.
+- **Side effects:** None.
+- **Algorithm:** Unknown keys go to `extraJson` via `_unknownJson`. Each string field is type-checked and, on the wrong type, kept in `extraJson`. A `type` that names an `AnimeRelationType` value is used; anything else reads as `other`, and the raw value is kept in `extraJson['type']`.
+- **Notes:** Covered by `test/relations_test.dart`.
+
+### `const AnimeExternalMeta({synonyms = const [], titleRomaji, titleEn, format, status, durationMinutes, genres = const [], studios = const [], endDate, ratings = const [], refreshedAt, watchProgress, relations = const [], extraJson = const {}})` <a id="animeexternalmeta-new"></a>
 - **Kind:** constructor of `AnimeExternalMeta`
-- **Source:** `lib/features/anime/models/anime.dart` (line 826)
+- **Source:** `lib/features/anime/models/anime.dart` (approx. line 1270)
 - **Purpose:** Create a record of public metadata pulled from external anime databases.
 - **Returns:** A new `AnimeExternalMeta`.
 - **Side effects:** None.
-- **Notes:** Unlike [`AnimeLocalArchive`](#animelocalarchive-new), this is public information about the work rather than personal infrastructure, so it is **not** stripped from `.myanimeitem` share files — see the travel table in [`../../../../data-formats.md`](../../../../data-formats.md). `format` is descriptive metadata and must not be confused with `AnimeType`, which drives scheduling.
+- **Notes:** Unlike [`AnimeLocalArchive`](#animelocalarchive-new), this is public information about the work rather than personal infrastructure, so it is **not** stripped from `.myanimeitem` share files — see the travel table in [`../../../../data-formats.md`](../../../../data-formats.md). `format` is descriptive metadata and must not be confused with `AnimeType`, which drives scheduling. `relations` (1.6.0) holds the related works the databases list — see [`AnimeExternalRelation`](#animeexternalrelation-new).
 
 ### `AnimeExternalRating? ratingFor(String source)` <a id="ratingfor"></a>
 - **Kind:** method of `AnimeExternalMeta`
@@ -615,12 +656,12 @@ has 79 rows — the `AnimeData` default constructor has no doc comment at all in
 
 ### `AnimeExternalMeta mergedWith(AnimeExternalMeta other, {DateTime? refreshedAt})` <a id="mergedwith"></a>
 - **Kind:** method of `AnimeExternalMeta`
-- **Source:** `lib/features/anime/models/anime.dart` (line 879)
+- **Source:** `lib/features/anime/models/anime.dart` (approx. line 1367)
 - **Purpose:** Fold freshly fetched metadata into this record.
 - **Inputs:** `other` — the newly fetched record; `refreshedAt` — override for the resulting timestamp.
 - **Returns:** `AnimeExternalMeta`.
 - **Side effects:** None.
-- **Algorithm:** Ratings are keyed by `source` into a map, `other`'s entries overwriting this record's, so refreshing one source replaces only that source's entry. Synonyms are unioned. Every scalar field takes `other`'s value only when it is non-null; `genres`/`studios` take `other`'s only when non-empty. `extraJson` is deep-merged via `_mergeJsonMaps`.
+- **Algorithm:** Ratings are keyed by `source` into a map, `other`'s entries overwriting this record's, so refreshing one source replaces only that source's entry. Synonyms are unioned. Every scalar field takes `other`'s value only when it is non-null; `genres`/`studios` take `other`'s only when non-empty. Relations are replaced per source too: every source that appears in `other.relations` has its earlier entries dropped and `other`'s appended, and the other sources' entries are kept — so a fetch that brings no relations (a search result) erases none. `extraJson` is deep-merged via `_mergeJsonMaps`.
 - **Usage:**
   ```dart
   merged = merged.mergedWith(
@@ -640,19 +681,19 @@ has 79 rows — the `AnimeData` default constructor has no doc comment at all in
 
 ### `Map<String, dynamic> toJson()` (`AnimeExternalMeta`) <a id="tojson-animeexternalmeta"></a>
 - **Kind:** method of `AnimeExternalMeta`
-- **Source:** `lib/features/anime/models/anime.dart` (line 932)
+- **Source:** `lib/features/anime/models/anime.dart` (approx. line 1430)
 - **Purpose:** Serialize to the JSON shape stored under `Anime.externalMeta`.
 - **Returns:** `Map<String, dynamic>`.
 - **Side effects:** None.
-- **Algorithm:** Starts from a copy of `extraJson`; local `writeString`/`writeList` helpers overlay each known key when it has a value, and remove it only when `extraJson` does not already carry that key. `endDate`/`refreshedAt` are written as UTC ISO-8601 strings, and `ratings` as an array of [`AnimeExternalRating.toJson`](#tojson-animeexternalrating) maps.
+- **Algorithm:** Starts from a copy of `extraJson`; local `writeString`/`writeList` helpers overlay each known key when it has a value, and remove it only when `extraJson` does not already carry that key. `endDate`/`refreshedAt` are written as UTC ISO-8601 strings, `ratings` as an array of [`AnimeExternalRating.toJson`](#tojson-animeexternalrating) maps, and `relations`, only when non-empty, as an array of [`AnimeExternalRelation.toJson`](#tojson-animeexternalrelation) maps.
 
 ### `factory AnimeExternalMeta.fromJson(Map<String, dynamic> json)` <a id="animeexternalmeta-fromjson"></a>
 - **Kind:** factory constructor of `AnimeExternalMeta`
-- **Source:** `lib/features/anime/models/anime.dart` (line 987)
+- **Source:** `lib/features/anime/models/anime.dart` (approx. line 1495)
 - **Purpose:** Parse an external-metadata record from JSON.
 - **Returns:** A new `AnimeExternalMeta`.
 - **Side effects:** None.
-- **Algorithm:** Local `readString`/`readList` helpers type-check each key and push anything of the wrong shape into `extraJson`. `ratings` entries that are maps are parsed through [`AnimeExternalRating.fromJson`](#animeexternalrating-fromjson) and kept when they carry data or a source name; non-map entries are collected back into `extraJson['ratings']`.
+- **Algorithm:** Local `readString`/`readList` helpers type-check each key and push anything of the wrong shape into `extraJson`. `ratings` entries that are maps are parsed through [`AnimeExternalRating.fromJson`](#animeexternalrating-fromjson) and kept when they carry data or a source name; non-map entries are collected back into `extraJson['ratings']`. `relations` is read the same way: map entries go through [`AnimeExternalRelation.fromJson`](#animeexternalrelation-fromjson), non-map entries into `extraJson['relations']`, and a non-list value is kept there verbatim.
 - **Notes:** A `genres` value that is a string rather than a list survives verbatim in `extraJson` and re-serializes unchanged, so an older build cannot silently delete a newer build's shape change.
 
 ### `const Anime({required id, title, titleJa, season = 'Season 1', startEpisode = 1, endEpisode = 13, manualType, airDayOfWeek, airTime, firstAirDate, episodeStatuses = const {}, coverImage, infoUrl, watchUrl, episodeWeekOffsets = const {}, notes, rating, localArchive, seriesLink, externalMeta, required createdAt, required modifiedAt, extraJson = const {}})` <a id="anime-new"></a>

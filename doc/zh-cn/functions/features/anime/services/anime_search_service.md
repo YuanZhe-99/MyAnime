@@ -19,6 +19,7 @@
 |---|---|---|---|
 | [`AnimeSearchResult(...)`](#animesearchresult-new) | 构造函数（`AnimeSearchResult`） | A | 保存来自任何来源的一条规范化搜索命中。 |
 | [`allTitles`](#alltitles) | getter（`AnimeSearchResult`） | A | 收集该结果已知的每个标题，并去重。 |
+| `withRelations` | 方法（`AnimeSearchResult`） | B | 返回携带 `relations` 的副本；供 bangumi.tv 按 id 抓取使用，其关联关系来自第二个请求。 |
 | [`displayTitle`](#displaytitle) | getter（`AnimeSearchResult`） | B | 返回第一个已知标题，或 `?`。 |
 | [`toJson`](#resulttojson) | 方法（`AnimeSearchResult`） | A | 序列化抓取到的结果，以便缓存到磁盘。 |
 | [`fromJson`](#resultfromjson) | 工厂（`AnimeSearchResult`） | A | 防御式地从缓存重建结果。 |
@@ -38,7 +39,8 @@
 | [`_runRound`](#runround) | 静态方法（`AnimeSearchService`） | A | 并行查询指定来源一轮，并容忍单点失败。 |
 | [`_harvestBackfillTitles`](#harvestbackfilltitles) | 静态方法（`AnimeSearchService`） | A | 从第一轮结果中挑出用于第二轮的跨语言标题。 |
 | [`_searchBangumi`](#searchbangumi) | 静态方法（`AnimeSearchService`） | A | 查询 bangumi.tv 的 v0 搜索 API。 |
-| [`_fetchBangumiById`](#fetchbangumibyid) | 静态方法（`AnimeSearchService`） | B | 按数字 id 抓取一个 bangumi.tv 条目。 |
+| [`_fetchBangumiById`](#fetchbangumibyid) | 静态方法（`AnimeSearchService`） | B | 按数字 id 抓取一个 bangumi.tv 条目及其关联条目。 |
+| [`_fetchBangumiRelations`](#fetchbangumirelations) | 静态方法（`AnimeSearchService`） | A | 抓取 bangumi.tv 为某条目列出的关联作品；绝不抛出异常。 |
 | [`mapBangumiSubject`](#mapbangumisubject) | 静态方法（`AnimeSearchService`） | A | 把一个 bangumi.tv v0 条目对象映射为 `AnimeSearchResult`。 |
 | [`parseBangumiWeekday`](#parsebangumiweekday) | 静态方法（`AnimeSearchService`） | A | 把 bangumi.tv 的 `放送星期` 文本解析到周一=1..周日=7。 |
 | [`_bangumiInfoboxText`](#bangumiinfoboxtext) | 静态方法（`AnimeSearchService`） | B | 把一条 `infobox` 记录读为纯文本。 |
@@ -59,6 +61,10 @@
 | [`_fetchAniListById`](#fetchanilistbyid) | 静态方法（`AnimeSearchService`） | B | 按数字 id 抓取一个 AniList media 条目。 |
 | [`_postAniList`](#postanilist) | 静态方法（`AnimeSearchService`） | B | 向 AniList POST 一个 GraphQL 文档并返回其 `data` 对象。 |
 | [`mapAniListMedia`](#mapanilistmedia) | 静态方法（`AnimeSearchService`） | A | 把一个 AniList media 对象映射为 `AnimeSearchResult`。 |
+| `_relation` | 静态方法（`AnimeSearchService`） | B | 由来源的原始关联名构建一条关联关系；不认识的名字成为 `other` 并保留 `rawType`。 |
+| [`mapAniListRelations`](#mapanilistrelations) | 静态方法（`AnimeSearchService`），`@visibleForTesting` | A | 把 AniList 的关联边映射为关联关系。 |
+| [`mapJikanRelations`](#mapjikanrelations) | 静态方法（`AnimeSearchService`），`@visibleForTesting` | A | 把 Jikan `/full` 的关联信息映射为关联关系。 |
+| [`mapBangumiRelations`](#mapbangumirelations) | 静态方法（`AnimeSearchService`），`@visibleForTesting` | A | 把 bangumi.tv 的关联条目列表映射为关联关系。 |
 | [`_aniListDate`](#anilistdate) | 静态方法（`AnimeSearchService`） | B | 从 AniList 的 `{year, month, day}` 对象构建 `DateTime`。 |
 | [`_aniListFirstAiringAt`](#anilistfirstairingat) | 静态方法（`AnimeSearchService`） | A | 挑出最能代表放送时段的放送时间戳。 |
 | [`_jstBroadcastSlot`](#jstbroadcastslot) | 静态方法（`AnimeSearchService`） | A | 把日本时间的放送时刻映射到它所归属的编成时段。 |
@@ -77,21 +83,23 @@
 | `_BackfillTitles(...)` | 构造函数（`_BackfillTitles`） | B | 每个语言家族保存一个补搜标题。 |
 | `hasAny` | getter（`_BackfillTitles`） | B | 报告是否收集到任何可用标题。 |
 
-关于校验计数的说明：截至 1.5.7 源文件有 59 个 `/// Purpose:` 文档注释。历史上多出的那一行——`searchAnime1` 带的是普通
+关于校验计数的说明：截至 1.6.0 源文件有 65 个 `/// Purpose:` 文档注释
+（1.5.7 时为 59 个；M2 为关联元数据新增了六个）。历史上多出的那一行——`searchAnime1` 带的是普通
 （非 `Purpose:`）文档注释——随该方法一起消失：它迁到 `anime1_service.dart` 成为 `search`，并获得了完整注释块。
 
-有七个声明（`mapBangumiSubject`、`parseBangumiWeekday`、`mapJikanAnime`、`parseJikanDuration`、
-`mapAniListMedia`、`parseDayOfWeek`、`aliasCandidatesFrom`）标注了 `@visibleForTesting`。它们公开的唯一原因是让
-`test/anime_search_test.dart` 能用固定 JSON 数据检验各来源的格式解析——HTTP 调用是静态的、无法注入
+有十个声明（`mapBangumiSubject`、`parseBangumiWeekday`、`mapJikanAnime`、`parseJikanDuration`、
+`mapAniListMedia`、`parseDayOfWeek`、`aliasCandidatesFrom`、
+`mapAniListRelations`、`mapJikanRelations`、`mapBangumiRelations`）标注了 `@visibleForTesting`。它们公开的唯一原因是让
+`test/anime_search_test.dart` 与 `test/relations_test.dart` 能用固定 JSON 数据检验各来源的格式解析——HTTP 调用是静态的、无法注入
 client，因此这些映射函数是唯一可行的测试接缝。不要在本文件之外的生产代码中调用它们。
 
 ## 文档
 
-### `const AnimeSearchResult({required source, sourceUrl, title, titleJa, titleRomaji, titleEn, synonyms, episodes, firstAirDate, airDayOfWeek, airTime, endDate, format, status, durationMinutes, genres, studios, score, scoreMax, scoreVotes, scoreRank, coverImageUrl, summary})` <a id="animesearchresult-new"></a>
+### `const AnimeSearchResult({required source, sourceUrl, title, titleJa, titleRomaji, titleEn, synonyms, episodes, firstAirDate, airDayOfWeek, airTime, endDate, format, status, durationMinutes, genres, studios, score, scoreMax, scoreVotes, scoreRank, coverImageUrl, summary, relations})` <a id="animesearchresult-new"></a>
 - **种类：** `AnimeSearchResult` 的构造函数
-- **来源：** `lib/features/anime/services/anime_search_service.dart`（第 68 行）
+- **来源：** `lib/features/anime/services/anime_search_service.dart`（约第 72 行）
 - **用途：** 保存一条规范化搜索结果，无论来源是哪个，形态都准备好预填番剧编辑表单。
-- **输入：** `source` 必填（来源显示名，如 `'bangumi.tv'`）；其余全可选，因为没有单个来源提供每个字段。`synonyms`、`genres`、`studios` 默认为空列表；`scoreMax` 默认为 `10`。
+- **输入：** `source` 必填（来源显示名，如 `'bangumi.tv'`）；其余全可选，因为没有单个来源提供每个字段。`synonyms`、`genres`、`studios` 与 `relations` 默认为空列表；`scoreMax` 默认为 `10`。`relations` 只由按 id 抓取填充——搜索结果从不携带。
 - **返回：** 新的 `AnimeSearchResult`。
 - **副作用：** 无。
 - **算法：** 通过 `const` 构造函数做平凡字段赋值。
@@ -125,7 +133,8 @@ client，因此这些映射函数是唯一可行的测试接缝。不要在本�
 - **返回：** `Map<String, dynamic>`，只包含非 null、非空的字段。
 - **副作用：** 无。
 - **备注：** 1.5.0 新增，用于支撑后台更新缓存 —— 该缓存把候选下载一次，之后无需再联网即可应用。null 与
-  空字段被省略，使缓存文件保持小巧可读。
+  空字段被省略，使缓存文件保持小巧可读。1.6.0 起非空的 `relations` 也会经
+  `AnimeExternalRelation.toJson` 写入，`fromJson` 会把它们读回。
 
   `firstAirDate` 与 `endDate` 是**日历日，不是时刻**：它们原样写入、读回时不做 UTC 转换，与番剧模型中
   的 `_parseCalendarDate` 一致。把它们归一化到 UTC 会在 UTC 以东的每个时区（包括日本）渲染成前一天。
@@ -197,12 +206,12 @@ client，因此这些映射函数是唯一可行的测试接缝。不要在本�
 
 ### `static AnimeExternalMeta toExternalMeta(AnimeSearchResult result, {DateTime? fetchedAt})` <a id="toexternalmeta"></a>
 - **种类：** `AnimeSearchService` 的静态方法
-- **来源：** `lib/features/anime/services/anime_search_service.dart`（第 314 行）
+- **来源：** `lib/features/anime/services/anime_search_service.dart`（约第 512 行）
 - **用途：** 把搜索结果转换成持久化的外部元数据记录。
 - **输入：** `result`；`fetchedAt` —— 覆盖时间戳，供测试使用。
 - **返回：** `AnimeExternalMeta`。
 - **副作用：** 无。
-- **算法：** 直接复制各元数据字段；当来源报告了 `score`/`scoreVotes`/`scoreRank` 中任一项时，追加一条 `AnimeExternalRating`，携带 `source`、`sourceUrl`、评分、`scoreMax`、票数、排名与 `fetchedAt`（UTC）。`refreshedAt` 设为同一时间戳。
+- **算法：** 直接复制各元数据字段；当来源报告了 `score`/`scoreVotes`/`scoreRank` 中任一项时，追加一条 `AnimeExternalRating`，携带 `source`、`sourceUrl`、评分、`scoreMax`、票数、排名与 `fetchedAt`（UTC）。`relations` 原样传递。`refreshedAt` 设为同一时间戳。
 - **用法：**
   ```dart
   final fetched = AnimeSearchService.toExternalMeta(r);
@@ -213,11 +222,11 @@ client，因此这些映射函数是唯一可行的测试接缝。不要在本�
 
 ### `static Future<AnimeSearchResult?> fetchByUrl(String url)` <a id="fetchbyurl"></a>
 - **种类：** `AnimeSearchService` 的静态方法
-- **来源：** `lib/features/anime/services/anime_search_service.dart`（第 357 行）
+- **来源：** `lib/features/anime/services/anime_search_service.dart`（约第 556 行）
 - **用途：** 从番剧的来源页面 URL 重新抓取其元数据。
 - **输入：** `url` —— AniList、MyAnimeList 或 bangumi.tv 的条目页 URL。
-- **返回：** `Future<AnimeSearchResult?>` —— 主机不属于这三个有 API 的来源时，或抓取失败时返回 `null`。
-- **副作用：** 向对应 API 发起一次 HTTP 请求。
+- **返回：** `Future<AnimeSearchResult?>` —— 主机不属于这三个有 API 的来源时，或抓取失败时返回 `null`。1.6.0 起结果携带该来源的 `relations`。
+- **副作用：** 向对应 API 发起一次 HTTP 请求；bangumi.tv 为两次（先条目，再其关联条目）。
 - **算法：** 依次用正则从 `anilist.co/anime/(\d+)`、`myanimelist.net/anime/(\d+)`、`(?:bgm\.tv|bangumi\.tv|chii\.in)/subject/(\d+)` 中提取数字 id 并分派到对应的按 id 抓取；都不匹配则落到 `null`。
 - **备注：** `acgsecrets.hk` 与 `filmarks.com` 是抓取而非按 id 查询，没有稳定的按 URL 端点，因此被跳过。每个按 id 抓取都复用与其搜索路径**完全相同**的映射函数，因此搜索与刷新不会产生偏差。
 
@@ -272,11 +281,21 @@ client，因此这些映射函数是唯一可行的测试接缝。不要在本�
 
 ### `static Future<AnimeSearchResult?> _fetchBangumiById(int id)` <a id="fetchbangumibyid"></a>
 - **种类：** `AnimeSearchService` 的静态方法
-- **来源：** `lib/features/anime/services/anime_search_service.dart`（第 538 行）
-- **用途：** 按数字 id 抓取一个 bangumi.tv 条目。
+- **来源：** `lib/features/anime/services/anime_search_service.dart`（约第 842 行）
+- **用途：** 按数字 id 抓取一个 bangumi.tv 条目，连同它列出的关联作品。
 - **返回：** `Future<AnimeSearchResult?>` —— 非 200 响应或响应体没有 `id` 时返回 `null`。
-- **副作用：** 向 `api.bgm.tv` 发起一次 HTTP GET（10 秒超时）。
-- **备注：** 路径是 `/v0/subjects/{id}` —— **复数**。单数形式 `/v0/subject/{id}` 返回 404，而旧版的 `/subject/{id}` 与该 API 的其余部分一样是 502。响应形态与 v0 搜索相同，因此一个映射函数即可服务两条路径。
+- **副作用：** 向 `api.bgm.tv` 发起两次 HTTP GET（各 10 秒超时）：先条目，再 [`_fetchBangumiRelations`](#fetchbangumirelations)。
+- **备注：** 路径是 `/v0/subjects/{id}` —— **复数**。单数形式 `/v0/subject/{id}` 返回 404，而旧版的 `/subject/{id}` 与该 API 的其余部分一样是 502。响应形态与 v0 搜索相同，因此一个映射函数即可服务两条路径。1.6.0 起关联关系经 `withRelations` 附上；第二个请求失败时，返回不带关联关系的条目。
+
+### `static Future<List<AnimeExternalRelation>> _fetchBangumiRelations(int id)` <a id="fetchbangumirelations"></a>
+- **种类：** `AnimeSearchService` 的静态方法
+- **来源：** `lib/features/anime/services/anime_search_service.dart`（约第 865 行）
+- **用途：** 抓取 bangumi.tv 为某条目列出的关联作品。
+- **输入：** `id` —— 条目 id。
+- **返回：** `Future<List<AnimeExternalRelation>>` —— 非 200 响应、响应体不是列表、超时或任何其他错误时为空。
+- **副作用：** 带应用的 `User-Agent` 向 `https://api.bgm.tv/v0/subjects/{id}/subjects` 发起一次 HTTP GET（10 秒超时）。
+- **算法：** 按 UTF-8 JSON 解码响应体；是列表时交给 [`mapBangumiRelations`](#mapbangumirelations)。整个调用包在 `try`/`catch` 中。
+- **备注：** 绝不抛出异常：关联关系只是附加信息，没有它们的条目照样能刷新。这是 M2 为每次 bangumi.tv 刷新增加的唯一额外请求；AniList 与 Jikan 在已有的请求中就带回关联关系。
 
 ### `static AnimeSearchResult mapBangumiSubject(Map<String, dynamic> m)` <a id="mapbangumisubject"></a>
 - **种类：** `AnimeSearchService` 的静态方法，`@visibleForTesting`
@@ -334,11 +353,11 @@ client，因此这些映射函数是唯一可行的测试接缝。不要在本�
 
 ### `static Future<AnimeSearchResult?> _fetchMalById(int id)` <a id="fetchmalbyid"></a>
 - **种类：** `AnimeSearchService` 的静态方法
-- **来源：** `lib/features/anime/services/anime_search_service.dart`（第 741 行）
+- **来源：** `lib/features/anime/services/anime_search_service.dart`（约第 1074 行）
 - **用途：** 经 Jikan 按数字 id 抓取一个 MyAnimeList 条目。
 - **返回：** `Future<AnimeSearchResult?>` —— 非 200 响应或 `data` 不是 map 时返回 `null`。
 - **副作用：** 向 `api.jikan.moe` 发起一次 HTTP GET（10 秒超时）。
-- **备注：** `/full` 变体返回与搜索相同的对象形态，只是多了本应用不使用的关联信息，因此 `mapJikanAnime` 无需改动即可处理两者。
+- **备注：** `/full` 变体返回与搜索相同的对象形态，外加 1.6.0 起由 [`mapJikanRelations`](#mapjikanrelations) 读取的 `relations`，因此 `mapJikanAnime` 可处理两者。
 
 ### `static AnimeSearchResult mapJikanAnime(Map<String, dynamic> m)` <a id="mapjikananime"></a>
 - **种类：** `AnimeSearchService` 的静态方法，`@visibleForTesting`
@@ -351,6 +370,7 @@ client，因此这些映射函数是唯一可行的测试接缝。不要在本�
   2. 从 `broadcast` 中经 [`parseDayOfWeek`](#parsedayofweek) 解析 `day`；**仅当** `timezone` 缺失或为 `Asia/Tokyo` 时才采用 `time`。
   3. 遍历 `titles` 数组，把 `Default` → `titleRomaji`、`English` → `titleEn`、`Japanese` → `titleJa`，其余归入 `synonyms`；数组未填满的槽位再回退到扁平的 `title`/`title_english`/`title_japanese` 字段。
   4. 读取 `episodes`、`type` → `format`、`status`、经 [`parseJikanDuration`](#parsejikanduration) 的 `duration`、经 [`_namedList`](#namedlist) 的 `studios`/`genres`，以及 `score`/`scored_by`/`rank`。
+  5. 经 [`mapJikanRelations`](#mapjikanrelations) 映射 `relations`——搜索结果不带它，因此为空。
 - **备注：** 时区判断是关键。Jikan 按 `broadcast.timezone` 所指的时区报告 `broadcast.time`；把非东京时间存为 `Anime.airTime` 会把它标成日本时间，从而让每一集都发生偏移。丢弃它只是让该字段留空，界面能够处理。
 
 ### `static int? parseJikanDuration(String? duration)` <a id="parsejikanduration"></a>
@@ -438,14 +458,15 @@ client，因此这些映射函数是唯一可行的测试接缝。不要在本�
 - **返回：** `Future<List<AnimeSearchResult>>` —— 非 200 响应或缺少 `data.Page.media` 时返回 `[]`。
 - **副作用：** 向 `graphql.anilist.co` 发起一次 HTTP POST（10 秒超时）。
 - **算法：** 把 `_aniListMediaFields` 插入 `Page(perPage: 10) { media(search:, type: ANIME, sort: SEARCH_MATCH) }` 文档，经 [`_postAniList`](#postanilist) 发出，再把每个条目交给 [`mapAniListMedia`](#mapanilistmedia)。
-- **备注：** `_aniListMediaFields` 是唯一共享的 const 字段选择集，因此搜索路径与按 id 路径绝不会请求不同的字段。
+- **备注：** `_aniListMediaFields` 是唯一共享的 const 字段选择集，因此搜索路径与按 id 路径绝不会请求不同的 media 字段。只有按 id 查询额外追加 `_aniListRelationFields`（1.6.0）：搜索结果从不需要关联关系，加上它们会使搜索负载成倍增长。
 
 ### `static Future<AnimeSearchResult?> _fetchAniListById(int id)` <a id="fetchanilistbyid"></a>
 - **种类：** `AnimeSearchService` 的静态方法
-- **来源：** `lib/features/anime/services/anime_search_service.dart`（第 1180 行）
+- **来源：** `lib/features/anime/services/anime_search_service.dart`（约第 1520 行）
 - **用途：** 按数字 id 抓取一个 AniList media 条目。
 - **返回：** `Future<AnimeSearchResult?>` —— id 未知或响应不是 map 时返回 `null`。
 - **副作用：** 向 `graphql.anilist.co` 发起一次 HTTP POST（10 秒超时）。
+- **备注：** 其查询是 `_aniListMediaFields` 加上 `_aniListRelationFields`——`relations { edges { relationType(version: 2) node { id type format siteUrl title { romaji english native } } } }`——因此关联关系不需要额外请求。
 
 ### `static Future<Map<String, dynamic>?> _postAniList(String document, Map<String, dynamic> variables)` <a id="postanilist"></a>
 - **种类：** `AnimeSearchService` 的静态方法
@@ -467,7 +488,38 @@ client，因此这些映射函数是唯一可行的测试接缝。不要在本�
   3. 清理 `description` 中的 HTML（`<br>` → 换行，去掉其余标签，反转义 `&amp;`/`&lt;`/`&gt;`/`&quot;`/`&#39;`）。
   4. 展平 `studios.nodes[].name`；读取 `synonyms`、`episodes`、`duration`、`format`、`status`、`genres`、`popularity` 与 `averageScore`。
   5. `title` 优先 `title.english`、其次 `title.romaji`；`titleJa` 取 `title.native`；同时单独保留罗马音与英文标题。
+  6. 经 [`mapAniListRelations`](#mapanilistrelations) 映射 `relations`——搜索查询不请求它，因此搜索结果为空。
 - **备注：** 有两个决定很重要。其一，基于排期表推导的星期取代了 1.4.0 之前一律用 `startDate.weekday` 猜测的做法——首播若不在常规时段，旧做法就是错的。其二，JST 时刻会经过 [`_jstBroadcastSlot`](#jstbroadcastslot)，因此深夜放送会以 `25:00` 形式归入前一天，并经 [`_alignFirstAirDateToSlot`](#alignfirstairdatetoslot) 把 `firstAirDate` 同步平移。只挪星期而不挪日期会让两者互相矛盾，`getEpisodeCalendarDate()` 的向前对齐反而会把第 1 集推迟一周。`averageScore` 是 0–100，进入时除以 10。
+
+### `static List<AnimeExternalRelation> mapAniListRelations(Map<String, dynamic> m)` <a id="mapanilistrelations"></a>
+- **种类：** `AnimeSearchService` 的静态方法，`@visibleForTesting`
+- **来源：** `lib/features/anime/services/anime_search_service.dart`（约第 1721 行）
+- **用途：** 把 AniList 的关联边映射为关联关系。
+- **输入：** `m` —— 按 id 查询返回的 media 对象。
+- **返回：** `List<AnimeExternalRelation>` —— 只含动画目标；对象不带 `relations`（搜索结果）时为空。
+- **副作用：** 无。
+- **算法：** 遍历 `relations.edges`，跳过 `node.type` 不是 `ANIME` 或 `relationType` 不是字符串的边。保留的边经 `_relation` 与 `_aniListRelationTypes` 表成为一条关联关系：`PREQUEL`、`SEQUEL`、`PARENT`、`SIDE_STORY`、`SUMMARY` 与 `COMPILATION`（都 → `summary`）、`SPIN_OFF`、`ALTERNATIVE`；其他值成为带 `rawType` 的 `other`。`targetUrl` 取 `node.siteUrl`，否则为 `https://anilist.co/anime/<id>`；`title` 依次取 native、romaji、English；`format` 取 `node.format`。
+- **备注：** 该表覆盖 `relationType(version: 2)` 的取值；`ADAPTATION`、`CHARACTER`、`SOURCE` 等落入 `other`。
+
+### `static List<AnimeExternalRelation> mapJikanRelations(Map<String, dynamic> m)` <a id="mapjikanrelations"></a>
+- **种类：** `AnimeSearchService` 的静态方法，`@visibleForTesting`
+- **来源：** `lib/features/anime/services/anime_search_service.dart`（约第 1759 行）
+- **用途：** 把 Jikan `/full` 的关联信息映射为关联关系。
+- **输入：** `m` —— 来自 `/anime/{id}/full` 的 anime 对象。
+- **返回：** `List<AnimeExternalRelation>` —— `type` 为 `anime` 的每个条目一条。
+- **副作用：** 无。
+- **算法：** 遍历 `relations` 分组（`{relation, entry: [...]}`）；每个动画条目按其分组名经 `_jikanRelationTypes` 表成为一条关联关系：`Prequel`、`Sequel`、`Parent Story` 与 `Full Story`（→ `parent`）、`Side Story`、`Summary`、`Spin-Off`、`Alternative Setting` 与 `Alternative Version`（→ `alternative`）。`targetUrl` 为 `https://myanimelist.net/anime/<mal_id>`；`title` 取条目的 `name`。Jikan 不提供 format。
+- **备注：** 搜索结果不带 `relations`，因此映射为空列表。
+
+### `static List<AnimeExternalRelation> mapBangumiRelations(List<dynamic> list)` <a id="mapbangumirelations"></a>
+- **种类：** `AnimeSearchService` 的静态方法，`@visibleForTesting`
+- **来源：** `lib/features/anime/services/anime_search_service.dart`（约第 1790 行）
+- **用途：** 把 bangumi.tv 的关联条目列表映射为关联关系。
+- **输入：** `list` —— `GET /v0/subjects/{id}/subjects` 的响应体。
+- **返回：** `List<AnimeExternalRelation>` —— 只含动画目标（`type == 2`）。
+- **副作用：** 无。
+- **算法：** 每个带字符串 `relation` 的动画条目经 `_bangumiRelationTypes` 表成为一条关联关系：`前传`、`续集`、`主线故事`（→ `parent`）、`番外篇`（→ `sideStory`）、`总集篇`（→ `summary`）、`衍生`（→ `spinOff`）、`不同演绎` 与 `不同世界观`（→ `alternative`）。`targetUrl` 为 `https://bgm.tv/subject/<id>`；`title` 在 `name_cn` 非空时取它，否则取 `name`。不读取 format。
+- **备注：** 这些关联名于 2026-09-24 对照线上端点核对过。书籍、音乐与游戏（`type` 不为 `2`）被跳过，因此作为原作列出的轻小说绝不会成为关联关系。
 
 ### `static DateTime? _aniListDate(Object? value)` <a id="anilistdate"></a>
 - **种类：** `AnimeSearchService` 的静态方法

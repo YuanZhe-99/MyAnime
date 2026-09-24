@@ -52,6 +52,13 @@ Only `sourceUrl` and at least one title are guaranteed. Everything else depends 
 | `score` / `votes` / `rank` | ✅ | ✅ | ✅ (no rank) | — | — |
 | `coverImageUrl` | ✅ | ✅ | ✅ | ✅ | ✅ |
 | `summary` | ✅ | ✅ | ✅ | — | — |
+| `relations` (refresh only) | ✅ (second request) | ✅ (`/full`) | ✅ (by-id query) | — | — |
+
+`relations` (1.6.0) never come from a search: the search queries do not ask for them, and applying a
+search result leaves them empty until the next refresh fills them in. Each source's relation names
+are normalised onto one set of types; see `relations` in [`../data-formats.md`](../data-formats.md)
+and the mappers in
+[`../functions/features/anime/services/anime_search_service.md`](../functions/features/anime/services/anime_search_service.md#mapanilistrelations).
 
 Three schedule details are worth calling out, because getting them wrong silently mis-schedules
 every episode:
@@ -176,13 +183,21 @@ same handler.
 
 | URL | Endpoint |
 |---|---|
-| `anilist.co/anime/<id>` | GraphQL `Media(id:)`, same field selection as search |
-| `myanimelist.net/anime/<id>` | `api.jikan.moe/v4/anime/<id>/full` |
-| `bgm.tv` / `bangumi.tv` / `chii.in` `/subject/<id>` | `api.bgm.tv/v0/subjects/<id>` (plural path) |
+| `anilist.co/anime/<id>` | GraphQL `Media(id:)`, same field selection as search plus `relations` |
+| `myanimelist.net/anime/<id>` | `api.jikan.moe/v4/anime/<id>/full` (its `relations` are read since 1.6.0) |
+| `bgm.tv` / `bangumi.tv` / `chii.in` `/subject/<id>` | `api.bgm.tv/v0/subjects/<id>` (plural path), then `api.bgm.tv/v0/subjects/<id>/subjects` for relations |
 
 Anything else returns `null`. `acgsecrets.hk` and `filmarks.com` are scraped rather than queried by
 id, so they have no stable by-URL endpoint and are skipped. Each API's response is run through the
 *same* mapper the search path uses, so search and refresh can never drift apart.
+
+Since 1.6.0 a refresh also brings back each source's **relations** (prequels, sequels, spin-offs, …).
+AniList and Jikan deliver them in the request a refresh already makes; bangumi.tv needs a second
+`GET` for its related subjects. That second request never fails the refresh: if it errors, the
+subject is returned without relations. Only anime targets are kept. Refresh pacing is unchanged:
+the background updater's 5 s gap per record now simply covers two bangumi.tv requests instead of
+one (see [`metadata-auto-update.md`](metadata-auto-update.md)). Relations feed series linking — see
+[`series-linking.md`](series-linking.md).
 
 `refreshAll(urls)` fetches several in parallel, skipping failures rather than failing the batch.
 
@@ -190,6 +205,8 @@ The detail page (`anime_detail_page.dart`) exposes this as a "refresh database i
 collects `infoUrl` plus every `externalMeta.ratings[].sourceUrl`, merges each fetched result into
 the existing record via `AnimeExternalMeta.mergedWith`, and saves. **Only external metadata is
 touched** — the user's own rating, episode progress, and manual edits are left exactly as they are.
+`mergedWith` replaces a source's relations only when the fresh fetch supplied some, and keeps the
+other sources'.
 
 ## Flavor gating
 

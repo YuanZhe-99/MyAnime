@@ -2,7 +2,7 @@
 
 `AnimeEditPage` 是单条 `Anime` 记录的创建/编辑表单：标题/季/集数范围/URL/备注的文本字段、类型覆盖和播出日的下拉框、`firstAirDate` 的日期选择器、评分子分字段、记录本地下载存档的本地存档小节，以及（仅 full 风味构建）在线元数据搜索和观看 URL 搜索集成。它通过 `AnimeStorage`（[`../services/anime_storage.md`](../services/anime_storage.md)）持久化，并构建/解析 `Anime`/`AnimeRating`/`AnimeLocalArchive` 模型（[`../models/anime.md`](../models/anime.md)）；存档枚举标签来自 [`archive_labels.md`](archive_labels.md)。它还定义了一个仅供自己的观看 URL 搜索操作使用的私有 `_WatchUrlSearchDialog`。这里编辑的字段（`manualType`、`airDayOfWeek`、`airTime`、`firstAirDate`）如何驱动季度归属和剧集播出日期计算见 [`../../../../features/anime-tracking.md`](../../../../features/anime-tracking.md)。
 
-自 1.6.0 起，新建路由（`/anime/edit`，见 [`../../../app/router.md`](../../../app/router.md)）可以把 `NextSeasonPrefill`（[`../services/series_service.md`](../services/series_service.md#nextseasonprefill)）作为 `extra` 携带：系列卡片的*添加下一季*操作打开本页时会复制标题、递增季标签，并带一个待定的关联，由 [`_saveNew`](#_savenew) 仅在新记录保存时写入。编辑时忽略 `prefill` 构造参数。
+自 1.6.0 起，新建路由（`/anime/edit`，见 [`../../../app/router.md`](../../../app/router.md)）可以把 `NextSeasonPrefill`（[`../services/series_service.md`](../services/series_service.md#nextseasonprefill)）作为 `extra` 携带：系列卡片的*添加下一季*操作打开本页时会复制标题、递增季标签，并带一个待定的关联，由 [`_saveNew`](#_savenew) 仅在新记录保存时写入。编辑时忽略 `prefill` 构造参数。详情页的缺失续作提示（1.6.0 M2）用 [`NextSeasonPrefill.fromRelation`](../services/series_service.md#nextseasonprefill-fromrelation) 打开同一路由，其 `autoSearch` 标志让 `initState` 在首帧之后打开在线搜索对话框——仅限完整版构建。`initState` 自己检查 `AppFlavor.isFull`，因此即使关联数据是经同步到达的，商店版构建也只得到预填的标题而不会搜索。
 
 ## 声明
 
@@ -10,7 +10,7 @@
 |---|---|---|---|
 | `AnimeEditPage.new` | 构造函数（`AnimeEditPage`） | B | 创建 `AnimeEditPage`，可选绑定到既有动画 ID，或（仅新建路由）由 `NextSeasonPrefill` 预填。 |
 | `AnimeEditPage.createState` | 方法（`AnimeEditPage`） | B | 为此组件创建可变状态对象。 |
-| `_AnimeEditPageState.initState` | 方法（`_AnimeEditPageState`） | B | 设置默认季文本，新建时应用下一季预填，编辑时触发加载既有记录。 |
+| `_AnimeEditPageState.initState` | 方法（`_AnimeEditPageState`） | B | 设置默认季文本，新建时应用下一季预填（其 `autoSearch` 已设置且为完整版构建时启动在线搜索），编辑时触发加载既有记录。 |
 | [`_loadExisting`](#_loadexisting) | 方法（`_AnimeEditPageState`） | A | 加载既有动画并从它填充每个表单字段/控制器。 |
 | `_AnimeEditPageState.dispose` | 方法（`_AnimeEditPageState`） | B | 释放全部 17 个自有的 `TextEditingController`。 |
 | [`_pickCoverImage`](#_pickcoverimage) | 方法（`_AnimeEditPageState`） | A | 让用户选择封面图像文件并暂存其路径。 |

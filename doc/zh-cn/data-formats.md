@@ -120,6 +120,35 @@ enum AnimeType {
   （`1-12+OVA`）。对象内的未知键与其他地方一样被保留。它放在 `externalMeta` 里，因为它是同一类数据——经
   `AnimeStorage.patchExternalMeta` 写入的公开站点信息缓存，绝不修改 `modifiedAt`。见
   [`features/watch-url-lookup.md`](features/watch-url-lookup.md)。
+- `relations` —— 自 1.6.0 起，各资料库列出的关联作品，以 `AnimeExternalRelation` 条目保存：
+
+  ```json
+  "relations": [
+    {
+      "source": "AniList",
+      "type": "sequel",
+      "targetUrl": "https://anilist.co/anime/12345",
+      "title": "葬送のフリーレン 第2期",
+      "format": "TV"
+    },
+    {
+      "source": "AniList",
+      "type": "other",
+      "targetUrl": "https://anilist.co/anime/67890",
+      "title": "Crossover Short",
+      "format": "ONA",
+      "rawType": "CHARACTER"
+    }
+  ]
+  ```
+
+  `source` 是资料库的显示名，`targetUrl` 是关联作品在该资料库上的页面。`type` 归一化为 `prequel`、
+  `sequel`、`parent`、`sideStory`、`summary`、`spinOff`、`alternative` 或 `other`；来源自己的关联名映射为
+  `other` 时，原样保留为 `rawType`。`title` 与 `format` 取来源报告的值（Jikan 与 bangumi.tv 不提供
+  format）。只保留动画目标。本版本不认识的 `type` 在写回时原样保留，而不会降级为 `other`；每个条目内的未知键
+  与其他地方一样被保留。只由刷新经 `AnimeStorage.patchExternalMeta` 写入，绝不修改 `modifiedAt`；搜索结果从不
+  携带关联关系。列表为空时省略该键。系列关联会读取它——见
+  [`features/series-linking.md`](features/series-linking.md)。
 
 **`ratings` 与 `AnimeRating` 刻意分离。** `AnimeRating` 保存的是*用户自己*的评分，任何抓取都不会写入它；
 `externalMeta.ratings` 保存的是各外部资料库的评分，统一归一化到 10 分制（`scoreMax`，默认 `10`）。每条
@@ -128,14 +157,15 @@ enum AnimeType {
 来源只会替换该来源的记录，其余保持不变。
 
 `AnimeExternalMeta.mergedWith(other)` 实现这一合并。标量与列表字段只在 `other` 确实提供时才取用，因此
-对 AniList 刷新（部分作品它不报告制作公司）绝不会抹掉 bangumi.tv 贡献的制作公司。
+对 AniList 刷新（部分作品它不报告制作公司）绝不会抹掉 bangumi.tv 贡献的制作公司。`relations` 与 `ratings`
+一样按来源替换：提供了关联关系的来源替换它自己先前的列表，其他来源的列表保留。
 
 **整个对象为空时会被省略**，规则与 `AnimeLocalArchive` 相同：全空记录的 `hasAnyData` 为 false，此时
 `Anime.toJson()` 不写 `externalMeta` 键，`Anime.fromJson()` 也会丢弃解析出的全空记录。从未应用过搜索
 结果的番剧，其序列化结果与该字段存在之前完全一致。
 
 **它会与不会去到哪里。** 与 `AnimeLocalArchive` 不同，这是关于作品本身的公开信息而非个人基础设施信息，
-因此**不会**从分享文件中剥离：
+因此**不会**从分享文件中剥离。它的每个部分——包括 `ratings`、`watchProgress` 和 `relations`——都以同样方式流转：
 
 | 场景 | 是否包含？ |
 |---|---|

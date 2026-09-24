@@ -4,15 +4,15 @@ This is the top-level index of the hand-written Function Explanation Layer docum
 `lib/` in the MyAnime repo. Each row links to a per-source-file page under `doc/en-us/functions/`
 mirroring the `lib/` tree (with `.dart` replaced by `.md`).
 
-**Totals:** the repo's `/// Purpose:` comment count is **1046** (per the Function Explanation Layer
+**Totals:** the repo's `/// Purpose:` comment count is **1061** (per the Function Explanation Layer
 convention in `AGENTS.md`, excluding generated `lib/l10n/` code — see [l10n/INDEX.md](l10n/INDEX.md)).
-The rows below sum to **1028** documented declarations.
+The rows below sum to **1043** documented declarations.
 
 | Tier | Count |
 |---|---|
-| Tier A (full entry: Purpose/Inputs/Returns/Side effects/Algorithm/Usage/Notes) | 631 |
-| Tier B (index row only) | 397 |
-| **Total** | **1028** |
+| Tier A (full entry: Purpose/Inputs/Returns/Side effects/Algorithm/Usage/Notes) | 644 |
+| Tier B (index row only) | 399 |
+| **Total** | **1043** |
 
 **Known gap.** These two numbers do not match: 18 declarations carry a `/// Purpose:` comment in
 source but have no row here, so the index under-covers `lib/` by that much. The 1.5.7 recount found
@@ -41,6 +41,9 @@ net of the two `Anime1Service` helpers that moved into `season_label.dart` — a
 `anime_edit_page.dart`'s stale Tier A count from 9 to the 13 its page already documented; the gap
 stayed at 18, and again in 1.6.0 (M3, on-device AI), which added 67 across four new files and two
 changed ones (`app_settings.dart` and `anime_storage.dart`; `main.dart` changed without a new
+declaration); the gap stayed at 18, and again in 1.6.0 (M2, relation metadata), which added 15
+across four changed files (`anime.dart`, `anime_search_service.dart`, `series_service.dart` and
+`anime_detail_page.dart`; `anime_edit_page.dart` and `series_widgets.dart` changed without a new
 declaration); the gap stayed at 18. The
 pre-1.4.0 figures (682
 `Purpose:` comments and 685 documented declarations) had drifted far from both the source and this
@@ -88,16 +91,16 @@ that carry a `/// Purpose:` comment. See [../on-device-ai.md](../on-device-ai.md
 
 | Source file | Page | Declarations | Tier A count |
 |---|---|---|---|
-| `lib/features/anime/models/anime.dart` | [features/anime/models/anime.md](features/anime/models/anime.md) | 79 | 64 |
+| `lib/features/anime/models/anime.dart` | [features/anime/models/anime.md](features/anime/models/anime.md) | 83 | 68 |
 | `lib/features/anime/models/metadata_update.dart` | [features/anime/models/metadata_update.md](features/anime/models/metadata_update.md) | 22 | 9 |
 | `lib/features/anime/services/anime_storage.dart` | [features/anime/services/anime_storage.md](features/anime/services/anime_storage.md) | 47 | 39 |
 | `lib/features/anime/services/anime1_service.dart` | [features/anime/services/anime1_service.md](features/anime/services/anime1_service.md) | 31 | 17 |
-| `lib/features/anime/services/anime_search_service.dart` | [features/anime/services/anime_search_service.md](features/anime/services/anime_search_service.md) | 59 | 39 |
+| `lib/features/anime/services/anime_search_service.dart` | [features/anime/services/anime_search_service.md](features/anime/services/anime_search_service.md) | 65 | 43 |
 | `lib/features/anime/services/metadata_cache.dart` | [features/anime/services/metadata_cache.md](features/anime/services/metadata_cache.md) | 10 | 7 |
 | `lib/features/anime/services/metadata_update_service.dart` | [features/anime/services/metadata_update_service.md](features/anime/services/metadata_update_service.md) | 44 | 27 |
-| `lib/features/anime/services/series_service.dart` | [features/anime/services/series_service.md](features/anime/services/series_service.md) | 26 | 14 |
+| `lib/features/anime/services/series_service.dart` | [features/anime/services/series_service.md](features/anime/services/series_service.md) | 30 | 18 |
 | `lib/features/anime/views/anime1_labels.dart` | [features/anime/views/anime1_labels.md](features/anime/views/anime1_labels.md) | 4 | 4 |
-| `lib/features/anime/views/anime_detail_page.dart` | [features/anime/views/anime_detail_page.md](features/anime/views/anime_detail_page.md) | 31 | 13 |
+| `lib/features/anime/views/anime_detail_page.dart` | [features/anime/views/anime_detail_page.md](features/anime/views/anime_detail_page.md) | 32 | 14 |
 | `lib/features/anime/views/anime_edit_page.dart` | [features/anime/views/anime_edit_page.md](features/anime/views/anime_edit_page.md) | 29 | 14 |
 | `lib/features/anime/views/anime_search_dialog.dart` | [features/anime/views/anime_search_dialog.md](features/anime/views/anime_search_dialog.md) | 34 | 17 |
 | `lib/features/anime/views/archive_labels.dart` | [features/anime/views/archive_labels.md](features/anime/views/archive_labels.md) | 3 | 3 |
@@ -176,8 +179,8 @@ the 771 hand-documented declarations above).
 | Root (`lib/`) | 1 | 1 | 1 | 0 |
 | `app/` | 5 | 19 | 14 | 5 |
 | `features/ai/` | 4 | 61 | 22 | 39 |
-| `features/anime/` | 19 | 581 | 332 | 249 |
+| `features/anime/` | 19 | 596 | 345 | 251 |
 | `features/kana/` | 1 | 19 | 3 | 16 |
 | `features/settings/` | 4 | 49 | 28 | 21 |
 | `shared/` (utils, widgets, providers, services, views) | 29 | 298 | 231 | 67 |
-| **Total** | **63** | **1028** | **631** | **397** |
+| **Total** | **63** | **1043** | **644** | **399** |

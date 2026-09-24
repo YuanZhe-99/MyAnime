@@ -57,6 +57,7 @@ const _externalMetaJsonKeys = {
   'ratings',
   'refreshedAt',
   'watchProgress',
+  'relations',
 };
 
 const _watchProgressJsonKeys = {
@@ -1080,6 +1081,144 @@ class AnimeWatchProgress {
   }
 }
 
+/// How a related work relates to the record that lists it, normalised across
+/// AniList, MyAnimeList and bangumi.tv.
+enum AnimeRelationType {
+  /// The work that came before.
+  prequel,
+
+  /// The work that comes next.
+  sequel,
+
+  /// The main story this work belongs to.
+  parent,
+
+  /// A side story, OVA or special of the same story.
+  sideStory,
+
+  /// A recap or compilation.
+  summary,
+
+  /// A spin-off: a different work in the same world.
+  spinOff,
+
+  /// An alternative version or setting.
+  alternative,
+
+  /// Anything else (character crossover, adaptation source, …).
+  other;
+
+  /// Purpose: Report whether this relation places both works in one series.
+  /// Inputs: None.
+  /// Returns: `bool` — true for prequel, sequel, parent, side story and
+  /// summary.
+  /// Side effects: None.
+  /// Notes: Spin-offs and alternatives are offered as series suggestions only.
+  bool get isSameSeries => switch (this) {
+    prequel || sequel || parent || sideStory || summary => true,
+    _ => false,
+  };
+}
+
+const _externalRelationJsonKeys = {
+  'source',
+  'type',
+  'targetUrl',
+  'title',
+  'format',
+};
+
+/// One related work an external database lists for an anime.
+///
+/// Public metadata: it syncs, is backed up, and stays in share files like the
+/// rest of `externalMeta`. Written only through
+/// `AnimeStorage.patchExternalMeta`, never bumping `modifiedAt`.
+class AnimeExternalRelation {
+  /// Display name of the database that reported it, e.g. `AniList`.
+  final String source;
+
+  /// The normalised relation.
+  final AnimeRelationType type;
+
+  /// The related work's page URL on that database.
+  final String? targetUrl;
+
+  /// The related work's title, as the database reports it.
+  final String? title;
+
+  /// The related work's release format, e.g. `TV`, `MOVIE`.
+  final String? format;
+
+  /// JSON fields this app version does not understand yet; also holds the
+  /// source's raw relation name (`rawType`) when it mapped to `other`.
+  final Map<String, dynamic> extraJson;
+
+  /// Purpose: Create an external relation.
+  /// Inputs: `source`, `type`, `targetUrl`, `title`, `format`, `extraJson`.
+  /// Returns: A new `AnimeExternalRelation`.
+  /// Side effects: None.
+  /// Notes: None.
+  const AnimeExternalRelation({
+    required this.source,
+    required this.type,
+    this.targetUrl,
+    this.title,
+    this.format,
+    this.extraJson = const {},
+  });
+
+  /// Purpose: Serialize this value into a JSON-compatible map.
+  /// Inputs: None.
+  /// Returns: `Map<String, dynamic>`.
+  /// Side effects: None.
+  /// Notes: A `type` this build could not parse stays in `extraJson` and is
+  /// written back verbatim instead of `other`.
+  Map<String, dynamic> toJson() {
+    final json = Map<String, dynamic>.from(extraJson);
+    if (!extraJson.containsKey('source')) json['source'] = source;
+    if (!extraJson.containsKey('type')) json['type'] = type.name;
+    if (targetUrl != null) json['targetUrl'] = targetUrl;
+    if (title != null) json['title'] = title;
+    if (format != null) json['format'] = format;
+    return json;
+  }
+
+  /// Purpose: Create an instance from a JSON-compatible map.
+  /// Inputs: `json`.
+  /// Returns: A new `AnimeExternalRelation`.
+  /// Side effects: None.
+  /// Notes: An unknown or unparseable `type` reads as `other` and is kept in
+  /// `extraJson`; non-string fields are kept there too.
+  factory AnimeExternalRelation.fromJson(Map<String, dynamic> json) {
+    final extraJson = _unknownJson(json, _externalRelationJsonKeys);
+    String? readString(String key) {
+      final raw = json[key];
+      if (raw is String) return raw;
+      if (json.containsKey(key)) extraJson[key] = raw;
+      return null;
+    }
+
+    final rawType = json['type'];
+    var type = AnimeRelationType.other;
+    final known = rawType is String
+        ? AnimeRelationType.values.where((t) => t.name == rawType).firstOrNull
+        : null;
+    if (known != null) {
+      type = known;
+    } else if (json.containsKey('type')) {
+      extraJson['type'] = rawType;
+    }
+    return AnimeExternalRelation(
+      source: readString('source') ?? '',
+      type: type,
+      targetUrl: readString('targetUrl'),
+      title: readString('title'),
+      format: readString('format'),
+      extraJson: extraJson,
+    );
+  }
+}
+
 class AnimeExternalMeta {
   /// Alternate titles across languages, as reported by the sources.
   final List<String> synonyms;
@@ -1117,11 +1256,14 @@ class AnimeExternalMeta {
   /// What the watch site listed for `watchUrl` when last checked.
   final AnimeWatchProgress? watchProgress;
 
+  /// Related works the databases list (prequels, sequels, spin-offs, …).
+  final List<AnimeExternalRelation> relations;
+
   /// JSON fields this app version does not understand yet.
   final Map<String, dynamic> extraJson;
 
   /// Purpose: Create an external metadata instance.
-  /// Inputs: `synonyms`, `titleRomaji`, `titleEn`, `format`, `status`, `durationMinutes`, `genres`, `studios`, `endDate`, `ratings`, `refreshedAt`, `watchProgress`, `extraJson`.
+  /// Inputs: `synonyms`, `titleRomaji`, `titleEn`, `format`, `status`, `durationMinutes`, `genres`, `studios`, `endDate`, `ratings`, `refreshedAt`, `watchProgress`, `relations`, `extraJson`.
   /// Returns: A new `AnimeExternalMeta` instance.
   /// Side effects: None.
   /// Notes: None.
@@ -1138,6 +1280,7 @@ class AnimeExternalMeta {
     this.ratings = const [],
     this.refreshedAt,
     this.watchProgress,
+    this.relations = const [],
     this.extraJson = const {},
   });
 
@@ -1159,6 +1302,7 @@ class AnimeExternalMeta {
       endDate != null ||
       ratings.isNotEmpty ||
       watchProgress != null ||
+      relations.isNotEmpty ||
       extraJson.isNotEmpty;
 
   /// Purpose: Look up this record's rating for one source.
@@ -1217,7 +1361,9 @@ class AnimeExternalMeta {
   /// Side effects: None.
   /// Notes: Scalar and list fields are taken from `other` only when it actually
   /// supplies them, so refreshing against one source never erases what another
-  /// source contributed. Ratings are replaced per `source` name.
+  /// source contributed. Ratings are replaced per `source` name, and so are
+  /// relations: a source that supplies any replaces its own earlier list, and
+  /// the other sources' lists are kept.
   AnimeExternalMeta mergedWith(
     AnimeExternalMeta other, {
     DateTime? refreshedAt,
@@ -1229,6 +1375,12 @@ class AnimeExternalMeta {
       mergedRatings[rating.source] = rating;
     }
     final mergedSynonyms = <String>{...synonyms, ...other.synonyms}.toList();
+    final refreshedSources = {for (final r in other.relations) r.source};
+    final mergedRelations = [
+      for (final r in relations)
+        if (!refreshedSources.contains(r.source)) r,
+      ...other.relations,
+    ];
     return AnimeExternalMeta(
       synonyms: mergedSynonyms,
       titleRomaji: other.titleRomaji ?? titleRomaji,
@@ -1242,6 +1394,7 @@ class AnimeExternalMeta {
       ratings: mergedRatings.values.toList(),
       refreshedAt: refreshedAt ?? other.refreshedAt ?? this.refreshedAt,
       watchProgress: other.watchProgress ?? watchProgress,
+      relations: mergedRelations,
       extraJson: _mergeJsonMaps([extraJson, other.extraJson]),
     );
   }
@@ -1265,6 +1418,7 @@ class AnimeExternalMeta {
         ratings: ratings,
         refreshedAt: refreshedAt,
         watchProgress: watchProgress,
+        relations: relations,
         extraJson: extraJson,
       );
 
@@ -1323,6 +1477,11 @@ class AnimeExternalMeta {
       json['watchProgress'] = watchProgress!.toJson();
     } else if (!extraJson.containsKey('watchProgress')) {
       json.remove('watchProgress');
+    }
+    if (relations.isNotEmpty) {
+      json['relations'] = relations.map((r) => r.toJson()).toList();
+    } else if (!extraJson.containsKey('relations')) {
+      json.remove('relations');
     }
     return json;
   }
@@ -1398,6 +1557,22 @@ class AnimeExternalMeta {
       extraJson['watchProgress'] = rawProgress;
     }
 
+    final relations = <AnimeExternalRelation>[];
+    final rawRelations = json['relations'];
+    if (rawRelations is List) {
+      final unparsed = <dynamic>[];
+      for (final entry in rawRelations) {
+        if (entry is Map) {
+          relations.add(AnimeExternalRelation.fromJson(_stringKeyedMap(entry)));
+        } else {
+          unparsed.add(entry);
+        }
+      }
+      if (unparsed.isNotEmpty) extraJson['relations'] = unparsed;
+    } else if (json.containsKey('relations')) {
+      extraJson['relations'] = rawRelations;
+    }
+
     return AnimeExternalMeta(
       synonyms: readList('synonyms'),
       titleRomaji: readString('titleRomaji'),
@@ -1411,6 +1586,7 @@ class AnimeExternalMeta {
       ratings: ratings,
       refreshedAt: refreshedAt,
       watchProgress: watchProgress,
+      relations: relations,
       extraJson: extraJson,
     );
   }

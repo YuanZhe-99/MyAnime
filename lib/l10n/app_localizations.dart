@@ -1313,6 +1313,30 @@ abstract class AppLocalizations {
   /// **'Series: automatic'**
   String get syncSeriesAuto;
 
+  /// No description provided for @seriesMissingSequel.
+  ///
+  /// In en, this message translates to:
+  /// **'Next: {title} ({source})'**
+  String seriesMissingSequel(String title, String source);
+
+  /// No description provided for @seriesMissingSequelHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Listed by the database but not in your library. Tap to add it.'**
+  String get seriesMissingSequelHint;
+
+  /// No description provided for @seriesSuggestionSpinOff.
+  ///
+  /// In en, this message translates to:
+  /// **'Spin-off'**
+  String get seriesSuggestionSpinOff;
+
+  /// No description provided for @seriesSuggestionAlternative.
+  ///
+  /// In en, this message translates to:
+  /// **'Alternative version'**
+  String get seriesSuggestionAlternative;
+
   /// No description provided for @aiSectionTitle.
   ///
   /// In en, this message translates to:

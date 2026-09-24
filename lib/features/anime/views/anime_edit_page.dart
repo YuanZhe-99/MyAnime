@@ -33,7 +33,8 @@ class AnimeEditPage extends StatefulWidget {
   /// Returns: A new `AnimeEditPage` instance.
   /// Side effects: None.
   /// Notes: `autoSearch` is ignored without an `animeId`, since there would be
-  /// no title to search with; `prefill` is ignored with one.
+  /// no title to search with; `prefill` is ignored with one, and its own
+  /// `autoSearch` is honoured only in full builds.
   const AnimeEditPage({
     super.key,
     this.animeId,
@@ -101,6 +102,13 @@ class _AnimeEditPageState extends State<AnimeEditPage> {
       _titleController.text = prefill.title ?? '';
       _titleJaController.text = prefill.titleJa ?? '';
       _seasonController.text = prefill.season;
+      // The missing-sequel hint: search for it straight away, in full builds
+      // only — store builds never reach the online search.
+      if (prefill.autoSearch && AppFlavor.isFull) {
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (mounted) _showSearchDialog();
+        });
+      }
     }
 
     if (widget.animeId != null) {

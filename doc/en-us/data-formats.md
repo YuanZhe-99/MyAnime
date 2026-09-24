@@ -153,6 +153,38 @@ search (see [`features/multi-source-search.md`](features/multi-source-search.md)
   because it is the same kind of data — a cache of public site information written through
   `AnimeStorage.patchExternalMeta`, never touching `modifiedAt`. See
   [`features/watch-url-lookup.md`](features/watch-url-lookup.md).
+- `relations` — since 1.6.0, the related works the databases list, as `AnimeExternalRelation`
+  entries:
+
+  ```json
+  "relations": [
+    {
+      "source": "AniList",
+      "type": "sequel",
+      "targetUrl": "https://anilist.co/anime/12345",
+      "title": "葬送のフリーレン 第2期",
+      "format": "TV"
+    },
+    {
+      "source": "AniList",
+      "type": "other",
+      "targetUrl": "https://anilist.co/anime/67890",
+      "title": "Crossover Short",
+      "format": "ONA",
+      "rawType": "CHARACTER"
+    }
+  ]
+  ```
+
+  `source` is the database's display name and `targetUrl` the related work's page there. `type` is
+  normalised to `prequel`, `sequel`, `parent`, `sideStory`, `summary`, `spinOff`, `alternative` or
+  `other`; when the source's own name maps to `other`, it is kept verbatim as `rawType`. `title` and
+  `format` are what the source reports (Jikan and bangumi.tv give no format). Only anime targets are
+  kept. A `type` this build does not recognise is preserved verbatim on write rather than
+  downgraded to `other`, and unknown keys inside each entry survive as everywhere else. Written only
+  by a refresh, through `AnimeStorage.patchExternalMeta`, never touching `modifiedAt`; search results
+  never carry relations. The key is omitted when the list is empty. Series linking reads it — see
+  [`features/series-linking.md`](features/series-linking.md).
 
 **`ratings` is separate from `AnimeRating` on purpose.** `AnimeRating` holds the *user's own* scores
 and is never written by a fetch; `externalMeta.ratings` holds each external database's score,
@@ -163,7 +195,9 @@ refreshing one source replaces that source's entry and leaves the others alone.
 
 `AnimeExternalMeta.mergedWith(other)` implements that fold. Scalar and list fields are taken from
 `other` only when it actually supplies them, so refreshing against AniList — which reports no
-studios for some titles — never erases the studios bangumi.tv contributed.
+studios for some titles — never erases the studios bangumi.tv contributed. `relations` are replaced
+per source like `ratings`: a source that supplies any replaces its own earlier list, and the other
+sources' lists are kept.
 
 **The whole object is omitted when empty**, following the same rule as `AnimeLocalArchive`:
 `hasAnyData` is false for an all-empty record, `Anime.toJson()` then writes no `externalMeta` key,
@@ -171,7 +205,8 @@ and `Anime.fromJson()` discards an all-empty parsed record. An anime that never 
 applied serializes exactly as it did before this field existed.
 
 **Where it does and does not travel.** Unlike `AnimeLocalArchive`, this is public information about
-the work rather than personal infrastructure, so it is **not** stripped from share files:
+the work rather than personal infrastructure, so it is **not** stripped from share files. Every part
+of it — `ratings`, `watchProgress` and `relations` included — travels the same way:
 
 | Surface | Included? |
 |---|---|

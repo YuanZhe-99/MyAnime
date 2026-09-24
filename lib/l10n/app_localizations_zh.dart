@@ -706,6 +706,20 @@ class AppLocalizationsZh extends AppLocalizations {
   String get syncSeriesAuto => '系列：自动';
 
   @override
+  String seriesMissingSequel(String title, String source) {
+    return '下一部：$title（$source）';
+  }
+
+  @override
+  String get seriesMissingSequelHint => '资料库中列出、但番剧库里还没有。点按即可添加。';
+
+  @override
+  String get seriesSuggestionSpinOff => '衍生作品';
+
+  @override
+  String get seriesSuggestionAlternative => '不同版本';
+
+  @override
   String get aiSectionTitle => '分类与推荐';
 
   @override
@@ -2399,6 +2413,20 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
 
   @override
   String get syncSeriesAuto => '系列：自動';
+
+  @override
+  String seriesMissingSequel(String title, String source) {
+    return '下一部：$title（$source）';
+  }
+
+  @override
+  String get seriesMissingSequelHint => '資料庫中列出、但番劇庫裡還沒有。點按即可新增。';
+
+  @override
+  String get seriesSuggestionSpinOff => '衍生作品';
+
+  @override
+  String get seriesSuggestionAlternative => '不同版本';
 
   @override
   String get aiSectionTitle => '分類與推薦';

@@ -49,6 +49,12 @@
 | `score` / `votes` / `rank` | ✅ | ✅ | ✅（无 rank） | — | — |
 | `coverImageUrl` | ✅ | ✅ | ✅ | ✅ | ✅ |
 | `summary` | ✅ | ✅ | ✅ | — | — |
+| `relations`（仅刷新） | ✅（第二个请求） | ✅（`/full`） | ✅（按 id 查询） | — | — |
+
+`relations`（1.6.0）从不来自搜索：搜索查询不请求它，应用搜索结果后它保持为空，直到下一次刷新把它补上。各来源的
+关联名被归一化为同一套类型；见 [`../data-formats.md`](../data-formats.md) 中的 `relations`，以及
+[`../functions/features/anime/services/anime_search_service.md`](../functions/features/anime/services/anime_search_service.md#mapanilistrelations)
+中的映射函数。
 
 有三处排期细节值得特别说明，因为弄错会静默地把每一集的排期都算错：
 
@@ -151,18 +157,25 @@
 
 | URL | 端点 |
 |---|---|
-| `anilist.co/anime/<id>` | GraphQL `Media(id:)`，字段选择集与搜索相同 |
-| `myanimelist.net/anime/<id>` | `api.jikan.moe/v4/anime/<id>/full` |
-| `bgm.tv` / `bangumi.tv` / `chii.in` 的 `/subject/<id>` | `api.bgm.tv/v0/subjects/<id>`（复数路径） |
+| `anilist.co/anime/<id>` | GraphQL `Media(id:)`，字段选择集与搜索相同，外加 `relations` |
+| `myanimelist.net/anime/<id>` | `api.jikan.moe/v4/anime/<id>/full`（1.6.0 起读取其 `relations`） |
+| `bgm.tv` / `bangumi.tv` / `chii.in` 的 `/subject/<id>` | `api.bgm.tv/v0/subjects/<id>`（复数路径），再以 `api.bgm.tv/v0/subjects/<id>/subjects` 取关联关系 |
 
 其余一律返回 `null`。`acgsecrets.hk` 与 `filmarks.com` 是抓取而非按 id 查询，没有稳定的按 URL 端点，因此
 被跳过。每个 API 的响应都走**与搜索路径完全相同**的映射函数，因此搜索与刷新绝不会产生偏差。
+
+1.6.0 起刷新还会带回各来源的**关联关系**（前作、续作、衍生作品……）。AniList 与 Jikan 在刷新本就发出的请求中
+提供它们；bangumi.tv 需要第二个 `GET` 取关联条目。第二个请求绝不会让刷新失败：出错时返回不带关联关系的条目。
+只保留动画目标。刷新节奏不变：后台更新器每条记录 5 秒的间隔，现在只是覆盖两个 bangumi.tv 请求而不是一个（见
+[`metadata-auto-update.md`](metadata-auto-update.md)）。关联关系供系列关联使用——见
+[`series-linking.md`](series-linking.md)。
 
 `refreshAll(urls)` 并行抓取多个 URL，单个失败会被跳过而不是让整批失败。
 
 详情页（`anime_detail_page.dart`）以「刷新资料库信息」动作 chip 暴露该能力。它收集 `infoUrl` 加上每一条
 `externalMeta.ratings[].sourceUrl`，通过 `AnimeExternalMeta.mergedWith` 把每条抓取结果合并进已有记录后
-保存。**只有外部元数据会被改动** —— 用户自己的评分、观看进度与手动编辑保持原样。
+保存。**只有外部元数据会被改动** —— 用户自己的评分、观看进度与手动编辑保持原样。`mergedWith` 只在新的抓取
+提供了某来源的关联关系时才替换该来源的关联关系，并保留其他来源的。
 
 ## Flavor 门禁
 

@@ -17,7 +17,12 @@ Since 1.6.0 the create route (`/anime/edit`, see [`../../../app/router.md`](../.
 can carry a `NextSeasonPrefill` ([`../services/series_service.md`](../services/series_service.md#nextseasonprefill))
 as its `extra`: the series card's *Add next season* action opens the page with the titles copied,
 the season label incremented, and a pending link that [`_saveNew`](#_savenew) writes only when the
-new record is saved. The `prefill` constructor parameter is ignored when editing.
+new record is saved. The `prefill` constructor parameter is ignored when editing. The detail
+page's missing-sequel hint (1.6.0 M2) opens the same route with
+[`NextSeasonPrefill.fromRelation`](../services/series_service.md#nextseasonprefill-fromrelation),
+whose `autoSearch` flag makes `initState` open the online search dialog after the first frame — in
+full builds only. `initState` checks `AppFlavor.isFull` itself, so a store build gets the title
+pre-filled and no search, even when the relation data arrived through sync.
 
 ## Declarations
 
@@ -25,7 +30,7 @@ new record is saved. The `prefill` constructor parameter is ignored when editing
 |---|---|---|---|
 | `AnimeEditPage.new` | constructor (`AnimeEditPage`) | B | Create an `AnimeEditPage`, optionally bound to an existing anime ID, or (create route only) prefilled by a `NextSeasonPrefill`. |
 | `AnimeEditPage.createState` | method (`AnimeEditPage`) | B | Create the mutable state object for this widget. |
-| `_AnimeEditPageState.initState` | method (`_AnimeEditPageState`) | B | Set the default season text, apply a next-season prefill when creating, and trigger loading an existing record if editing. |
+| `_AnimeEditPageState.initState` | method (`_AnimeEditPageState`) | B | Set the default season text, apply a next-season prefill when creating (starting the online search when its `autoSearch` is set and the build is full), and trigger loading an existing record if editing. |
 | [`_loadExisting`](#_loadexisting) | method (`_AnimeEditPageState`) | A | Load an existing anime and populate every form field/controller from it. |
 | `_AnimeEditPageState.dispose` | method (`_AnimeEditPageState`) | B | Dispose all 17 owned `TextEditingController`s. |
 | [`_pickCoverImage`](#_pickcoverimage) | method (`_AnimeEditPageState`) | A | Let the user pick a cover image file and stage its path. |

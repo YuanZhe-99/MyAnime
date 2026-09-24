@@ -24,6 +24,7 @@ and the metadata block becomes `externalMeta`).
 |---|---|---|---|
 | [`AnimeSearchResult(...)`](#animesearchresult-new) | constructor (`AnimeSearchResult`) | A | Hold one normalized search hit from any source. |
 | [`allTitles`](#alltitles) | getter (`AnimeSearchResult`) | A | Collect every title the result knows about, deduplicated. |
+| `withRelations` | method (`AnimeSearchResult`) | B | Return a copy carrying `relations`; used by the bangumi.tv by-id fetch, whose relations arrive from a second request. |
 | [`displayTitle`](#displaytitle) | getter (`AnimeSearchResult`) | B | Return the first known title, or `?`. |
 | [`toJson`](#resulttojson) | method (`AnimeSearchResult`) | A | Serialize a fetched result so it can be cached on disk. |
 | [`fromJson`](#resultfromjson) | factory (`AnimeSearchResult`) | A | Rebuild a cached result, defensively. |
@@ -43,7 +44,8 @@ and the metadata block becomes `externalMeta`).
 | [`_runRound`](#runround) | static method (`AnimeSearchService`) | A | Query the requested sources once, in parallel, tolerating failures. |
 | [`_harvestBackfillTitles`](#harvestbackfilltitles) | static method (`AnimeSearchService`) | A | Pick cross-language titles from round one to search with in round two. |
 | [`_searchBangumi`](#searchbangumi) | static method (`AnimeSearchService`) | A | Query bangumi.tv's v0 search API. |
-| [`_fetchBangumiById`](#fetchbangumibyid) | static method (`AnimeSearchService`) | B | Fetch one bangumi.tv subject by numeric id. |
+| [`_fetchBangumiById`](#fetchbangumibyid) | static method (`AnimeSearchService`) | B | Fetch one bangumi.tv subject by numeric id, with its related subjects. |
+| [`_fetchBangumiRelations`](#fetchbangumirelations) | static method (`AnimeSearchService`) | A | Fetch the works bangumi.tv lists as related to a subject; never throws. |
 | [`mapBangumiSubject`](#mapbangumisubject) | static method (`AnimeSearchService`) | A | Map one bangumi.tv v0 subject object onto an `AnimeSearchResult`. |
 | [`parseBangumiWeekday`](#parsebangumiweekday) | static method (`AnimeSearchService`) | A | Parse bangumi.tv's `放送星期` text onto Monday=1..Sunday=7. |
 | [`_bangumiInfoboxText`](#bangumiinfoboxtext) | static method (`AnimeSearchService`) | B | Read one `infobox` entry as plain text. |
@@ -64,6 +66,10 @@ and the metadata block becomes `externalMeta`).
 | [`_fetchAniListById`](#fetchanilistbyid) | static method (`AnimeSearchService`) | B | Fetch one AniList media entry by numeric id. |
 | [`_postAniList`](#postanilist) | static method (`AnimeSearchService`) | B | POST a GraphQL document to AniList and return its `data` object. |
 | [`mapAniListMedia`](#mapanilistmedia) | static method (`AnimeSearchService`) | A | Map one AniList media object onto an `AnimeSearchResult`. |
+| `_relation` | static method (`AnimeSearchService`) | B | Build one relation from a source's raw relation name; an unknown name becomes `other` with `rawType` kept. |
+| [`mapAniListRelations`](#mapanilistrelations) | static method (`AnimeSearchService`), `@visibleForTesting` | A | Map AniList relation edges onto relations. |
+| [`mapJikanRelations`](#mapjikanrelations) | static method (`AnimeSearchService`), `@visibleForTesting` | A | Map Jikan's `/full` relations onto relations. |
+| [`mapBangumiRelations`](#mapbangumirelations) | static method (`AnimeSearchService`), `@visibleForTesting` | A | Map bangumi.tv's related-subjects list onto relations. |
 | [`_aniListDate`](#anilistdate) | static method (`AnimeSearchService`) | B | Build a `DateTime` from an AniList `{year, month, day}` object. |
 | [`_aniListFirstAiringAt`](#anilistfirstairingat) | static method (`AnimeSearchService`) | A | Pick the airing timestamp that best describes the broadcast slot. |
 | [`_jstBroadcastSlot`](#jstbroadcastslot) | static method (`AnimeSearchService`) | A | Map a Japan-time airing moment onto the broadcast slot it is filed under. |
@@ -82,23 +88,25 @@ and the metadata block becomes `externalMeta`).
 | `_BackfillTitles(...)` | constructor (`_BackfillTitles`) | B | Hold one harvested title per language family. |
 | `hasAny` | getter (`_BackfillTitles`) | B | Report whether any usable title was harvested. |
 
-Note on the verification count: the source file has 59 `/// Purpose:` doc comments as of 1.5.7.
+Note on the verification count: the source file has 65 `/// Purpose:` doc comments as of 1.6.0
+(59 in 1.5.7; M2 added six for relation metadata).
 The historical one-row surplus — `searchAnime1` carried a plain (non-`Purpose:`) doc comment — is
 gone with that method, which moved to `anime1_service.dart` as `search` and gained a full block.
 
-Seven declarations (`mapBangumiSubject`, `parseBangumiWeekday`, `mapJikanAnime`,
-`parseJikanDuration`, `mapAniListMedia`, `parseDayOfWeek`, `aliasCandidatesFrom`) are marked `@visibleForTesting`. They are
-public solely so `test/anime_search_test.dart` can exercise the source-format parsing against
+Ten declarations (`mapBangumiSubject`, `parseBangumiWeekday`, `mapJikanAnime`,
+`parseJikanDuration`, `mapAniListMedia`, `parseDayOfWeek`, `aliasCandidatesFrom`,
+`mapAniListRelations`, `mapJikanRelations`, `mapBangumiRelations`) are marked `@visibleForTesting`. They are
+public solely so `test/anime_search_test.dart` and `test/relations_test.dart` can exercise the source-format parsing against
 fixture JSON — the HTTP calls are static and take no injectable client, so the mappers are the only
 practical seam. Do not call them from production code outside this file.
 
 ## Documentation
 
-### `const AnimeSearchResult({required source, sourceUrl, title, titleJa, titleRomaji, titleEn, synonyms, episodes, firstAirDate, airDayOfWeek, airTime, endDate, format, status, durationMinutes, genres, studios, score, scoreMax, scoreVotes, scoreRank, coverImageUrl, summary})` <a id="animesearchresult-new"></a>
+### `const AnimeSearchResult({required source, sourceUrl, title, titleJa, titleRomaji, titleEn, synonyms, episodes, firstAirDate, airDayOfWeek, airTime, endDate, format, status, durationMinutes, genres, studios, score, scoreMax, scoreVotes, scoreRank, coverImageUrl, summary, relations})` <a id="animesearchresult-new"></a>
 - **Kind:** constructor of `AnimeSearchResult`
-- **Source:** `lib/features/anime/services/anime_search_service.dart` (line 68)
+- **Source:** `lib/features/anime/services/anime_search_service.dart` (approx. line 72)
 - **Purpose:** Hold one normalized search result, whatever the originating source, in a shape ready to prefill the anime edit form.
-- **Inputs:** `source` required (the source's display name, e.g. `'bangumi.tv'`); everything else optional since no single source supplies every field. `synonyms`, `genres`, and `studios` default to empty lists; `scoreMax` defaults to `10`.
+- **Inputs:** `source` required (the source's display name, e.g. `'bangumi.tv'`); everything else optional since no single source supplies every field. `synonyms`, `genres`, `studios`, and `relations` default to empty lists; `scoreMax` defaults to `10`. `relations` is filled only by the by-id fetches — search results never carry it.
 - **Returns:** A new `AnimeSearchResult`.
 - **Side effects:** None.
 - **Algorithm:** Plain field assignment via `const` constructor.
@@ -133,7 +141,8 @@ practical seam. Do not call them from production code outside this file.
 - **Side effects:** None.
 - **Notes:** Added in 1.5.0 to back the background update cache, which downloads a candidate once
   and then applies it without going back to the network. Null and empty fields are omitted so the
-  cache file stays small and readable.
+  cache file stays small and readable. Since 1.6.0 non-empty `relations` are written too, through
+  `AnimeExternalRelation.toJson`, and `fromJson` reads them back.
 
   `firstAirDate` and `endDate` are **calendar days, not instants**: they are written as-is and read
   back without a UTC conversion, matching `_parseCalendarDate` in the anime model. Normalizing them
@@ -207,12 +216,12 @@ practical seam. Do not call them from production code outside this file.
 
 ### `static AnimeExternalMeta toExternalMeta(AnimeSearchResult result, {DateTime? fetchedAt})` <a id="toexternalmeta"></a>
 - **Kind:** static method of `AnimeSearchService`
-- **Source:** `lib/features/anime/services/anime_search_service.dart` (line 314)
+- **Source:** `lib/features/anime/services/anime_search_service.dart` (approx. line 512)
 - **Purpose:** Convert a search result into the persisted external-metadata record.
 - **Inputs:** `result`; `fetchedAt` — override for the timestamp, used by tests.
 - **Returns:** `AnimeExternalMeta`.
 - **Side effects:** None.
-- **Algorithm:** Copies the metadata fields straight across, then, when the source reported any of `score`/`scoreVotes`/`scoreRank`, appends a single `AnimeExternalRating` carrying `source`, `sourceUrl`, the score, `scoreMax`, votes, rank, and `fetchedAt` (UTC). `refreshedAt` is set to the same timestamp.
+- **Algorithm:** Copies the metadata fields straight across, then, when the source reported any of `score`/`scoreVotes`/`scoreRank`, appends a single `AnimeExternalRating` carrying `source`, `sourceUrl`, the score, `scoreMax`, votes, rank, and `fetchedAt` (UTC). `relations` are passed through unchanged. `refreshedAt` is set to the same timestamp.
 - **Usage:**
   ```dart
   final fetched = AnimeSearchService.toExternalMeta(r);
@@ -223,11 +232,11 @@ practical seam. Do not call them from production code outside this file.
 
 ### `static Future<AnimeSearchResult?> fetchByUrl(String url)` <a id="fetchbyurl"></a>
 - **Kind:** static method of `AnimeSearchService`
-- **Source:** `lib/features/anime/services/anime_search_service.dart` (line 357)
+- **Source:** `lib/features/anime/services/anime_search_service.dart` (approx. line 556)
 - **Purpose:** Re-fetch one anime's metadata from the page URL it came from.
 - **Inputs:** `url` — an AniList, MyAnimeList, or bangumi.tv subject page URL.
-- **Returns:** `Future<AnimeSearchResult?>` — `null` when the host is not one of the three API-backed sources, or when the fetch fails.
-- **Side effects:** One HTTP request to the matching API.
+- **Returns:** `Future<AnimeSearchResult?>` — `null` when the host is not one of the three API-backed sources, or when the fetch fails. Since 1.6.0 the result carries the source's `relations`.
+- **Side effects:** One HTTP request to the matching API; two for bangumi.tv (the subject, then its related subjects).
 - **Algorithm:** Regex-matches the numeric id out of `anilist.co/anime/(\d+)`, `myanimelist.net/anime/(\d+)`, or `(?:bgm\.tv|bangumi\.tv|chii\.in)/subject/(\d+)`, in that order, and dispatches to the matching by-id fetch. Falls through to `null`.
 - **Notes:** `acgsecrets.hk` and `filmarks.com` are scraped rather than queried by id, so they have no stable by-URL endpoint and are skipped. Each by-id fetch reuses the *same* mapper as its search path, so search and refresh cannot drift apart.
 
@@ -282,11 +291,21 @@ practical seam. Do not call them from production code outside this file.
 
 ### `static Future<AnimeSearchResult?> _fetchBangumiById(int id)` <a id="fetchbangumibyid"></a>
 - **Kind:** static method of `AnimeSearchService`
-- **Source:** `lib/features/anime/services/anime_search_service.dart` (line 538)
-- **Purpose:** Fetch one bangumi.tv subject by its numeric id.
+- **Source:** `lib/features/anime/services/anime_search_service.dart` (approx. line 842)
+- **Purpose:** Fetch one bangumi.tv subject by its numeric id, with the works it lists as related.
 - **Returns:** `Future<AnimeSearchResult?>` — `null` on a non-200 response or a body with no `id`.
-- **Side effects:** One HTTP GET (10s timeout) to `api.bgm.tv`.
-- **Notes:** The path is `/v0/subjects/{id}` — **plural**. The singular `/v0/subject/{id}` returns 404, and the legacy `/subject/{id}` is 502 like the rest of that API. The response has the same shape as v0 search, so one mapper serves both paths.
+- **Side effects:** Two HTTP GETs (10s timeout each) to `api.bgm.tv`: the subject, then [`_fetchBangumiRelations`](#fetchbangumirelations).
+- **Notes:** The path is `/v0/subjects/{id}` — **plural**. The singular `/v0/subject/{id}` returns 404, and the legacy `/subject/{id}` is 502 like the rest of that API. The response has the same shape as v0 search, so one mapper serves both paths. Since 1.6.0 the relations are attached through `withRelations`; if the second request fails, the subject is returned without them.
+
+### `static Future<List<AnimeExternalRelation>> _fetchBangumiRelations(int id)` <a id="fetchbangumirelations"></a>
+- **Kind:** static method of `AnimeSearchService`
+- **Source:** `lib/features/anime/services/anime_search_service.dart` (approx. line 865)
+- **Purpose:** Fetch the works bangumi.tv lists as related to a subject.
+- **Inputs:** `id` — the subject id.
+- **Returns:** `Future<List<AnimeExternalRelation>>` — empty on a non-200 response, a non-list body, a timeout or any other error.
+- **Side effects:** One HTTP GET (10s timeout) to `https://api.bgm.tv/v0/subjects/{id}/subjects`, with the app's `User-Agent`.
+- **Algorithm:** Decodes the body as UTF-8 JSON and, when it is a list, maps it through [`mapBangumiRelations`](#mapbangumirelations). The whole call sits in a `try`/`catch`.
+- **Notes:** Never throws: relations are an extra, and a subject without them still refreshes. This is the one extra request M2 adds per bangumi.tv refresh; AniList and Jikan deliver relations in the request they already make.
 
 ### `static AnimeSearchResult mapBangumiSubject(Map<String, dynamic> m)` <a id="mapbangumisubject"></a>
 - **Kind:** static method of `AnimeSearchService`, `@visibleForTesting`
@@ -344,11 +363,11 @@ practical seam. Do not call them from production code outside this file.
 
 ### `static Future<AnimeSearchResult?> _fetchMalById(int id)` <a id="fetchmalbyid"></a>
 - **Kind:** static method of `AnimeSearchService`
-- **Source:** `lib/features/anime/services/anime_search_service.dart` (line 741)
+- **Source:** `lib/features/anime/services/anime_search_service.dart` (approx. line 1074)
 - **Purpose:** Fetch one MyAnimeList entry by its numeric id via Jikan.
 - **Returns:** `Future<AnimeSearchResult?>` — `null` on a non-200 response or a non-map `data`.
 - **Side effects:** One HTTP GET (10s timeout) to `api.jikan.moe`.
-- **Notes:** The `/full` variant returns the same object shape as search, plus relations this app ignores, so `mapJikanAnime` handles both unchanged.
+- **Notes:** The `/full` variant returns the same object shape as search, plus the `relations` that [`mapJikanRelations`](#mapjikanrelations) reads since 1.6.0, so `mapJikanAnime` handles both.
 
 ### `static AnimeSearchResult mapJikanAnime(Map<String, dynamic> m)` <a id="mapjikananime"></a>
 - **Kind:** static method of `AnimeSearchService`, `@visibleForTesting`
@@ -361,6 +380,7 @@ practical seam. Do not call them from production code outside this file.
   2. From `broadcast`, parse `day` through [`parseDayOfWeek`](#parsedayofweek); take `time` **only** when `timezone` is absent or `Asia/Tokyo`.
   3. Walk the `titles` array, routing `Default` → `titleRomaji`, `English` → `titleEn`, `Japanese` → `titleJa`, and everything else into `synonyms`; fall back to the flat `title`/`title_english`/`title_japanese` fields for any slot the array left empty.
   4. Read `episodes`, `type` → `format`, `status`, `duration` via [`parseJikanDuration`](#parsejikanduration), `studios`/`genres` via [`_namedList`](#namedlist), and `score`/`scored_by`/`rank`.
+  5. Map `relations` through [`mapJikanRelations`](#mapjikanrelations) — empty for search results, which carry none.
 - **Notes:** The timezone gate is the important part. Jikan reports `broadcast.time` in whatever timezone `broadcast.timezone` names; storing a non-Tokyo time as `Anime.airTime` would label it Japan time and shift every episode. Dropping it leaves the field empty, which the UI handles.
 
 ### `static int? parseJikanDuration(String? duration)` <a id="parsejikanduration"></a>
@@ -448,14 +468,15 @@ practical seam. Do not call them from production code outside this file.
 - **Returns:** `Future<List<AnimeSearchResult>>` — `[]` on a non-200 response or missing `data.Page.media`.
 - **Side effects:** One HTTP POST (10s timeout) to `graphql.anilist.co`.
 - **Algorithm:** Interpolates `_aniListMediaFields` into a `Page(perPage: 10) { media(search:, type: ANIME, sort: SEARCH_MATCH) }` document, POSTs it via [`_postAniList`](#postanilist), and maps each entry through [`mapAniListMedia`](#mapanilistmedia).
-- **Notes:** `_aniListMediaFields` is a single shared const field selection, so the search and by-id paths can never request different fields.
+- **Notes:** `_aniListMediaFields` is a single shared const field selection, so the search and by-id paths can never request different media fields. The by-id query alone appends `_aniListRelationFields` (1.6.0): search results never need relations, and they would multiply the search payload.
 
 ### `static Future<AnimeSearchResult?> _fetchAniListById(int id)` <a id="fetchanilistbyid"></a>
 - **Kind:** static method of `AnimeSearchService`
-- **Source:** `lib/features/anime/services/anime_search_service.dart` (line 1180)
+- **Source:** `lib/features/anime/services/anime_search_service.dart` (approx. line 1520)
 - **Purpose:** Fetch one AniList media entry by its numeric id.
 - **Returns:** `Future<AnimeSearchResult?>` — `null` when the id is unknown or the response is not a map.
 - **Side effects:** One HTTP POST (10s timeout) to `graphql.anilist.co`.
+- **Notes:** Its query is `_aniListMediaFields` plus `_aniListRelationFields` — `relations { edges { relationType(version: 2) node { id type format siteUrl title { romaji english native } } } }` — so relations cost no extra request.
 
 ### `static Future<Map<String, dynamic>?> _postAniList(String document, Map<String, dynamic> variables)` <a id="postanilist"></a>
 - **Kind:** static method of `AnimeSearchService`
@@ -477,7 +498,38 @@ practical seam. Do not call them from production code outside this file.
   3. Strip HTML from `description` (`<br>` → newline, remaining tags removed, `&amp;`/`&lt;`/`&gt;`/`&quot;`/`&#39;` unescaped).
   4. Flatten `studios.nodes[].name`; read `synonyms`, `episodes`, `duration`, `format`, `status`, `genres`, `popularity`, and `averageScore`.
   5. Prefer `title.english` then `title.romaji` for `title`; `title.native` for `titleJa`; keep romaji and English separately as well.
+  6. Map `relations` through [`mapAniListRelations`](#mapanilistrelations) — empty for search results, whose query does not ask for them.
 - **Notes:** Two decisions matter here. First, the schedule-derived weekday replaces the pre-1.4.0 behavior of always guessing from `startDate.weekday`, which was wrong whenever the premiere aired off the regular slot. Second, the JST moment is passed through [`_jstBroadcastSlot`](#jstbroadcastslot), so a late-night airing is filed under the previous day in `25:00` form and `firstAirDate` is shifted to match via [`_alignFirstAirDateToSlot`](#alignfirstairdatetoslot). Shifting the weekday without the date would leave the two disagreeing and `getEpisodeCalendarDate()`'s forward-snap would push episode 1 a week out. `averageScore` is 0–100 and is divided by 10 on the way in.
+
+### `static List<AnimeExternalRelation> mapAniListRelations(Map<String, dynamic> m)` <a id="mapanilistrelations"></a>
+- **Kind:** static method of `AnimeSearchService`, `@visibleForTesting`
+- **Source:** `lib/features/anime/services/anime_search_service.dart` (approx. line 1721)
+- **Purpose:** Map AniList relation edges onto relations.
+- **Inputs:** `m` — a media object from the by-id query.
+- **Returns:** `List<AnimeExternalRelation>` — anime targets only; empty when the object carries no `relations` (search results).
+- **Side effects:** None.
+- **Algorithm:** Walks `relations.edges`, skipping any edge whose `node.type` is not `ANIME` or whose `relationType` is not a string. Each kept edge becomes a relation through `_relation` and the `_aniListRelationTypes` table: `PREQUEL`, `SEQUEL`, `PARENT`, `SIDE_STORY`, `SUMMARY` and `COMPILATION` (both → `summary`), `SPIN_OFF`, `ALTERNATIVE`; anything else becomes `other` with `rawType`. `targetUrl` is `node.siteUrl`, else `https://anilist.co/anime/<id>`; `title` is native, else romaji, else English; `format` is `node.format`.
+- **Notes:** The table covers `relationType(version: 2)` values; `ADAPTATION`, `CHARACTER`, `SOURCE` and the like land in `other`.
+
+### `static List<AnimeExternalRelation> mapJikanRelations(Map<String, dynamic> m)` <a id="mapjikanrelations"></a>
+- **Kind:** static method of `AnimeSearchService`, `@visibleForTesting`
+- **Source:** `lib/features/anime/services/anime_search_service.dart` (approx. line 1759)
+- **Purpose:** Map Jikan's `/full` relations onto relations.
+- **Inputs:** `m` — an anime object from `/anime/{id}/full`.
+- **Returns:** `List<AnimeExternalRelation>` — one per entry whose `type` is `anime`.
+- **Side effects:** None.
+- **Algorithm:** Walks the `relations` groups (`{relation, entry: [...]}`); each anime entry becomes a relation named by its group through the `_jikanRelationTypes` table: `Prequel`, `Sequel`, `Parent Story` and `Full Story` (→ `parent`), `Side Story`, `Summary`, `Spin-Off`, `Alternative Setting` and `Alternative Version` (→ `alternative`). `targetUrl` is `https://myanimelist.net/anime/<mal_id>`; `title` is the entry's `name`. Jikan gives no format.
+- **Notes:** Search results carry no `relations`, so they map to an empty list.
+
+### `static List<AnimeExternalRelation> mapBangumiRelations(List<dynamic> list)` <a id="mapbangumirelations"></a>
+- **Kind:** static method of `AnimeSearchService`, `@visibleForTesting`
+- **Source:** `lib/features/anime/services/anime_search_service.dart` (approx. line 1790)
+- **Purpose:** Map bangumi.tv's related-subjects list onto relations.
+- **Inputs:** `list` — the body of `GET /v0/subjects/{id}/subjects`.
+- **Returns:** `List<AnimeExternalRelation>` — anime targets (`type == 2`) only.
+- **Side effects:** None.
+- **Algorithm:** Each anime entry with a string `relation` becomes a relation through the `_bangumiRelationTypes` table: `前传`, `续集`, `主线故事` (→ `parent`), `番外篇` (→ `sideStory`), `总集篇` (→ `summary`), `衍生` (→ `spinOff`), `不同演绎` and `不同世界观` (→ `alternative`). `targetUrl` is `https://bgm.tv/subject/<id>`; `title` is `name_cn` when non-empty, else `name`. No format is read.
+- **Notes:** The relation names were checked against the live endpoint on 2026-09-24. Books, music and games (`type` other than `2`) are skipped, so a light novel listed as the source never becomes a relation.
 
 ### `static DateTime? _aniListDate(Object? value)` <a id="anilistdate"></a>
 - **Kind:** static method of `AnimeSearchService`

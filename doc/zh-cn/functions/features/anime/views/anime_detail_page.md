@@ -10,7 +10,7 @@
 - **单栏** — 一个 `ListView`：封面，然后是信息块（日文标题、标签、进度条、`已看 / 总数`、评分／资料库／存档卡片、备注、系列卡片与上下季导航），最后是剧集列表。这就是原本的布局，未作改动。
 - **双栏** — 一个 `Row`。左栏定宽且占满高度，容纳从封面到观看进度标签的内容，封面尺寸由 `detailCoverSize` 按剩余高度算出。右栏是独立滚动的 `ListView`，容纳从卡片往下的全部内容，包括系列卡片和剧集列表。
 
-系列卡片（1.6.0，[`series_widgets.md`](series_widgets.md) 中的 `SeriesCard`）在 `_buildDetailChildren` 中取代了原来的上一季/下一季行，位置不变，因此在双栏布局中它落在右栏。只有记录所属系列至少有两个成员时才会出现；其下方的上一季/下一季按钮现在由系列顺序驱动，放在 `Wrap` 中，窄屏手机上会换行堆叠而不会溢出。记录不属于任何系列（包括独立（不归入系列）的记录）时，卡片不出现，改由应用栏的关联菜单（*关联到系列…*、*添加下一季*，记录带 `seriesLink` 时还有*交给应用自动判断*）提供相同操作。见 [`../../../../features/series-linking.md`](../../../../features/series-linking.md)。
+系列卡片（1.6.0，[`series_widgets.md`](series_widgets.md) 中的 `SeriesCard`）在 `_buildDetailChildren` 中取代了原来的上一季/下一季行，位置不变，因此在双栏布局中它落在右栏。只有记录所属系列至少有两个成员时才会出现；其下方的上一季/下一季按钮现在由系列顺序驱动，放在 `Wrap` 中，窄屏手机上会换行堆叠而不会溢出。记录不属于任何系列（包括独立（不归入系列）的记录）时，卡片不出现，改由应用栏的关联菜单（*关联到系列…*、*添加下一季*，记录带 `seriesLink` 时还有*交给应用自动判断*）提供相同操作。系列卡片正上方是缺失续作提示（1.6.0 M2）：当资料库列出了系列最后一个成员的某部续作、而片库中没有它时，显示一张写着「下一部：<标题>（<来源>）」的卡片。与系列卡片不同，记录不在任何系列中时它也会出现。见 [`../../../../features/series-linking.md`](../../../../features/series-linking.md)。
 
 两种布局都由同样四个构建函数拼装——`_buildCover`、`_buildHeaderChildren`、`_buildDetailChildren`、`_buildEpisodeChildren`——因此每个区块的组件代码只有一份。`_buildHeaderChildren` 与 `_buildDetailChildren` 之间的分界**就是**分栏边界：把某个区块移过这条缝，它就会换栏。`_buildDetailChildren` 中每一项都自带前置的 `SizedBox(height: 12)`，正是这一点让同一份列表无论跟在进度条之后还是作为右栏开头都能正确呈现。
 
@@ -22,6 +22,7 @@
 | `AnimeDetailPage.createState` | 方法（`AnimeDetailPage`） | B | 为此组件创建可变状态对象。 |
 | `_AnimeDetailPageState.initState` | 方法（`_AnimeDetailPageState`） | B | 触发首次数据加载。 |
 | [`_load`](#_load) | 方法（`_AnimeDetailPageState`） | A | 加载此动画并构建系列分组，找到它所属的系列。 |
+| [`_addMissingSequel`](#_addmissingsequel) | 方法（`_AnimeDetailPageState`） | A | 为资料库列出、但片库中没有的续作打开新建页。 |
 | [`_runSeriesAction`](#_runseriesaction) | 方法（`_AnimeDetailPageState`） | A | 运行系列卡片（或应用栏关联菜单）中的某个操作。 |
 | [`_toggleEpisode`](#_toggleepisode) | 方法（`_AnimeDetailPageState`） | A | 循环一集的观看状态并持久化它。 |
 | [`_shiftFromEpisode`](#_shiftfromepisode) | 方法（`_AnimeDetailPageState`） | A | 把一集的播出周偏移一个增量并持久化它。 |
@@ -30,7 +31,7 @@
 | `_AnimeDetailPageState.build` | 方法（`_AnimeDetailPageState`，组件构建） | B | 构建详情页脚手架，并在单栏与双栏布局之间取舍。 |
 | `_buildCover` | 方法（组件辅助） | B | 按明确尺寸构建封面图块。 |
 | `_buildHeaderChildren` | 方法（组件辅助） | B | 构建头部块：日文标题、标签（含 anime1.me 进度标签）与已看集数条。 |
-| `_buildDetailChildren` | 方法（组件辅助） | B | 构建进度条下方的卡片，以及系列卡片和上一季/下一季按钮。 |
+| `_buildDetailChildren` | 方法（组件辅助） | B | 构建进度条下方的卡片，以及缺失续作提示、系列卡片和上一季/下一季按钮。 |
 | `_buildEpisodeChildren` | 方法（组件辅助） | B | 构建剧集列表表头及每一集一行。 |
 | [`_toggleAllWatched`](#_toggleallwatched) | 方法（`_AnimeDetailPageState`） | A | 把每个被跟踪剧集标记为已看，已完整时则全部标记为未看。 |
 | `_buildAbandonOrResume` | 方法（组件辅助） | B | 渲染剧集列表页头的"放弃"/"恢复"操作按钮。 |
@@ -54,15 +55,15 @@
 
 ### `Future<void> _load()` <a id="_load"></a>
 - **种类：** `_AnimeDetailPageState` 的方法
-- **来源：** `lib/features/anime/views/anime_detail_page.dart`（约第 61 行）
+- **来源：** `lib/features/anime/views/anime_detail_page.dart`（约第 70 行）
 - **用途：** 加载 `widget.animeId` 标识的动画及其所属的系列。
 - **输入：** 无（`widget.animeId` 从外层组件读取）。
 - **返回：** `Future<void>`。
-- **副作用：** 调用 `AnimeStorage.load()`；`setState` `_anime`、`_seriesIndex`、`_series`。不写入任何内容。
+- **副作用：** 调用 `AnimeStorage.load()`；`setState` `_anime`、`_seriesIndex`、`_series`、`_missingSequel`。不写入任何内容。
 - **算法：**
   1. Await `AnimeStorage.load()` 并找 `id == widget.animeId` 的记录。
   2. 在整个片库上构建 [`SeriesIndex`](../services/series_service.md#seriesindex-build)，向它查询该记录的系列。
-  3. 用记录、索引和系列 `setState`——但只在该系列至少有两个成员时；否则 `_series` 为 `null`，不显示系列卡片。
+  3. 用记录、索引和系列 `setState`——但只在该系列至少有两个成员时；否则 `_series` 为 `null`，不显示系列卡片。同时把 [`missingSequelFor`](../services/series_service.md#missingsequelfor) 的结果存为 `_missingSequel`，由它驱动缺失续作提示。
 - **用法：**
   ```dart
   @override
@@ -74,9 +75,20 @@
   （`_AnimeDetailPageState.initState`，同一文件；编辑/删除/剧集操作后也调用它刷新页面）
 - **备注：** 1.6.0 之前，这里匹配 `displayTitle` 完全相同的记录，并用普通 `String.compareTo` 比较它们的 `season` 标签，结果把 `"Season 10"` 排在 `"Season 2"` 之前，而且标题稍有不同的续作永远找不到。现在不再比较字符串：顺序来自系列分组（显式 `order`，然后 `firstAirDate`、季数序数、`createdAt`、`id`），旧的相同标题规则只作为系列分组的一种边保留下来。见 [`../../../../features/series-linking.md`](../../../../features/series-linking.md)。
 
+### `Future<void> _addMissingSequel(AnimeExternalRelation relation)` <a id="_addmissingsequel"></a>
+- **种类：** `_AnimeDetailPageState` 的方法
+- **来源：** `lib/features/anime/views/anime_detail_page.dart`（约第 93 行）
+- **用途：** 为资料库列出、但片库中没有的续作打开新建页。
+- **输入：** `relation` —— 来自 `_missingSequel` 的 `sequel`。
+- **返回：** `Future<void>`。
+- **副作用：** 推入 `/anime/edit`；返回后经 `_load()` 重新加载。
+- **算法：** 没有 `_anime` 时提前返回；否则执行 `context.push('/anime/edit', extra: NextSeasonPrefill.fromRelation(last, relation))`，其中 `last` 是系列的最后一个成员（没有系列时为本记录）。
+- **用法：** `_buildDetailChildren`（同一文件）中缺失续作提示卡片的 `onTap`。
+- **备注：** 完整版构建还会在新建页启动在线搜索；商店版构建只预填标题——见 [`NextSeasonPrefill.fromRelation`](../services/series_service.md#nextseasonprefill-fromrelation)。新记录只在用户保存时才关联到 `last`。
+
 ### `Future<void> _runSeriesAction(SeriesAction action)` <a id="_runseriesaction"></a>
 - **种类：** `_AnimeDetailPageState` 的方法
-- **来源：** `lib/features/anime/views/anime_detail_page.dart`（约第 85 行）
+- **来源：** `lib/features/anime/views/anime_detail_page.dart`（约第 111 行）
 - **用途：** 运行系列卡片菜单中的某个操作；记录不在任何系列中时，运行应用栏关联菜单中的操作。
 - **输入：** `action` — 一个 `SeriesAction`（[`series_widgets.md`](series_widgets.md)）。
 - **返回：** `Future<void>`。
@@ -211,7 +223,7 @@
 
 ### `Future<void> _refreshExternalMeta(Anime anime)` <a id="_refreshexternalmeta"></a>
 - **种类：** `_AnimeDetailPageState` 的方法
-- **来源：** `lib/features/anime/views/anime_detail_page.dart`（第 635 行）
+- **来源：** `lib/features/anime/views/anime_detail_page.dart`（约第 851 行）
 - **用途：** 从每个已记住的来源页面重新抓取外部元数据。
 - **输入：** `anime`。
 - **返回：** 无。
@@ -221,6 +233,8 @@
   2. `await AnimeSearchService.refreshAll(urls)`；结果整体为空时同样如此提示，而不是当作成功。
   3. 用 `AnimeExternalMeta.mergedWith` 把每条抓取结果折叠进已有的 `externalMeta`，并以同一个 UTC `now` 同时作为 `fetchedAt` 与 `refreshedAt`。
   4. 经 `AnimeStorage.patchExternalMeta({anime.id: merged})` 保存、重新加载并提示。
+
+  1.6.0 起抓取结果携带各来源的 `relations`，由 `mergedWith` 按来源替换；重新加载时会重算系列分组，因此新的关联关系可以立即关联系列或显示缺失续作提示。
 - **备注：** **只有外部元数据会被改动。** 用户自己的 `rating`、观看进度与手动编辑保持原样——这种分离正是外部评分存放在 `externalMeta.ratings` 而非 `AnimeRating` 的全部理由。调用方必须门禁在 `AppFlavor.isFull` 之后，因为商店构建不包含在线查询；见 [`../../../../features/multi-source-search.md`](../../../../features/multi-source-search.md)。
 
   1.5.0 之前第 4 步是 `copyWith(externalMeta: merged, modifiedAt: now)`，它会更新 `modifiedAt`。这与
