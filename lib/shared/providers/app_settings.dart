@@ -6,6 +6,7 @@ import 'package:table_calendar/table_calendar.dart';
 
 import '../../features/ai/services/on_device_ai_service.dart';
 import '../../features/anime/services/anime_storage.dart';
+import '../../features/anime/services/manage_grouping.dart';
 import '../../features/categories/services/category_service.dart';
 import '../utils/adaptive_layout.dart';
 import '../utils/calendar_preferences.dart';
@@ -85,6 +86,12 @@ class AppSettingsNotifier extends StateNotifier<AppSettings> {
     );
     final homeListColumns = await AnimeStorage.getHomeListColumns();
     final manageListColumns = await AnimeStorage.getManageListColumns();
+    final manageViewMode = parseManageViewMode(
+      await AnimeStorage.getManageViewMode(),
+    );
+    final manageSeriesSort = parseManageSeriesSort(
+      await AnimeStorage.getManageSeriesSort(),
+    );
     final statsListColumns = await AnimeStorage.getStatsListColumns();
     final kanaTabEnabled = await AnimeStorage.getKanaTabEnabled();
     final onDeviceAiEnabled = await AnimeStorage.getOnDeviceAiEnabled();
@@ -114,6 +121,8 @@ class AppSettingsNotifier extends StateNotifier<AppSettings> {
       homeCalendarFormat: homeCalendarFormat,
       homeListColumns: homeListColumns,
       manageListColumns: manageListColumns,
+      manageViewMode: manageViewMode,
+      manageSeriesSort: manageSeriesSort,
       statsListColumns: statsListColumns,
       kanaTabEnabled: kanaTabEnabled,
       onDeviceAiEnabled: onDeviceAiEnabled,
@@ -229,6 +238,31 @@ class AppSettingsNotifier extends StateNotifier<AppSettings> {
     AnimeStorage.setManageListColumns(columns);
   }
 
+  /// Purpose: Update the remembered Manage view mode (1.6.2).
+  /// Inputs: `mode`.
+  /// Returns: None.
+  /// Side effects: Persists the mode; the default quarter view removes the
+  /// key.
+  /// Notes: Device-local.
+  void setManageViewMode(ManageViewMode mode) {
+    state = state.copyWith(manageViewMode: mode);
+    AnimeStorage.setManageViewMode(
+      mode == ManageViewMode.quarter ? null : mode.name,
+    );
+  }
+
+  /// Purpose: Update the remembered Manage series-view sort (1.6.2).
+  /// Inputs: `sort`.
+  /// Returns: None.
+  /// Side effects: Persists the sort; the default removes the key.
+  /// Notes: Device-local.
+  void setManageSeriesSort(ManageSeriesSort sort) {
+    state = state.copyWith(manageSeriesSort: sort);
+    AnimeStorage.setManageSeriesSort(
+      sort == ManageSeriesSort.latest ? null : sort.name,
+    );
+  }
+
   /// Purpose: Update the remembered statistics list column preference.
   /// Inputs: `columns` — `listColumnsAuto` or a pinned count.
   /// Returns: None.
@@ -332,6 +366,12 @@ class AppSettings {
   /// Column preference for the management list.
   final int manageListColumns;
 
+  /// How the Manage tab lays out the library (1.6.2).
+  final ManageViewMode manageViewMode;
+
+  /// How the Manage tab's series view orders its groups (1.6.2).
+  final ManageSeriesSort manageSeriesSort;
+
   /// Column preference for the statistics lists.
   final int statsListColumns;
 
@@ -351,7 +391,7 @@ class AppSettings {
   final bool recommendationsEnabled;
 
   /// Purpose: Create a app settings instance.
-  /// Inputs: `themeMode`, `locale`, `weekStartDay`, `homeCalendarLayout`, `homeCalendarTimeBasis`, `homeCalendarFormat`, `homeListColumns`, `manageListColumns`, `statsListColumns`, `kanaTabEnabled`, `onDeviceAiEnabled`, `onDeviceAiPreferFast`, `autoCategoriesEnabled`, `recommendationsEnabled`.
+  /// Inputs: `themeMode`, `locale`, `weekStartDay`, `homeCalendarLayout`, `homeCalendarTimeBasis`, `homeCalendarFormat`, `homeListColumns`, `manageListColumns`, `manageViewMode`, `manageSeriesSort`, `statsListColumns`, `kanaTabEnabled`, `onDeviceAiEnabled`, `onDeviceAiPreferFast`, `autoCategoriesEnabled`, `recommendationsEnabled`.
   /// Returns: A new `AppSettings` instance.
   /// Side effects: None.
   /// Notes: `weekStartDay` stores the local-calendar preference; Japanese layout uses Sunday effectively.
@@ -364,6 +404,8 @@ class AppSettings {
     this.homeCalendarFormat = CalendarFormat.month,
     this.homeListColumns = listColumnsAuto,
     this.manageListColumns = listColumnsAuto,
+    this.manageViewMode = ManageViewMode.quarter,
+    this.manageSeriesSort = ManageSeriesSort.latest,
     this.statsListColumns = listColumnsAuto,
     this.kanaTabEnabled = false,
     this.onDeviceAiEnabled = false,
@@ -383,7 +425,7 @@ class AppSettings {
       : weekStartDay;
 
   /// Purpose: Create a copy with selected fields replaced.
-  /// Inputs: `themeMode`, `locale`, `weekStartDay`, `homeCalendarLayout`, `homeCalendarTimeBasis`, `homeCalendarFormat`, `homeListColumns`, `manageListColumns`, `statsListColumns`, `kanaTabEnabled`, `onDeviceAiEnabled`, `onDeviceAiPreferFast`, `autoCategoriesEnabled`, `recommendationsEnabled`, `clearLocale`.
+  /// Inputs: `themeMode`, `locale`, `weekStartDay`, `homeCalendarLayout`, `homeCalendarTimeBasis`, `homeCalendarFormat`, `homeListColumns`, `manageListColumns`, `manageViewMode`, `manageSeriesSort`, `statsListColumns`, `kanaTabEnabled`, `onDeviceAiEnabled`, `onDeviceAiPreferFast`, `autoCategoriesEnabled`, `recommendationsEnabled`, `clearLocale`.
   /// Returns: `AppSettings`.
   /// Side effects: None.
   /// Notes: None.
@@ -396,6 +438,8 @@ class AppSettings {
     CalendarFormat? homeCalendarFormat,
     int? homeListColumns,
     int? manageListColumns,
+    ManageViewMode? manageViewMode,
+    ManageSeriesSort? manageSeriesSort,
     int? statsListColumns,
     bool? kanaTabEnabled,
     bool? onDeviceAiEnabled,
@@ -414,6 +458,8 @@ class AppSettings {
       homeCalendarFormat: homeCalendarFormat ?? this.homeCalendarFormat,
       homeListColumns: homeListColumns ?? this.homeListColumns,
       manageListColumns: manageListColumns ?? this.manageListColumns,
+      manageViewMode: manageViewMode ?? this.manageViewMode,
+      manageSeriesSort: manageSeriesSort ?? this.manageSeriesSort,
       statsListColumns: statsListColumns ?? this.statsListColumns,
       kanaTabEnabled: kanaTabEnabled ?? this.kanaTabEnabled,
       onDeviceAiEnabled: onDeviceAiEnabled ?? this.onDeviceAiEnabled,

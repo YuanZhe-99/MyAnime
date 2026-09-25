@@ -2,7 +2,8 @@
 
 推荐中确定性的那一半（1.6.0，M5）：纯 Dart，不涉及模型。它对片库里自己的未开始和观看中的记录排序，并以带类型的
 理由说明原因，由页面变成标签。权重是 `RecommendationWeights` 中的具名常量，集中在一处。可选的 AI 理由由
-[`ai_reason_service.md`](ai_reason_service.md) 叠加。见
+[`ai_reason_service.md`](ai_reason_service.md) 叠加。自 1.6.2 起，它还为详情页对一条记录的**相关推荐**列表排序
+（`related`），为 `recommendations.json` 编码该列表的理由，并为缺失续作卡片生成用于垃圾箱的键。见
 [`../../../../features/categories-and-recommendations.md`](../../../../features/categories-and-recommendations.md)。
 
 ## 声明
@@ -15,12 +16,20 @@
 | `SameStudioReason.new` | 构造函数（`SameStudioReason`） | B | 「与《…》同一制作公司」，携带喜欢的记录和制作公司。 |
 | `ExternalScoreReason.new` | 构造函数（`ExternalScoreReason`） | B | 「AniList 8.9」，携带资料库名称和 0–10 分。 |
 | `CatchUpReason.new` | 构造函数（`CatchUpReason`） | B | 「有新的集数待补」。 |
+| `SharedCategoriesReason.new` | 构造函数（`SharedCategoriesReason`） | B | 相关推荐列表（1.6.2）：「同为恋爱、校园」，携带两条记录共有的至多两个分类。 |
+| `SharedStudioReason.new` | 构造函数（`SharedStudioReason`） | B | 相关推荐列表（1.6.2）：「同为 <studio> 制作」。 |
+| `RelatedByDatabaseReason.new` | 构造函数（`RelatedByDatabaseReason`） | B | 相关推荐列表（1.6.2）：资料库把两条记录列为关联作品，携带关联类型。 |
+| `SharedTitleReason.new` | 构造函数（`SharedTitleReason`） | B | 相关推荐列表（1.6.2）：「标题相近」——共有的基础标题键。 |
+| [`encodeRelatedReason`](#encoderelatedreason) | 顶层函数 | A | 为 `recommendations.json` 编码一条相关推荐理由（1.6.2）。 |
+| [`decodeRelatedReason`](#decoderelatedreason) | 顶层函数 | A | 解码一条持久保存的相关推荐理由（1.6.2）。 |
+| [`sequelTrashKey`](#sequeltrashkey) | 顶层函数 | A | 为缺失续作卡片生成用于去重和垃圾箱的键（1.6.2）。 |
 | `Recommendation.new` | 构造函数（`Recommendation`） | B | 创建一个已排序的候选：记录、总分、至多三个理由。 |
 | [`preferenceOf`](#preferenceof) | 顶层函数 | A | 读取用户对一条记录的喜爱程度。 |
 | [`hasAiredUnwatched`](#hasairedunwatched) | 顶层函数 | A | 报告一条记录是否有已播出但未看的集。 |
 | [`isAiring`](#isairing) | 顶层函数 | A | 报告一条记录是否正在播出。 |
 | `RecommendationService._` | 构造函数（`RecommendationService`） | B | 禁止实例化；该服务只有静态成员。 |
 | [`RecommendationService.rank`](#recommendationservice-rank) | 静态方法（`RecommendationService`） | A | 对接下来看什么排序。 |
+| [`RecommendationService.related`](#recommendationservice-related) | 静态方法（`RecommendationService`） | A | 对与一条记录相关的片库记录排序（1.6.2）。 |
 | [`RecommendationService._eligible`](#recommendationservice-_eligible) | 静态方法（`RecommendationService`） | A | 判断一条记录能否被推荐。 |
 | [`RecommendationService._bestExternal`](#recommendationservice-_bestexternal) | 静态方法（`RecommendationService`） | A | 为理由标签挑出最高的外部评分。 |
 
@@ -37,12 +46,52 @@
 | `externalPivot` | 7.0 | 视为中性的外部评分 |
 | `catchUp` | 0.8 | 观看中且有已播出未看的集 |
 | `airing` | 0.4 | 正在播出 |
+| `globalBatch` | 10 | 全局页面每批的卡片数（1.6.2；之前为 30） |
+| `relatedBatch` | 5 | 一条记录的相关推荐列表每批的条目数（1.6.2） |
+| `relatedCategory` | 2.0 | 相关推荐列表：乘以两条记录的分类余弦相似度 |
+| `relatedStudio` | 0.5 | 相关推荐列表：两条记录有相同的制作公司 |
+| `relatedRelation` | 3.0 | 相关推荐列表：资料库把其中一条列为另一条的关联作品 |
+| `relatedBaseTitle` | 1.0 | 相关推荐列表：两条记录有相同的基础标题键 |
 
 ## 文档
 
+### `String? encodeRelatedReason(RecommendationReason reason)` <a id="encoderelatedreason"></a>
+- **种类：** 顶层函数
+- **来源：** `lib/features/recommendations/services/recommendation_service.dart`（约第 193 行）
+- **用途：** 把一条相关推荐理由转成存储代码。
+- **输入：** `reason`。
+- **返回：** `categories:<id>,<id>`、`studio:<name>`、`relation:<type>` 或 `baseTitle`；相关推荐列表不会产生的理由为
+  null。
+- **副作用：** 无。
+- **算法：** 对四种相关推荐理由类型做一次 `switch`。
+- **用法：** `RelatedRecommendationsCard._generate`。
+- **备注：** 这些代码是 `recommendations.json` 中的持久格式：只能新增，永不改名。
+
+### `RecommendationReason? decodeRelatedReason(String code)` <a id="decoderelatedreason"></a>
+- **种类：** 顶层函数
+- **来源：** `lib/features/recommendations/services/recommendation_service.dart`（约第 208 行）
+- **用途：** 把存储代码转回理由。
+- **输入：** `code`。
+- **返回：** `RecommendationReason?` — 本构建不认识的代码（包括不认识的关联类型）为 null。
+- **副作用：** 无。
+- **算法：** `baseTitle` 精确匹配；否则在第一个 `:` 处拆分并匹配前缀。
+- **用法：** `RelatedRecommendationsCard._row`。
+- **备注：** 未知代码留在磁盘上，只是不显示，因此新构建的标签在旧构建中得以保留。
+
+### `String sequelTrashKey(AnimeExternalRelation sequel)` <a id="sequeltrashkey"></a>
+- **种类：** 顶层函数
+- **来源：** `lib/features/recommendations/services/recommendation_service.dart`（约第 234 行）
+- **用途：** 为缺失续作卡片生成键。
+- **输入：** `sequel`。
+- **返回：** `canonicalDatabaseKey(targetUrl)`（`anilist:1`、`mal:1`、`bgm:1`），否则 `targetUrl`，否则 `title`，否则为空。
+- **副作用：** 无。
+- **算法：** 取第一个存在的值。
+- **用法：** 推荐页，用于给卡片去重，并作为 `hiddenSequels` 的键。
+- **备注：** 1.6.1 及之前页面按原始 URL 去重，因此在 `bgm.tv` 和 `bangumi.tv` 下列出的同一部续作可能显示两次。
+
 ### `double preferenceOf(Anime anime)` <a id="preferenceof"></a>
 - **种类：** 顶层函数
-- **来源：** `lib/features/recommendations/services/recommendation_service.dart`（约第 147 行）
+- **来源：** `lib/features/recommendations/services/recommendation_service.dart`（约第 267 行）
 - **用途：** 读取用户对一条记录的喜爱程度。
 - **输入：** `anime`。
 - **返回：** −1…1 之间的 `double`。
@@ -53,7 +102,7 @@
 
 ### `bool hasAiredUnwatched(Anime anime, DateTime nowJst)` <a id="hasairedunwatched"></a>
 - **种类：** 顶层函数
-- **来源：** `lib/features/recommendations/services/recommendation_service.dart`（约第 162 行）
+- **来源：** `lib/features/recommendations/services/recommendation_service.dart`（约第 282 行）
 - **用途：** 报告一条记录是否有已播出但未看的集。
 - **输入：** `anime`、`nowJst`。
 - **返回：** `bool`。
@@ -64,7 +113,7 @@
 
 ### `bool isAiring(Anime anime, DateTime nowJst)` <a id="isairing"></a>
 - **种类：** 顶层函数
-- **来源：** `lib/features/recommendations/services/recommendation_service.dart`（约第 175 行）
+- **来源：** `lib/features/recommendations/services/recommendation_service.dart`（约第 295 行）
 - **用途：** 报告一条记录是否正在播出。
 - **输入：** `anime`、`nowJst`。
 - **返回：** `bool`。
@@ -74,11 +123,12 @@
 - **用法：** `rank` 中的播出中加分。
 - **备注：** 播出中加分没有理由标签。
 
-### `static List<Recommendation> rank(List<Anime> library, {AiInsights? insights, required DateTime nowJst, int limit = 30})` <a id="recommendationservice-rank"></a>
+### `static List<Recommendation> rank(List<Anime> library, {AiInsights? insights, Set<String> hidden = const {}, required DateTime nowJst, int limit = RecommendationWeights.globalBatch})` <a id="recommendationservice-rank"></a>
 - **种类：** `RecommendationService` 的静态方法
-- **来源：** `lib/features/recommendations/services/recommendation_service.dart`（约第 206 行）
+- **来源：** `lib/features/recommendations/services/recommendation_service.dart`（约第 328 行）
 - **用途：** 对接下来看什么排序。
-- **输入：** `library`；`insights` — 来自 `ai_insights.json` 的 AI 分类和隐藏 id；`nowJst`；`limit`。
+- **输入：** `library`；`insights` — 来自 `ai_insights.json` 的 AI 分类；`hidden` — 全局垃圾箱中的 id
+  （`recommendations.json`，1.6.2）；`nowJst`；`limit` — 每批的数量，10（1.6.1 及之前为 30）。
 - **返回：** `List<Recommendation>` — 最好的在前，至多 `limit` 条。
 - **副作用：** 无。
 - **算法：**
@@ -99,9 +149,28 @@
 - **用法：** `_RecommendationsPageState._load`；`test/recommendations_test.dart`。
 - **备注：** 第 1 季看完之前绝不推荐第 3 季。缺失续作（不在片库中）不在这里排序，由页面追加。
 
+### `static List<Recommendation> related(Anime subject, List<Anime> library, {AiInsights? insights, Set<String> exclude = const {}, int limit = RecommendationWeights.relatedBatch})` <a id="recommendationservice-related"></a>
+- **种类：** `RecommendationService` 的静态方法
+- **来源：** `lib/features/recommendations/services/recommendation_service.dart`（约第 500 行）
+- **用途：** 对与一条记录相关的片库记录排序（1.6.2）。
+- **输入：** `subject`；`library`；`insights` — AI 分类；`exclude` — 主体记录自己的相关推荐垃圾箱；`limit` — 默认为 5。
+- **返回：** `List<Recommendation>` — 最好的在前，每个得分都大于零。
+- **副作用：** 无。
+- **算法：**
+  1. 跳过主体记录、它自己所在系列的每个成员（`SeriesIndex.seriesOf`）以及 `exclude`。
+  2. 各项贡献，权重见下：两者之间任一方向的资料库关联关系——一方 `externalMeta.relations` 的目标与另一方的
+     `databaseKeysOf` 匹配，任何类型——`relatedRelation`；两条记录有效分类集合的余弦，
+     `|shared| / √(|a|·|b|)`，乘以 `relatedCategory`；相同的制作公司，`relatedStudio`；相同的
+     `seriesBaseKeys` 键，`relatedBaseTitle`。
+  3. 没有任何贡献的记录被丢弃。理由是从大到小排列的各项贡献，至多三个。
+  4. **其他每个系列只保留一个成员：** 在有两个或更多成员的同一系列中，保留得分最高的；得分相同时取系列顺序中较早的成员。
+  5. 按得分、再按 id 排序；截断到 `limit`。
+- **用法：** `RelatedRecommendationsCard._generate`；`test/recommendations_test.dart`。
+- **备注：** 观看状态不起作用：该列表回答「什么与它相似」，而不是「接下来看什么」。
+
 ### `static bool _eligible(Anime anime, DateTime nowJst)` <a id="recommendationservice-_eligible"></a>
 - **种类：** `RecommendationService` 的静态方法（私有）
-- **来源：** `lib/features/recommendations/services/recommendation_service.dart`（约第 371 行）
+- **来源：** `lib/features/recommendations/services/recommendation_service.dart`（约第 604 行）
 - **用途：** 判断一条记录能否被推荐。
 - **输入：** `anime`、`nowJst`。
 - **返回：** `bool` — 未开始，或观看中且有已播出未看的集时为真。
@@ -112,7 +181,7 @@
 
 ### `static ExternalScoreReason? _bestExternal(Anime anime)` <a id="recommendationservice-_bestexternal"></a>
 - **种类：** `RecommendationService` 的静态方法（私有）
-- **来源：** `lib/features/recommendations/services/recommendation_service.dart`（约第 383 行）
+- **来源：** `lib/features/recommendations/services/recommendation_service.dart`（约第 616 行）
 - **用途：** 为理由标签挑出最高的外部评分。
 - **输入：** `anime`。
 - **返回：** `ExternalScoreReason?` — 没有任何来源有归一化评分时为 null。

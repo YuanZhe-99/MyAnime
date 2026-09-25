@@ -38,6 +38,13 @@ sequel of the series' last member that is not in the library. Unlike the series 
 for a record in no series. See
 [`../../../../features/series-linking.md`](../../../../features/series-linking.md).
 
+While recommendations are on (1.6.2), `_buildDetailChildren` places the **Related** card
+(`RelatedRecommendationsCard`, [`../../recommendations/views/related_card.md`](../../recommendations/views/related_card.md))
+after the notes and before the missing-sequel hint, so in the two-pane layout it lands in the right
+pane. It is keyed by the record id, receives the library `_load` read, and owns its own loading,
+persistence, refresh and trash; the page only decides whether it appears. See
+[`../../../../features/categories-and-recommendations.md`](../../../../features/categories-and-recommendations.md#related-recommendations-on-the-detail-page).
+
 While automatic categories are on (1.6.0 M4), `_buildHeaderChildren` adds a row of category chips
 (`CategoryChips` in [`category_widgets.md`](category_widgets.md)) between the chips and the progress
 bar, so in the two-pane layout they stay in the left pane. Its edit chip opens the category editor.
@@ -69,7 +76,7 @@ list read correctly whether it follows the progress bar or opens the right pane.
 | `_AnimeDetailPageState.build` | method (`_AnimeDetailPageState`, widget build) | B | Build the detail page scaffold, choosing the single-column or two-pane layout. |
 | `_buildCover` | method (widget helper) | B | Build the cover image block at an explicit size. |
 | `_buildHeaderChildren` | method (widget helper) | B | Build the header block: Japanese title, chips (including the anime1.me progress chip), the category chips while automatic categories are on, and the watched-episode bar. |
-| `_buildDetailChildren` | method (widget helper) | B | Build the cards below the progress bar, plus the missing-sequel hint, the series card and prev/next buttons. |
+| `_buildDetailChildren` | method (widget helper) | B | Build the cards below the progress bar, plus the related card (1.6.2, while recommendations are on), the missing-sequel hint, the series card and prev/next buttons. |
 | `_buildEpisodeChildren` | method (widget helper) | B | Build the episode list header and one row per tracked episode. |
 | [`_toggleAllWatched`](#_toggleallwatched) | method (`_AnimeDetailPageState`) | A | Mark every tracked episode watched, or all unwatched if already complete. |
 | `_buildAbandonOrResume` | method (widget helper) | B | Render the "Abandon"/"Resume" action button for the episode list header. |
@@ -100,8 +107,10 @@ list read correctly whether it follows the progress bar or opens the right pane.
 - **Side effects:** Calls `AnimeStorage.loadFixingSeasonLabels(seasonLabelFixups)` (1.6.1), which may
   rewrite default season labels without touching `modifiedAt`, `AnimeStorage.getAutoCategoriesEnabled()` and, only
   while that and on-device AI (`AnimeStorage.getOnDeviceAiEnabled()`) are both on,
-  `AiInsightsCache.load()`; `setState`s `_anime`, `_seriesIndex`, `_series`,
-  `_missingSequel`, `_categoriesOn` and `_categories`. Writes nothing else.
+  `AiInsightsCache.load()`, and `AnimeStorage.getRecommendationsEnabled()` (1.6.2); `setState`s
+  `_anime`, `_seriesIndex`, `_series`, `_missingSequel`, `_categoriesOn`, `_categories`,
+  `_recommendationsOn` and `_library`. Writes nothing else; the related card writes
+  `recommendations.json` itself.
 - **Algorithm:**
   1. Await [`AnimeStorage.loadFixingSeasonLabels`](../services/anime_storage.md#loadfixingseasonlabels)`(seasonLabelFixups)`
      and find the record whose `id == widget.animeId`.

@@ -146,7 +146,8 @@ next background sync cycle.
 
 ## Other important constraints
 
-- `anime_data.json` merges `Anime` records by `id` and `modifiedAt`.
+- `anime_data.json` merges `Anime` records by `id` and `modifiedAt`; `recommendations.json` (1.6.2)
+  merges without conflicts — see [The recommendations file](#the-recommendations-file).
 - Unknown top-level and per-anime JSON fields must survive parsing, editing, importing, exporting,
   and sync merging (see the `extraJson` pattern in [`data-formats.md`](data-formats.md)).
 - `_syncing` prevents concurrent sync runs.
@@ -198,3 +199,25 @@ Applying an update *proposal* is the opposite case and does bump `modifiedAt` �
 See [`features/metadata-auto-update.md`](features/metadata-auto-update.md), and note the
 `Anime.copyWith` trap documented there: omitting `modifiedAt` stamps the current time rather than
 preserving it.
+
+## The recommendations file
+
+Since 1.6.2 the registry in `lib/app/data_modules.dart` holds a second module,
+`recommendations.json` — the recommendation trash bins and each record's persisted Related list (see
+[`features/categories-and-recommendations.md`](features/categories-and-recommendations.md#the-trash)).
+Nothing in the shared engine changed: every module goes through the same steps above, in registry
+order, **anime first**, under the same `.lock`, with its own `.sync_base/recommendations.json`.
+
+- **Missing on either side** is handled by the engine as for any module: a remote-only file is
+  downloaded, a local-only file is uploaded, and when neither exists nothing is written — so a
+  library that never used the trash only adds one `GET` that returns 404 to each sync.
+- **The merge never produces a conflict.** The trash bins are sets merged against the base: an entry
+  on one side only is kept when the base lacks it (it was trashed there) and dropped when the base
+  has it (it was restored on the other side). A record's Related list is a regenerable cache: the
+  side with the newer `generatedAt` wins, while its trash still merges as a set. Unknown keys are
+  unioned. The module therefore always returns a complete outcome, never reaches the conflict
+  dialog, and `autoResolve` stays irrelevant — it is still passed as `false`.
+- **Older builds** (1.6.1 and earlier) do not list the module, so they never download, upload or
+  delete it; their trash stays in their own `ai_insights.json` until they update.
+- A save through `RecommendationStore` calls `AutoSyncService.notifySaved`, so trashing and restoring
+  schedule the usual debounced sync.

@@ -3448,6 +3448,156 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Desktop'**
   String get settingsDesktop;
+
+  /// No description provided for @undo.
+  ///
+  /// In en, this message translates to:
+  /// **'Undo'**
+  String get undo;
+
+  /// No description provided for @backupModuleRecommendations.
+  ///
+  /// In en, this message translates to:
+  /// **'Recommendations'**
+  String get backupModuleRecommendations;
+
+  /// No description provided for @recommendationsRefresh.
+  ///
+  /// In en, this message translates to:
+  /// **'Show another batch'**
+  String get recommendationsRefresh;
+
+  /// No description provided for @recommendationsRefreshed.
+  ///
+  /// In en, this message translates to:
+  /// **'Moved {count} to the trash'**
+  String recommendationsRefreshed(int count);
+
+  /// No description provided for @recommendationsTrash.
+  ///
+  /// In en, this message translates to:
+  /// **'Trash'**
+  String get recommendationsTrash;
+
+  /// No description provided for @recommendationsTrashEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'The trash is empty. Anything you mark Not interested, or pass over with a refresh, lands here.'**
+  String get recommendationsTrashEmpty;
+
+  /// No description provided for @recommendationsRestore.
+  ///
+  /// In en, this message translates to:
+  /// **'Restore'**
+  String get recommendationsRestore;
+
+  /// No description provided for @recommendationsRestoreAll.
+  ///
+  /// In en, this message translates to:
+  /// **'Restore all'**
+  String get recommendationsRestoreAll;
+
+  /// No description provided for @recommendationsTrashedOn.
+  ///
+  /// In en, this message translates to:
+  /// **'Trashed {date}'**
+  String recommendationsTrashedOn(String date);
+
+  /// No description provided for @recommendationsTrashSequels.
+  ///
+  /// In en, this message translates to:
+  /// **'Sequels not in your library'**
+  String get recommendationsTrashSequels;
+
+  /// No description provided for @relatedTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Related'**
+  String get relatedTitle;
+
+  /// No description provided for @relatedEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'Nothing in your library looks related yet.'**
+  String get relatedEmpty;
+
+  /// No description provided for @relatedRefresh.
+  ///
+  /// In en, this message translates to:
+  /// **'Show others'**
+  String get relatedRefresh;
+
+  /// No description provided for @relatedTrashTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Trash · {title}'**
+  String relatedTrashTitle(String title);
+
+  /// No description provided for @reasonSharedCategories.
+  ///
+  /// In en, this message translates to:
+  /// **'Also {categories}'**
+  String reasonSharedCategories(String categories);
+
+  /// No description provided for @reasonSharedStudio.
+  ///
+  /// In en, this message translates to:
+  /// **'Also by {studio}'**
+  String reasonSharedStudio(String studio);
+
+  /// No description provided for @reasonRelatedByDatabase.
+  ///
+  /// In en, this message translates to:
+  /// **'Related in the databases'**
+  String get reasonRelatedByDatabase;
+
+  /// No description provided for @reasonSharedTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Similar title'**
+  String get reasonSharedTitle;
+
+  /// No description provided for @manageViewQuarter.
+  ///
+  /// In en, this message translates to:
+  /// **'View by quarter'**
+  String get manageViewQuarter;
+
+  /// No description provided for @manageViewSeries.
+  ///
+  /// In en, this message translates to:
+  /// **'View by series'**
+  String get manageViewSeries;
+
+  /// No description provided for @manageSeriesSort.
+  ///
+  /// In en, this message translates to:
+  /// **'Sort series'**
+  String get manageSeriesSort;
+
+  /// No description provided for @manageSeriesSortLatest.
+  ///
+  /// In en, this message translates to:
+  /// **'Newest premiere first'**
+  String get manageSeriesSortLatest;
+
+  /// No description provided for @manageSeriesSortTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Title'**
+  String get manageSeriesSortTitle;
+
+  /// No description provided for @manageSeriesSortModified.
+  ///
+  /// In en, this message translates to:
+  /// **'Recently edited'**
+  String get manageSeriesSortModified;
+
+  /// No description provided for @manageSeriesMembers.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} entries · {completed} completed'**
+  String manageSeriesMembers(int count, int completed);
 }
 
 class _AppLocalizationsDelegate

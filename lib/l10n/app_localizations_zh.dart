@@ -1860,6 +1860,93 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get settingsDesktop => '桌面';
+
+  @override
+  String get undo => '撤销';
+
+  @override
+  String get backupModuleRecommendations => '推荐';
+
+  @override
+  String get recommendationsRefresh => '换一批';
+
+  @override
+  String recommendationsRefreshed(int count) {
+    return '已将 $count 项移入垃圾箱';
+  }
+
+  @override
+  String get recommendationsTrash => '垃圾箱';
+
+  @override
+  String get recommendationsTrashEmpty => '垃圾箱是空的。标记为不感兴趣，或刷新时略过的推荐会放在这里。';
+
+  @override
+  String get recommendationsRestore => '恢复';
+
+  @override
+  String get recommendationsRestoreAll => '全部恢复';
+
+  @override
+  String recommendationsTrashedOn(String date) {
+    return '$date 移入';
+  }
+
+  @override
+  String get recommendationsTrashSequels => '番剧库里还没有的续作';
+
+  @override
+  String get relatedTitle => '相关推荐';
+
+  @override
+  String get relatedEmpty => '番剧库里暂时没有相关的作品。';
+
+  @override
+  String get relatedRefresh => '换一批';
+
+  @override
+  String relatedTrashTitle(String title) {
+    return '垃圾箱 · $title';
+  }
+
+  @override
+  String reasonSharedCategories(String categories) {
+    return '同为$categories';
+  }
+
+  @override
+  String reasonSharedStudio(String studio) {
+    return '同为 $studio 制作';
+  }
+
+  @override
+  String get reasonRelatedByDatabase => '数据库中的关联作品';
+
+  @override
+  String get reasonSharedTitle => '标题相近';
+
+  @override
+  String get manageViewQuarter => '按季度查看';
+
+  @override
+  String get manageViewSeries => '按系列查看';
+
+  @override
+  String get manageSeriesSort => '系列排序';
+
+  @override
+  String get manageSeriesSortLatest => '最新首播在前';
+
+  @override
+  String get manageSeriesSortTitle => '标题';
+
+  @override
+  String get manageSeriesSortModified => '最近编辑';
+
+  @override
+  String manageSeriesMembers(int count, int completed) {
+    return '$count 部 · 已看完 $completed 部';
+  }
 }
 
 /// The translations for Chinese, as used in Taiwan (`zh_TW`).
@@ -3718,4 +3805,91 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
 
   @override
   String get settingsDesktop => '桌面';
+
+  @override
+  String get undo => '復原';
+
+  @override
+  String get backupModuleRecommendations => '推薦';
+
+  @override
+  String get recommendationsRefresh => '換一批';
+
+  @override
+  String recommendationsRefreshed(int count) {
+    return '已將 $count 項移入垃圾桶';
+  }
+
+  @override
+  String get recommendationsTrash => '垃圾桶';
+
+  @override
+  String get recommendationsTrashEmpty => '垃圾桶是空的。標記為不感興趣，或重新整理時略過的推薦會放在這裡。';
+
+  @override
+  String get recommendationsRestore => '還原';
+
+  @override
+  String get recommendationsRestoreAll => '全部還原';
+
+  @override
+  String recommendationsTrashedOn(String date) {
+    return '$date 移入';
+  }
+
+  @override
+  String get recommendationsTrashSequels => '番劇庫裡還沒有的續作';
+
+  @override
+  String get relatedTitle => '相關推薦';
+
+  @override
+  String get relatedEmpty => '番劇庫裡暫時沒有相關的作品。';
+
+  @override
+  String get relatedRefresh => '換一批';
+
+  @override
+  String relatedTrashTitle(String title) {
+    return '垃圾桶 · $title';
+  }
+
+  @override
+  String reasonSharedCategories(String categories) {
+    return '同為$categories';
+  }
+
+  @override
+  String reasonSharedStudio(String studio) {
+    return '同為 $studio 製作';
+  }
+
+  @override
+  String get reasonRelatedByDatabase => '資料庫中的關聯作品';
+
+  @override
+  String get reasonSharedTitle => '標題相近';
+
+  @override
+  String get manageViewQuarter => '按季度檢視';
+
+  @override
+  String get manageViewSeries => '按系列檢視';
+
+  @override
+  String get manageSeriesSort => '系列排序';
+
+  @override
+  String get manageSeriesSortLatest => '最新首播在前';
+
+  @override
+  String get manageSeriesSortTitle => '標題';
+
+  @override
+  String get manageSeriesSortModified => '最近編輯';
+
+  @override
+  String manageSeriesMembers(int count, int completed) {
+    return '$count 部 · 已看完 $completed 部';
+  }
 }

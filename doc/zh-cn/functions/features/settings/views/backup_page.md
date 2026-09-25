@@ -1,6 +1,6 @@
 # lib/features/settings/views/backup_page.dart
 
-`BackupPage` 是设置 -> 备份子页：它列出 `BackupService`（`lib/shared/services/backup_service.dart`，[`../../../shared/services/backup_service.md`](../../../shared/services/backup_service.md)）产生的本地备份捆绑，让用户按需创建备份、切换每日自动备份、选择保留窗口，以及恢复或删除单个捆绑。与本批大多数视图文件不同，它的几个回调携带真实编排逻辑而不是纯组件组合——最值得注意的是 `_restoreBackup`，它实现安全关键的"在第一个恢复字节被写入前禁用 WebDAV 自动同步"规则，以及 `_handlePostRestoreSync`，它在同步唤醒锁之下提供恢复后强制上传。两者都是 [`../../../backup-restore.md`](../../../../backup-restore.md) 完整文档化流程的 `backup_page.dart` 半边（见"关键安全规则：恢复前后的 WebDAV 自动同步"），并具体走查于 [`../../../examples/backup-restore-walkthrough.md`](../../../../examples/backup-restore-walkthrough.md)。嵌套的私有 `_RestoreModuleDialog` 组件让用户在 `_restoreBackup` 中的确认对话框运行前选择恢复哪些备份模块（目前只有 `anime`）。
+`BackupPage` 是设置 -> 备份子页：它列出 `BackupService`（`lib/shared/services/backup_service.dart`，[`../../../shared/services/backup_service.md`](../../../shared/services/backup_service.md)）产生的本地备份捆绑，让用户按需创建备份、切换每日自动备份、选择保留窗口，以及恢复或删除单个捆绑。与本批大多数视图文件不同，它的几个回调携带真实编排逻辑而不是纯组件组合——最值得注意的是 `_restoreBackup`，它实现安全关键的"在第一个恢复字节被写入前禁用 WebDAV 自动同步"规则，以及 `_handlePostRestoreSync`，它在同步唤醒锁之下提供恢复后强制上传。两者都是 [`../../../backup-restore.md`](../../../../backup-restore.md) 完整文档化流程的 `backup_page.dart` 半边（见"关键安全规则：恢复前后的 WebDAV 自动同步"），并具体走查于 [`../../../examples/backup-restore-walkthrough.md`](../../../../examples/backup-restore-walkthrough.md)。嵌套的私有 `_RestoreModuleDialog` 组件让用户在 `_restoreBackup` 中的确认对话框运行前选择恢复哪些备份模块（自 1.6.2 起为 `anime` 和 `recommendations`，通过 `lib/app/data_modules.dart` 中的模块 id 常量加标签；1.6.1 的捆绑只提供 `anime`）。
 
 ## 声明
 

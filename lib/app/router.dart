@@ -10,6 +10,7 @@ import '../features/anime/views/management_page.dart';
 import '../features/anime/views/metadata_updates_page.dart';
 import '../features/anime/views/statistics_page.dart';
 import '../features/kana/views/kana_page.dart';
+import '../features/recommendations/views/recommendation_trash_page.dart';
 import '../features/recommendations/views/recommendations_page.dart';
 import '../features/settings/views/settings_page.dart';
 import '../shared/providers/app_settings.dart';
@@ -98,6 +99,13 @@ final appRouter = GoRouter(
     GoRoute(
       path: '/recommendations',
       builder: (context, state) => const RecommendationsPage(),
+    ),
+    GoRoute(
+      path: '/recommendations/trash',
+      // `?anime=<id>` opens that record's own related-list bin (1.6.2);
+      // without it, the global bin behind "What to watch next".
+      builder: (context, state) =>
+          RecommendationTrashPage(animeId: state.uri.queryParameters['anime']),
     ),
     GoRoute(
       path: '/duplicate-check',

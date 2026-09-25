@@ -7,6 +7,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../../l10n/app_localizations.dart';
 import '../../../shared/providers/app_settings.dart';
+import '../../../shared/services/auto_sync_service.dart';
 import '../../../shared/services/image_service.dart';
 import '../../../shared/utils/adaptive_layout.dart';
 import '../../../shared/utils/jst_time.dart';
@@ -16,14 +17,18 @@ import '../../ai/services/on_device_ai_service.dart';
 import '../../anime/models/anime.dart';
 import '../../anime/services/anime_storage.dart';
 import '../../anime/services/series_service.dart';
-import '../../anime/views/category_widgets.dart';
+import '../models/recommendation_data.dart';
 import '../services/ai_reason_service.dart';
 import '../services/recommendation_service.dart';
+import '../services/recommendation_store.dart';
+import 'reason_labels.dart';
 
 /// "What to watch next": the library's own unwatched and in-progress records,
 /// ranked, with reason chips; sequels the databases list but the library
 /// lacks are appended, clearly marked. With on-device AI on and a model
-/// available, up to three cards gain a short generated reason.
+/// available, up to three cards gain a short generated reason. Since 1.6.2
+/// the page shows a batch of ten, every card can go to the synced trash, and
+/// the refresh action trashes the whole batch and shows the next one.
 class RecommendationsPage extends ConsumerStatefulWidget {
   /// Purpose: Create the recommendations page.
   /// Inputs: None.
@@ -51,33 +56,50 @@ class _RecommendationsPageState extends ConsumerState<RecommendationsPage> {
   bool _loading = true;
   bool _aiPending = false;
 
-  /// Purpose: Load and rank on first build.
+  /// Purpose: Load and rank on first build, and follow synced changes.
   /// Inputs: None.
   /// Returns: None.
-  /// Side effects: Reads storage; may run the model once.
+  /// Side effects: Reads storage; may run the model once; registers with
+  /// auto-sync so a trash change from another device reloads the page.
   /// Notes: Flutter lifecycle override.
   @override
   void initState() {
     super.initState();
+    AutoSyncService.instance.addOnLocalDataChanged(_load);
     _load();
+  }
+
+  /// Purpose: Stop following synced changes.
+  /// Inputs: None.
+  /// Returns: None.
+  /// Side effects: Unregisters from auto-sync.
+  /// Notes: Flutter lifecycle override.
+  @override
+  void dispose() {
+    AutoSyncService.instance.removeOnLocalDataChanged(_load);
+    super.dispose();
   }
 
   /// Purpose: Rank the library, then ask the model for reasons.
   /// Inputs: None.
   /// Returns: None.
-  /// Side effects: Reads `anime_data.json` and `ai_insights.json`; runs the
-  /// model when AI is on and ready.
+  /// Side effects: Reads `anime_data.json`, `recommendations.json` and
+  /// `ai_insights.json`; moves a pre-1.6.2 "Not interested" list into the
+  /// synced trash once; runs the model when AI is on and ready.
   /// Notes: Internal helper used within this file only. The deterministic list
   /// renders at once; nothing waits on the model. Reasons are kept for this
   /// page only.
   Future<void> _load() async {
+    await RecommendationStore.migrateFromInsights();
     final data = await AnimeStorage.load();
+    final store = await RecommendationStore.load();
     final insights = await AiInsightsCache.load(
       liveIds: {for (final a in data.animes) a.id},
     );
     final ranked = RecommendationService.rank(
       data.animes,
       insights: insights,
+      hidden: store.hidden.keys.toSet(),
       nowJst: JstTime.now(),
     );
     final index = SeriesIndex.build(data.animes);
@@ -91,19 +113,24 @@ class _RecommendationsPageState extends ConsumerState<RecommendationsPage> {
           : a;
       if (last.id != a.id) continue;
       final sequel = index.missingSequelFor(a.id);
-      if (sequel != null && seen.add(sequel.targetUrl ?? sequel.title ?? '')) {
-        missing.add((last, sequel));
-      }
+      if (sequel == null) continue;
+      final key = sequelTrashKey(sequel);
+      if (store.hiddenSequels.containsKey(key) || !seen.add(key)) continue;
+      missing.add((last, sequel));
     }
     if (!mounted) return;
+    final sameBatch =
+        ranked.map((r) => r.anime.id).join('|') ==
+        _ranked.map((r) => r.anime.id).join('|');
     setState(() {
       _library = data.animes;
       _insights = insights;
       _ranked = ranked;
       _missing = missing;
       _loading = false;
+      if (!sameBatch) _aiReasons = const {};
     });
-    await _requestAiReasons();
+    if (!sameBatch || _aiReasons.isEmpty) await _requestAiReasons();
   }
 
   /// Purpose: Ask the on-device model for reasons, if it can answer.
@@ -117,7 +144,7 @@ class _RecommendationsPageState extends ConsumerState<RecommendationsPage> {
   /// is not known yet.
   Future<void> _requestAiReasons() async {
     final ai = ref.read(onDeviceAiServiceProvider);
-    if (!ai.canGenerate || _ranked.isEmpty) return;
+    if (!ai.canGenerate || _ranked.isEmpty || _aiPending) return;
     final locale = Localizations.localeOf(context);
     // Apple reports whether the model supports the UI language only when it
     // is asked with a locale, so ask once here if nothing has yet.
@@ -151,15 +178,14 @@ class _RecommendationsPageState extends ConsumerState<RecommendationsPage> {
     });
   }
 
-  /// Purpose: Hide a candidate on this device.
+  /// Purpose: Put one library card into the trash.
   /// Inputs: `anime`.
   /// Returns: None.
-  /// Side effects: Writes `ai_insights.json`.
-  /// Notes: Internal helper used within this file only. Per device: the
-  /// hidden list is not synced.
+  /// Side effects: Writes `recommendations.json` (synced); removes the card.
+  /// Notes: Internal helper used within this file only. Restored from the
+  /// trash page.
   Future<void> _hide(Anime anime) async {
-    _insights.hiddenRecommendations.add(anime.id);
-    await AiInsightsCache.save(_insights);
+    await RecommendationStore.hide([anime.id]);
     if (!mounted) return;
     setState(() {
       _ranked = [
@@ -169,26 +195,82 @@ class _RecommendationsPageState extends ConsumerState<RecommendationsPage> {
     });
   }
 
-  /// Purpose: Word one reason chip.
-  /// Inputs: `reason`, `l10n`.
-  /// Returns: `String`.
+  /// Purpose: Put one missing-sequel card into the trash.
+  /// Inputs: `source` — the record it follows; `sequel`.
+  /// Returns: None.
+  /// Side effects: Writes `recommendations.json` (synced); removes the card.
+  /// Notes: Internal helper used within this file only.
+  Future<void> _hideSequel(Anime source, AnimeExternalRelation sequel) async {
+    final key = sequelTrashKey(sequel);
+    await RecommendationStore.hideSequels([_sequelEntry(source, sequel)]);
+    if (!mounted) return;
+    setState(() {
+      _missing = [
+        for (final m in _missing)
+          if (sequelTrashKey(m.$2) != key) m,
+      ];
+    });
+  }
+
+  /// Purpose: Describe a missing-sequel card as a trash entry.
+  /// Inputs: `source`, `sequel`.
+  /// Returns: `HiddenSequelEntry` without a timestamp.
   /// Side effects: None.
   /// Notes: Internal helper used within this file only.
-  String _reasonLabel(RecommendationReason reason, AppLocalizations l10n) =>
-      switch (reason) {
-        NextAfterReason(:final previous) => l10n.reasonNextAfter(
-          previous.displayTitle,
+  HiddenSequelEntry _sequelEntry(Anime source, AnimeExternalRelation sequel) =>
+      HiddenSequelEntry(
+        sequelTrashKey(sequel),
+        sourceId: source.id,
+        title: sequel.title,
+        source: sequel.source,
+      );
+
+  /// Purpose: Trash the whole current batch and show the next one.
+  /// Inputs: None.
+  /// Returns: None.
+  /// Side effects: One write of `recommendations.json` (synced); reloads;
+  /// shows a snack bar whose Undo restores exactly that batch.
+  /// Notes: Internal helper used within this file only. This is what the
+  /// refresh action means: the batch the user looked at and passed over is
+  /// "not interested".
+  Future<void> _refreshBatch() async {
+    final l10n = AppLocalizations.of(context)!;
+    final ids = [for (final r in _ranked) r.anime.id];
+    final sequels = [for (final (s, q) in _missing) _sequelEntry(s, q)];
+    if (ids.isEmpty && sequels.isEmpty) return;
+    await RecommendationStore.hideBatch(ids, sequels);
+    await _load();
+    if (!mounted) return;
+    ScaffoldMessenger.of(context)
+      ..hideCurrentSnackBar()
+      ..showSnackBar(
+        SnackBar(
+          content: Text(
+            l10n.recommendationsRefreshed(ids.length + sequels.length),
+          ),
+          action: SnackBarAction(
+            label: l10n.undo,
+            onPressed: () async {
+              await RecommendationStore.restore(ids);
+              await RecommendationStore.restoreSequels(
+                sequels.map((e) => e.key),
+              );
+              await _load();
+            },
+          ),
         ),
-        CategoryMatchReason(:final categoryIds) => l10n.reasonLikeCategories(
-          categoryIds.map((id) => categoryLabel(id, l10n)).join(', '),
-        ),
-        SameStudioReason(:final liked) => l10n.reasonSameStudio(
-          liked.displayTitle,
-        ),
-        ExternalScoreReason(:final source, :final score) =>
-          '$source ${score.toStringAsFixed(1)}',
-        CatchUpReason() => l10n.reasonCatchUp,
-      };
+      );
+  }
+
+  /// Purpose: Open the global trash and reload on return.
+  /// Inputs: None.
+  /// Returns: None.
+  /// Side effects: Navigation; reloads.
+  /// Notes: Internal helper used within this file only.
+  Future<void> _openTrash() async {
+    await context.push('/recommendations/trash');
+    await _load();
+  }
 
   /// Purpose: Build the page.
   /// Inputs: `context`.
@@ -215,6 +297,18 @@ class _RecommendationsPageState extends ConsumerState<RecommendationsPage> {
     return Scaffold(
       appBar: AppBar(
         title: Text(l10n.recommendationsTitle),
+        actions: [
+          IconButton(
+            tooltip: l10n.recommendationsRefresh,
+            icon: const Icon(Icons.refresh),
+            onPressed: _loading || items.isEmpty ? null : _refreshBatch,
+          ),
+          IconButton(
+            tooltip: l10n.recommendationsTrash,
+            icon: const Icon(Icons.delete_outline),
+            onPressed: _openTrash,
+          ),
+        ],
         bottom: _aiPending
             ? const PreferredSize(
                 preferredSize: Size.fromHeight(2),
@@ -283,7 +377,7 @@ class _RecommendationsPageState extends ConsumerState<RecommendationsPage> {
                         for (final reason in r.reasons)
                           Chip(
                             visualDensity: VisualDensity.compact,
-                            label: Text(_reasonLabel(reason, l10n)),
+                            label: Text(reasonLabel(reason, l10n)),
                           ),
                       ],
                     ),
@@ -325,27 +419,44 @@ class _RecommendationsPageState extends ConsumerState<RecommendationsPage> {
   /// Returns: `Widget`.
   /// Side effects: None.
   /// Notes: Internal helper used within this file only. Opens the prefilled
-  /// create page; the search starts only in full builds.
+  /// create page; the search starts only in full builds. Since 1.6.2 it has a
+  /// *Not interested* button like the library cards.
   Widget _missingCard(
     Anime source,
     AnimeExternalRelation sequel,
     AppLocalizations l10n,
   ) {
     return Card(
-      child: ListTile(
-        leading: const Icon(Icons.new_releases_outlined),
-        title: Text(
-          l10n.seriesMissingSequel(sequel.title ?? '?', sequel.source),
-        ),
-        subtitle: Text(l10n.recommendationsNotInLibrary),
-        trailing: const Icon(Icons.add),
-        onTap: () async {
-          await context.push(
-            '/anime/edit',
-            extra: NextSeasonPrefill.fromRelation(source, sequel),
-          );
-          await _load();
-        },
+      clipBehavior: Clip.antiAlias,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          ListTile(
+            leading: const Icon(Icons.new_releases_outlined),
+            title: Text(
+              l10n.seriesMissingSequel(sequel.title ?? '?', sequel.source),
+            ),
+            subtitle: Text(l10n.recommendationsNotInLibrary),
+            trailing: const Icon(Icons.add),
+            onTap: () async {
+              await context.push(
+                '/anime/edit',
+                extra: NextSeasonPrefill.fromRelation(source, sequel),
+              );
+              await _load();
+            },
+          ),
+          Align(
+            alignment: AlignmentDirectional.centerEnd,
+            child: Padding(
+              padding: const EdgeInsetsDirectional.only(end: 12, bottom: 4),
+              child: TextButton(
+                onPressed: () => _hideSequel(source, sequel),
+                child: Text(l10n.recommendationsNotInterested),
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -355,28 +466,34 @@ class _RecommendationsPageState extends ConsumerState<RecommendationsPage> {
   /// Returns: `Widget`.
   /// Side effects: Reads the cover file.
   /// Notes: Internal helper used within this file only.
-  Widget _cover(Anime anime) {
-    const size = Size(56, 80);
-    final path = anime.coverImage;
-    if (path == null) {
-      return SizedBox.fromSize(
-        size: size,
-        child: const Icon(Icons.movie_outlined),
-      );
-    }
-    return FutureBuilder<File>(
-      future: ImageService.resolve(path),
-      builder: (context, snap) => ClipRRect(
-        borderRadius: BorderRadius.circular(6),
-        child: snap.hasData && snap.data!.existsSync()
-            ? Image.file(
-                snap.data!,
-                width: size.width,
-                height: size.height,
-                fit: BoxFit.cover,
-              )
-            : SizedBox.fromSize(size: size),
-      ),
+  Widget _cover(Anime anime) => recommendationCover(anime);
+}
+
+/// Purpose: Build a small recommendation cover, or a placeholder.
+/// Inputs: `anime`; `size` — 56×80 by default.
+/// Returns: `Widget`.
+/// Side effects: Reads the cover file through `ImageService.resolve`.
+/// Notes: Shared by the global page, the trash page and the related card.
+Widget recommendationCover(Anime anime, {Size size = const Size(56, 80)}) {
+  final path = anime.coverImage;
+  if (path == null) {
+    return SizedBox.fromSize(
+      size: size,
+      child: const Icon(Icons.movie_outlined),
     );
   }
+  return FutureBuilder<File>(
+    future: ImageService.resolve(path),
+    builder: (context, snap) => ClipRRect(
+      borderRadius: BorderRadius.circular(6),
+      child: snap.hasData && snap.data!.existsSync()
+          ? Image.file(
+              snap.data!,
+              width: size.width,
+              height: size.height,
+              fit: BoxFit.cover,
+            )
+          : SizedBox.fromSize(size: size),
+    ),
+  );
 }

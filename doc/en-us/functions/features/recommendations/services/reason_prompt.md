@@ -14,8 +14,10 @@ live in memory for one visit to the page. See
 | [`reasonInstructions`](#reasoninstructions) | top-level function | A | Build the system instructions for writing recommendation reasons. |
 | `ReasonCandidate.new` | constructor (`ReasonCandidate`) | B | Create one numbered candidate: title, categories, studios and short facts. |
 | [`reasonPrompt`](#reasonprompt) | top-level function | A | Build the prompt for writing recommendation reasons. |
+| [`relatedReasonInstructions`](#relatedreasoninstructions) | top-level function | A | Build the system instructions for explaining related records (1.6.2). |
+| [`relatedReasonPrompt`](#relatedreasonprompt) | top-level function | A | Build the prompt for explaining related records (1.6.2). |
 
-`reasonPromptVersion` (1) and the `ReasonCandidate` fields (`number`, `title`, `categories`,
+`reasonPromptVersion` (1), `relatedReasonPromptVersion` (1, since 1.6.2) and the `ReasonCandidate` fields (`number`, `title`, `categories`,
 `studios`, `facts`) carry no `/// Purpose:` comment and are not rows.
 
 ## Documentation
@@ -48,3 +50,31 @@ live in memory for one visit to the page. See
   `<n>. <title> — <categories>; studio <studios>; <facts>` line per candidate, omitting empty parts.
 - **Usage:** `writeAiReasons`, as the `prompt` of `OnDeviceAiService.generate`.
 - **Notes:** A compact profile only — never notes or episode-level history.
+
+### `String relatedReasonInstructions(String localeTag, String languageName)` <a id="relatedreasoninstructions"></a>
+- **Kind:** top-level function
+- **Source:** `lib/features/recommendations/services/reason_prompt.dart` (approx. line 103)
+- **Purpose:** Build the system instructions for explaining related records (1.6.2).
+- **Inputs:** `localeTag`, `languageName` — as for `reasonInstructions`.
+- **Returns:** `String`.
+- **Side effects:** None.
+- **Algorithm:** Apple's locale phrase, then: explain why anime in the person's own list are similar
+  to the one they are looking at; pick up to three numbered candidates; one reason each in
+  `languageName`, under 20 words, about what they have in common; facts given only; one
+  `<number>: <reason>` line per pick.
+- **Usage:** `writeRelatedAiReasons`.
+- **Notes:** Same contract as `reasonInstructions`: the model picks by number and never names a
+  title. Changing the wording means bumping `relatedReasonPromptVersion`. The reasons are persisted
+  but not fingerprinted, so a new version affects only lists generated afterwards.
+
+### `String relatedReasonPrompt({required ReasonCandidate subject, required List<ReasonCandidate> candidates})` <a id="relatedreasonprompt"></a>
+- **Kind:** top-level function
+- **Source:** `lib/features/recommendations/services/reason_prompt.dart` (approx. line 119)
+- **Purpose:** Build the prompt for explaining related records (1.6.2).
+- **Inputs:** `subject` — its `number` is ignored; `candidates` — at most five.
+- **Returns:** `String`, trimmed.
+- **Side effects:** None.
+- **Algorithm:** `Looking at: <title> — <categories>; studio <studios>`, then `Candidates:` with one
+  `<n>. <title> — <categories>; studio <studios>; <facts>` line each, omitting empty parts.
+- **Usage:** `writeRelatedAiReasons`.
+- **Notes:** Titles, categories, studios and deterministic facts only.

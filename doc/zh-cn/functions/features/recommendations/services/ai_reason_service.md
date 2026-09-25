@@ -15,6 +15,7 @@
 | [`ReasonLanguage.forLocale`](#reasonlanguage-forlocale) | 静态方法（`ReasonLanguage`） | A | 为界面语言区域挑选请求语言。 |
 | `ReasonLanguage.finish` | 方法（`ReasonLanguage`） | B | 对通过校验的理由做后处理：用 `ChineseConvert` 转成界面使用的中文变体，否则原样返回。 |
 | [`writeAiReasons`](#writeaireasons) | 顶层函数 | A | 请端侧模型写至多三条简短理由。 |
+| [`writeRelatedAiReasons`](#writerelatedaireasons) | 顶层函数 | A | 请端侧模型说明至多三条相关记录为何与主体记录相似（1.6.2）。 |
 
 `aiReasonCandidates`（8）、`aiReasonMaxLength`（140）、私有的 `_answerLine` 模式以及 `ReasonLanguage` 的字段
 （`localeTag`、`name`、`code`、`toTraditional`、`toSimplified`）没有 `/// Purpose:` 注释，不作为行。
@@ -73,3 +74,18 @@
      生成，用 [`parseReasonReply`](#parsereasonreply) 解析，把编号映射回 id，并应用 `language.finish`。
 - **用法：** `_RecommendationsPageState._requestAiReasons`；由 `test/recommendations_page_ui_test.dart` 通过页面间接覆盖。
 - **备注：** 从不抛出。页面先渲染确定性列表；这些理由到达时再填入，并且只保存在内存中。
+
+### `Future<Map<String, String>> writeRelatedAiReasons(OnDeviceAiService ai, {required Anime subject, required List<Recommendation> related, required ReasonLanguage language, AiInsights? insights})` <a id="writerelatedaireasons"></a>
+- **种类：** 顶层函数
+- **来源：** `lib/features/recommendations/services/ai_reason_service.dart`（约第 214 行）
+- **用途：** 为详情页的相关推荐列表（1.6.2）说明至多三条相关记录与正在查看的记录有什么共同点。
+- **输入：** `ai`；`subject`；`related` — 确定性的相关推荐列表，至多五条；`language`；`insights` — AI 分类。
+- **返回：** `Future<Map<String, String>>` — 动画 id 到理由；任何失败时为空。
+- **副作用：** 以交互式请求运行一次模型。
+- **算法：** 把主体记录和每个候选描述为 `ReasonCandidate`（标题、生效分类、制作公司；对资料库关联关系，候选的事实中加入
+  `listed as <relation type>`），发送 [`relatedReasonInstructions`](reason_prompt.md#relatedreasoninstructions) 和
+  [`relatedReasonPrompt`](reason_prompt.md#relatedreasonprompt)，然后与 `writeAiReasons` 完全相同地用
+  [`parseReasonReply`](#parsereasonreply) 和 `language.finish` 校验。
+- **用法：** `RelatedRecommendationsCard._aiReasons`。
+- **备注：** 从不抛出。与全局页面的理由不同，调用方会把这些理由随列表**持久保存**在 `recommendations.json` 中，因此它们
+  会同步。评分、备注和观看历史都不会传给模型。

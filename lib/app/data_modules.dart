@@ -6,7 +6,9 @@
 /// Side effects: None at import time; callbacks perform parsing and storage I/O.
 /// Notes: Every hardcoded `anime_data.json` list in the shared services is
 /// replaced by this registry. File names and module IDs are
-/// persisted compatibility contracts (I1/I2) and must never change.
+/// persisted compatibility contracts (I1/I2) and must never change. Since
+/// 1.6.2 the registry holds two modules: `anime_data.json`, then
+/// `recommendations.json`.
 library;
 
 import 'dart:convert';
@@ -17,6 +19,8 @@ import 'package:path/path.dart' as p;
 
 import '../features/anime/models/anime.dart';
 import '../features/anime/services/anime_storage.dart';
+import '../features/recommendations/models/recommendation_data.dart';
+import '../features/recommendations/services/recommendation_merge.dart';
 import '../shared/services/sync_merge.dart';
 
 /// Pretty-printer matching `AnimeStorage`'s local save format.
@@ -70,11 +74,17 @@ class AnimeStorageAdapter implements StorageAdapter {
       AnimeStorage.writeConfig(config);
 }
 
-/// Local and remote name of MyAnime's only data file (I1/I2).
+/// Local and remote name of MyAnime's anime data file (I1/I2).
 const animeDataFileName = 'anime_data.json';
 
 /// Backup bundle module key for that file (I2).
 const animeModuleId = 'anime';
+
+/// Local and remote name of the recommendations file (1.6.2; I1/I2).
+const recommendationsFileName = 'recommendations.json';
+
+/// Backup bundle module key for that file (1.6.2; I2).
+const recommendationsModuleId = 'recommendations';
 
 /// Default remote WebDAV directory for MyAnime.
 const animeDefaultRemotePath = '/MyAnime';
@@ -192,9 +202,63 @@ DataModule buildAnimeModule() => DataModule(
   referencedImages: animeReferencedImages,
 );
 
+/// Purpose: Validate a `recommendations.json` payload before it is written.
+/// Inputs: [json] raw module content.
+/// Returns: None; throws when the payload is not a JSON object.
+/// Side effects: None.
+/// Notes: Inside the object the model is tolerant, so only a file that is
+/// not ours at all is rejected.
+void validateRecommendationsJson(String json) {
+  RecommendationData.fromJson(jsonDecode(json));
+}
+
+/// Purpose: Merge local/remote/base recommendations JSON for the engine.
+/// Inputs: [localJson], [remoteJson], optional [baseJson].
+/// Returns: Always a complete outcome.
+/// Side effects: None.
+/// Notes: The merge is conflict-free by design (sets merged against the
+/// base; the newer snapshot wins), so this module never reaches the conflict
+/// dialog and `WebDAVService` keeps reading conflicts from the anime module
+/// only.
+ModuleMergeOutcome mergeRecommendationsModule({
+  required String localJson,
+  required String remoteJson,
+  required String? baseJson,
+}) => ModuleMergeOutcome(
+  mergedJson: mergeRecommendationJson(localJson, remoteJson, baseJson),
+);
+
+/// Purpose: Describe `recommendations.json` to the shared engines.
+/// Inputs: None.
+/// Returns: The recommendations [DataModule].
+/// Side effects: None.
+/// Notes: No images and no transforms. `autoResolve` is irrelevant: the
+/// merge has nothing to resolve.
+DataModule buildRecommendationsModule() => DataModule(
+  fileName: recommendationsFileName,
+  moduleId: recommendationsModuleId,
+  validate: validateRecommendationsJson,
+  merge:
+      ({
+        required String localJson,
+        required String remoteJson,
+        required String? baseJson,
+        required bool autoResolve,
+      }) => mergeRecommendationsModule(
+        localJson: localJson,
+        remoteJson: remoteJson,
+        baseJson: baseJson,
+      ),
+);
+
 /// Purpose: Provide MyAnime's ordered module registry.
 /// Inputs: None.
-/// Returns: A registry holding the single anime module.
+/// Returns: A registry holding the anime module, then the recommendations
+/// module.
 /// Side effects: None.
-/// Notes: Built once; the shared engines treat registry order as significant.
-final ModuleRegistry animeModuleRegistry = ModuleRegistry([buildAnimeModule()]);
+/// Notes: Built once; the shared engines treat registry order as significant
+/// (request order, progress indices), so anime stays first.
+final ModuleRegistry animeModuleRegistry = ModuleRegistry([
+  buildAnimeModule(),
+  buildRecommendationsModule(),
+]);

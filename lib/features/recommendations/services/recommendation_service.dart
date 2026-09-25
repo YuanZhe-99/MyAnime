@@ -36,6 +36,24 @@ abstract final class RecommendationWeights {
 
   /// Currently airing.
   static const airing = 0.4;
+
+  /// How many cards the global page shows per batch (1.6.2).
+  static const globalBatch = 10;
+
+  /// How many items a detail page's related list shows per batch (1.6.2).
+  static const relatedBatch = 5;
+
+  /// Related list: multiplies the cosine of the two records' categories.
+  static const relatedCategory = 2.0;
+
+  /// Related list: the two records share a studio.
+  static const relatedStudio = 0.5;
+
+  /// Related list: a database lists one record as related to the other.
+  static const relatedRelation = 3.0;
+
+  /// Related list: the two records share a base title key.
+  static const relatedBaseTitle = 1.0;
 }
 
 /// Why a candidate is recommended, rendered as a chip by the UI.
@@ -116,6 +134,109 @@ final class CatchUpReason extends RecommendationReason {
   const CatchUpReason();
 }
 
+/// Related list: "Also romance, school" — categories both records have.
+final class SharedCategoriesReason extends RecommendationReason {
+  /// The shared category ids, at most two.
+  final List<String> categoryIds;
+
+  /// Purpose: Create the reason.
+  /// Inputs: `categoryIds`.
+  /// Returns: A new `SharedCategoriesReason`.
+  /// Side effects: None.
+  /// Notes: None.
+  const SharedCategoriesReason(this.categoryIds);
+}
+
+/// Related list: "Also by `studio`".
+final class SharedStudioReason extends RecommendationReason {
+  /// The shared studio.
+  final String studio;
+
+  /// Purpose: Create the reason.
+  /// Inputs: `studio`.
+  /// Returns: A new `SharedStudioReason`.
+  /// Side effects: None.
+  /// Notes: None.
+  const SharedStudioReason(this.studio);
+}
+
+/// Related list: a database lists the two records as related.
+final class RelatedByDatabaseReason extends RecommendationReason {
+  /// How the database relates them.
+  final AnimeRelationType type;
+
+  /// Purpose: Create the reason.
+  /// Inputs: `type`.
+  /// Returns: A new `RelatedByDatabaseReason`.
+  /// Side effects: None.
+  /// Notes: None.
+  const RelatedByDatabaseReason(this.type);
+}
+
+/// Related list: "Similar title" — a shared base title key.
+final class SharedTitleReason extends RecommendationReason {
+  /// Purpose: Create the reason.
+  /// Inputs: None.
+  /// Returns: A new `SharedTitleReason`.
+  /// Side effects: None.
+  /// Notes: None.
+  const SharedTitleReason();
+}
+
+/// Purpose: Encode a related-list reason for `recommendations.json`.
+/// Inputs: `reason`.
+/// Returns: `String?` — `categories:<id>,<id>`, `studio:<name>`,
+/// `relation:<type>` or `baseTitle`; null for reasons the related list does
+/// not produce.
+/// Side effects: None.
+/// Notes: The codes are a persisted format; add new ones, never rename.
+String? encodeRelatedReason(RecommendationReason reason) => switch (reason) {
+  SharedCategoriesReason(:final categoryIds) =>
+    'categories:${categoryIds.join(',')}',
+  SharedStudioReason(:final studio) => 'studio:$studio',
+  RelatedByDatabaseReason(:final type) => 'relation:${type.name}',
+  SharedTitleReason() => 'baseTitle',
+  _ => null,
+};
+
+/// Purpose: Decode a persisted related-list reason.
+/// Inputs: `code`.
+/// Returns: `RecommendationReason?` — null for a code this build does not
+/// know, which is then kept on disk and not shown.
+/// Side effects: None.
+/// Notes: Inverse of [encodeRelatedReason].
+RecommendationReason? decodeRelatedReason(String code) {
+  if (code == 'baseTitle') return const SharedTitleReason();
+  final i = code.indexOf(':');
+  if (i <= 0) return null;
+  final value = code.substring(i + 1);
+  if (value.isEmpty) return null;
+  return switch (code.substring(0, i)) {
+    'categories' => SharedCategoriesReason(value.split(',')),
+    'studio' => SharedStudioReason(value),
+    'relation' => switch (AnimeRelationType.values
+        .where((t) => t.name == value)
+        .firstOrNull) {
+      final t? => RelatedByDatabaseReason(t),
+      null => null,
+    },
+    _ => null,
+  };
+}
+
+/// Purpose: Key a missing-sequel card for deduplication and the trash.
+/// Inputs: `sequel` — a database relation.
+/// Returns: `String` — the canonical database key of its page (`anilist:1`),
+/// else its URL, else its title, else empty.
+/// Side effects: None.
+/// Notes: The canonical key makes the same sequel listed by two hosts of one
+/// database, or by a URL with a different slug, one card and one trash entry.
+String sequelTrashKey(AnimeExternalRelation sequel) =>
+    canonicalDatabaseKey(sequel.targetUrl) ??
+    sequel.targetUrl ??
+    sequel.title ??
+    '';
+
 /// One ranked candidate.
 @immutable
 class Recommendation {
@@ -192,23 +313,25 @@ class RecommendationService {
   const RecommendationService._();
 
   /// Purpose: Rank what to watch next.
-  /// Inputs: `library`; `insights` — AI categories and hidden ids;
-  /// `nowJst`; `limit`.
+  /// Inputs: `library`; `insights` — AI categories; `hidden` — ids in the
+  /// global trash (`recommendations.json`); `nowJst`; `limit` — the batch
+  /// size, [RecommendationWeights.globalBatch] by default.
   /// Returns: `List<Recommendation>` — best first.
   /// Side effects: None.
   /// Notes: Candidates are records not started, or being watched with aired
-  /// unwatched episodes, minus hidden ones. Within a series only the earliest
-  /// member that is not completed can be a candidate, so season 3 is never
-  /// offered before season 1. With no ratings and nothing completed (cold
-  /// start) the order is series continuation, then external score, then the
-  /// most recently added.
+  /// unwatched episodes, minus trashed ones. Within a series only the
+  /// earliest member that is not completed can be a candidate, so season 3
+  /// is never offered before season 1; if that member is trashed the series
+  /// offers nothing. With no ratings and nothing completed (cold start) the
+  /// order is series continuation, then external score, then the most
+  /// recently added.
   static List<Recommendation> rank(
     List<Anime> library, {
     AiInsights? insights,
+    Set<String> hidden = const {},
     required DateTime nowJst,
-    int limit = 30,
+    int limit = RecommendationWeights.globalBatch,
   }) {
-    final hidden = insights?.hiddenRecommendations ?? const <String>{};
     final index = SeriesIndex.build(library);
     final cats = {
       for (final a in library)
@@ -358,6 +481,117 @@ class RecommendationService {
         return c != 0 ? c : a.anime.id.compareTo(b.anime.id);
       });
     }
+    return out.length > limit ? out.sublist(0, limit) : out;
+  }
+
+  /// Purpose: Rank the library records related to one record (1.6.2).
+  /// Inputs: `subject`; `library`; `insights` — AI categories; `exclude` —
+  /// ids in the subject's own related trash; `limit` — the batch size,
+  /// [RecommendationWeights.relatedBatch] by default.
+  /// Returns: `List<Recommendation>` — best first, every score above zero.
+  /// Side effects: None.
+  /// Notes: Pure Dart. Never offers the subject, the members of its own
+  /// series, or trashed ids. Contributions: category cosine ×2.0, a shared
+  /// studio 0.5, a database relation in either direction 3.0, a shared base
+  /// title key 1.0. Each other series contributes at most its best member
+  /// (ties: the earlier one in series order), so the list is not three
+  /// seasons of one show. Viewing status does not matter: the list answers
+  /// "what is like this", not "what to watch next".
+  static List<Recommendation> related(
+    Anime subject,
+    List<Anime> library, {
+    AiInsights? insights,
+    Set<String> exclude = const {},
+    int limit = RecommendationWeights.relatedBatch,
+  }) {
+    final index = SeriesIndex.build(library);
+    final own = index.seriesOf(subject.id);
+    final ownIds = {subject.id, ...?own?.members.map((m) => m.id)};
+    final subjectCats = resolveCategories(subject, insights: insights).ids;
+    final subjectStudios = subject.externalMeta?.studios ?? const <String>[];
+    final subjectKeys = databaseKeysOf(subject);
+    final subjectBase = seriesBaseKeys(subject);
+    final subjectRelations =
+        subject.externalMeta?.relations ?? const <AnimeExternalRelation>[];
+
+    AnimeRelationType? relationBetween(Anime c) {
+      final cKeys = databaseKeysOf(c);
+      for (final r in subjectRelations) {
+        final k = canonicalDatabaseKey(r.targetUrl);
+        if (k != null && cKeys.contains(k)) return r.type;
+      }
+      for (final r
+          in c.externalMeta?.relations ?? const <AnimeExternalRelation>[]) {
+        final k = canonicalDatabaseKey(r.targetUrl);
+        if (k != null && subjectKeys.contains(k)) return r.type;
+      }
+      return null;
+    }
+
+    final best = <String, (Recommendation, int)>{};
+    for (final c in library) {
+      if (ownIds.contains(c.id) || exclude.contains(c.id)) continue;
+      final contributions = <(double, RecommendationReason)>[];
+      final relation = relationBetween(c);
+      if (relation != null) {
+        contributions.add((
+          RecommendationWeights.relatedRelation,
+          RelatedByDatabaseReason(relation),
+        ));
+      }
+      final cats = resolveCategories(c, insights: insights).ids;
+      if (subjectCats.isNotEmpty && cats.isNotEmpty) {
+        final shared = [
+          for (final id in subjectCats)
+            if (cats.contains(id)) id,
+        ];
+        if (shared.isNotEmpty) {
+          final cosine =
+              shared.length / math.sqrt(subjectCats.length * cats.length);
+          contributions.add((
+            RecommendationWeights.relatedCategory * cosine,
+            SharedCategoriesReason(shared.take(2).toList()),
+          ));
+        }
+      }
+      final studios = c.externalMeta?.studios ?? const <String>[];
+      final studio = subjectStudios.where(studios.contains).firstOrNull;
+      if (studio != null) {
+        contributions.add((
+          RecommendationWeights.relatedStudio,
+          SharedStudioReason(studio),
+        ));
+      }
+      if (subjectBase.isNotEmpty &&
+          seriesBaseKeys(c).any(subjectBase.contains)) {
+        contributions.add((
+          RecommendationWeights.relatedBaseTitle,
+          const SharedTitleReason(),
+        ));
+      }
+      if (contributions.isEmpty) continue;
+      final score = contributions.fold(0.0, (s, e) => s + e.$1);
+      contributions.sort((x, y) => y.$1.compareTo(x.$1));
+      final rec = Recommendation(c, score, [
+        for (final e in contributions.take(3)) e.$2,
+      ]);
+      final series = index.seriesOf(c.id);
+      final group = series != null && series.members.length >= 2
+          ? series.key
+          : 'id:${c.id}';
+      final position = series?.indexOfId(c.id) ?? 0;
+      final kept = best[group];
+      if (kept == null ||
+          score > kept.$1.score ||
+          (score == kept.$1.score && position < kept.$2)) {
+        best[group] = (rec, position);
+      }
+    }
+    final out = [for (final v in best.values) v.$1]
+      ..sort((a, b) {
+        final c = b.score.compareTo(a.score);
+        return c != 0 ? c : a.anime.id.compareTo(b.anime.id);
+      });
     return out.length > limit ? out.sublist(0, limit) : out;
   }
 

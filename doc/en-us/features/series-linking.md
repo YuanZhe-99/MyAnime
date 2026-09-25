@@ -231,10 +231,16 @@ for the detail page's layout.
 - **Deleting a record** needs no special handling: the group id lives on the survivors.
 - **Local API.** Unchanged; its record projection does not include series data.
 
-## Possible follow-up
+## Manage by series
 
-Grouping the Manage list by series — one row per series that expands into its members — is not
-part of 1.6.0. The index would support it; the list layout does not yet.
+Grouping the Manage list by series — one row per series that expands into its members — was listed
+here as a follow-up in 1.6.0 and shipped in 1.6.2. The Manage tab's series view builds the same
+`SeriesIndex` over the whole library, so a series there is exactly the series the detail page shows,
+curated or derived. See [`home-management-statistics.md`](home-management-statistics.md) and
+[`../functions/features/anime/services/manage_grouping.md`](../functions/features/anime/services/manage_grouping.md).
+
+The detail page's Related card (1.6.2) never offers members of the record's own series; see
+[`categories-and-recommendations.md`](categories-and-recommendations.md#related-recommendations-on-the-detail-page).
 
 ## Tests
 

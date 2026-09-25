@@ -12,6 +12,8 @@
 
 系列卡片（1.6.0，[`series_widgets.md`](series_widgets.md) 中的 `SeriesCard`）在 `_buildDetailChildren` 中取代了原来的上一季/下一季行，位置不变，因此在双栏布局中它落在右栏。只有记录所属系列至少有两个成员时才会出现；其下方的上一季/下一季按钮现在由系列顺序驱动，放在 `Wrap` 中，窄屏手机上会换行堆叠而不会溢出。自 1.6.1 起，成员行和上一季/下一季按钮用 `context.push` 打开另一条记录的详情页，而不是 `context.go` 过去，因此返回会回到用户来时的记录。记录不属于任何系列（包括独立（不归入系列）的记录）时，卡片不出现，改由应用栏的关联菜单（*关联到系列…*、*添加下一季*，记录带 `seriesLink` 时还有*交给应用自动判断*）提供相同操作。系列卡片正上方是缺失续作提示（1.6.0 M2）：当资料库列出了系列最后一个成员的某部续作、而片库中没有它时，显示一张写着「下一部：<标题>（<来源>）」的卡片。与系列卡片不同，记录不在任何系列中时它也会出现。见 [`../../../../features/series-linking.md`](../../../../features/series-linking.md)。
 
+推荐开启时（1.6.2），`_buildDetailChildren` 把**相关推荐**卡片（`RelatedRecommendationsCard`，[`../../recommendations/views/related_card.md`](../../recommendations/views/related_card.md)）放在备注之后、缺失续作提示之前，因此在双栏布局中它落在右栏。它以记录 id 为键，接收 `_load` 读取的片库，并自行负责加载、持久保存、换一批和垃圾箱；页面只决定它是否出现。见 [`../../../../features/categories-and-recommendations.md`](../../../../features/categories-and-recommendations.md#详情页的相关推荐)。
+
 自动分类开启时（1.6.0 M4），`_buildHeaderChildren` 会在标签与进度条之间加一行分类标签（[`category_widgets.md`](category_widgets.md) 中的 `CategoryChips`），因此在双栏布局中它们留在左栏。其中的编辑标签打开分类编辑器。见 [`../../../../features/categories-and-recommendations.md`](../../../../features/categories-and-recommendations.md)。
 
 两种布局都由同样四个构建函数拼装——`_buildCover`、`_buildHeaderChildren`、`_buildDetailChildren`、`_buildEpisodeChildren`——因此每个区块的组件代码只有一份。`_buildHeaderChildren` 与 `_buildDetailChildren` 之间的分界**就是**分栏边界：把某个区块移过这条缝，它就会换栏。`_buildDetailChildren` 中每一项都自带前置的 `SizedBox(height: 12)`，正是这一点让同一份列表无论跟在进度条之后还是作为右栏开头都能正确呈现。
@@ -35,7 +37,7 @@
 | `_AnimeDetailPageState.build` | 方法（`_AnimeDetailPageState`，组件构建） | B | 构建详情页脚手架，并在单栏与双栏布局之间取舍。 |
 | `_buildCover` | 方法（组件辅助） | B | 按明确尺寸构建封面图块。 |
 | `_buildHeaderChildren` | 方法（组件辅助） | B | 构建头部块：日文标题、标签（含 anime1.me 进度标签）、自动分类开启时的分类标签，以及已看集数条。 |
-| `_buildDetailChildren` | 方法（组件辅助） | B | 构建进度条下方的卡片，以及缺失续作提示、系列卡片和上一季/下一季按钮。 |
+| `_buildDetailChildren` | 方法（组件辅助） | B | 构建进度条下方的卡片，以及相关推荐卡片（1.6.2，推荐开启时）、缺失续作提示、系列卡片和上一季/下一季按钮。 |
 | `_buildEpisodeChildren` | 方法（组件辅助） | B | 构建剧集列表表头及每一集一行。 |
 | [`_toggleAllWatched`](#_toggleallwatched) | 方法（`_AnimeDetailPageState`） | A | 把每个被跟踪剧集标记为已看，已完整时则全部标记为未看。 |
 | `_buildAbandonOrResume` | 方法（组件辅助） | B | 渲染剧集列表页头的"放弃"/"恢复"操作按钮。 |
@@ -63,7 +65,7 @@
 - **用途：** 加载 `widget.animeId` 标识的动画及其所属的系列。
 - **输入：** 无（`widget.animeId` 从外层组件读取）。
 - **返回：** `Future<void>`。
-- **副作用：** 调用 `AnimeStorage.loadFixingSeasonLabels(seasonLabelFixups)`（1.6.1，可能在不改动 `modifiedAt` 的情况下改写默认季标签）、`AnimeStorage.getAutoCategoriesEnabled()`，仅在后者与端侧 AI（`AnimeStorage.getOnDeviceAiEnabled()`）都开启时调用 `AiInsightsCache.load()`；`setState` `_anime`、`_seriesIndex`、`_series`、`_missingSequel`、`_categoriesOn` 和 `_categories`。不写入其他任何内容。
+- **副作用：** 调用 `AnimeStorage.loadFixingSeasonLabels(seasonLabelFixups)`（1.6.1，可能在不改动 `modifiedAt` 的情况下改写默认季标签）、`AnimeStorage.getAutoCategoriesEnabled()`，仅在后者与端侧 AI（`AnimeStorage.getOnDeviceAiEnabled()`）都开启时调用 `AiInsightsCache.load()`，以及 `AnimeStorage.getRecommendationsEnabled()`（1.6.2）；`setState` `_anime`、`_seriesIndex`、`_series`、`_missingSequel`、`_categoriesOn`、`_categories`、`_recommendationsOn` 和 `_library`。不写入其他任何内容；相关推荐卡片自己写入 `recommendations.json`。
 - **算法：**
   1. Await [`AnimeStorage.loadFixingSeasonLabels`](../services/anime_storage.md#loadfixingseasonlabels)`(seasonLabelFixups)` 并找 `id == widget.animeId` 的记录。
   2. 在整个片库上构建 [`SeriesIndex`](../services/series_service.md#seriesindex-build)，向它查询该记录的系列。

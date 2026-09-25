@@ -104,13 +104,181 @@ void main() {
     expect(kinds, contains(SameStudioReason));
   });
 
-  test('hidden candidates are left out', () {
+  test('trashed candidates are left out', () {
+    final out = RecommendationService.rank(
+      [rec('a', 'A'), rec('b', 'B')],
+      hidden: {'a'},
+      nowJst: _now,
+    );
+    expect(ids(out), ['b']);
+  });
+
+  test('the per-device hidden list no longer hides anything', () {
+    // Since 1.6.2 the trash lives in the synced recommendations.json; the
+    // old list is only read to migrate it.
     final out = RecommendationService.rank(
       [rec('a', 'A'), rec('b', 'B')],
       insights: AiInsights(hiddenRecommendations: {'a'}),
       nowJst: _now,
     );
-    expect(ids(out), ['b']);
+    expect(ids(out), containsAll(['a', 'b']));
+  });
+
+  test('a batch is ten by default', () {
+    final out = RecommendationService.rank([
+      for (var i = 0; i < 15; i++) rec('r$i', 'Title $i'),
+    ], nowJst: _now);
+    expect(out, hasLength(RecommendationWeights.globalBatch));
+    expect(RecommendationWeights.globalBatch, 10);
+  });
+
+  test('a trashed first member keeps the rest of its series out', () {
+    AnimeSeriesLink link(int order) => AnimeSeriesLink(
+      seriesId: '11111111-1111-4111-8111-111111111111',
+      order: order,
+    );
+    final s1 = rec('s1', 'Show').copyWith(seriesLink: link(1));
+    final s2 = rec('s2', 'Show 2').copyWith(seriesLink: link(2));
+    final out = RecommendationService.rank(
+      [s1, s2, rec('other', 'Other')],
+      hidden: {'s1'},
+      nowJst: _now,
+    );
+    expect(ids(out), ['other']);
+  });
+
+  group('related', () {
+    test('ranks by shared categories, studio and database relations', () {
+      final subject = rec(
+        'subject',
+        'Subject',
+        genres: ['Romance', 'School'],
+        studios: ['Madhouse'],
+      ).copyWith(infoUrl: 'https://anilist.co/anime/1');
+      final spinOff = rec('spin', 'Spin', genres: ['Action']).copyWith(
+        infoUrl: 'https://anilist.co/anime/2/slug',
+        externalMeta: const AnimeExternalMeta(
+          relations: [
+            AnimeExternalRelation(
+              source: 'AniList',
+              type: AnimeRelationType.spinOff,
+              targetUrl: 'https://anilist.co/anime/1',
+            ),
+          ],
+        ),
+      );
+      final alike = rec(
+        'alike',
+        'Alike',
+        genres: ['Romance', 'School'],
+        studios: ['Madhouse'],
+      );
+      final unrelated = rec('none', 'None', genres: ['Horror']);
+      final out = RecommendationService.related(subject, [
+        subject,
+        spinOff,
+        alike,
+        unrelated,
+      ]);
+      expect(ids(out), ['spin', 'alike']);
+      expect(out.first.reasons.first, isA<RelatedByDatabaseReason>());
+      final kinds = out[1].reasons.map((r) => r.runtimeType).toList();
+      expect(kinds, [SharedCategoriesReason, SharedStudioReason]);
+    });
+
+    test('leaves out the subject, its own series and its trash', () {
+      AnimeSeriesLink link(int order) => AnimeSeriesLink(
+        seriesId: '22222222-2222-4222-8222-222222222222',
+        order: order,
+      );
+      final subject = rec(
+        'subject',
+        'Subject',
+        genres: ['Romance'],
+      ).copyWith(seriesLink: link(1));
+      final sibling = rec(
+        'sibling',
+        'Sibling',
+        genres: ['Romance'],
+      ).copyWith(seriesLink: link(2));
+      final trashed = rec('trashed', 'Trashed', genres: ['Romance']);
+      final kept = rec('kept', 'Kept', genres: ['Romance']);
+      final out = RecommendationService.related(
+        subject,
+        [subject, sibling, trashed, kept],
+        exclude: {'trashed'},
+      );
+      expect(ids(out), ['kept']);
+    });
+
+    test('offers one member per other series and at most five', () {
+      AnimeSeriesLink link(int order) => AnimeSeriesLink(
+        seriesId: '33333333-3333-4333-8333-333333333333',
+        order: order,
+      );
+      final subject = rec('subject', 'Subject', genres: ['Romance']);
+      final library = [
+        subject,
+        rec('a1', 'A', genres: ['Romance']).copyWith(seriesLink: link(1)),
+        rec('a2', 'A 2', genres: ['Romance']).copyWith(seriesLink: link(2)),
+        for (var i = 0; i < 8; i++) rec('x$i', 'X$i', genres: ['Romance']),
+      ];
+      final out = RecommendationService.related(subject, library);
+      expect(out, hasLength(RecommendationWeights.relatedBatch));
+      expect(ids(out).where((id) => id.startsWith('a')), hasLength(1));
+      expect(ids(out), contains('a1'));
+    });
+
+    test('reason codes round-trip, unknown codes are skipped', () {
+      const reasons = <RecommendationReason>[
+        SharedCategoriesReason(['romance', 'school']),
+        SharedStudioReason('Madhouse'),
+        RelatedByDatabaseReason(AnimeRelationType.alternative),
+        SharedTitleReason(),
+      ];
+      final codes = [for (final r in reasons) encodeRelatedReason(r)!];
+      expect(codes, [
+        'categories:romance,school',
+        'studio:Madhouse',
+        'relation:alternative',
+        'baseTitle',
+      ]);
+      final back = [for (final c in codes) decodeRelatedReason(c)];
+      expect(back.map((r) => r.runtimeType), [
+        SharedCategoriesReason,
+        SharedStudioReason,
+        RelatedByDatabaseReason,
+        SharedTitleReason,
+      ]);
+      expect(decodeRelatedReason('future:thing'), isNull);
+      expect(decodeRelatedReason('relation:unknownType'), isNull);
+      expect(encodeRelatedReason(const CatchUpReason()), isNull);
+    });
+
+    test('sequel trash keys use the canonical database key', () {
+      const a = AnimeExternalRelation(
+        source: 'bangumi.tv',
+        type: AnimeRelationType.sequel,
+        targetUrl: 'https://bangumi.tv/subject/42',
+      );
+      const b = AnimeExternalRelation(
+        source: 'bangumi.tv',
+        type: AnimeRelationType.sequel,
+        targetUrl: 'https://bgm.tv/subject/42',
+      );
+      expect(sequelTrashKey(a), 'bgm:42');
+      expect(sequelTrashKey(b), sequelTrashKey(a));
+      expect(
+        sequelTrashKey(
+          const AnimeExternalRelation(
+            source: 'X',
+            type: AnimeRelationType.sequel,
+            title: 'Only a title',
+          ),
+        ),
+        'Only a title',
+      );
+    });
   });
 
   test('cold start: external score, then newest added', () {

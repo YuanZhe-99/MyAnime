@@ -73,6 +73,10 @@ formats — see [`../data-formats.md`](../data-formats.md) for the exact JSON sh
   [`categories-and-recommendations.md`](categories-and-recommendations.md).
 - Statistics data-file and TXT exports go through the same stripping, so no share surface in the
   app emits `localArchive` or `seriesLink`.
+- The recommendation trash and Related lists (1.6.2) live in `recommendations.json`, not on the
+  record, so a share file never carries them and an imported record starts with an empty trash and
+  no Related list. See
+  [`categories-and-recommendations.md`](categories-and-recommendations.md#the-trash).
 - Import always creates a new UUID for the incoming record and never overwrites an existing anime;
   the new record is built by `importedCopy`
   ([`../functions/shared/services/file_open_service.md`](../functions/shared/services/file_open_service.md#importedcopy)).

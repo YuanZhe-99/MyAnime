@@ -33,7 +33,7 @@ model/quarter logic and [`../architecture.md`](../architecture.md) for how these
 
 ## Management (`management_page.dart`)
 
-- Seasonal quarter browser.
+- Seasonal quarter browser, and since 1.6.2 a series view (below).
 - Global search.
 - Dynamic year/quarter picker.
 - An "Other" page for anime without `firstAirDate` (which can't be quarter-placed — see
@@ -45,6 +45,19 @@ model/quarter logic and [`../architecture.md`](../architecture.md) for how these
   quarter pages, "Other" and search results to records whose effective categories (the user's own,
   mapped from genres, or AI-suggested) include the chosen one. See
   [`categories-and-recommendations.md`](categories-and-recommendations.md).
+- **View by series** (1.6.2). An app-bar toggle switches the tab between the quarter pages and a
+  series view. The series view shows **one expandable row per series** of two or more records —
+  labelled by the first member's title without season markers, with "N entries · M completed" —
+  whose members, in series order, are the ordinary tiles (laid out with the tab's column count); every
+  other record — in no series, standalone, or the only member left after filtering — is its ordinary
+  row. Series come from the same grouping as the detail page's series card
+  ([`series-linking.md`](series-linking.md)), computed over the **whole** library, so the archive and
+  category filters only hide members and never change which records belong together. A sort menu
+  beside the toggle orders the rows by **newest premiere first** (the default; undated rows last),
+  **title**, or **recently edited**. The view and the sort are remembered **device-locally** in
+  `storage_config.json` (`manageViewMode`, `manageSeriesSort`, each written only when not the
+  default); expanded rows are remembered only for the session. Search still shows its flat result
+  list in either view, and "update this page" covers every visible series member.
 
 ## Statistics (`statistics_page.dart`)
 

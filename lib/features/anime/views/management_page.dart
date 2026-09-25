@@ -19,6 +19,7 @@ import '../../categories/services/category_service.dart';
 import '../models/anime.dart';
 import '../models/anime_category.dart';
 import '../services/anime_storage.dart';
+import '../services/manage_grouping.dart';
 import '../services/series_service.dart';
 import '../services/metadata_update_service.dart';
 import 'category_widgets.dart';
@@ -53,6 +54,9 @@ class _ManagementPageState extends ConsumerState<ManagementPage> {
   /// The AI category cache, read only while on-device AI is on, so
   /// AI-suggested categories stop matching once it is turned off.
   AiInsights? _insights;
+
+  /// Series-view groups the user has expanded, by group key. Session only.
+  final Set<String> _expandedGroups = {};
   late PageController _pageController;
   late int _currentQuarterIndex;
 
@@ -129,6 +133,14 @@ class _ManagementPageState extends ConsumerState<ManagementPage> {
   /// this page" means: the search results while searching, otherwise the
   /// quarter page (or the "Other" page) currently in view.
   List<String> get _currentPageAnimeIds {
+    final settings = ref.read(appSettingsProvider);
+    if (_searchQuery.isEmpty &&
+        settings.manageViewMode == ManageViewMode.series) {
+      return [
+        for (final g in _seriesGroups(settings.manageSeriesSort))
+          for (final a in g.members) a.id,
+      ];
+    }
     final visible = _searchQuery.isNotEmpty
         ? _searchResults()
         : (_isOtherPage
@@ -363,6 +375,8 @@ class _ManagementPageState extends ConsumerState<ManagementPage> {
   /// Side effects: None.
   /// Notes: Internal helper used within this file only.
   void _jumpToAnimeQuarter(String animeId) {
+    // The series view has no pages to jump between.
+    if (!_pageController.hasClients) return;
     final anime = _allAnime.where((a) => a.id == animeId).firstOrNull;
     if (anime == null) return;
     final sq = anime.startQuarter;
@@ -476,6 +490,36 @@ class _ManagementPageState extends ConsumerState<ManagementPage> {
                 child: const Icon(Icons.cloud_download_outlined),
               ),
             ),
+          IconButton(
+            tooltip: settings.manageViewMode == ManageViewMode.series
+                ? l10n.manageViewQuarter
+                : l10n.manageViewSeries,
+            icon: Icon(
+              settings.manageViewMode == ManageViewMode.series
+                  ? Icons.calendar_view_month
+                  : Icons.account_tree_outlined,
+            ),
+            onPressed: () => _setViewMode(
+              settings.manageViewMode == ManageViewMode.series
+                  ? ManageViewMode.quarter
+                  : ManageViewMode.series,
+            ),
+          ),
+          if (settings.manageViewMode == ManageViewMode.series)
+            PopupMenuButton<ManageSeriesSort>(
+              icon: const Icon(Icons.sort),
+              tooltip: l10n.manageSeriesSort,
+              initialValue: settings.manageSeriesSort,
+              onSelected: (v) =>
+                  ref.read(appSettingsProvider.notifier).setManageSeriesSort(v),
+              itemBuilder: (context) => [
+                for (final s in ManageSeriesSort.values)
+                  PopupMenuItem(
+                    value: s,
+                    child: Text(_seriesSortLabel(s, l10n)),
+                  ),
+              ],
+            ),
           listColumnsButton(
             context,
             preference: settings.manageListColumns,
@@ -543,6 +587,8 @@ class _ManagementPageState extends ConsumerState<ManagementPage> {
       ),
       body: isSearching
           ? _buildSearchResults(theme, l10n, columns)
+          : settings.manageViewMode == ManageViewMode.series
+          ? _buildSeriesView(theme, l10n, columns, settings.manageSeriesSort)
           : _buildQuarterView(theme, l10n, columns),
       floatingActionButton: FloatingActionButton(
         onPressed: () => _showAddOptions(context),
@@ -725,6 +771,107 @@ class _ManagementPageState extends ConsumerState<ManagementPage> {
           ),
         ),
       ],
+    );
+  }
+
+  /// Purpose: Switch between the quarter and series views (1.6.2).
+  /// Inputs: `mode`.
+  /// Returns: None.
+  /// Side effects: Persists the mode device-locally; recreates the page
+  /// controller when returning to the quarter view.
+  /// Notes: Internal helper used within this file only. A fresh controller
+  /// starts on the quarter the user last looked at, because the old one was
+  /// detached while the series view showed.
+  void _setViewMode(ManageViewMode mode) {
+    if (mode == ManageViewMode.quarter) {
+      _pageController.dispose();
+      _pageController = PageController(initialPage: _currentQuarterIndex);
+    }
+    ref.read(appSettingsProvider.notifier).setManageViewMode(mode);
+  }
+
+  /// Purpose: Group the filtered library for the series view (1.6.2).
+  /// Inputs: `sort`.
+  /// Returns: `List<ManageSeriesGroup>`.
+  /// Side effects: None.
+  /// Notes: Internal helper used within this file only. Series are computed
+  /// over the whole library; the archive and category filters only decide
+  /// which members show. See `groupForSeriesView`.
+  List<ManageSeriesGroup> _seriesGroups(ManageSeriesSort sort) {
+    final kept = {for (final a in _applyArchiveFilter(_allAnime)) a.id};
+    return groupForSeriesView(
+      _allAnime,
+      keep: (a) => kept.contains(a.id),
+      sort: sort,
+    );
+  }
+
+  /// Purpose: Localize a series-view sort for its menu.
+  /// Inputs: `sort`, `l10n`.
+  /// Returns: `String`.
+  /// Side effects: None.
+  /// Notes: Internal helper used within this file only.
+  String _seriesSortLabel(ManageSeriesSort sort, AppLocalizations l10n) =>
+      switch (sort) {
+        ManageSeriesSort.latest => l10n.manageSeriesSortLatest,
+        ManageSeriesSort.title => l10n.manageSeriesSortTitle,
+        ManageSeriesSort.modified => l10n.manageSeriesSortModified,
+      };
+
+  /// Purpose: Render the series view (1.6.2).
+  /// Inputs: `theme`, `l10n`, `columns`, `sort`.
+  /// Returns: `Widget`.
+  /// Side effects: None.
+  /// Notes: Internal helper used within this file only. A series is an
+  /// expandable row whose members are the ordinary tiles, laid out with the
+  /// page's column count; a record in no series is its ordinary tile.
+  Widget _buildSeriesView(
+    ThemeData theme,
+    AppLocalizations l10n,
+    int columns,
+    ManageSeriesSort sort,
+  ) {
+    final groups = _seriesGroups(sort);
+    if (groups.isEmpty) {
+      return Center(
+        child: Text(
+          l10n.manageNoSearchResults,
+          style: theme.textTheme.bodyLarge?.copyWith(
+            color: theme.colorScheme.onSurfaceVariant,
+          ),
+        ),
+      );
+    }
+    return ListView.builder(
+      padding: EdgeInsets.only(
+        bottom: shellListBottomInset(MediaQuery.sizeOf(context).width),
+      ),
+      itemCount: groups.length,
+      itemBuilder: (context, i) {
+        final g = groups[i];
+        if (!g.isGroup) {
+          return _buildAnimeTile(g.members.single, theme, l10n, columns);
+        }
+        final completed = g.members
+            .where((m) => m.viewingStatus == AnimeViewingStatus.completed)
+            .length;
+        return ExpansionTile(
+          key: PageStorageKey<String>('series-${g.key}'),
+          initiallyExpanded: _expandedGroups.contains(g.key),
+          onExpansionChanged: (open) =>
+              open ? _expandedGroups.add(g.key) : _expandedGroups.remove(g.key),
+          leading: const Icon(Icons.account_tree_outlined),
+          title: Text(g.label, maxLines: 1, overflow: TextOverflow.ellipsis),
+          subtitle: Text(l10n.manageSeriesMembers(g.members.length, completed)),
+          childrenPadding: const EdgeInsetsDirectional.only(start: 16),
+          children: adaptiveTileRows(
+            columns: columns,
+            itemCount: g.members.length,
+            itemBuilder: (j) =>
+                _buildAnimeTile(g.members[j], theme, l10n, columns),
+          ),
+        );
+      },
     );
   }
 

@@ -13,6 +13,7 @@ import '../../../shared/utils/detail_layout.dart';
 import '../../../shared/widgets/delete_confirm.dart';
 import '../../ai/services/ai_insights_cache.dart';
 import '../../categories/services/category_service.dart';
+import '../../recommendations/views/related_card.dart';
 import '../models/anime.dart';
 import '../models/anime_category.dart';
 import '../services/anime_search_service.dart';
@@ -50,6 +51,8 @@ class _AnimeDetailPageState extends State<AnimeDetailPage> {
   AnimeSeries? _series;
   AnimeExternalRelation? _missingSequel;
   bool _categoriesOn = false;
+  bool _recommendationsOn = false;
+  List<Anime> _library = const [];
   EffectiveCategories _categories = EffectiveCategories.empty;
   bool _refreshingMeta = false;
   bool _checkingProgress = false;
@@ -94,6 +97,7 @@ class _AnimeDetailPageState extends State<AnimeDetailPage> {
     // Categories are shown only while automatic categories are on; the AI
     // cache is read only while on-device AI is on too.
     final categoriesOn = await AnimeStorage.getAutoCategoriesEnabled();
+    final recommendationsOn = await AnimeStorage.getRecommendationsEnabled();
     final insights = categoriesOn && await AnimeStorage.getOnDeviceAiEnabled()
         ? await AiInsightsCache.load()
         : null;
@@ -106,6 +110,8 @@ class _AnimeDetailPageState extends State<AnimeDetailPage> {
       _series = series != null && series.members.length >= 2 ? series : null;
       _missingSequel = found == null ? null : index.missingSequelFor(found.id);
       _categoriesOn = categoriesOn;
+      _recommendationsOn = recommendationsOn;
+      _library = data.animeList;
       _categories = found == null
           ? EffectiveCategories.empty
           : resolveCategories(found, insights: insights);
@@ -612,6 +618,16 @@ class _AnimeDetailPageState extends State<AnimeDetailPage> {
       if (anime.notes != null && anime.notes!.isNotEmpty) ...[
         const SizedBox(height: 12),
         Text(anime.notes!, style: theme.textTheme.bodyMedium),
+      ],
+
+      // Related recommendations (1.6.2), persisted per record.
+      if (_recommendationsOn) ...[
+        const SizedBox(height: 12),
+        RelatedRecommendationsCard(
+          key: ValueKey('related-${anime.id}'),
+          anime: anime,
+          library: _library,
+        ),
       ],
 
       // A sequel the databases list that the library lacks.

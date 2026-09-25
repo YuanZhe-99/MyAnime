@@ -96,7 +96,9 @@ class AiInsights {
   /// Cached classifications by anime id.
   final Map<String, AiCategoryEntry> categories;
 
-  /// Anime ids the user marked "Not interested" on this device.
+  /// Anime ids marked "Not interested" on this device in 1.6.0-1.6.1. Since
+  /// 1.6.2 the trash is the synced `recommendations.json`; this set is only
+  /// read by `RecommendationStore.migrateFromInsights` and then left empty.
   final Set<String> hiddenRecommendations;
 
   /// Purpose: Create the insights store.

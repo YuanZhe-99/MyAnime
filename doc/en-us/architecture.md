@@ -185,8 +185,9 @@ what keeps their wire format, backup format, and lock semantics interoperable.
 - **What moved:** the transport, lock lifecycle, merge pipeline, `.sync_base` snapshots, image sync,
   backup bundle and blob store, ZIP allowlist, and sync scheduling.
 - **The seam:** [`functions/app/data_modules.md`](functions/app/data_modules.md) declares the
-  `StorageAdapter` over `AnimeStorage` plus the `DataModule` describing `anime_data.json`. It is the
-  single source of truth for the data-file name and backup module key.
+  `StorageAdapter` over `AnimeStorage` plus the `DataModule`s describing `anime_data.json` and, since
+  1.6.2, `recommendations.json`, in that order. It is the
+  single source of truth for the data-file names and backup module keys.
 - **The facades:** `WebDAVService`, `BackupService`, `ImportExportService`, and `AutoSyncService`
   keep their previous public APIs and delegate to the package. Their shapes are deliberately frozen
   so call sites and tests keep working; behavior changes belong in the package.

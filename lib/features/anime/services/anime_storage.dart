@@ -514,6 +514,58 @@ class AnimeStorage {
     await writeConfig(config);
   }
 
+  /// Purpose: Return the persisted Manage view mode (1.6.2).
+  /// Inputs: None.
+  /// Returns: `Future<String?>` — `series`, or `null` for the default
+  /// quarter view.
+  /// Side effects: Reads `storage_config.json`.
+  /// Notes: Device-local, never synced.
+  static Future<String?> getManageViewMode() async {
+    final config = await readConfig();
+    return config['manageViewMode'] as String?;
+  }
+
+  /// Purpose: Persist the Manage view mode (1.6.2).
+  /// Inputs: `mode` — `null` for the default quarter view.
+  /// Returns: None.
+  /// Side effects: Writes `storage_config.json`.
+  /// Notes: Passing `null` removes the key, so only a non-default is stored.
+  static Future<void> setManageViewMode(String? mode) async {
+    final config = await readConfig();
+    if (mode == null) {
+      config.remove('manageViewMode');
+    } else {
+      config['manageViewMode'] = mode;
+    }
+    await writeConfig(config);
+  }
+
+  /// Purpose: Return the persisted Manage series-view sort (1.6.2).
+  /// Inputs: None.
+  /// Returns: `Future<String?>` — `title` or `modified`, or `null` for the
+  /// default (newest premiere first).
+  /// Side effects: Reads `storage_config.json`.
+  /// Notes: Device-local, never synced.
+  static Future<String?> getManageSeriesSort() async {
+    final config = await readConfig();
+    return config['manageSeriesSort'] as String?;
+  }
+
+  /// Purpose: Persist the Manage series-view sort (1.6.2).
+  /// Inputs: `sort` — `null` for the default.
+  /// Returns: None.
+  /// Side effects: Writes `storage_config.json`.
+  /// Notes: Passing `null` removes the key, so only a non-default is stored.
+  static Future<void> setManageSeriesSort(String? sort) async {
+    final config = await readConfig();
+    if (sort == null) {
+      config.remove('manageSeriesSort');
+    } else {
+      config['manageSeriesSort'] = sort;
+    }
+    await writeConfig(config);
+  }
+
   /// Purpose: Return the persisted background metadata-update policy name.
   /// Inputs: None.
   /// Returns: `Future<String?>`.

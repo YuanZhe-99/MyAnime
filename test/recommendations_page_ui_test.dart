@@ -6,6 +6,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:my_anime/features/ai/services/on_device_ai_service.dart';
+import 'package:my_anime/features/recommendations/services/recommendation_store.dart';
+import 'package:my_anime/features/recommendations/views/recommendation_trash_page.dart';
 import 'package:my_anime/features/recommendations/views/recommendations_page.dart';
 import 'package:my_anime/l10n/app_localizations.dart';
 import 'package:my_anime/shared/providers/app_settings.dart';
@@ -123,5 +125,84 @@ void main() {
       findsOneWidget,
     );
     debugDefaultTargetPlatformOverride = null;
+  });
+
+  /// Purpose: Let real file I/O finish and the tree settle.
+  /// Inputs: `tester`.
+  /// Returns: None.
+  /// Side effects: Pumps frames.
+  /// Notes: Test helper; storage runs outside the fake clock.
+  Future<void> settleIo(WidgetTester tester) async {
+    await tester.runAsync(() async {
+      for (var i = 0; i < 6; i++) {
+        await Future<void>.delayed(const Duration(milliseconds: 50));
+        await tester.pump();
+      }
+    });
+    await tester.pumpAndSettle();
+  }
+
+  File storeFile() => File(
+    p.join(tempDir.path, 'docs', 'MyAnime', RecommendationStore.fileName),
+  );
+
+  testWidgets('refresh trashes the shown batch and undo restores it', (
+    tester,
+  ) async {
+    await pump(tester, OnDeviceAiService(backend: FakeBackend()));
+    expect(find.text('Frieren Season 2'), findsOneWidget);
+
+    await tester.runAsync(() async {
+      await tester.tap(find.byIcon(Icons.refresh));
+    });
+    await settleIo(tester);
+    expect(find.text('Frieren Season 2'), findsNothing);
+    expect(find.text('Moved 1 to the trash'), findsOneWidget);
+    final stored = await tester.runAsync(RecommendationStore.load);
+    expect(stored!.hidden.keys, ['s2']);
+
+    await tester.runAsync(() async {
+      await tester.tap(find.text('Undo'));
+    });
+    await settleIo(tester);
+    expect(find.text('Frieren Season 2'), findsOneWidget);
+    final after = await tester.runAsync(RecommendationStore.load);
+    expect(after!.hidden, isEmpty);
+    await tester.runAsync(() async {
+      if (storeFile().existsSync()) storeFile().deleteSync();
+    });
+  });
+
+  testWidgets('the trash lists a trashed record and restores it', (
+    tester,
+  ) async {
+    await tester.runAsync(() => RecommendationStore.hide(['s2']));
+    tester.view.devicePixelRatio = 1.0;
+    tester.view.physicalSize = const Size(412, 915);
+    addTearDown(tester.view.reset);
+    await tester.runAsync(() async {
+      await tester.pumpWidget(
+        const MaterialApp(
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
+          locale: Locale('en'),
+          home: RecommendationTrashPage(),
+        ),
+      );
+    });
+    await settleIo(tester);
+    expect(find.text('Frieren Season 2'), findsOneWidget);
+
+    await tester.runAsync(() async {
+      await tester.tap(find.text('Restore'));
+    });
+    await settleIo(tester);
+    expect(find.text('Frieren Season 2'), findsNothing);
+    expect(find.textContaining('The trash is empty'), findsOneWidget);
+    final after = await tester.runAsync(RecommendationStore.load);
+    expect(after!.hidden, isEmpty);
+    await tester.runAsync(() async {
+      if (storeFile().existsSync()) storeFile().deleteSync();
+    });
   });
 }

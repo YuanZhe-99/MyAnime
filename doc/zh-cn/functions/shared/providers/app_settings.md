@@ -20,6 +20,8 @@
 | [`AppSettingsNotifier.setHomeCalendarFormat`](#appsettingsnotifier-sethomecalendarformat) | 方法（`AppSettingsNotifier`） | A | 更新记住的主页日历视图格式并持久化它。 |
 | `AppSettingsNotifier.setHomeListColumns` | 方法（`AppSettingsNotifier`） | B | 更新并持久化记住的首页列表列数偏好。 |
 | `AppSettingsNotifier.setManageListColumns` | 方法（`AppSettingsNotifier`） | B | 更新并持久化记住的管理列表列数偏好。 |
+| `AppSettingsNotifier.setManageViewMode` | 方法（`AppSettingsNotifier`） | B | 更新并持久化记住的管理页视图模式（1.6.2）；季度视图会删除该键。 |
+| `AppSettingsNotifier.setManageSeriesSort` | 方法（`AppSettingsNotifier`） | B | 更新并持久化记住的管理页系列视图排序（1.6.2）；`latest` 会删除该键。 |
 | `AppSettingsNotifier.setStatsListColumns` | 方法（`AppSettingsNotifier`） | B | 更新并持久化记住的统计列表列数偏好。 |
 | `AppSettingsNotifier.setKanaTabEnabled` | 方法（`AppSettingsNotifier`） | B | 显示或隐藏假名标签并持久化该选择。 |
 | [`AppSettingsNotifier.setOnDeviceAiEnabled`](#appsettingsnotifier-setondeviceaienabled) | 方法（`AppSettingsNotifier`） | A | 开启或关闭端侧 AI，持久化该选择，并切换 `OnDeviceAiService`。 |
@@ -390,3 +392,12 @@
 `HomePage` 监听它以显示推荐应用栏操作，设置页把 `autoCategoriesEnabled || recommendationsEnabled` 作为 `featuresOn`
 传给 `AiSettingsTiles`。关闭任一功能都会调用 `_dropAiIfUnused`，因此只有两者都关闭时端侧 AI 才会关闭。见
 [`../../../features/categories-and-recommendations.md`](../../../features/categories-and-recommendations.md)。
+
+## 管理页视图偏好
+
+自 1.6.2 起 `AppSettings` 还带有 `manageViewMode`（默认 `ManageViewMode.quarter`，或 `series`）和
+`manageSeriesSort`（默认 `ManageSeriesSort.latest`，或 `title`、`modified`），两者都声明在
+[`../../features/anime/services/manage_grouping.md`](../../features/anime/services/manage_grouping.md) 中。
+它们遵循 `homeCalendarFormat` 的形态：在 `_loadPersisted` 中通过 `parseManageViewMode` / `parseManageSeriesSort`
+加载，通过 `AnimeStorage` 以发后不理的方式写入，只存储非默认值（`storage_config.json` 中的 `manageViewMode`、
+`manageSeriesSort`），并且没有设置页控件——管理页应用栏上的视图切换和排序菜单是唯一的写入方。

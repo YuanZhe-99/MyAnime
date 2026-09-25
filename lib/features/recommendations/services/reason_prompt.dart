@@ -90,3 +90,49 @@ String reasonPrompt({
   }
   return b.toString().trimRight();
 }
+
+/// Version of [relatedReasonInstructions] and [relatedReasonPrompt] (1.6.2).
+const int relatedReasonPromptVersion = 1;
+
+/// Purpose: Build the system instructions for explaining related records.
+/// Inputs: `localeTag` — e.g. `zh_CN`; `languageName` — in English.
+/// Returns: `String`.
+/// Side effects: None.
+/// Notes: Same contract as [reasonInstructions]: the model picks by number,
+/// writes at most three reasons, and never names a title that is not listed.
+String relatedReasonInstructions(String localeTag, String languageName) =>
+    'The person\'s locale is $localeTag. '
+    'You explain why anime in the person\'s own list are similar to one '
+    'anime they are looking at. Pick up to three of the numbered candidates '
+    'that are most alike to it, and for each write one short reason in '
+    '$languageName, under 20 words, about what they have in common. '
+    'Use only the facts given. Answer one line per pick, exactly in the form '
+    '"<number>: <reason>", with no other text.';
+
+/// Purpose: Build the prompt for explaining related records.
+/// Inputs: `subject` — the record being viewed (its `number` is ignored);
+/// `candidates` — at most five related records.
+/// Returns: `String`.
+/// Side effects: None.
+/// Notes: Titles, categories, studios and deterministic facts only; never
+/// notes, ratings or episode history.
+String relatedReasonPrompt({
+  required ReasonCandidate subject,
+  required List<ReasonCandidate> candidates,
+}) {
+  String describe(ReasonCandidate c) {
+    final parts = [
+      if (c.categories.isNotEmpty) c.categories.join(', '),
+      if (c.studios.isNotEmpty) 'studio ${c.studios.join(', ')}',
+      ...c.facts,
+    ];
+    return '${c.title}${parts.isEmpty ? '' : ' — ${parts.join('; ')}'}';
+  }
+
+  final b = StringBuffer('Looking at: ${describe(subject)}\n');
+  b.writeln('Candidates:');
+  for (final c in candidates) {
+    b.writeln('${c.number}. ${describe(c)}');
+  }
+  return b.toString().trimRight();
+}

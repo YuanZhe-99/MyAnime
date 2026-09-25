@@ -1943,4 +1943,92 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get settingsDesktop => 'Desktop';
+
+  @override
+  String get undo => 'Undo';
+
+  @override
+  String get backupModuleRecommendations => 'Recommendations';
+
+  @override
+  String get recommendationsRefresh => 'Show another batch';
+
+  @override
+  String recommendationsRefreshed(int count) {
+    return 'Moved $count to the trash';
+  }
+
+  @override
+  String get recommendationsTrash => 'Trash';
+
+  @override
+  String get recommendationsTrashEmpty =>
+      'The trash is empty. Anything you mark Not interested, or pass over with a refresh, lands here.';
+
+  @override
+  String get recommendationsRestore => 'Restore';
+
+  @override
+  String get recommendationsRestoreAll => 'Restore all';
+
+  @override
+  String recommendationsTrashedOn(String date) {
+    return 'Trashed $date';
+  }
+
+  @override
+  String get recommendationsTrashSequels => 'Sequels not in your library';
+
+  @override
+  String get relatedTitle => 'Related';
+
+  @override
+  String get relatedEmpty => 'Nothing in your library looks related yet.';
+
+  @override
+  String get relatedRefresh => 'Show others';
+
+  @override
+  String relatedTrashTitle(String title) {
+    return 'Trash · $title';
+  }
+
+  @override
+  String reasonSharedCategories(String categories) {
+    return 'Also $categories';
+  }
+
+  @override
+  String reasonSharedStudio(String studio) {
+    return 'Also by $studio';
+  }
+
+  @override
+  String get reasonRelatedByDatabase => 'Related in the databases';
+
+  @override
+  String get reasonSharedTitle => 'Similar title';
+
+  @override
+  String get manageViewQuarter => 'View by quarter';
+
+  @override
+  String get manageViewSeries => 'View by series';
+
+  @override
+  String get manageSeriesSort => 'Sort series';
+
+  @override
+  String get manageSeriesSortLatest => 'Newest premiere first';
+
+  @override
+  String get manageSeriesSortTitle => 'Title';
+
+  @override
+  String get manageSeriesSortModified => 'Recently edited';
+
+  @override
+  String manageSeriesMembers(int count, int completed) {
+    return '$count entries · $completed completed';
+  }
 }

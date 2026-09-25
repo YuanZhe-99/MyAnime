@@ -2,7 +2,10 @@
 
 Defines `appRouter`, the app's single `go_router` `GoRouter` instance: a `ShellRoute` wrapping the
 main navigation tabs (Home, Manage, Stats, Settings, plus Kana while the Kana tab is turned on) and
-standalone routes for anime detail/edit, the metadata-update review and the duplicate-check page. See
+standalone routes for anime detail/edit, the metadata-update review, the duplicate-check page,
+recommendations (`/recommendations`) and, since 1.6.2, the recommendation trash
+(`/recommendations/trash`, with `?anime=<id>` for one record's related-list bin — see
+[`../features/recommendations/views/recommendation_trash_page.md`](../features/recommendations/views/recommendation_trash_page.md)). See
 [../../architecture.md](../../architecture.md#app-shell) for the full route table and how
 `ShellScaffold` (`lib/shared/widgets/shell_scaffold.dart`) renders the navigation around `child`.
 

@@ -9,7 +9,10 @@ platform; only the AI step needs Android, iOS or macOS.
 **Recommendations** (also since 1.6.0) answer "what should I watch next **from my library**". They
 are a separate switch (Settings › *Categories & recommendations* › *Recommendations*), also **off
 by default** and available on every platform; only the optional generated reasons need a model. See
-[Recommendations](#recommendations) below.
+[Recommendations](#recommendations) below. Since 1.6.2 passed-over recommendations go to a
+**synced trash** that can be reviewed and restored, and each detail page has its own persisted
+**Related** list with its own trash — see [The trash](#the-trash) and
+[Related recommendations on the detail page](#related-recommendations-on-the-detail-page).
 
 The code for categories is [`functions/features/anime/models/anime_category.md`](../functions/features/anime/models/anime_category.md)
 (the taxonomy and genre mapping),
@@ -164,18 +167,29 @@ Owned by `AiInsightsCache`, under `AnimeStorage.getAppDir()`:
   drop entries — categories and hidden ids — for deleted records; the next save writes that out.
 - Writes are atomic (tmp then rename) and pretty-printed with sorted keys, so an unchanged cache
   writes identical bytes.
-- `hiddenRecommendations` is the *Not interested* list (see [Recommendations](#recommendations)).
-  Because the file is per device, hiding a recommendation on one device does not hide it on another.
+- `hiddenRecommendations` was the *Not interested* list in 1.6.0 and 1.6.1, when hiding was per
+  device. Since 1.6.2 the trash lives in the synced `recommendations.json`
+  ([The trash](#the-trash)); the first time the recommendations or trash page opens, the ids here
+  move there and this list is emptied. The key is still read and written, empty, so the file's shape
+  does not change.
 
 ## Recommendations
 
 The code is
 [`functions/features/recommendations/services/recommendation_service.md`](../functions/features/recommendations/services/recommendation_service.md)
 (ranking),
+[`functions/features/recommendations/services/recommendation_store.md`](../functions/features/recommendations/services/recommendation_store.md),
+[`functions/features/recommendations/models/recommendation_data.md`](../functions/features/recommendations/models/recommendation_data.md)
+and
+[`functions/features/recommendations/services/recommendation_merge.md`](../functions/features/recommendations/services/recommendation_merge.md)
+(the trash and related lists, 1.6.2),
 [`functions/features/recommendations/services/reason_prompt.md`](../functions/features/recommendations/services/reason_prompt.md),
 [`functions/features/recommendations/services/ai_reason_service.md`](../functions/features/recommendations/services/ai_reason_service.md)
-(AI reasons) and
-[`functions/features/recommendations/views/recommendations_page.md`](../functions/features/recommendations/views/recommendations_page.md).
+(AI reasons),
+[`functions/features/recommendations/views/recommendations_page.md`](../functions/features/recommendations/views/recommendations_page.md),
+[`functions/features/recommendations/views/recommendation_trash_page.md`](../functions/features/recommendations/views/recommendation_trash_page.md)
+and
+[`functions/features/recommendations/views/related_card.md`](../functions/features/recommendations/views/related_card.md).
 
 ### Scope
 
@@ -194,7 +208,7 @@ whether or not *Automatic categories* is on.
   one, completed `+0.5`, dropped `−0.7`, anything else `0`.
 - **Taste profile:** the preference-weighted sum of the category vectors, normalised. **Studio
   affinity:** the preference sum per studio.
-- **Candidates:** not started, or watching with aired unwatched episodes, and not hidden. **Within a
+- **Candidates:** not started, or watching with aired unwatched episodes, and not in the trash. **Within a
   series only its earliest member that is not completed is a candidate** — season 3 is never
   offered to someone who has not finished season 1. If that member is not eligible (dropped, or
   watching but caught up), the series offers nothing.
@@ -251,11 +265,140 @@ Each AI reason sits under the "Generated on this device — may be wrong" label.
 - **Layout:** a list of cards — cover, title, reason chips, the labelled AI reason when there is
   one — laid out with `listColumnCount` using **Home's column preference**; the page has no column
   button of its own ([`../adaptive-layout.md`](../adaptive-layout.md)). A tap opens the detail page.
-- ***Not interested*** hides a candidate. The id goes to `hiddenRecommendations` in
-  `ai_insights.json`, so **hiding is per device**: it is neither synced nor backed up, and there is
-  no UI to undo it short of deleting the record.
+- **Batch:** at most **10** ranked cards (30 through 1.6.1), then the missing-sequel cards.
+- ***Not interested*** moves a card to the [trash](#the-trash). Through 1.6.1 it wrote the per-device
+  `ai_insights.json` and could not be undone; since 1.6.2 it syncs and can be restored.
+- **Refresh** (app bar): the whole batch on screen — ranked cards and missing-sequel cards — goes to
+  the trash in one write, and the next batch is shown. A snack bar "Moved N to the trash" offers
+  **Undo**, which restores exactly that batch. The meaning is deliberate: a batch the user looked at
+  and passed over is "not interested".
+- **Trash** (app bar) opens the global trash page.
 - **Missing sequels:** after the ranked cards, one card per sequel the databases list but the
   library lacks — for each completed record that is the last of its series — marked **"Not in
   your library yet"**. A tap opens the create page prefilled from the relation (the search runs
-  only in full builds). These come from relation data fetched by full builds, so a store build shows
-  them only for records that received it through sync.
+  only in full builds). Since 1.6.2 each has *Not interested* too, and cards are deduplicated by the
+  sequel's canonical database key (`anilist:<id>`, `mal:<id>`, `bgm:<id>`), so one sequel listed at
+  two bangumi hosts is one card. These come from relation data fetched by full builds, so a store
+  build shows them only for records that received it through sync.
+- The page reloads when a sync changes local data, so a trash change made on another device shows up
+  without leaving the page.
+
+## The trash
+
+Since 1.6.2 there are two kinds of recommendation trash, both in the synced `recommendations.json`:
+
+| Bin | What goes in | What it hides | Where it is reviewed |
+|---|---|---|---|
+| **Global** | Library cards and missing-sequel cards passed over on "What to watch next" | Those cards on "What to watch next" | Trash button on that page (`/recommendations/trash`) |
+| **Per record** | Items passed over in one record's Related card | Those items in **that record's** Related card only | *Trash* in that card's menu (`/recommendations/trash?anime=<id>`) |
+
+The two are independent: trashing a record from one anime's Related list does not hide it from
+"What to watch next" or from any other record's list, and the reverse.
+
+**The trash page** lists trashed records newest first — cover, title, "Trashed <date>" and
+**Restore** — and, for the global bin, a "Sequels not in your library" section with each trashed
+sequel's title, database and the record it follows. *Restore all* restores everything shown.
+**Restoring removes the entry from the trash, so it can be recommended again** — it is what "delete
+from the trash" means here. A restored related item is not put back into the stored list; it can
+come back on that card's next refresh.
+
+**Entries for deleted records** stay in the file and are simply not shown. Pruning them would reach
+sync as a restore and could remove another device's entries for a record this device has not
+received yet; anime ids are UUIDs and never reused, so a leftover entry is harmless.
+
+**Migration.** The first time the recommendations or trash page opens on 1.6.2, the ids in
+`ai_insights.json`'s `hiddenRecommendations` move into the global trash (stamped with that moment,
+since the old list kept no dates) and the old list is emptied. Each device migrates its own list,
+and the merge unions them.
+
+### The file: `recommendations.json`
+
+Owned by `RecommendationStore`, under `AnimeStorage.getAppDir()`, registered as the second module in
+`lib/app/data_modules.dart` (module id `recommendations`):
+
+```json
+{
+  "version": 1,
+  "hidden": [
+    { "id": "<animeId>", "hiddenAt": "2026-09-24T03:00:00.000Z" }
+  ],
+  "hiddenSequels": [
+    {
+      "key": "anilist:182255",
+      "sourceId": "<animeId>",
+      "title": "葬送のフリーレン 第2期",
+      "source": "AniList",
+      "hiddenAt": "2026-09-24T03:00:00.000Z"
+    }
+  ],
+  "related": {
+    "<animeId>": {
+      "generatedAt": "2026-09-24T03:00:00.000Z",
+      "items": [
+        {
+          "id": "<animeId>",
+          "reasons": ["categories:romance,school", "studio:Madhouse"],
+          "aiReason": "Both follow a slow-burn school romance."
+        }
+      ],
+      "hidden": [{ "id": "<animeId>", "hiddenAt": "2026-09-24T03:00:00.000Z" }]
+    }
+  }
+}
+```
+
+- **Synced and backed up.** It rides WebDAV sync, backups and ZIP export like `anime_data.json`.
+  A save notifies auto-sync. It is **not** part of `.myanimeitem` share files.
+- **Not created until needed.** A library that never trashed anything and never opened a Related
+  card has no file, and sync only issues a GET that finds nothing.
+- **Unknown keys survive** at every level (`extraJson`), so an older build keeps a newer build's
+  additions. Reason codes this build does not know are kept and not shown.
+- **Sorted and pretty-printed**, so an unchanged store writes identical bytes and sync takes its
+  raw-equality fast path.
+- **The merge never conflicts** — see [`../sync.md`](../sync.md#the-recommendations-file).
+
+## Related recommendations on the detail page
+
+Since 1.6.2, while recommendations are on, every detail page has a **Related** card after the notes
+(in the right pane of the two-pane layout): up to **5** records **from the library** that are like
+this one. The code is
+[`RecommendationService.related`](../functions/features/recommendations/services/recommendation_service.md#recommendationservice-related)
+and [`related_card.md`](../functions/features/recommendations/views/related_card.md).
+
+### Ranking
+
+Pure Dart. The subject, the members of its own series and that record's own trash are never offered.
+
+| Contribution | Weight |
+|---|---|
+| A database lists one as related to the other, either direction, any relation type | `3.0` |
+| Cosine of the two records' effective category sets, `shared / √(a·b)` | `× 2.0` |
+| They share a studio | `0.5` |
+| They share a base title key (the same keys series linking uses) | `1.0` |
+
+A record with no contribution is not offered. **Each other series offers at most its best member**
+(on a tie, the earlier one in series order), so the list is never three seasons of one show.
+Viewing status plays no part: the card answers "what is like this", not "what to watch next".
+Chips: "Also romance, school", "Also by Madhouse", "Spin-off" / "Alternative version" / "Related in
+the databases", "Similar title" — at most three, largest first.
+
+### Persisted, until refreshed
+
+- **The first time** a record's card appears, the list is generated and written to
+  `recommendations.json`, with a UTC `generatedAt`. From then on the card shows the **stored** list,
+  on this device and — through sync — on every other, until the user refreshes it. A new record added
+  to the library does not change an existing list by itself.
+- **AI reasons** (only with on-device AI on and a model that can generate) are requested right after
+  generation with the same privacy rules as the global page — titles, categories, studios and
+  relation facts; never notes, ratings or history — through `relatedReasonPrompt`
+  (`relatedReasonPromptVersion = 1`). The model picks up to three of the numbered candidates. Unlike
+  the global page's reasons they are **saved with the list**, under the same "Generated on this
+  device — may be wrong" label.
+- **Refresh** (the card's refresh button, or *Show others* in its menu) puts every item on screen into
+  **this record's trash**, then generates the next five. With nothing on screen it trashes nothing and
+  simply regenerates, which is how newly added records get in.
+- **✕** on a row trashes that one item; the list shrinks until the next refresh.
+- **Trash** in the menu opens this record's own bin.
+- A record deleted from the library drops out of every list without a write.
+- If two devices generate the same record's list between syncs, the newer `generatedAt` wins; the
+  trash bins merge as sets, so no passed-over item comes back.

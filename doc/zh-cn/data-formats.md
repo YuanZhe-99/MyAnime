@@ -299,6 +299,7 @@ enum AnimeType {
 | 数据 | 文件 | 同步 | 备注 |
 | --- | --- | --- | --- |
 | 动画记录 | `anime_data.json` | 是 | 按 `id` 和 `modifiedAt` 逐记录；未知字段保留 |
+| 推荐垃圾箱与相关推荐列表 | `recommendations.json` | 是 | 自 1.6.2 起：全局垃圾箱、移入垃圾箱的缺失续作卡片，以及每条记录持久保存的相关推荐列表及其自己的垃圾箱；无冲突的集合合并；首次需要时才创建 |
 | 封面图像 | `images/` | 是 | 按文件名仅引用添加式同步 |
 | 主题模式 | `storage_config.json` | 否 | 设备特有偏好 |
 | 语言区域 | `storage_config.json` | 否 | 设备特有偏好 |
@@ -307,6 +308,7 @@ enum AnimeType {
 | 主页日历时间基准 | `storage_config.json` | 否 | 设备特有的 JST vs 本地日期网格偏好；动画日程时间戳仍基于 JST |
 | 主页日历视图格式 | `storage_config.json` | 否 | 设备特有的上次使用的日历视图（`homeCalendarFormat`：`twoWeeks` 或 `week`；缺省表示默认的整月） |
 | 列表列数（分模块） | `storage_config.json` | 否 | 设备特有的首页、管理与统计列表列数偏好（`homeListColumns` / `manageListColumns` / `statsListColumns`：1–4；缺省表示自动，即填满宽度所允许的列数） |
+| 管理页视图模式与系列排序 | `storage_config.json` | 否 | 设备特有（1.6.2）：`manageViewMode`（`series`；缺省表示季度视图）与 `manageSeriesSort`（`title` 或 `modified`；缺省表示最新首播在前） |
 | 存储路径覆盖 | `storage_config.json` | 否 | 设备特有路径 |
 | 自动备份启用 | `storage_config.json` | 否 | 设备特有配置 |
 | 备份保留天数 | `storage_config.json` | 否 | 设备特有配置 |
@@ -318,26 +320,31 @@ enum AnimeType {
 | 自动分类 | `storage_config.json` | 否 | 设备特有的 `autoCategoriesEnabled`；缺省表示关闭（1.6.0） |
 | 推荐 | `storage_config.json` | 否 | 设备特有的 `recommendationsEnabled`；缺省表示关闭（1.6.0） |
 | WebDAV 配置 | `webdav_config.json` | 否 | 仅本地秘密/配置 |
-| 同步基线快照 | `.sync_base/anime_data.json` | 否 | 本地合并跟踪 |
+| 同步基线快照 | `.sync_base/anime_data.json`, `.sync_base/recommendations.json` | 否 | 本地合并跟踪，每个模块一份 |
 | 本地备份 | `backups/backup_*.json` | 否 | 本地恢复；v2 捆绑引用去重后的图像 blob |
 | 备份图像 blob | `backups/blobs/` | 否 | 内容寻址（`sha256`）、跨备份共享、引用计数 GC |
 | 后台更新队列 | `metadata_updates.json` | 否 | 设备本地的尝试/退避状态，以及已下载的更新候选；可重建的缓存 |
 | 预取的候选封面 | `metadata_covers/` | 否 | 仅在启用封面预下载时存在；对应建议被处理后即清理 |
 | 后台更新策略 | `storage_config.json` | 否 | 设备特有的 `metadataAutoUpdate`（`off`/`noCellular`/`always`；缺省表示移动端 `noCellular`、桌面 `always`）与 `metadataPrefetchCovers` |
-| 端侧 AI 结果 | `ai_insights.json` | 否 | 本设备的 AI 分类结果缓存与推荐的*不感兴趣*列表（`hiddenRecommendations`）（1.6.0）；不备份；可重建；加载时修剪已删除记录的条目 |
+| 端侧 AI 结果 | `ai_insights.json` | 否 | 本设备的 AI 分类结果缓存（1.6.0）；不备份；可重建；加载时修剪已删除记录的条目。其中的 `hiddenRecommendations` 列表在 1.6.0–1.6.1 中是本设备的*不感兴趣*列表，自 1.6.2 起迁移到 `recommendations.json`，之后保持为空 |
 
 `metadata_updates.json` 与 `metadata_covers/` 既不同步也不备份，而这不需要任何特殊处理：同步与备份引擎
 只会碰 `ModuleRegistry` 中注册的文件名外加 `images/`，而两者都没有注册进 `lib/app/data_modules.dart`。
 它们确实位于 `AnimeStorage.getAppDir()` 之下，所以更换存储路径时会跟着一起迁移。见
 [`features/metadata-auto-update.md`](features/metadata-auto-update.md)。
 
-`ai_insights.json`（1.6.0）遵循同样的机制：它也没有注册，因此既不同步也不备份，并随存储路径迁移。由于它还保存
-`hiddenRecommendations`，隐藏推荐仅限本设备。其 schema 见
+`ai_insights.json`（1.6.0）遵循同样的机制：它也没有注册，因此既不同步也不备份，并随存储路径迁移。其 schema 见
 [`features/categories-and-recommendations.md`](features/categories-and-recommendations.md)。
+
+`recommendations.json`（1.6.2）正好相反：它**已**注册，作为 `anime_data.json` 之后的第二个模块，因此它会同步、
+会备份、包含在 ZIP 导出中，并有自己的 `.sync_base/recommendations.json`。其 schema 以及其合并为何从不产生冲突，见
+[`features/categories-and-recommendations.md`](features/categories-and-recommendations.md#文件recommendationsjson)
+和 [`sync.md`](sync.md#推荐文件)。它只按 id 引用片库记录；它存储的标题只有移入垃圾箱的续作的数据库
+标题，以及生成的理由。它不属于 `.myanimeitem` 分享文件。
 
 ### `storage_config.json`
 
-保存上表中除 WebDAV 配置外的每个设备本地偏好：主题模式、语言区域、日历周起始/布局/时间基准/视图格式偏好、存储路径覆盖、自动备份启用 + 保留天数（`backupRetentionDays`）、提醒设置、API 服务器启用/监听地址/端口/凭据、托盘/开机自启偏好，以及后台资料更新设置（`metadataAutoUpdate`、`metadataPrefetchCovers`）、分模块的列表列数（`homeListColumns`、`manageListColumns`、`statsListColumns`），是否显示假名标签（`kanaTabEnabled`，仅在开启时写入），以及端侧 AI 开关与「使用更快的模型」偏好（`onDeviceAiEnabled`、`onDeviceAiPreferFast`，都仅在开启时写入；见 [`on-device-ai.md`](on-device-ai.md)），以及是否开启自动分类（`autoCategoriesEnabled`，仅在开启时写入），以及是否开启推荐（`recommendationsEnabled`，仅在开启时写入）。此文件的任何内容都不被同步——它刻意设备特有，而这正是网络策略应有的归宿：接有线网的桌面与走流量套餐的手机本就该不同。
+保存上表中除 WebDAV 配置外的每个设备本地偏好：主题模式、语言区域、日历周起始/布局/时间基准/视图格式偏好、存储路径覆盖、自动备份启用 + 保留天数（`backupRetentionDays`）、提醒设置、API 服务器启用/监听地址/端口/凭据、托盘/开机自启偏好，以及后台资料更新设置（`metadataAutoUpdate`、`metadataPrefetchCovers`）、分模块的列表列数（`homeListColumns`、`manageListColumns`、`statsListColumns`），是否显示假名标签（`kanaTabEnabled`，仅在开启时写入），以及端侧 AI 开关与「使用更快的模型」偏好（`onDeviceAiEnabled`、`onDeviceAiPreferFast`，都仅在开启时写入；见 [`on-device-ai.md`](on-device-ai.md)），以及是否开启自动分类（`autoCategoriesEnabled`，仅在开启时写入），以及是否开启推荐（`recommendationsEnabled`，仅在开启时写入），以及自 1.6.2 起管理标签的视图与系列排序（`manageViewMode`、`manageSeriesSort`，都仅在不是默认值时写入）。此文件的任何内容都不被同步——它刻意设备特有，而这正是网络策略应有的归宿：接有线网的桌面与走流量套餐的手机本就该不同。
 
 ### `webdav_config.json`
 
@@ -345,7 +352,7 @@ WebDAV 连接详情和同步偏好（服务器 URL、凭据、自动同步开关
 
 ### `.sync_base/`
 
-保存 `.sync_base/anime_data.json`（用作下一次同步三方合并基线的最近已知合并快照）和 `.sync_base/upload_lock.json`（让下一次启动检测到中途被中断的上传）。两者如何被使用见 [`sync.md`](sync.md)。
+保存 `.sync_base/anime_data.json`（用作下一次同步三方合并基线的最近已知合并快照）——以及自 1.6.2 起的 `.sync_base/recommendations.json`（推荐模块的同类快照）——和 `.sync_base/upload_lock.json`（让下一次启动检测到中途被中断的上传）。两者如何被使用见 [`sync.md`](sync.md)。
 
 ### `backups/`
 

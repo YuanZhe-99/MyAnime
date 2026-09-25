@@ -12,8 +12,10 @@ force-upload under the sync wake lock. Both are the `backup_page.dart` half of t
 in full in [`../../../backup-restore.md`](../../../../backup-restore.md) (see "The critical safety
 rule: WebDAV auto-sync around restore") and walked through concretely in
 [`../../../examples/backup-restore-walkthrough.md`](../../../../examples/backup-restore-walkthrough.md).
-The nested private `_RestoreModuleDialog` widget lets the user pick which backup modules (currently
-just `anime`) to restore before the confirmation dialog in `_restoreBackup` runs.
+The nested private `_RestoreModuleDialog` widget lets the user pick which backup modules (since
+1.6.2 `anime` and `recommendations`, labelled through the module-id constants in
+`lib/app/data_modules.dart`; a 1.6.1 bundle offers only `anime`) to restore before the confirmation
+dialog in `_restoreBackup` runs.
 
 ## Declarations
 

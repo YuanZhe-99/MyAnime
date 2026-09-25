@@ -1,6 +1,6 @@
 # lib/app/router.dart
 
-定义 `appRouter`，应用唯一的 `go_router` `GoRouter` 实例：一个包住主导航标签（主页、管理、统计、设置，以及开启假名标签时的假名）的 `ShellRoute`，外加动画详情/编辑、元数据更新审阅和重复检查页的独立路由。完整路由表和 `ShellScaffold`（`lib/shared/widgets/shell_scaffold.dart`）如何在 `child` 周围渲染导航见 [../../architecture.md](../../architecture.md#app-shell)。
+定义 `appRouter`，应用唯一的 `go_router` `GoRouter` 实例：一个包住主导航标签（主页、管理、统计、设置，以及开启假名标签时的假名）的 `ShellRoute`，外加动画详情/编辑、元数据更新审阅、重复检查页、推荐（`/recommendations`）以及自 1.6.2 起的推荐垃圾箱（`/recommendations/trash`，带 `?anime=<id>` 时为单条记录的相关推荐垃圾箱——见 [`../features/recommendations/views/recommendation_trash_page.md`](../features/recommendations/views/recommendation_trash_page.md)）的独立路由。完整路由表和 `ShellScaffold`（`lib/shared/widgets/shell_scaffold.dart`）如何在 `child` 周围渲染导航见 [../../architecture.md](../../architecture.md#app-shell)。
 
 ## 声明
 

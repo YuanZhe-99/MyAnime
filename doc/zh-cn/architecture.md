@@ -148,7 +148,7 @@ WebDAV 同步引擎、备份引擎、ZIP 传输引擎和自动同步调度器**�
 
 - **留在这里的内容：** 所有模型、`AnimeStorage`、`mergeAnimeData` 包装器、Markdown 导出，以及每个页面。
 - **移走的内容：** 传输、锁生命周期、合并流水线、`.sync_base` 快照、图像同步、备份捆绑与 blob 存储、ZIP 允许列表和同步调度。
-- **接缝：** [`functions/app/data_modules.md`](functions/app/data_modules.md) 声明了基于 `AnimeStorage` 的 `StorageAdapter`，以及描述 `anime_data.json` 的 `DataModule`。它是数据文件名和备份模块键的唯一真实来源。
+- **接缝：** [`functions/app/data_modules.md`](functions/app/data_modules.md) 声明了基于 `AnimeStorage` 的 `StorageAdapter`，以及依次描述 `anime_data.json` 和（自 1.6.2 起）`recommendations.json` 的 `DataModule`。它是数据文件名和备份模块键的唯一真实来源。
 - **门面：** `WebDAVService`、`BackupService`、`ImportExportService` 和 `AutoSyncService` 保留它们此前的公共 API 并委托给该包。它们的形态被刻意冻结，使调用点和测试继续工作；行为变更属于该包。
 
 `.gitmodules` 使用相对 URL `../MyApps-DATA.git`，因此它按克隆所跟踪的远程解析——Gitea 克隆从 Gitea 拉取，GitHub 克隆从 GitHub 拉取，而且任何主机名都不会被提交。全新克隆需要 `git clone --recurse-submodules` 或 `git submodule update --init`。

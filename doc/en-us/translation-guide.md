@@ -201,7 +201,12 @@ Not copied to the other repos — no other app has these.
 | automatic categories | 自动分类 | 由类型标签映射、必要时由端侧 AI 补全得出的分类；用户自己选的分类始终优先 |
 | recommendation | 推荐 | 从用户自己的片库中挑出接下来看什么；界面标题为「接下来看什么」。模型只按编号挑选，从不自己说出作品名 |
 | reason chip | 推荐理由标签 | 推荐卡片上说明理由的小标签，如「《…》的下一部」 |
-| Not interested | 不感兴趣 | 只在本设备上隐藏一条推荐，不同步 |
+| Not interested | 不感兴趣 | 把一条推荐移入垃圾箱；1.6.0–1.6.1 只在本设备上隐藏、不同步，自 1.6.2 起同步并可恢复 |
+| recommendation trash | 推荐垃圾箱 | 1.6.2 起：放「不感兴趣」和刷新时略过的推荐，可同步、可恢复；分全局垃圾箱与每部作品自己的垃圾箱。zh-TW 用「垃圾桶」，ja 用「ゴミ箱」 |
+| restore (from the trash) | 恢复 | 从垃圾箱中移出，使其可以再次被推荐；zh-TW 用「還原」，ja 用「戻す」 |
+| refresh (recommendations) | 换一批 | 把当前显示的一批移入垃圾箱，再显示下一批；与资料库信息的「刷新」不同，勿混用 |
+| related recommendations | 相关推荐 | 详情页上与该作品相似的片库内作品，持久保存直到刷新；ja 用「関連作品」 |
+| series view (Manage) | 按系列查看 | 管理页的另一种布局：每个系列一行、可展开成员；与「按季度查看」相对 |
 | season label | 季标签 | `Anime.season` 的自由文本，如 `Season 2`、`第二季`；勿写成「季度标签」，「季度」专指播出档期（quarter） |
 | default season label | 默认季标签 | `Season 1` 或空；自 1.6.1 起只有它会按标题自动改写为 `Season N` |
 | split-cour marker | 分割放送标记 | 标题中的 `Part 2`、`Cour 2`、`第2クール`；表示同一季的后半部分，不是新的一季 |

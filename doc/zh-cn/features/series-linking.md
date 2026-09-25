@@ -119,9 +119,15 @@
 - **删除记录**无需特殊处理：组 id 留在剩下的成员上。
 - **本地 API。** 未改动；其记录投影不包含系列数据。
 
-## 可能的后续工作
+## 管理页按系列查看
 
-按系列对管理列表分组——每个系列一行，可展开为其成员——不属于 1.6.0。索引已能支持，列表布局尚未支持。
+按系列对管理列表分组——每个系列一行，可展开为其成员——在 1.6.0 时作为后续工作列在这里，已于 1.6.2 推出。管理标签的
+系列视图基于整个片库构建同一个 `SeriesIndex`，因此那里的系列与详情页显示的系列完全相同，无论是手动整理的还是推导出的。见
+[`home-management-statistics.md`](home-management-statistics.md) 和
+[`../functions/features/anime/services/manage_grouping.md`](../functions/features/anime/services/manage_grouping.md)。
+
+详情页的相关推荐卡片（1.6.2）从不提供该记录自己所在系列的成员；见
+[`categories-and-recommendations.md`](categories-and-recommendations.md#详情页的相关推荐)。
 
 ## 测试
 

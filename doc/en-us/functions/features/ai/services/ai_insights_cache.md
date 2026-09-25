@@ -3,7 +3,10 @@
 `AiInsightsCache` owns `ai_insights.json`, the per-device cache of results the on-device model
 generated (1.6.0, M4). The file holds `AiInsights`: cached category classifications
 (`AiCategoryEntry`, with an `AiCategoryStatus`) keyed by anime id, and a `hiddenRecommendations` id
-list that is part of the schema already. It is the only file that reads or writes the cache. See
+list that held the per-device *Not interested* list in 1.6.0–1.6.1; since 1.6.2 it is only read to
+migrate those ids into the synced `recommendations.json` and is then left empty (see
+[`../../recommendations/services/recommendation_store.md`](../../recommendations/services/recommendation_store.md#migratefrominsights)).
+It is the only file that reads or writes the cache. See
 [`../../../../features/categories-and-recommendations.md`](../../../../features/categories-and-recommendations.md)
 for the schema and [`../../../../data-formats.md`](../../../../data-formats.md) for where it sits in
 the persisted-data inventory.

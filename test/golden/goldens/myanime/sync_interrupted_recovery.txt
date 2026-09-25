@@ -18,8 +18,10 @@
     }
 === [4] GET /dav/files/u/MyAnime/anime_data.json -> 200
   authorization: <basic-auth>
-=== [5] GET /dav/files/u/MyAnime/.lock -> 200
+=== [5] GET /dav/files/u/MyAnime/recommendations.json -> 404
   authorization: <basic-auth>
-=== [6] DELETE /dav/files/u/MyAnime/.lock -> 204
+=== [6] GET /dav/files/u/MyAnime/.lock -> 200
+  authorization: <basic-auth>
+=== [7] DELETE /dav/files/u/MyAnime/.lock -> 204
   authorization: <basic-auth>
   if-match: "<etag>"

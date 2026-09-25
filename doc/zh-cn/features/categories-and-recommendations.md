@@ -5,7 +5,9 @@
 都能工作；只有 AI 这一步需要 Android、iOS 或 macOS。
 
 **推荐**（同样自 1.6.0 起）回答「**从我的片库里**接下来看什么」。它是一个独立的开关（设置 › *分类与推荐* › *推荐*），同样
-**默认关闭**，在所有平台上都可用；只有可选的生成理由需要模型。见下方的[推荐](#推荐)。
+**默认关闭**，在所有平台上都可用；只有可选的生成理由需要模型。见下方的[推荐](#推荐)。自 1.6.2 起，略过的推荐会进入
+**可同步的垃圾箱**，可以查看和恢复；每个详情页还有自己持久保存的**相关推荐**列表，并有自己的垃圾箱——见[垃圾箱](#垃圾箱)和
+[详情页的相关推荐](#详情页的相关推荐)。
 
 分类的代码见 [`functions/features/anime/models/anime_category.md`](../functions/features/anime/models/anime_category.md)
 （分类表与类型标签映射）、
@@ -138,18 +140,27 @@ AI 建议的分类标签带一个闪光图标和提示「在本设备上生成�
 - **可重建。** 加载是容错的：格式错误的条目被丢弃，无法读取的文件读作空。
 - **加载时修剪。** 分类器和推荐页用片库的 id 加载它，丢弃已删除记录的条目——分类和隐藏 id 都是；下一次保存时写出。
 - 写入是原子的（先写 tmp 再重命名），格式化且键已排序，因此未改变的缓存会写出相同的字节。
-- `hiddenRecommendations` 是*不感兴趣*列表（见[推荐](#推荐)）。由于该文件仅限本设备，在一台设备上隐藏的推荐不会在另一台
-  设备上隐藏。
+- `hiddenRecommendations` 在 1.6.0 和 1.6.1 中是*不感兴趣*列表，当时隐藏仅限本设备。自 1.6.2 起垃圾箱存放在可同步的
+  `recommendations.json` 中（[垃圾箱](#垃圾箱)）；推荐页或垃圾箱页第一次打开时，这里的 id 会移到那里，并清空此列表。
+  该键仍会被读取和写入（为空），因此文件的结构不变。
 
 ## 推荐
 
 代码见
 [`functions/features/recommendations/services/recommendation_service.md`](../functions/features/recommendations/services/recommendation_service.md)
 （排序）、
+[`functions/features/recommendations/services/recommendation_store.md`](../functions/features/recommendations/services/recommendation_store.md)、
+[`functions/features/recommendations/models/recommendation_data.md`](../functions/features/recommendations/models/recommendation_data.md)
+和
+[`functions/features/recommendations/services/recommendation_merge.md`](../functions/features/recommendations/services/recommendation_merge.md)
+（垃圾箱与相关推荐列表，1.6.2）、
 [`functions/features/recommendations/services/reason_prompt.md`](../functions/features/recommendations/services/reason_prompt.md)、
 [`functions/features/recommendations/services/ai_reason_service.md`](../functions/features/recommendations/services/ai_reason_service.md)
-（AI 理由）和
-[`functions/features/recommendations/views/recommendations_page.md`](../functions/features/recommendations/views/recommendations_page.md)。
+（AI 理由）、
+[`functions/features/recommendations/views/recommendations_page.md`](../functions/features/recommendations/views/recommendations_page.md)、
+[`functions/features/recommendations/views/recommendation_trash_page.md`](../functions/features/recommendations/views/recommendation_trash_page.md)
+和
+[`functions/features/recommendations/views/related_card.md`](../functions/features/recommendations/views/related_card.md)。
 
 ### 范围
 
@@ -164,7 +175,7 @@ AI 建议的分类标签带一个闪光图标和提示「在本设备上生成�
 - **偏好**（每条记录）：有评分时为 `(effectiveOverall − 6) / 4`，钳制到 −1…1；没有评分时，已看完 `+0.5`，弃坑 `−0.7`，
   其他 `0`。
 - **口味画像：** 以偏好加权的分类向量之和，再归一化。**制作公司亲和度：** 每个制作公司的偏好之和。
-- **候选：** 未开始，或观看中且有已播出未看的集，并且未被隐藏。**一个系列只有最早的未看完成员才是候选**——没看完第 1 季
+- **候选：** 未开始，或观看中且有已播出未看的集，并且不在垃圾箱中。**一个系列只有最早的未看完成员才是候选**——没看完第 1 季
   的人绝不会被推荐第 3 季。如果该成员不满足条件（弃坑，或观看中但已追平），该系列就不提供候选。
 - **得分：** 各项贡献之和，权重来自 `RecommendationWeights`：
 
@@ -204,8 +215,115 @@ AI 建议的分类标签带一个闪光图标和提示「在本设备上生成�
   （[`home-management-statistics.md`](home-management-statistics.md)）。
 - **布局：** 一列卡片——封面、标题、推荐理由标签、有 AI 理由时附带标注的理由——用 `listColumnCount` 按**首页的列数偏好**
   排布；本页没有自己的列数按钮（[`../adaptive-layout.md`](../adaptive-layout.md)）。点击打开详情页。
-- ***不感兴趣***隐藏一个候选。其 id 写入 `ai_insights.json` 的 `hiddenRecommendations`，因此**隐藏仅限本设备**：既不同步
-  也不备份，除了删除该记录之外没有撤销的界面。
+- **一批：** 至多 **10** 张排好的卡片（1.6.1 及之前为 30 张），之后是缺失续作卡片。
+- ***不感兴趣***把一张卡片移入[垃圾箱](#垃圾箱)。1.6.1 及之前它写入仅限本设备的 `ai_insights.json`，且无法撤销；自 1.6.2
+  起它会同步，并且可以恢复。
+- **换一批**（应用栏）：屏幕上的整批卡片——排好的卡片和缺失续作卡片——一次写入全部移入垃圾箱，然后显示下一批。提示条
+  「已将 N 项移入垃圾箱」提供**撤销**，恰好恢复这一批。这一含义是有意的：用户看过并略过的一批就是「不感兴趣」。
+- **垃圾箱**（应用栏）打开全局垃圾箱页。
 - **缺失续作：** 在排好的卡片之后，对资料库列出但片库中没有的每部续作显示一张卡片——针对每条已看完且是所在系列最后一部的
-  记录——标注为**「番剧库里还没有」**。点击打开以该关联关系预填的创建页（搜索只在完整版中运行）。这些来自完整版抓取的关联
-  数据，因此商店版只对通过同步收到这些数据的记录显示它们。
+  记录——标注为**「番剧库里还没有」**。点击打开以该关联关系预填的创建页（搜索只在完整版中运行）。自 1.6.2 起每张也有
+  *不感兴趣*，并且卡片按续作的规范键（`anilist:<id>`、`mal:<id>`、`bgm:<id>`）去重，因此在两个 bangumi 域名下列出的同一部
+  续作只显示一张卡片。这些来自完整版抓取的关联数据，因此商店版只对通过同步收到这些数据的记录显示它们。
+- 同步改变本地数据时页面会重新加载，因此另一台设备上对垃圾箱的改动无需离开页面即可显示。
+
+## 垃圾箱
+
+自 1.6.2 起有两种推荐垃圾箱，都存放在可同步的 `recommendations.json` 中：
+
+| 垃圾箱 | 放入什么 | 隐藏什么 | 在哪里查看 |
+|---|---|---|---|
+| **全局** | 在「接下来看什么」上略过的片库卡片和缺失续作卡片 | 「接下来看什么」上的这些卡片 | 该页上的垃圾箱按钮（`/recommendations/trash`） |
+| **每部作品** | 在某条记录的相关推荐卡片中略过的条目 | 只在**该记录的**相关推荐卡片中隐藏这些条目 | 该卡片菜单中的*垃圾箱*（`/recommendations/trash?anime=<id>`） |
+
+两者相互独立：从一部番剧的相关推荐列表中移入垃圾箱的记录，不会在「接下来看什么」或其他任何记录的列表中被隐藏，反之亦然。
+
+**垃圾箱页**按时间从新到旧列出移入垃圾箱的记录——封面、标题、「<日期> 移入」和**恢复**——对于全局垃圾箱，还有一个
+「番剧库里还没有的续作」分区，列出每部移入垃圾箱的续作的标题、资料库以及它所接续的记录。*全部恢复*恢复所显示的全部内容。
+**恢复会把条目从垃圾箱中移除，因此它可以再次被推荐**——这就是这里「从垃圾箱删除」的含义。恢复的相关推荐条目不会被放回
+已保存的列表；它可能在该卡片下一次换一批时回来。
+
+**已删除记录的条目**留在文件中，只是不显示。修剪它们会以恢复的形式进入同步，并可能移除另一台设备上针对本设备尚未收到的
+记录的条目；番剧 id 是 UUID，从不复用，因此残留的条目无害。
+
+**迁移。** 在 1.6.2 上第一次打开推荐页或垃圾箱页时，`ai_insights.json` 中 `hiddenRecommendations` 的 id 会移入全局垃圾箱
+（时间戳记为该时刻，因为旧列表没有保存日期），并清空旧列表。每台设备迁移自己的列表，合并时取并集。
+
+### 文件：`recommendations.json`
+
+由 `RecommendationStore` 拥有，位于 `AnimeStorage.getAppDir()` 之下，作为第二个模块注册在
+`lib/app/data_modules.dart` 中（模块 id `recommendations`）：
+
+```json
+{
+  "version": 1,
+  "hidden": [
+    { "id": "<animeId>", "hiddenAt": "2026-09-24T03:00:00.000Z" }
+  ],
+  "hiddenSequels": [
+    {
+      "key": "anilist:182255",
+      "sourceId": "<animeId>",
+      "title": "葬送のフリーレン 第2期",
+      "source": "AniList",
+      "hiddenAt": "2026-09-24T03:00:00.000Z"
+    }
+  ],
+  "related": {
+    "<animeId>": {
+      "generatedAt": "2026-09-24T03:00:00.000Z",
+      "items": [
+        {
+          "id": "<animeId>",
+          "reasons": ["categories:romance,school", "studio:Madhouse"],
+          "aiReason": "Both follow a slow-burn school romance."
+        }
+      ],
+      "hidden": [{ "id": "<animeId>", "hiddenAt": "2026-09-24T03:00:00.000Z" }]
+    }
+  }
+}
+```
+
+- **同步并备份。** 它和 `anime_data.json` 一样随 WebDAV 同步、备份和 ZIP 导出传输。保存会通知自动同步。它**不**属于
+  `.myanimeitem` 分享文件。
+- **需要时才创建。** 从未把任何东西移入垃圾箱、也从未打开过相关推荐卡片的片库没有该文件，同步只发出一次什么也找不到的 GET。
+- **未知键在每一层都保留**（`extraJson`），因此旧构建会保留新构建新增的内容。本构建不认识的理由代码会被保留但不显示。
+- **排序并格式化**，因此未改变的存储会写出相同的字节，同步走原始相等的快速路径。
+- **合并从不冲突**——见 [`../sync.md`](../sync.md#推荐文件)。
+
+## 详情页的相关推荐
+
+自 1.6.2 起，推荐开启时，每个详情页在备注之后都有一张**相关推荐**卡片（双栏布局中位于右栏）：至多 **5** 条与该记录相似、
+**来自片库**的记录。代码见
+[`RecommendationService.related`](../functions/features/recommendations/services/recommendation_service.md#recommendationservice-related)
+和 [`related_card.md`](../functions/features/recommendations/views/related_card.md)。
+
+### 排序
+
+纯 Dart。主体记录、它自己所在系列的成员以及该记录自己的垃圾箱中的条目从不提供。
+
+| 贡献 | 权重 |
+|---|---|
+| 资料库把其中一条列为另一条的关联作品，任一方向，任何关联类型 | `3.0` |
+| 两条记录有效分类集合的余弦，`shared / √(a·b)` | `× 2.0` |
+| 两者有相同的制作公司 | `0.5` |
+| 两者有相同的基础标题键（与系列关联使用的键相同） | `1.0` |
+
+没有任何贡献的记录不提供。**其他每个系列至多提供其最佳成员**（得分相同时取系列顺序中较早的一个），因此列表永远不会是同一
+部作品的三季。观看状态不起作用：该卡片回答「什么与它相似」，而不是「接下来看什么」。推荐理由标签：「同为恋爱、校园」、
+「同为 Madhouse 制作」、「衍生作品」/「不同版本」/「数据库中的关联作品」、「标题相近」——至多三个，从大到小。
+
+### 持久保存，直到换一批
+
+- **第一次**显示某条记录的卡片时，生成列表并写入 `recommendations.json`，附带 UTC `generatedAt`。此后卡片显示**已保存的**
+  列表——在本设备上，并通过同步在其他每台设备上——直到用户换一批。片库中新增的记录本身不会改变已有的列表。
+- **AI 理由**（只在端侧 AI 开启且模型能够生成时）在生成之后立即请求，隐私规则与全局页面相同——标题、分类、制作公司和
+  关联关系事实；从不包含备注、评分或观看历史——通过 `relatedReasonPrompt`（`relatedReasonPromptVersion = 1`）。模型从编号的
+  候选中至多挑三个。与全局页面的理由不同，它们**随列表一起保存**，位于同样的「在本设备上生成——可能有误」标签之下。
+- **换一批**（卡片的换一批按钮，或其菜单中的*换一批*）把屏幕上的每个条目放入**该记录的垃圾箱**，然后生成接下来的五条。
+  屏幕上没有条目时不移入任何东西，只是重新生成——新增的记录就是这样进入列表的。
+- 某一行上的 **✕** 把该条目移入垃圾箱；列表会缩短，直到下一次换一批。
+- 菜单中的**垃圾箱**打开该记录自己的垃圾箱。
+- 从片库中删除的记录会从每个列表中消失，无需写入。
+- 如果两台设备在两次同步之间生成了同一记录的列表，较新的 `generatedAt` 胜出；垃圾箱按集合合并，因此略过的条目不会回来。

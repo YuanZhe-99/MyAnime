@@ -2,7 +2,9 @@
 
 **The seam between this app and the shared `myapps_data` package**, and the single source of truth
 for MyAnime's data files. Every hardcoded `anime_data.json` list and backup-module map the app used
-to carry now reads from the registry declared here.
+to carry now reads from the registry declared here. Since 1.6.2 the registry holds two modules:
+`anime_data.json`, then `recommendations.json` (the recommendation trash bins and related lists;
+see [`../features/recommendations/services/recommendation_store.md`](../features/recommendations/services/recommendation_store.md)).
 
 ## Declarations
 
@@ -17,7 +19,10 @@ to carry now reads from the registry declared here.
 | [`encodeAnimeData(data)`](#encodeanimedata) | function | A | Pretty-print merged data the way the hub writes it. |
 | [`animeReferencedImages(json)`](#animereferencedimages) | function | A | Cover-image basenames referenced by records. |
 | [`mergeAnimeModule({...})`](#mergeanimemodule) | function | A | Adapt `mergeAnimeData` to the engine's merge contract. |
-| [`buildAnimeModule()`](#buildanimemodule) | function | A | Build the single `DataModule`. |
+| [`buildAnimeModule()`](#buildanimemodule) | function | A | Build the anime `DataModule`. |
+| [`validateRecommendationsJson(json)`](#validaterecommendationsjson) | function | A | Throw unless the payload is a JSON object (1.6.2). |
+| [`mergeRecommendationsModule({...})`](#mergerecommendationsmodule) | function | A | Adapt the conflict-free recommendations merge to the engine (1.6.2). |
+| [`buildRecommendationsModule()`](#buildrecommendationsmodule) | function | A | Build the recommendations `DataModule` (1.6.2). |
 | [`animeModuleRegistry`](#animemoduleregistry) | field | A | The app's `ModuleRegistry`. |
 
 ## Documentation
@@ -35,7 +40,9 @@ to carry now reads from the registry declared here.
 ### Constants <a id="constants"></a>
 - **Notes:** File name and module id are persisted compatibility contracts — an older build and a
   newer one must interoperate against the same WebDAV server and the same backup bundles. Never
-  change them.
+  change them. 1.6.2 added `recommendationsFileName` (`'recommendations.json'`) and
+  `recommendationsModuleId` (`'recommendations'`), under the same rule; they are named in the
+  Constants section rather than as rows.
 
 ### `validateAnimeJson(json)` <a id="validateanimejson"></a>
 - **Throws:** Whatever `jsonDecode` or `AnimeData.fromJson` throws.
@@ -62,9 +69,26 @@ to carry now reads from the registry declared here.
 - **Notes:** No `postMergeTransform` (MyAnime has no migration) and no `preUploadTransform` —
   unknown-field preservation is baked into the models, so merge output is already self-preserving.
 
+### `validateRecommendationsJson(json)` <a id="validaterecommendationsjson"></a>
+- **Throws:** `FormatException` when the payload is not a JSON object, or whatever `jsonDecode`
+  throws.
+- **Notes:** Inside the object the model is tolerant, so only a file that is not ours at all is
+  rejected — by backup restore and by the sync engine before writing.
+
+### `mergeRecommendationsModule({localJson, remoteJson, baseJson})` <a id="mergerecommendationsmodule"></a>
+- **Returns:** Always a complete `ModuleMergeOutcome` from `mergeRecommendationJson`
+  ([`../features/recommendations/services/recommendation_merge.md`](../features/recommendations/services/recommendation_merge.md)).
+- **Notes:** Conflict-free by design, so this module never reaches the conflict dialog and
+  `WebDAVService` keeps reading conflicts from the anime module only; its facade is unchanged.
+
+### `buildRecommendationsModule()` <a id="buildrecommendationsmodule"></a>
+- **Notes:** No images, no transforms. The engine's `autoResolve` argument is accepted and
+  ignored: there is nothing to resolve.
+
 ### `animeModuleRegistry` <a id="animemoduleregistry"></a>
 - **Notes:** Built once. Registry order is behaviorally significant for sync order, progress
-  reporting, and backup key order; MyAnime has a single module, so order is trivial here.
+  reporting, and backup key order. `anime_data.json` stays first, so its progress index and
+  its conflicts come before anything else; `recommendations.json` follows.
 
 ## Where the contract documentation lives
 

@@ -16,14 +16,16 @@
     }
 === [3] GET /dav/files/u/MyAnime/anime_data.json -> 200
   authorization: <basic-auth>
-=== [4] GET /dav/files/u/MyAnime/.lock -> 200
+=== [4] GET /dav/files/u/MyAnime/recommendations.json -> 404
   authorization: <basic-auth>
-=== [5] DELETE /dav/files/u/MyAnime/.lock -> 204
+=== [5] GET /dav/files/u/MyAnime/.lock -> 200
+  authorization: <basic-auth>
+=== [6] DELETE /dav/files/u/MyAnime/.lock -> 204
   authorization: <basic-auth>
   if-match: "<etag>"
-=== [6] GET /dav/files/u/MyAnime/.lock -> 404
+=== [7] GET /dav/files/u/MyAnime/.lock -> 404
   authorization: <basic-auth>
-=== [7] PUT /dav/files/u/MyAnime/.lock -> 201
+=== [8] PUT /dav/files/u/MyAnime/.lock -> 201
   authorization: <basic-auth>
   content-type: application/octet-stream
   if-none-match: *
@@ -35,11 +37,11 @@
       "updatedAt": "<timestamp>",
       "ttlSeconds": 60
     }
-=== [8] GET /dav/files/u/MyAnime/anime_data.json -> 200
+=== [9] GET /dav/files/u/MyAnime/anime_data.json -> 200
   authorization: <basic-auth>
-=== [9] GET /dav/files/u/MyAnime/.lock -> 200
+=== [10] GET /dav/files/u/MyAnime/.lock -> 200
   authorization: <basic-auth>
-=== [10] PUT /dav/files/u/MyAnime/.lock -> 204
+=== [11] PUT /dav/files/u/MyAnime/.lock -> 204
   authorization: <basic-auth>
   content-type: application/octet-stream
   if-match: "<etag>"
@@ -51,7 +53,7 @@
       "updatedAt": "<timestamp>",
       "ttlSeconds": 60
     }
-=== [11] PUT /dav/files/u/MyAnime/anime_data.json -> 204
+=== [12] PUT /dav/files/u/MyAnime/anime_data.json -> 204
   authorization: <basic-auth>
   content-type: application/octet-stream
   body:
@@ -68,8 +70,8 @@
         }
       ]
     }
-=== [12] GET /dav/files/u/MyAnime/.lock -> 200
+=== [13] GET /dav/files/u/MyAnime/.lock -> 200
   authorization: <basic-auth>
-=== [13] DELETE /dav/files/u/MyAnime/.lock -> 204
+=== [14] DELETE /dav/files/u/MyAnime/.lock -> 204
   authorization: <basic-auth>
   if-match: "<etag>"

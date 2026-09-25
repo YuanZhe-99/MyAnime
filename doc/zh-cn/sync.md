@@ -80,7 +80,8 @@ WebDAV 页面上的前台同步操作——手动同步、冲突最终化上传�
 
 ## 其他重要约束
 
-- `anime_data.json` 按 `id` 和 `modifiedAt` 合并 `Anime` 记录。
+- `anime_data.json` 按 `id` 和 `modifiedAt` 合并 `Anime` 记录；`recommendations.json`（1.6.2）
+  的合并不会产生冲突——见[推荐文件](#推荐文件)。
 - 未知的顶层和逐动画 JSON 字段必须在解析、编辑、导入、导出和同步合并中存活（见 [`data-formats.md`](data-formats.md) 中的 `extraJson` 模式）。
 - `_syncing` 防止并发同步运行。
 - `_atomicWrite()` 使用 tmp-重命名，使写入中途崩溃绝不会损坏本地文件。
@@ -112,3 +113,19 @@ WebDAV 页面上的前台同步操作——手动同步、冲突最终化上传�
 
 见 [`features/metadata-auto-update.md`](features/metadata-auto-update.md)，并注意其中记录的
 `Anime.copyWith` 陷阱：省略 `modifiedAt` 会填入当前时间，而不是保留原值。
+
+## 推荐文件
+
+自 1.6.2 起，`lib/app/data_modules.dart` 中的注册表包含第二个模块 `recommendations.json`——推荐垃圾箱和每条记录持久保存的
+相关推荐列表（见 [`features/categories-and-recommendations.md`](features/categories-and-recommendations.md#垃圾箱)）。
+共享引擎没有任何改动：每个模块都按注册表顺序走上面的同一套步骤，**动画数据在先**，处在同一个 `.lock` 之下，并有自己的
+`.sync_base/recommendations.json`。
+
+- **任一侧缺失**时，引擎按处理任何模块的方式处理：只在远端存在的文件会被下载，只在本地存在的文件会被上传，两边都不存在时
+  什么都不写——因此从未用过垃圾箱的片库，每次同步只多一个返回 404 的 `GET`。
+- **合并从不产生冲突。**垃圾箱是相对于基线合并的集合：只在一侧存在的条目，若基线中没有则保留（它在那一侧被移入垃圾箱），
+  若基线中有则丢弃（它在另一侧被恢复了）。记录的相关推荐列表是可重新生成的缓存：`generatedAt` 较新的一侧胜出，而它的垃圾箱
+  仍按集合合并。未知键取并集。因此该模块总是返回完整的结果，永远不会进入冲突对话框，`autoResolve` 与它无关——但仍以 `false`
+  传入。
+- **旧版本**（1.6.1 及更早）不列出该模块，因此从不下载、上传或删除它；它们的垃圾箱留在各自的 `ai_insights.json` 中，直到更新。
+- 经 `RecommendationStore` 的保存会调用 `AutoSyncService.notifySaved`，因此移入垃圾箱和恢复都会安排通常的防抖同步。

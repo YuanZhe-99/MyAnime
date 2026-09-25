@@ -2,7 +2,10 @@
 
 `AiInsightsCache` 拥有 `ai_insights.json`，即端侧模型生成结果的本设备缓存（1.6.0，M4）。该文件保存 `AiInsights`：
 按动画 id 索引的已缓存分类（`AiCategoryEntry`，带一个 `AiCategoryStatus`），以及一个已经在 schema 中的
-`hiddenRecommendations` id 列表。它是唯一读写该缓存的文件。schema 见
+`hiddenRecommendations` id 列表：1.6.0–1.6.1 中它是本设备的「不感兴趣」列表；自 1.6.2 起只在迁移时读取，把这些 id
+移入同步的 `recommendations.json`，之后保持为空（见
+[`../../recommendations/services/recommendation_store.md`](../../recommendations/services/recommendation_store.md#migratefrominsights)）。
+它是唯一读写该缓存的文件。schema 见
 [`../../../../features/categories-and-recommendations.md`](../../../../features/categories-and-recommendations.md)，
 它在持久化数据清单中的位置见 [`../../../../data-formats.md`](../../../../data-formats.md)。
 

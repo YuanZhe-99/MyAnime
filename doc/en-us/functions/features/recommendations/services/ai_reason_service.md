@@ -16,6 +16,7 @@ See [`recommendation_service.md`](recommendation_service.md), [`reason_prompt.md
 | [`ReasonLanguage.forLocale`](#reasonlanguage-forlocale) | static method (`ReasonLanguage`) | A | Pick the request language for the UI locale. |
 | `ReasonLanguage.finish` | method (`ReasonLanguage`) | B | Post-process a validated reason: convert to the UI's Chinese variant with `ChineseConvert`, else return it unchanged. |
 | [`writeAiReasons`](#writeaireasons) | top-level function | A | Ask the on-device model for up to three short reasons. |
+| [`writeRelatedAiReasons`](#writerelatedaireasons) | top-level function | A | Ask the on-device model why up to three related records are like the subject (1.6.2). |
 
 `aiReasonCandidates` (8), `aiReasonMaxLength` (140), the private `_answerLine` pattern and the
 `ReasonLanguage` fields (`localeTag`, `name`, `code`, `toTraditional`, `toSimplified`) carry no
@@ -88,3 +89,21 @@ See [`recommendation_service.md`](recommendation_service.md), [`reason_prompt.md
 - **Usage:** `_RecommendationsPageState._requestAiReasons`; exercised through the page by `test/recommendations_page_ui_test.dart`.
 - **Notes:** Never throws. The page renders the deterministic list first; these reasons fill in
   when they arrive and live in memory only.
+
+### `Future<Map<String, String>> writeRelatedAiReasons(OnDeviceAiService ai, {required Anime subject, required List<Recommendation> related, required ReasonLanguage language, AiInsights? insights})` <a id="writerelatedaireasons"></a>
+- **Kind:** top-level function
+- **Source:** `lib/features/recommendations/services/ai_reason_service.dart` (approx. line 214)
+- **Purpose:** Explain, for the detail page's related list (1.6.2), what up to three related records
+  have in common with the record being viewed.
+- **Inputs:** `ai`; `subject`; `related` — the deterministic related list, at most five; `language`;
+  `insights` — AI categories.
+- **Returns:** `Future<Map<String, String>>` — anime id to reason; empty on any failure.
+- **Side effects:** Runs the model once, as an interactive request.
+- **Algorithm:** Describe the subject and each candidate as a `ReasonCandidate` (title, effective
+  categories, studios; a candidate's facts add `listed as <relation type>` for a database relation),
+  send [`relatedReasonInstructions`](reason_prompt.md#relatedreasoninstructions) and
+  [`relatedReasonPrompt`](reason_prompt.md#relatedreasonprompt), then validate with
+  [`parseReasonReply`](#parsereasonreply) and `language.finish` exactly as `writeAiReasons` does.
+- **Usage:** `RelatedRecommendationsCard._aiReasons`.
+- **Notes:** Never throws. Unlike the global page's reasons, the caller **persists** these with the
+  list in `recommendations.json`, so they sync. No rating, note or viewing history reaches the model.

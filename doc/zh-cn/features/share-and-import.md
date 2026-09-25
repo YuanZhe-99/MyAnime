@@ -30,6 +30,7 @@
 - `categories`（用户自己的分类，1.6.0）也不是个人数据：它保留在分享文件中，导入后仍然存在，包括 `[]`（「无分类」）和接收方构建
   不认识的 id。没有该字段的记录在接收方保持自动分类。见 [`categories-and-recommendations.md`](categories-and-recommendations.md)。
 - 统计数据文件导出和 TXT 导出走同一套剥离，因此应用中没有任何分享界面会输出 `localArchive` 或 `seriesLink`。
+- 推荐垃圾箱和相关推荐列表（1.6.2）存放在 `recommendations.json` 中，而不在记录上，因此分享文件从不携带它们，导入的记录以空垃圾箱开始、没有相关推荐列表。见 [`categories-and-recommendations.md`](categories-and-recommendations.md#垃圾箱)。
 - 导入总是为传入记录创建新 UUID，绝不覆盖既有动画；新记录由 `importedCopy`（[`../functions/shared/services/file_open_service.md`](../functions/shared/services/file_open_service.md#importedcopy)）构建。
 - 多动画捆绑导入检测与既有本地记录的冲突（复用 [`duplicate-detection.md`](duplicate-detection.md) 的分组逻辑），并为每个冲突显示提供保留本地、使用导入或合并选项的对话框。
 - 平台文件关联在 Android、iOS、macOS 和 Windows 上配置——各平台的确切注册细节见 [`../platform-notes.md`](../platform-notes.md)（尤其是 Windows 注册在 `installer.iss` 中）。

@@ -201,3 +201,58 @@ Future<Map<String, String>> writeAiReasons(
     return const {};
   }
 }
+
+/// Purpose: Ask the on-device model why up to three related records are
+/// like `subject` (1.6.2).
+/// Inputs: `ai`; `subject`; `related` — the deterministic related list;
+/// `language`; `insights` — AI categories.
+/// Returns: `Future<Map<String, String>>` — anime id to reason; empty on any
+/// failure.
+/// Side effects: Runs the model once, as an interactive request.
+/// Notes: The detail page persists the result in `recommendations.json`
+/// with the list. Same validation as [writeAiReasons]. Never throws.
+Future<Map<String, String>> writeRelatedAiReasons(
+  OnDeviceAiService ai, {
+  required Anime subject,
+  required List<Recommendation> related,
+  required ReasonLanguage language,
+  AiInsights? insights,
+}) async {
+  if (!ai.canGenerate || related.isEmpty) return const {};
+  ReasonCandidate describe(Anime a, int number, List<String> facts) =>
+      ReasonCandidate(
+        number: number,
+        title: a.displayTitle,
+        categories: resolveCategories(a, insights: insights).ids,
+        studios: a.externalMeta?.studios ?? const [],
+        facts: facts,
+      );
+  final candidates = [
+    for (var i = 0; i < related.length; i++)
+      describe(related[i].anime, i + 1, [
+        for (final r in related[i].reasons)
+          if (r is RelatedByDatabaseReason) 'listed as ${r.type.name}',
+      ]),
+  ];
+  try {
+    final reply = await ai.generate(
+      instructions: relatedReasonInstructions(
+        language.localeTag,
+        language.name,
+      ),
+      prompt: relatedReasonPrompt(
+        subject: describe(subject, 0, const []),
+        candidates: candidates,
+      ),
+      maxOutputTokens: 256,
+      priority: AiPriority.interactive,
+    );
+    final parsed = parseReasonReply(reply, related.length, language.code);
+    return {
+      for (final e in parsed.entries)
+        related[e.key - 1].anime.id: language.finish(e.value),
+    };
+  } catch (_) {
+    return const {};
+  }
+}

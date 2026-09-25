@@ -10,6 +10,7 @@
 - **引用计数 GC：** 一个 blob 只在没有剩余备份引用它时才会被物理删除。GC 在创建/删除/保留清理之后运行，遇到任何剩余捆绑不可解析时整体中止（使损坏捆绑不可能造成错误的"未引用"删除），并且绝不删除比 **10 分钟宽限窗口**（`backup_service.dart` 中的 `_blobGcGrace = Duration(minutes: 10)`）更年轻的 blob——这保护正在被并发备份写入的 blob，防止它被从脚下回收。
 - **保留：** 可按天配置，备份设置 UI 中选项为 `[0, 3, 7, 14, 30, 60, 90]`（`0` = 永久保留）。包括一个专门为想要紧凑本地保留的用户准备的 3 天选项。
 - **带内联 base64 `_images` 的旧 v1 捆绑**仍可恢复——恢复先检查 `_imageRefs`（v2），缺失时回退到旧 `_images` 映射（v1）。
+- **捆绑中包含的内容：** 所有已注册的数据模块——`anime_data.json`，以及自 1.6.2 起存在时的 `recommendations.json`（推荐垃圾箱和相关推荐列表）——外加 `images/`。按模块恢复的对话框会列出捆绑中包含的每个模块，因此 1.6.1 的捆绑只提供动画数据，恢复它不会改动当前的 `recommendations.json`。
 - **不在捆绑中的内容：** 只备份已注册的数据模块和 `images/`。设备本地缓存——`metadata_updates.json`、`metadata_covers/`，以及自
   1.6.0 起的端侧 AI 缓存 `ai_insights.json`——没有注册进 `lib/app/data_modules.dart`，因此从不备份，恢复既不会覆盖也不会清空它们。
   它们都可以重建。用户自己的 `categories` 字段是每条记录的一部分，因此*会*被备份。见
@@ -60,9 +61,9 @@ class RestoreResult {
 
 ## ZIP 导出/导入
 
-`import_export_service.dart` 导出一个包含 `anime_data.json` 和 `images/` 的 ZIP。
+`import_export_service.dart` 导出一个 ZIP，包含所有存在的已注册数据文件——`anime_data.json`，以及自 1.6.2 起的 `recommendations.json`——和 `images/`。不含 `recommendations.json` 的归档（来自 1.6.1 或更早版本）导入时不会改动本地的该文件。
 
-- 导入强制路径穿越保护：只解压**允许列表中的条目**——`anime_data.json` 和 `images/` 下直接平铺的文件——并且解析后的输出路径必须留在应用目录内。这专门防止构造的 ZIP 通过 `../` 路径覆盖 `webdav_config.json` 之类的配置文件。
+- 导入强制路径穿越保护：只解压**允许列表中的条目**——已注册的数据文件和 `images/` 下直接平铺的文件——并且解析后的输出路径必须留在应用目录内。这专门防止构造的 ZIP 通过 `../` 路径覆盖 `webdav_config.json` 之类的配置文件。
 
 ## Markdown 导出
 

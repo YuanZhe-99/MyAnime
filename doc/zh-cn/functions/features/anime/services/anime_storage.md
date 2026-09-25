@@ -37,6 +37,10 @@
 | [`setHomeCalendarTimeBasis`](#sethomecalendartimebasis) | 静态方法（`AnimeStorage`） | A | 持久化主页日历 JST-vs-本地时间基准偏好。 |
 | [`getHomeCalendarFormat`](#gethomecalendarformat) | 静态方法（`AnimeStorage`） | A | 读取持久化的主页日历视图格式偏好。 |
 | [`setHomeCalendarFormat`](#sethomecalendarformat) | 静态方法（`AnimeStorage`） | A | 持久化主页日历视图格式偏好。 |
+| `getManageViewMode` | 静态方法（`AnimeStorage`） | B | 读取 `manageViewMode`（1.6.2）：`series`，或为 null 表示默认的季度视图。 |
+| `setManageViewMode` | 静态方法（`AnimeStorage`） | B | 持久化 `manageViewMode`；null 会删除该键，因此只存储系列视图。 |
+| `getManageSeriesSort` | 静态方法（`AnimeStorage`） | B | 读取 `manageSeriesSort`（1.6.2）：`title` 或 `modified`，或为 null 表示默认值。 |
+| `setManageSeriesSort` | 静态方法（`AnimeStorage`） | B | 持久化 `manageSeriesSort`；null 会删除该键。 |
 | [`getMetadataUpdatePolicy`](#getmetadataupdatepolicy) | 静态方法（`AnimeStorage`） | A | 读取持久化的后台资料更新策略。 |
 | [`setMetadataUpdatePolicy`](#setmetadataupdatepolicy) | 静态方法（`AnimeStorage`） | A | 持久化后台资料更新策略。 |
 | [`getMetadataPrefetchCovers`](#getmetadataprefetchcovers) | 静态方法（`AnimeStorage`） | A | 读取是否预下载候选封面。 |

@@ -380,6 +380,7 @@ migrates data files, backups, and images.
 | Data | File | Synced | Notes |
 | --- | --- | --- | --- |
 | Anime records | `anime_data.json` | Yes | Per-record by `id` and `modifiedAt`; unknown fields preserved |
+| Recommendation trash bins and related lists | `recommendations.json` | Yes | Since 1.6.2: the global trash, trashed missing-sequel cards, and each record's persisted Related list with its own trash; conflict-free set merge; created only when first needed |
 | Cover images | `images/` | Yes | Referenced-only additive sync by filename |
 | Theme mode | `storage_config.json` | No | Device-specific preference |
 | Locale | `storage_config.json` | No | Device-specific preference |
@@ -388,6 +389,7 @@ migrates data files, backups, and images.
 | Home calendar time basis | `storage_config.json` | No | Device-specific JST-vs-local date grid preference; anime schedule timestamps remain JST-based |
 | Home calendar view format | `storage_config.json` | No | Device-specific last-used calendar view (`homeCalendarFormat`: `twoWeeks` or `week`; absent means the default full month) |
 | List column count, per module | `storage_config.json` | No | Device-specific column preference for the home, management and statistics lists (`homeListColumns` / `manageListColumns` / `statsListColumns`: 1–4; absent means auto, i.e. fill whatever the width allows) |
+| Manage view mode and series sort | `storage_config.json` | No | Device-specific (1.6.2): `manageViewMode` (`series`; absent means the quarter view) and `manageSeriesSort` (`title` or `modified`; absent means newest premiere first) |
 | Storage path override | `storage_config.json` | No | Device-specific path |
 | Auto-backup enabled | `storage_config.json` | No | Device-specific config |
 | Backup retention days | `storage_config.json` | No | Device-specific config |
@@ -399,13 +401,13 @@ migrates data files, backups, and images.
 | Automatic categories | `storage_config.json` | No | Device-specific `autoCategoriesEnabled`; absent means off (1.6.0) |
 | Recommendations | `storage_config.json` | No | Device-specific `recommendationsEnabled`; absent means off (1.6.0) |
 | WebDAV configuration | `webdav_config.json` | No | Local secret/config only |
-| Sync base snapshot | `.sync_base/anime_data.json` | No | Local merge tracking |
+| Sync base snapshots | `.sync_base/anime_data.json`, `.sync_base/recommendations.json` | No | Local merge tracking, one per module |
 | Local backups | `backups/backup_*.json` | No | Local recovery; v2 bundles reference deduplicated image blobs |
 | Backup image blobs | `backups/blobs/` | No | Content-addressed (`sha256`), shared across backups, reference-counted GC |
 | Background update queue | `metadata_updates.json` | No | Per-device attempt/backoff state plus downloaded update candidates; rebuildable cache |
 | Prefetched candidate covers | `metadata_covers/` | No | Only when cover prefetch is enabled; pruned when its proposal is resolved |
 | Background update policy | `storage_config.json` | No | Device-specific `metadataAutoUpdate` (`off`/`noCellular`/`always`; absent means `noCellular` on mobile, `always` on desktop) and `metadataPrefetchCovers` |
-| On-device AI results | `ai_insights.json` | No | Per-device cache of AI category classifications and the recommendations *Not interested* list (`hiddenRecommendations`) (1.6.0); not backed up; rebuildable; pruned of deleted records on load |
+| On-device AI results | `ai_insights.json` | No | Per-device cache of AI category classifications (1.6.0); not backed up; rebuildable; pruned of deleted records on load. Its `hiddenRecommendations` list was the per-device *Not interested* list in 1.6.0–1.6.1 and is migrated to `recommendations.json`, then left empty, since 1.6.2 |
 
 `metadata_updates.json` and `metadata_covers/` are neither synced nor backed up, and that needs no
 special handling: the sync and backup engines only touch the file names registered in
@@ -414,9 +416,16 @@ live under `AnimeStorage.getAppDir()`, so a storage-path change carries them alo
 [`features/metadata-auto-update.md`](features/metadata-auto-update.md).
 
 `ai_insights.json` (1.6.0) follows the same mechanism: it is not registered either, so it is neither
-synced nor backed up, and it moves with the storage path. Because it also holds
-`hiddenRecommendations`, hiding a recommendation is per device. Its schema is in
+synced nor backed up, and it moves with the storage path. Its schema is in
 [`features/categories-and-recommendations.md`](features/categories-and-recommendations.md).
+
+`recommendations.json` (1.6.2) is the opposite case: it **is** registered, as the second module
+after `anime_data.json`, so it syncs, is backed up, is included in ZIP export, and has its own
+`.sync_base/recommendations.json`. Its schema, and why its merge never produces a conflict, are in
+[`features/categories-and-recommendations.md`](features/categories-and-recommendations.md#the-file-recommendationsjson)
+and [`sync.md`](sync.md#the-recommendations-file). It refers to library records by id only; the
+only titles it stores are the database titles of trashed sequels, plus any generated reasons. It is
+not part of `.myanimeitem` share files.
 
 ### `storage_config.json`
 
@@ -430,7 +439,8 @@ tab is shown (`kanaTabEnabled`, written only when on), and the on-device AI swit
 faster model" preference (`onDeviceAiEnabled`, `onDeviceAiPreferFast`, each written only when on;
 see [`on-device-ai.md`](on-device-ai.md)), and whether automatic categories are on
 (`autoCategoriesEnabled`, written only when on), and whether recommendations are on
-(`recommendationsEnabled`, written only when on). None of this file is
+(`recommendationsEnabled`, written only when on), and since 1.6.2 the Manage tab's view and
+series sort (`manageViewMode`, `manageSeriesSort`, each written only when not the default). None of this file is
 synced — it is intentionally device-specific, which is the right home for a network policy that
 should differ between a desktop on Ethernet and a phone on a data plan.
 
@@ -443,7 +453,8 @@ synced itself — it's the configuration that drives sync, not data sync would t
 ### `.sync_base/`
 
 Holds `.sync_base/anime_data.json`, the last-known-merged snapshot used as the three-way merge
-base on the next sync, and `.sync_base/upload_lock.json`, which lets the next launch detect an
+base on the next sync — and since 1.6.2 `.sync_base/recommendations.json`, the same for the
+recommendations module — and `.sync_base/upload_lock.json`, which lets the next launch detect an
 upload that was interrupted mid-flight. See [`sync.md`](sync.md) for how both are used.
 
 ### `backups/`

@@ -28,6 +28,8 @@ management conventions (Riverpod, no Provider/Bloc) and
 | [`AppSettingsNotifier.setHomeCalendarFormat`](#appsettingsnotifier-sethomecalendarformat) | method (`AppSettingsNotifier`) | A | Update the remembered home calendar view format and persist it. |
 | `AppSettingsNotifier.setHomeListColumns` | method (`AppSettingsNotifier`) | B | Update the remembered home list column preference and persist it. |
 | `AppSettingsNotifier.setManageListColumns` | method (`AppSettingsNotifier`) | B | Update the remembered management list column preference and persist it. |
+| `AppSettingsNotifier.setManageViewMode` | method (`AppSettingsNotifier`) | B | Update the remembered Manage view mode (1.6.2) and persist it; the quarter view removes the key. |
+| `AppSettingsNotifier.setManageSeriesSort` | method (`AppSettingsNotifier`) | B | Update the remembered Manage series-view sort (1.6.2) and persist it; `latest` removes the key. |
 | `AppSettingsNotifier.setStatsListColumns` | method (`AppSettingsNotifier`) | B | Update the remembered statistics list column preference and persist it. |
 | `AppSettingsNotifier.setKanaTabEnabled` | method (`AppSettingsNotifier`) | B | Show or hide the Kana tab and persist the choice. |
 | [`AppSettingsNotifier.setOnDeviceAiEnabled`](#appsettingsnotifier-setondeviceaienabled) | method (`AppSettingsNotifier`) | A | Turn on-device AI on or off, persist it, and switch `OnDeviceAiService`. |
@@ -494,3 +496,13 @@ and Settings passes `autoCategoriesEnabled || recommendationsEnabled` to `AiSett
 `featuresOn`. Turning either feature off calls `_dropAiIfUnused`, so on-device AI goes off only once
 neither is on. See
 [`../../../features/categories-and-recommendations.md`](../../../features/categories-and-recommendations.md).
+
+## Manage view preferences
+
+Since 1.6.2 `AppSettings` also carries `manageViewMode` (`ManageViewMode.quarter` by default, or
+`series`) and `manageSeriesSort` (`ManageSeriesSort.latest` by default, `title` or `modified`),
+both declared in [`../../features/anime/services/manage_grouping.md`](../../features/anime/services/manage_grouping.md).
+They follow the `homeCalendarFormat` shape: loaded in `_loadPersisted` through
+`parseManageViewMode` / `parseManageSeriesSort`, written fire-and-forget through `AnimeStorage`, only
+a non-default value stored (`manageViewMode`, `manageSeriesSort` in `storage_config.json`), and no
+settings-page control — the Manage app bar's view toggle and sort menu are the only writers.

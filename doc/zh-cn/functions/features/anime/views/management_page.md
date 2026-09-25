@@ -2,6 +2,8 @@
 
 `ManagementPage` 是季浏览器：一个可滑动的季度 `PageView`（2000–2040）外加一个为没有 `firstAirDate` 的动画准备的末尾"其他"页、跳转季度选择器（[`quarter_picker_dialog.md`](quarter_picker_dialog.md)）、全局标题搜索，以及一个收窄本页每个列表的 AppBar 本地存档筛选器（全部 / 已存档 / 未存档），自动分类开启时（1.6.0 M4）旁边还有一个行为相同的分类筛选器。它通过 `AnimeStorage`（[`../services/anime_storage.md`](../services/anime_storage.md)）读写，并用 [`Anime.airsInQuarter`](../models/anime.md#airsinquarter) 把动画放进季度。功能概览见 [`../../../../features/home-management-statistics.md`](../../../../features/home-management-statistics.md)，本页分组依赖的季度归属规则见 [`../../../../features/anime-tracking.md`](../../../../features/anime-tracking.md#quarter-placement)。
 
+自 1.6.2 起本页有第二种布局，即**系列视图**：每个有两条或更多记录的系列占一个可展开的行，其他每条记录各占一个普通行，并有一个排序菜单（最新首播在前、标题、最近编辑）。应用栏上的切换按钮在两者之间切换，视图和排序都在本设备的 `storage_config.json` 中记住（`manageViewMode`、`manageSeriesSort`）。分组本身是纯函数 [`groupForSeriesView`](../services/manage_grouping.md#groupforseriesview)。
+
 ## 声明
 
 | 声明 | 种类 | Tier | 用途 |
@@ -26,6 +28,10 @@
 | [`_deleteAnime`](#_deleteanime) | 方法（`_ManagementPageState`） | A | 确认并删除一条动画记录。 |
 | [`_showAddOptions`](#_showaddoptions) | 方法（`_ManagementPageState`） | A | 显示新增/导入选择对话框并打开 + 跳转到结果动画。 |
 | [`_jumpToAnimeQuarter`](#_jumptoanimequarter) | 方法（`_ManagementPageState`） | A | 把视图翻页到含给定动画的季度（或"其他"页）。 |
+| [`_setViewMode`](#_setviewmode) | 方法（`_ManagementPageState`） | A | 在季度视图和系列视图之间切换（1.6.2）。 |
+| [`_seriesGroups`](#_seriesgroups) | 方法（`_ManagementPageState`） | A | 为系列视图对筛选后的片库分组（1.6.2）。 |
+| `_seriesSortLabel` | 方法（`_ManagementPageState`） | B | 为菜单本地化系列视图的排序方式（1.6.2）。 |
+| [`_buildSeriesView`](#_buildseriesview) | 方法（组件辅助） | A | 渲染系列视图（1.6.2）。 |
 | [`_showQuarterPicker`](#_showquarterpicker) | 方法（`_ManagementPageState`） | A | 打开季度选择器对话框并把视图翻页到所选季度。 |
 | `_ManagementPageState.build` | 方法（`_ManagementPageState`，组件构建） | B | 构建页面脚手架（搜索字段、季度视图、FAB）。 |
 | `_buildSearchResults` | 方法（组件辅助） | B | 渲染全局搜索结果列表。 |
@@ -209,8 +215,8 @@
 - **用途：** 列出用户当前正在查看的番剧。
 - **返回：** 番剧 id 的 `List<String>`。
 - **副作用：** 无。
-- **备注：** 这个 getter *定义*了审阅界面上「更新本页」的含义：搜索状态下是搜索结果，否则是当前季度页
-  或「其它」页。作用域是传入 `MetadataUpdatesPage` 的，而不是在那里重新推导，因此批量操作覆盖的始终
+- **备注：** 这个 getter *定义*了审阅界面上「更新本页」的含义：搜索状态下是搜索结果，否则是系列视图中每个可见的成员
+  （1.6.2），或当前季度页或「其它」页。作用域是传入 `MetadataUpdatesPage` 的，而不是在那里重新推导，因此批量操作覆盖的始终
   正是屏幕上的内容。
 
 ### `void _jumpToAnimeQuarter(String animeId)` <a id="_jumptoanimequarter"></a>
@@ -231,7 +237,7 @@
   _jumpToAnimeQuarter(newId);
   ```
   （`_showAddOptions`，同一文件）
-- **备注：** 用 `startQuarter`（动画的*起始* cour），不是更完整的 [`airsInQuarter`](../models/anime.md#airsinquarter) 跨度逻辑——跨多个季度的动画（如 `fullYear` 类型）总是跳到它的第一季，而不是它也在播的任何更晚季度。
+- **备注：** 用 `startQuarter`（动画的*起始* cour），不是更完整的 [`airsInQuarter`](../models/anime.md#airsinquarter) 跨度逻辑——跨多个季度的动画（如 `fullYear` 类型）总是跳到它的第一季，而不是它也在播的任何更晚季度。自 1.6.2 起，页面控制器没有 client 时它立即返回——系列视图中没有可以跳转的页面。
 
 ### `Future<void> _showQuarterPicker()` <a id="_showquarterpicker"></a>
 - **种类：** `_ManagementPageState` 的方法
@@ -253,6 +259,44 @@
   ```
   （`_buildQuarterView`，点击导航行中的季度标签）
 - **备注：** 选择器中显示的逐格计数来自 `airsInQuarter`（季度的完整潜在成员资格），而别处使用的 `_animeForQuarter` 应用相同过滤——因此计数总是与对应页面实际显示的内容匹配。
+
+### `void _setViewMode(ManageViewMode mode)` <a id="_setviewmode"></a>
+- **种类：** `_ManagementPageState` 的方法
+- **来源：** `lib/features/anime/views/management_page.dart`（约第 785 行）
+- **用途：** 在季度页和系列视图之间切换（1.6.2）。
+- **输入：** `mode`。
+- **返回：** 无。
+- **副作用：** `AppSettingsNotifier.setManageViewMode` — `storage_config.json`
+  （`manageViewMode`，只在为 `series` 时写入）；可能替换 `_pageController`。
+- **算法：** 回到季度视图时，释放控制器并在 `_currentQuarterIndex` 处创建一个新的；然后设置模式。
+- **用法：** 应用栏上的视图切换按钮（季度视图中为 `Icons.account_tree_outlined`，系列视图中为
+  `Icons.calendar_view_month`；提示文字为「按系列查看」/「按季度查看」）。
+- **备注：** 系列视图显示期间旧控制器已被分离，因此正是新建的控制器把用户带回上次查看的季度。
+
+### `List<ManageSeriesGroup> _seriesGroups(ManageSeriesSort sort)` <a id="_seriesgroups"></a>
+- **种类：** `_ManagementPageState` 的方法
+- **来源：** `lib/features/anime/views/management_page.dart`（约第 800 行）
+- **用途：** 根据页面状态构建系列视图的行（1.6.2）。
+- **输入：** `sort`。
+- **返回：** `List<ManageSeriesGroup>`。
+- **副作用：** 无。
+- **算法：** 通过 [`_applyArchiveFilter`](#_applyarchivefilter) 的 id 成为
+  [`groupForSeriesView`](../services/manage_grouping.md#groupforseriesview)`(_allAnime, …)` 的 `keep` 谓词。
+- **用法：** `_buildSeriesView`、`_currentPageAnimeIds`。
+- **备注：** 系列在整个片库上计算；筛选只决定显示哪些成员。
+
+### `Widget _buildSeriesView(ThemeData theme, AppLocalizations l10n, int columns, ManageSeriesSort sort)` <a id="_buildseriesview"></a>
+- **种类：** `_ManagementPageState` 的组件辅助
+- **来源：** `lib/features/anime/views/management_page.dart`（约第 828 行）
+- **用途：** 渲染系列视图（1.6.2）。
+- **输入：** `theme`、`l10n`、`columns`、`sort`。
+- **返回：** `Widget`。
+- **副作用：** 无；在本次会话中把展开的分组记在 `_expandedGroups` 里。
+- **算法：** 没有行时显示 `manageNoSearchResults`。否则是一个带外壳底部内边距的 `ListView.builder`：只有一个成员的行就是普通的
+  `_buildAnimeTile`；分组是一个 `ExpansionTile`（以分组键为 `PageStorageKey`、`Icons.account_tree_outlined`、标签，以及
+  `manageSeriesMembers(count, completed)`），其子项是按页面列数由 `adaptiveTileRows` 排布的成员块。
+- **用法：** `build`，未在搜索且 `manageViewMode` 为 `series` 时。
+- **备注：** 无论哪种视图，搜索仍会用扁平的结果列表替换整个页面主体。
 
 ## 列表布局与行操作
 

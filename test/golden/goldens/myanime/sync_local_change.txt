@@ -56,8 +56,10 @@
         }
       ]
     }
-=== [7] GET /dav/files/u/MyAnime/.lock -> 200
+=== [7] GET /dav/files/u/MyAnime/recommendations.json -> 404
   authorization: <basic-auth>
-=== [8] DELETE /dav/files/u/MyAnime/.lock -> 204
+=== [8] GET /dav/files/u/MyAnime/.lock -> 200
+  authorization: <basic-auth>
+=== [9] DELETE /dav/files/u/MyAnime/.lock -> 204
   authorization: <basic-auth>
   if-match: "<etag>"

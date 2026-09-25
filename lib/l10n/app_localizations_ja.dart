@@ -1875,4 +1875,92 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get settingsDesktop => 'デスクトップ';
+
+  @override
+  String get undo => '元に戻す';
+
+  @override
+  String get backupModuleRecommendations => 'おすすめ';
+
+  @override
+  String get recommendationsRefresh => '別の候補を表示';
+
+  @override
+  String recommendationsRefreshed(int count) {
+    return '$count 件をゴミ箱に移しました';
+  }
+
+  @override
+  String get recommendationsTrash => 'ゴミ箱';
+
+  @override
+  String get recommendationsTrashEmpty =>
+      'ゴミ箱は空です。「興味なし」にした作品や、更新で見送った作品がここに入ります。';
+
+  @override
+  String get recommendationsRestore => '戻す';
+
+  @override
+  String get recommendationsRestoreAll => 'すべて戻す';
+
+  @override
+  String recommendationsTrashedOn(String date) {
+    return '$date に移動';
+  }
+
+  @override
+  String get recommendationsTrashSequels => 'ライブラリにない続編';
+
+  @override
+  String get relatedTitle => '関連作品';
+
+  @override
+  String get relatedEmpty => 'ライブラリに関連する作品はまだありません。';
+
+  @override
+  String get relatedRefresh => '別の候補を表示';
+
+  @override
+  String relatedTrashTitle(String title) {
+    return 'ゴミ箱 · $title';
+  }
+
+  @override
+  String reasonSharedCategories(String categories) {
+    return '同じく$categories';
+  }
+
+  @override
+  String reasonSharedStudio(String studio) {
+    return '同じく $studio 制作';
+  }
+
+  @override
+  String get reasonRelatedByDatabase => 'データベース上の関連作品';
+
+  @override
+  String get reasonSharedTitle => '似たタイトル';
+
+  @override
+  String get manageViewQuarter => 'クール別に表示';
+
+  @override
+  String get manageViewSeries => 'シリーズ別に表示';
+
+  @override
+  String get manageSeriesSort => 'シリーズの並び順';
+
+  @override
+  String get manageSeriesSortLatest => '放送開始が新しい順';
+
+  @override
+  String get manageSeriesSortTitle => 'タイトル';
+
+  @override
+  String get manageSeriesSortModified => '最近編集した順';
+
+  @override
+  String manageSeriesMembers(int count, int completed) {
+    return '$count 作品 · 視聴済み $completed';
+  }
 }

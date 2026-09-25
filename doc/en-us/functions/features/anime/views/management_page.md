@@ -12,6 +12,12 @@ for the feature overview and
 [`../../../../features/anime-tracking.md`](../../../../features/anime-tracking.md#quarter-placement)
 for the quarter-placement rules this page's grouping relies on.
 
+Since 1.6.2 the page has a second layout, the **series view**: one expandable row per series of two
+or more records, and a plain row for every other record, with a sort menu (newest premiere first,
+title, recently edited). The app-bar toggle switches between the two, and both the view and the
+sort are remembered device-locally in `storage_config.json` (`manageViewMode`, `manageSeriesSort`).
+The grouping itself is the pure [`groupForSeriesView`](../services/manage_grouping.md#groupforseriesview).
+
 ## Declarations
 
 | Declaration | Kind | Tier | Purpose |
@@ -36,6 +42,10 @@ for the quarter-placement rules this page's grouping relies on.
 | [`_deleteAnime`](#_deleteanime) | method (`_ManagementPageState`) | A | Confirm and delete an anime record. |
 | [`_showAddOptions`](#_showaddoptions) | method (`_ManagementPageState`) | A | Show the add/import choice dialog and open + jump to the resulting anime. |
 | [`_jumpToAnimeQuarter`](#_jumptoanimequarter) | method (`_ManagementPageState`) | A | Page the view to the quarter (or "Other" page) containing a given anime. |
+| [`_setViewMode`](#_setviewmode) | method (`_ManagementPageState`) | A | Switch between the quarter and series views (1.6.2). |
+| [`_seriesGroups`](#_seriesgroups) | method (`_ManagementPageState`) | A | Group the filtered library for the series view (1.6.2). |
+| `_seriesSortLabel` | method (`_ManagementPageState`) | B | Localize a series-view sort for its menu (1.6.2). |
+| [`_buildSeriesView`](#_buildseriesview) | method (widget helper) | A | Render the series view (1.6.2). |
 | [`_showQuarterPicker`](#_showquarterpicker) | method (`_ManagementPageState`) | A | Open the quarter picker dialog and page the view to the chosen quarter. |
 | `_ManagementPageState.build` | method (`_ManagementPageState`, widget build) | B | Build the page scaffold (search field, quarter view, FAB). |
 | `_buildSearchResults` | method (widget helper) | B | Render the global search results list. |
@@ -256,7 +266,8 @@ for the quarter-placement rules this page's grouping relies on.
 - **Returns:** `List<String>` of anime ids.
 - **Side effects:** None.
 - **Notes:** This getter *defines* what "update this page" means on the review screen: the search
-  results while searching, otherwise the current quarter page or the "Other" page. The scope is
+  results while searching, otherwise every visible member of the series view (1.6.2), or the current
+  quarter page or the "Other" page. The scope is
   passed into `MetadataUpdatesPage` rather than recomputed there, so a batch action always covers
   exactly what was on screen.
 
@@ -284,7 +295,8 @@ for the quarter-placement rules this page's grouping relies on.
 - **Notes:** Uses `startQuarter` (the anime's *starting* cour), not the fuller
   [`airsInQuarter`](../models/anime.md#airsinquarter) span logic — an anime that spans multiple
   quarters (e.g. a `fullYear` type) is always jumped to its first quarter, not any later one it also
-  airs in.
+  airs in. Since 1.6.2 it returns at once when the page controller has no clients — in the series
+  view there are no pages to jump between.
 
 ### `Future<void> _showQuarterPicker()` <a id="_showquarterpicker"></a>
 - **Kind:** method of `_ManagementPageState`
@@ -315,6 +327,50 @@ for the quarter-placement rules this page's grouping relies on.
 - **Notes:** The per-cell counts shown in the picker come from `airsInQuarter` (a quarter's full
   potential membership), while `_animeForQuarter` used elsewhere applies the same filter — so the
   counts always match what the corresponding page actually shows.
+
+### `void _setViewMode(ManageViewMode mode)` <a id="_setviewmode"></a>
+- **Kind:** method of `_ManagementPageState`
+- **Source:** `lib/features/anime/views/management_page.dart` (approx. line 785)
+- **Purpose:** Switch between the quarter pages and the series view (1.6.2).
+- **Inputs:** `mode`.
+- **Returns:** `None`.
+- **Side effects:** `AppSettingsNotifier.setManageViewMode` — `storage_config.json`
+  (`manageViewMode`, written only for `series`); may replace `_pageController`.
+- **Algorithm:** When returning to the quarter view, dispose the controller and create a new one at
+  `_currentQuarterIndex`; then set the mode.
+- **Usage:** The app-bar view toggle (`Icons.account_tree_outlined` in the quarter view,
+  `Icons.calendar_view_month` in the series view; tooltips "View by series" / "View by quarter").
+- **Notes:** The old controller was detached while the series view showed, so a fresh one is what
+  brings the user back to the quarter they last looked at.
+
+### `List<ManageSeriesGroup> _seriesGroups(ManageSeriesSort sort)` <a id="_seriesgroups"></a>
+- **Kind:** method of `_ManagementPageState`
+- **Source:** `lib/features/anime/views/management_page.dart` (approx. line 800)
+- **Purpose:** Build the series-view rows from the page's state (1.6.2).
+- **Inputs:** `sort`.
+- **Returns:** `List<ManageSeriesGroup>`.
+- **Side effects:** None.
+- **Algorithm:** The ids that survive [`_applyArchiveFilter`](#_applyarchivefilter) become the
+  `keep` predicate of
+  [`groupForSeriesView`](../services/manage_grouping.md#groupforseriesview)`(_allAnime, …)`.
+- **Usage:** `_buildSeriesView`, `_currentPageAnimeIds`.
+- **Notes:** Series are computed over the whole library; the filters only decide which members
+  show.
+
+### `Widget _buildSeriesView(ThemeData theme, AppLocalizations l10n, int columns, ManageSeriesSort sort)` <a id="_buildseriesview"></a>
+- **Kind:** widget helper of `_ManagementPageState`
+- **Source:** `lib/features/anime/views/management_page.dart` (approx. line 828)
+- **Purpose:** Render the series view (1.6.2).
+- **Inputs:** `theme`, `l10n`, `columns`, `sort`.
+- **Returns:** `Widget`.
+- **Side effects:** None; remembers expanded groups in `_expandedGroups` for the session.
+- **Algorithm:** `manageNoSearchResults` when there are no rows. Otherwise a `ListView.builder` with
+  the shell's bottom inset: a single-member row is the ordinary `_buildAnimeTile`; a group is an
+  `ExpansionTile` (`PageStorageKey` of the group key, `Icons.account_tree_outlined`, the label, and
+  `manageSeriesMembers(count, completed)`) whose children are the members' tiles laid out by
+  `adaptiveTileRows` at the page's column count.
+- **Usage:** `build`, when not searching and `manageViewMode` is `series`.
+- **Notes:** Search still replaces the whole body with the flat result list, in either view.
 
 ## List layout and row actions
 

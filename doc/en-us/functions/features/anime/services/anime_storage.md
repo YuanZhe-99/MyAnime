@@ -46,6 +46,10 @@ notifies `AutoSyncService`/`ReminderService` after every save. See
 | [`setHomeCalendarTimeBasis`](#sethomecalendartimebasis) | static method (`AnimeStorage`) | A | Persist the home calendar JST-vs-local time basis preference. |
 | [`getHomeCalendarFormat`](#gethomecalendarformat) | static method (`AnimeStorage`) | A | Read the persisted home calendar view format preference. |
 | [`setHomeCalendarFormat`](#sethomecalendarformat) | static method (`AnimeStorage`) | A | Persist the home calendar view format preference. |
+| `getManageViewMode` | static method (`AnimeStorage`) | B | Read `manageViewMode` (1.6.2): `series`, or null for the default quarter view. |
+| `setManageViewMode` | static method (`AnimeStorage`) | B | Persist `manageViewMode`; null removes the key, so only the series view is stored. |
+| `getManageSeriesSort` | static method (`AnimeStorage`) | B | Read `manageSeriesSort` (1.6.2): `title` or `modified`, or null for the default. |
+| `setManageSeriesSort` | static method (`AnimeStorage`) | B | Persist `manageSeriesSort`; null removes the key. |
 | [`getMetadataUpdatePolicy`](#getmetadataupdatepolicy) | static method (`AnimeStorage`) | A | Read the persisted background metadata-update policy. |
 | [`setMetadataUpdatePolicy`](#setmetadataupdatepolicy) | static method (`AnimeStorage`) | A | Persist the background metadata-update policy. |
 | [`getMetadataPrefetchCovers`](#getmetadataprefetchcovers) | static method (`AnimeStorage`) | A | Read whether candidate covers are prefetched. |

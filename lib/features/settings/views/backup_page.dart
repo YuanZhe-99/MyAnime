@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
+import '../../../app/data_modules.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../../shared/services/auto_sync_service.dart';
 import '../../../shared/services/backup_service.dart';
@@ -500,7 +501,11 @@ class _RestoreModuleDialogState extends State<_RestoreModuleDialog> {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
     final moduleLabels = {
-      'anime': (l10n.backupModuleAnime, Icons.video_library),
+      animeModuleId: (l10n.backupModuleAnime, Icons.video_library),
+      recommendationsModuleId: (
+        l10n.backupModuleRecommendations,
+        Icons.recommend_outlined,
+      ),
     };
     return AlertDialog(
       title: Text(l10n.backupRestoreModules),
