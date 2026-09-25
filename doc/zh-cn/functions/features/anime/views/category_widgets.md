@@ -33,16 +33,17 @@
 
 ### `Widget build(BuildContext context)`（`CategoryChips`） <a id="categorychips-build"></a>
 - **种类：** `CategoryChips` 的方法
-- **来源：** `lib/features/anime/views/category_widgets.dart`（约第 67 行）
+- **来源：** `lib/features/anime/views/category_widgets.dart`（约第 69 行）
 - **用途：** 构建这些标签。
 - **输入：** `context`。
 - **返回：** 一个 `Wrap`。
 - **副作用：** 无。
 - **算法：** 每个生效 id 一个 `Chip`；来源为 `ai` 时，每个标签带 `auto_awesome` 闪光图标和 `aiGeneratedLabel` 提示
-  （「在本设备上生成——可能有误」）；来源为 `user` 时，带 `person_outline` 图标和 `categoriesYours` 提示（「由你选择」）；映射得到的标签两者都没有，也没有提示。没有 id → 一个 `categoriesNone` 标签。最后总有一个调用 `onEdit` 的*编辑分类*
-  `ActionChip`。
+  （「在本设备上生成——可能有误」）；来源为 `user` 时，带 `person_outline` 图标和 `categoriesYours` 提示（「由你选择」）；映射得到的标签两者都没有，也没有提示。没有 id → 一个 `categoriesNone` 标签。每个标签都使用
+  `VisualDensity.compact`。最后总有一个 `edit_outlined` `IconButton`，提示为 `categoriesEdit`（「编辑分类」），调用 `onEdit`。
 - **用法：** [`anime_detail_page.md`](anime_detail_page.md) 中的 `_buildHeaderChildren`，仅在自动分类开启时。
-- **备注：** 用户的分类和映射得出的分类外观相同。
+- **备注：** 用户的分类和映射得出的分类外观相同。1.6.2 及之前，编辑操作是一个带文字的
+  `ActionChip`；1.6.3 在详情页头部改版中把它改为图标。
 
 ### `Future<CategoryEditResult?> showCategoryEditor(BuildContext context, {required List<String> initial, required bool hasOverride})` <a id="showcategoryeditor"></a>
 - **种类：** 顶层函数

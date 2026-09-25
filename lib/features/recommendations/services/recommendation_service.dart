@@ -314,7 +314,8 @@ class RecommendationService {
 
   /// Purpose: Rank what to watch next.
   /// Inputs: `library`; `insights` — AI categories; `hidden` — ids in the
-  /// global trash (`recommendations.json`); `nowJst`; `limit` — the batch
+  /// global trash (`recommendations.json`); `pinned` — ids pinned on the
+  /// page (1.6.3); `nowJst`; `limit` — the batch
   /// size, [RecommendationWeights.globalBatch] by default.
   /// Returns: `List<Recommendation>` — best first.
   /// Side effects: None.
@@ -324,11 +325,14 @@ class RecommendationService {
   /// is never offered before season 1; if that member is trashed the series
   /// offers nothing. With no ratings and nothing completed (cold start) the
   /// order is series continuation, then external score, then the most
-  /// recently added.
+  /// recently added. Pinned candidates (`pinned`, 1.6.3) come first, in
+  /// ranked order among themselves; a pinned record that is no longer a
+  /// candidate is not shown.
   static List<Recommendation> rank(
     List<Anime> library, {
     AiInsights? insights,
     Set<String> hidden = const {},
+    Set<String> pinned = const {},
     required DateTime nowJst,
     int limit = RecommendationWeights.globalBatch,
   }) {
@@ -480,6 +484,21 @@ class RecommendationService {
         final c = b.score.compareTo(a.score);
         return c != 0 ? c : a.anime.id.compareTo(b.anime.id);
       });
+    }
+    if (pinned.isNotEmpty) {
+      // Stable: pinned first, each group keeping the ranked order.
+      final first = [
+        for (final r in out)
+          if (pinned.contains(r.anime.id)) r,
+      ];
+      final rest = [
+        for (final r in out)
+          if (!pinned.contains(r.anime.id)) r,
+      ];
+      out
+        ..clear()
+        ..addAll(first)
+        ..addAll(rest);
     }
     return out.length > limit ? out.sublist(0, limit) : out;
   }

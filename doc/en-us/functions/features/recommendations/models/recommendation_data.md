@@ -1,7 +1,9 @@
 # lib/features/recommendations/models/recommendation_data.dart
 
 The model of `recommendations.json` (1.6.2): the global recommendation trash, the trashed
-missing-sequel cards, and each record's persisted related list with its own trash. The file is a
+missing-sequel cards, and each record's persisted related list with its own trash. Since 1.6.3 it
+also holds the pinned cards (`PinnedEntry`, globally and per related list) and each missing
+sequel's fetched synopsis and thumbnail (`SequelInfo`). The file is a
 synced data module (see [`../../../app/data_modules.md`](../../../app/data_modules.md)), so every
 class keeps unknown JSON keys in `extraJson` and writes them back. Parsing is tolerant — a malformed
 entry is dropped — except that a file which is not a JSON object is rejected, so sync validation
@@ -24,11 +26,19 @@ refuses a file that is not ours. The schema is in
 | `HiddenSequelEntry.fromJson` | static method (`HiddenSequelEntry`) | B | Read an entry; null without a string `key`. |
 | `HiddenSequelEntry.toJson` | method (`HiddenSequelEntry`) | B | Serialize. |
 | [`HiddenSequelEntry.mergedWith`](#hiddensequelentry-mergedwith) | method (`HiddenSequelEntry`) | A | Combine both sides of one entry during a merge. |
+| `PinnedEntry.new` | constructor (`PinnedEntry`) | B | Create a pin: an anime id or sequel key and when it was pinned (1.6.3). |
+| `PinnedEntry.fromJson` | static method (`PinnedEntry`) | B | Read a pin; `idKey` is `id` for library pins, `key` for sequel pins. |
+| `PinnedEntry.toJson` | method (`PinnedEntry`) | B | Serialize under the same `idKey`. |
+| `PinnedEntry.mergedWith` | method (`PinnedEntry`) | B | Combine both sides of one pin: the earlier `pinnedAt`, unknown keys unioned. |
+| `SequelInfo.new` | constructor (`SequelInfo`) | B | Create a missing sequel's fetched info: synopsis, cover URL, base64 thumbnail, `fetchedAt` (1.6.3). |
+| `SequelInfo.fromJson` | static method (`SequelInfo`) | B | Read the info; null when not an object. |
+| `SequelInfo.toJson` | method (`SequelInfo`) | B | Serialize; absent fields omitted. |
+| [`SequelInfo.mergedWith`](#sequelinfo-mergedwith) | method (`SequelInfo`) | A | Combine both sides: the later fetch wins. |
 | `RelatedItem.new` | constructor (`RelatedItem`) | B | Create a related item: an anime id, reason codes, an optional AI reason. |
 | `RelatedItem.fromJson` | static method (`RelatedItem`) | B | Read an item; null without a string `id`. |
 | `RelatedItem.toJson` | method (`RelatedItem`) | B | Serialize; empty `reasons` omitted. |
 | `RelatedItem.withAiReason` | method (`RelatedItem`) | B | Copy the item with a generated reason. |
-| `RelatedSnapshot.new` | constructor (`RelatedSnapshot`) | B | Create a snapshot: `generatedAt`, items, trash. |
+| `RelatedSnapshot.new` | constructor (`RelatedSnapshot`) | B | Create a snapshot: `generatedAt`, items, trash, pins (1.6.3). |
 | `RelatedSnapshot.isGenerated` | getter (`RelatedSnapshot`) | B | Whether a list was ever generated (`generatedAt` set). |
 | `RelatedSnapshot.isEmpty` | getter (`RelatedSnapshot`) | B | Whether nothing is worth writing; empty snapshots are dropped. |
 | `RelatedSnapshot.fromJson` | static method (`RelatedSnapshot`) | B | Read a snapshot; null when not an object. |
@@ -45,7 +55,7 @@ rows.
 
 ### `HiddenEntry mergedWith(HiddenEntry other)` <a id="hiddenentry-mergedwith"></a>
 - **Kind:** method of `HiddenEntry`
-- **Source:** `lib/features/recommendations/models/recommendation_data.dart` (approx. line 107)
+- **Source:** `lib/features/recommendations/models/recommendation_data.dart` (approx. line 108)
 - **Purpose:** Combine the local and remote sides of an entry both devices trashed.
 - **Inputs:** `other` — the remote side.
 - **Returns:** `HiddenEntry` with the earlier `hiddenAt` and the unknown keys of both, this side
@@ -57,7 +67,7 @@ rows.
 
 ### `HiddenSequelEntry mergedWith(HiddenSequelEntry other)` <a id="hiddensequelentry-mergedwith"></a>
 - **Kind:** method of `HiddenSequelEntry`
-- **Source:** `lib/features/recommendations/models/recommendation_data.dart` (approx. line 193)
+- **Source:** `lib/features/recommendations/models/recommendation_data.dart` (approx. line 194)
 - **Purpose:** Combine both sides of a trashed missing-sequel entry.
 - **Inputs:** `other` — the remote side.
 - **Returns:** `HiddenSequelEntry`.
@@ -67,40 +77,59 @@ rows.
 - **Usage:** `mergeRecommendations`.
 - **Notes:** The labels exist so the trash can name the entry after its relation disappears.
 
+### `SequelInfo mergedWith(SequelInfo other)` <a id="sequelinfo-mergedwith"></a>
+- **Kind:** method of `SequelInfo`
+- **Source:** `lib/features/recommendations/models/recommendation_data.dart` (approx. line 338)
+- **Purpose:** Combine both sides of one sequel's fetched info.
+- **Inputs:** `other` — the remote side.
+- **Returns:** `SequelInfo`.
+- **Side effects:** None.
+- **Algorithm:** Take synopsis, cover URL, thumbnail and `fetchedAt` all from the side with the
+  later `fetchedAt` (a tie, or no timestamp on the other side, keeps this side); union unknown keys,
+  this side winning.
+- **Usage:** `mergeKeyedSet` for `sequelInfo` in `mergeRecommendations`.
+- **Notes:** The info is a cache of public data, so newer wins whole; fields are not mixed across
+  fetches.
+
 ### `Map<String, dynamic> toJson()` <a id="relatedsnapshot-tojson"></a>
 - **Kind:** method of `RelatedSnapshot`
-- **Source:** `lib/features/recommendations/models/recommendation_data.dart` (approx. line 345)
+- **Source:** `lib/features/recommendations/models/recommendation_data.dart` (approx. line 511)
 - **Purpose:** Serialize one record's related list and trash.
 - **Inputs:** None.
 - **Returns:** `Map<String, dynamic>`.
 - **Side effects:** None.
-- **Algorithm:** Unknown keys, then `generatedAt` when set, `items` in ranked order when any, and
-  `hidden` sorted by id when any.
+- **Algorithm:** Unknown keys, then `generatedAt` when set, `items` in ranked order when any,
+  `hidden` sorted by id when any, and `pinned` sorted by id when any (1.6.3).
 - **Usage:** `RecommendationData.toJson`.
 - **Notes:** Items keep their order because it is the ranking; the trash is sorted so unchanged data
   writes identical bytes.
 
 ### `factory RecommendationData.fromJson(Object? json)` <a id="recommendationdata-fromjson"></a>
 - **Kind:** factory of `RecommendationData`
-- **Source:** `lib/features/recommendations/models/recommendation_data.dart` (approx. line 399)
+- **Source:** `lib/features/recommendations/models/recommendation_data.dart` (approx. line 585)
 - **Purpose:** Read `recommendations.json`.
 - **Inputs:** `json` — the decoded file.
 - **Returns:** `RecommendationData`.
 - **Side effects:** None.
 - **Algorithm:** Throw `FormatException` unless `json` is a `Map`. Read `version` (default 1),
   `hidden` and `hiddenSequels` through `_indexed`, and `related` as a map of snapshots, dropping any
-  value that is not an object. Everything else goes to `extraJson`.
+  value that is not an object. Since 1.6.3 also `pinned` and `pinnedSequels` through `_indexed`
+  (keyed by `id` and `key` respectively) and `sequelInfo` as a map of `SequelInfo`. Everything else
+  goes to `extraJson`.
 - **Usage:** `RecommendationStore.load`, the merge, and `validateRecommendationsJson`.
 - **Notes:** The one rejection is deliberate: sync validation must refuse a file that is not ours.
 
 ### `Map<String, dynamic> toJson()` <a id="recommendationdata-tojson"></a>
 - **Kind:** method of `RecommendationData`
-- **Source:** `lib/features/recommendations/models/recommendation_data.dart` (approx. line 435)
+- **Source:** `lib/features/recommendations/models/recommendation_data.dart` (approx. line 639)
 - **Purpose:** Serialize the whole file.
 - **Inputs:** None.
 - **Returns:** `Map<String, dynamic>`.
 - **Side effects:** None.
 - **Algorithm:** Unknown keys, then `version`, `hidden` sorted by id, `hiddenSequels` sorted by key,
-  and `related` sorted by anime id with empty snapshots dropped.
+  and `related` sorted by anime id with empty snapshots dropped. Then, **only when non-empty**
+  (1.6.3): `pinned` sorted by id, `pinnedSequels` sorted by key, and `sequelInfo` as an object
+  sorted by key.
 - **Usage:** `encodeRecommendationData`.
-- **Notes:** Sorting is what lets an unchanged file hit sync's raw-equality fast path.
+- **Notes:** Sorting is what lets an unchanged file hit sync's raw-equality fast path. Omitting the
+  empty 1.6.3 keys keeps a file that never used them byte-identical to what 1.6.2 wrote.

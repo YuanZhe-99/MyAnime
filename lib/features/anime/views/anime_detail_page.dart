@@ -13,6 +13,12 @@ import '../../../shared/utils/detail_layout.dart';
 import '../../../shared/widgets/delete_confirm.dart';
 import '../../ai/services/ai_insights_cache.dart';
 import '../../categories/services/category_service.dart';
+import '../../recommendations/models/recommendation_data.dart';
+import '../../recommendations/services/recommendation_service.dart'
+    show sequelTrashKey;
+import '../../recommendations/services/recommendation_store.dart';
+import '../../recommendations/services/sequel_info_service.dart';
+import '../../recommendations/views/recommendations_page.dart' show sequelThumb;
 import '../../recommendations/views/related_card.dart';
 import '../models/anime.dart';
 import '../models/anime_category.dart';
@@ -50,6 +56,7 @@ class _AnimeDetailPageState extends State<AnimeDetailPage> {
   SeriesIndex? _seriesIndex;
   AnimeSeries? _series;
   AnimeExternalRelation? _missingSequel;
+  SequelInfo? _sequelInfo;
   bool _categoriesOn = false;
   bool _recommendationsOn = false;
   List<Anime> _library = const [];
@@ -88,7 +95,11 @@ class _AnimeDetailPageState extends State<AnimeDetailPage> {
   /// Notes: Internal helper used within this file only. Builds a
   /// `SeriesIndex` over the whole library, which replaced the pre-1.6.0 rule of
   /// matching an identical `displayTitle` and comparing season labels as
-  /// strings (which put `Season 10` before `Season 2`). Nothing is written.
+  /// strings (which put `Season 10` before `Season 2`). The record itself is
+  /// never written. Since 1.6.3, when the databases list a sequel the library
+  /// lacks, its stored synopsis and thumbnail are read from
+  /// `recommendations.json`, and full builds fetch them once when absent
+  /// (which writes that file).
   Future<void> _load() async {
     final data = await AnimeStorage.loadFixingSeasonLabels(seasonLabelFixups);
     final found = data.animeList
@@ -104,11 +115,17 @@ class _AnimeDetailPageState extends State<AnimeDetailPage> {
     if (!mounted) return;
     final index = SeriesIndex.build(data.animeList);
     final series = found == null ? null : index.seriesOf(found.id);
+    final missing = found == null ? null : index.missingSequelFor(found.id);
+    final store = missing == null ? null : await RecommendationStore.load();
+    final key = missing == null ? null : sequelTrashKey(missing);
+    final info = key == null ? null : store?.sequelInfo[key];
+    if (!mounted) return;
     setState(() {
       _anime = found;
       _seriesIndex = index;
       _series = series != null && series.members.length >= 2 ? series : null;
-      _missingSequel = found == null ? null : index.missingSequelFor(found.id);
+      _missingSequel = missing;
+      _sequelInfo = info;
       _categoriesOn = categoriesOn;
       _recommendationsOn = recommendationsOn;
       _library = data.animeList;
@@ -116,6 +133,17 @@ class _AnimeDetailPageState extends State<AnimeDetailPage> {
           ? EffectiveCategories.empty
           : resolveCategories(found, insights: insights);
     });
+    // Online lookups are a full-build feature. A card the user trashed on
+    // "What to watch next" keeps only its labels, so it is not fetched.
+    if (AppFlavor.isFull &&
+        missing != null &&
+        key != null &&
+        info == null &&
+        !(store?.hiddenSequels.containsKey(key) ?? false)) {
+      final fetched = await SequelInfoService.ensure(key, missing);
+      if (!mounted || fetched == null || _missingSequel != missing) return;
+      setState(() => _sequelInfo = fetched);
+    }
   }
 
   /// Purpose: Let the user set this record's categories.
@@ -483,13 +511,16 @@ class _AnimeDetailPageState extends State<AnimeDetailPage> {
     );
   }
 
-  /// Purpose: Build the header block: Japanese title, chips, and watch progress.
+  /// Purpose: Build the header block: Japanese title, info line, action row,
+  /// categories, and watch progress.
   /// Inputs: `anime`, `theme`, `l10n`, `totalEps`, `watchedCount`.
   /// Returns: `List<Widget>` for a `crossAxisAlignment.start` `Column`.
   /// Side effects: None.
   /// Notes: This is everything the two-pane layout keeps in its left pane, so
   /// the split point between this and `_buildDetailChildren` is what decides
-  /// which column each section lands in.
+  /// which column each section lands in. Through 1.6.2 the facts and the
+  /// actions were one row of look-alike chips; since 1.6.3 the facts are a
+  /// text line and the actions a separate button row.
   List<Widget> _buildHeaderChildren(
     Anime anime,
     ThemeData theme,
@@ -505,77 +536,21 @@ class _AnimeDetailPageState extends State<AnimeDetailPage> {
             color: theme.colorScheme.onSurfaceVariant,
           ),
         ),
-      const SizedBox(height: 8),
-      Wrap(
-        spacing: 8,
-        runSpacing: 4,
-        children: [
-          Chip(label: Text(anime.season)),
-          Chip(label: Text(_typeLabel(anime.effectiveType, l10n))),
-          if (anime.airDayOfWeek != null)
-            Chip(
-              avatar: const Icon(Icons.today, size: 16),
-              label: Text(_dayName(anime.airDayOfWeek!, l10n)),
-            ),
-          if (anime.airTime != null)
-            Chip(
-              avatar: const Icon(Icons.schedule, size: 16),
-              label: Text(anime.airTime!),
-            ),
-          if (anime.infoUrl != null)
-            ActionChip(
-              avatar: const Icon(Icons.info_outline, size: 16),
-              label: Text(l10n.animeOpenInfoUrl),
-              onPressed: () => launchUrl(
-                Uri.parse(anime.infoUrl!),
-                mode: LaunchMode.externalApplication,
-              ),
-            ),
-          // Online lookups are a full-build feature; store builds
-          // must never reach AnimeSearchService.
-          if (AppFlavor.isFull && _refreshableUrls(anime).isNotEmpty)
-            ActionChip(
-              avatar: _refreshingMeta
-                  ? const SizedBox(
-                      width: 14,
-                      height: 14,
-                      child: CircularProgressIndicator(strokeWidth: 2),
-                    )
-                  : const Icon(Icons.sync, size: 16),
-              label: Text(l10n.animeRefreshMeta),
-              onPressed: _refreshingMeta
-                  ? null
-                  : () => _refreshExternalMeta(anime),
-            ),
-          if (anime.watchUrl != null)
-            ActionChip(
-              avatar: const Icon(Icons.open_in_browser, size: 16),
-              label: Text(l10n.animeOpenUrl),
-              onPressed: () => launchUrl(
-                Uri.parse(anime.watchUrl!),
-                mode: LaunchMode.externalApplication,
-              ),
-            ),
-          // The stored progress is public site data and renders in every
-          // flavor; only the re-check (a network call) is a full-build action.
-          if (Anime1Service.isAnime1Url(anime.watchUrl))
-            ActionChip(
-              avatar: _checkingProgress
-                  ? const SizedBox(
-                      width: 14,
-                      height: 14,
-                      child: CircularProgressIndicator(strokeWidth: 2),
-                    )
-                  : const Icon(Icons.update, size: 16),
-              label: Text(_watchProgressChipLabel(anime, l10n)),
-              onPressed: AppFlavor.isFull && !_checkingProgress
-                  ? () => _checkWatchProgress(anime)
-                  : null,
-            ),
-        ],
+      const SizedBox(height: 4),
+      // Facts about the work: one quiet line instead of a row of chips.
+      Text(
+        _infoLine(anime, l10n),
+        key: const ValueKey('detailInfoLine'),
+        style: theme.textTheme.bodyMedium?.copyWith(
+          color: theme.colorScheme.onSurfaceVariant,
+        ),
       ),
-      if (_categoriesOn) ...[
+      if (_hasHeaderActions(anime)) ...[
         const SizedBox(height: 8),
+        _buildHeaderActions(anime, l10n),
+      ],
+      if (_categoriesOn) ...[
+        const SizedBox(height: 4),
         CategoryChips(categories: _categories, onEdit: _editCategories),
       ],
       const SizedBox(height: 8),
@@ -588,6 +563,98 @@ class _AnimeDetailPageState extends State<AnimeDetailPage> {
         style: theme.textTheme.bodySmall,
       ),
     ];
+  }
+
+  /// Purpose: Join the record's schedule facts into the header's info line.
+  /// Inputs: `anime`, `l10n`.
+  /// Returns: `String` — season label, length type, broadcast weekday and
+  /// time, separated by " · "; missing parts are left out.
+  /// Side effects: None.
+  /// Notes: 1.6.3 header redesign. These were four inert chips that looked
+  /// like the action chips beside them.
+  String _infoLine(Anime anime, AppLocalizations l10n) => [
+    if (anime.season.trim().isNotEmpty) anime.season.trim(),
+    _typeLabel(anime.effectiveType, l10n),
+    if (anime.airDayOfWeek != null) _dayName(anime.airDayOfWeek!, l10n),
+    if (anime.airTime != null && anime.airTime!.isNotEmpty) anime.airTime!,
+  ].join(' · ');
+
+  /// Purpose: Report whether the header has any action to show.
+  /// Inputs: `anime`.
+  /// Returns: `bool`.
+  /// Side effects: None.
+  /// Notes: Mirrors the conditions in [_buildHeaderActions].
+  bool _hasHeaderActions(Anime anime) =>
+      anime.watchUrl != null ||
+      anime.infoUrl != null ||
+      (AppFlavor.isFull && _refreshableUrls(anime).isNotEmpty);
+
+  /// Purpose: Build the header's action row.
+  /// Inputs: `anime`, `l10n`.
+  /// Returns: `Widget` — a `Wrap`.
+  /// Side effects: None; the buttons open URLs or start refreshes.
+  /// Notes: 1.6.3 header redesign. *Watch* is the one labelled, tonal button;
+  /// the anime1 progress sits beside it as a text button (tap re-checks in
+  /// full builds); *Info* and *Refresh database info* are outlined icon
+  /// buttons whose labels are tooltips. Flavor gating is unchanged: refresh
+  /// and the anime1 re-check are full-build only, and the stored progress
+  /// shows in every flavor.
+  Widget _buildHeaderActions(Anime anime, AppLocalizations l10n) {
+    Widget spinner() => const SizedBox(
+      width: 16,
+      height: 16,
+      child: CircularProgressIndicator(strokeWidth: 2),
+    );
+    return Wrap(
+      spacing: 8,
+      runSpacing: 4,
+      crossAxisAlignment: WrapCrossAlignment.center,
+      children: [
+        if (anime.watchUrl != null)
+          FilledButton.tonalIcon(
+            icon: const Icon(Icons.play_circle_outline, size: 18),
+            label: Text(l10n.animeOpenUrl),
+            onPressed: () => launchUrl(
+              Uri.parse(anime.watchUrl!),
+              mode: LaunchMode.externalApplication,
+            ),
+          ),
+        // The stored progress is public site data and renders in every
+        // flavor; only the re-check (a network call) is a full-build action.
+        if (Anime1Service.isAnime1Url(anime.watchUrl))
+          TextButton.icon(
+            key: const ValueKey('detailAnime1Progress'),
+            icon: _checkingProgress
+                ? spinner()
+                : const Icon(Icons.update, size: 18),
+            label: Text(_watchProgressChipLabel(anime, l10n)),
+            onPressed: AppFlavor.isFull && !_checkingProgress
+                ? () => _checkWatchProgress(anime)
+                : null,
+          ),
+        if (anime.infoUrl != null)
+          IconButton.outlined(
+            tooltip: l10n.animeOpenInfoUrl,
+            icon: const Icon(Icons.info_outline, size: 20),
+            onPressed: () => launchUrl(
+              Uri.parse(anime.infoUrl!),
+              mode: LaunchMode.externalApplication,
+            ),
+          ),
+        // Online lookups are a full-build feature; store builds
+        // must never reach AnimeSearchService.
+        if (AppFlavor.isFull && _refreshableUrls(anime).isNotEmpty)
+          IconButton.outlined(
+            tooltip: l10n.animeRefreshMeta,
+            icon: _refreshingMeta
+                ? spinner()
+                : const Icon(Icons.sync, size: 20),
+            onPressed: _refreshingMeta
+                ? null
+                : () => _refreshExternalMeta(anime),
+          ),
+      ],
+    );
   }
 
   /// Purpose: Build the cards below the progress bar, plus the series card.
@@ -636,11 +703,27 @@ class _AnimeDetailPageState extends State<AnimeDetailPage> {
         Card(
           margin: EdgeInsets.zero,
           child: ListTile(
-            leading: const Icon(Icons.new_releases_outlined),
+            leading: _sequelInfo?.coverThumb != null
+                ? sequelThumb(_sequelInfo, size: const Size(40, 56))
+                : const Icon(Icons.new_releases_outlined),
             title: Text(
               l10n.seriesMissingSequel(sequel.title ?? '?', sequel.source),
             ),
-            subtitle: Text(l10n.seriesMissingSequelHint),
+            subtitle: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                if (_sequelInfo?.synopsis case final synopsis?)
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 4),
+                    child: Text(
+                      synopsis,
+                      maxLines: 3,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                Text(l10n.seriesMissingSequelHint),
+              ],
+            ),
             trailing: const Icon(Icons.add),
             onTap: () => _addMissingSequel(sequel),
           ),

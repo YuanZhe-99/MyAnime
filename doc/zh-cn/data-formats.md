@@ -299,7 +299,7 @@ enum AnimeType {
 | 数据 | 文件 | 同步 | 备注 |
 | --- | --- | --- | --- |
 | 动画记录 | `anime_data.json` | 是 | 按 `id` 和 `modifiedAt` 逐记录；未知字段保留 |
-| 推荐垃圾箱与相关推荐列表 | `recommendations.json` | 是 | 自 1.6.2 起：全局垃圾箱、移入垃圾箱的缺失续作卡片，以及每条记录持久保存的相关推荐列表及其自己的垃圾箱；无冲突的集合合并；首次需要时才创建 |
+| 推荐垃圾箱与相关推荐列表 | `recommendations.json` | 是 | 自 1.6.2 起：全局垃圾箱、移入垃圾箱的缺失续作卡片，以及每条记录持久保存的相关推荐列表及其自己的垃圾箱；自 1.6.3 起还有钉选，以及每部缺失续作的简介和封面缩略图；无冲突的集合合并；首次需要时才创建 |
 | 封面图像 | `images/` | 是 | 按文件名仅引用添加式同步 |
 | 主题模式 | `storage_config.json` | 否 | 设备特有偏好 |
 | 语言区域 | `storage_config.json` | 否 | 设备特有偏好 |
@@ -340,7 +340,9 @@ enum AnimeType {
 会备份、包含在 ZIP 导出中，并有自己的 `.sync_base/recommendations.json`。其 schema 以及其合并为何从不产生冲突，见
 [`features/categories-and-recommendations.md`](features/categories-and-recommendations.md#文件recommendationsjson)
 和 [`sync.md`](sync.md#推荐文件)。它只按 id 引用片库记录；它存储的标题只有移入垃圾箱的续作的数据库
-标题，以及生成的理由。它不属于 `.myanimeitem` 分享文件。
+标题，以及生成的理由。自 1.6.3 起它还保存钉选，并为每部仍在显示的缺失续作保存资料库的简介（至多 600 个字符）
+和一张 base64 JPEG 封面缩略图（112 px 宽，至多 24 KB）——这些是关于作品的公开数据，卡片移入垃圾箱时删除。缩略图有意
+**不**作为 `images/` 中的文件，因为该目录的同步从不删除。它不属于 `.myanimeitem` 分享文件。
 
 ### `storage_config.json`
 

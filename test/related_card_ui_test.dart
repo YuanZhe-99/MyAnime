@@ -172,4 +172,34 @@ void main() {
     expect(inCard(find.text('Tonikawa')), findsNothing);
     expect(inCard(find.text('Horimiya')), findsOneWidget);
   });
+
+  testWidgets('a pinned item survives the card\'s refresh (1.6.3)', (
+    tester,
+  ) async {
+    await tester.runAsync(() async {
+      final f = File(p.join(appDir.path, RecommendationStore.fileName));
+      if (f.existsSync()) f.deleteSync();
+    });
+    await pump(tester);
+    expect(inCard(find.text('Tonikawa')), findsOneWidget);
+    expect(inCard(find.text('Horimiya')), findsOneWidget);
+
+    // Pin the first row (Tonikawa), then refresh.
+    await tester.runAsync(() async {
+      await tester.tap(inCard(find.byIcon(Icons.push_pin_outlined)).first);
+    });
+    await settle(tester);
+    await tester.runAsync(() async {
+      await tester.tap(inCard(find.byIcon(Icons.refresh)));
+    });
+    await settle(tester);
+
+    expect(inCard(find.text('Tonikawa')), findsOneWidget);
+    expect(inCard(find.text('Horimiya')), findsNothing);
+    final d = await tester.runAsync(RecommendationStore.load);
+    final snap = d!.related['subject']!;
+    expect(snap.pinned.keys, ['alike']);
+    expect(snap.hidden.keys, ['half']);
+    expect(snap.items.map((i) => i.id), ['alike']);
+  });
 }

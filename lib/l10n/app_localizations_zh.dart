@@ -1896,6 +1896,12 @@ class AppLocalizationsZh extends AppLocalizations {
   String get recommendationsTrashSequels => '番剧库里还没有的续作';
 
   @override
+  String get recommendationsPin => '钉选';
+
+  @override
+  String get recommendationsUnpin => '取消钉选';
+
+  @override
   String get relatedTitle => '相关推荐';
 
   @override
@@ -3839,6 +3845,12 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
 
   @override
   String get recommendationsTrashSequels => '番劇庫裡還沒有的續作';
+
+  @override
+  String get recommendationsPin => '釘選';
+
+  @override
+  String get recommendationsUnpin => '取消釘選';
 
   @override
   String get relatedTitle => '相關推薦';

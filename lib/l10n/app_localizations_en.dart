@@ -1980,6 +1980,12 @@ class AppLocalizationsEn extends AppLocalizations {
   String get recommendationsTrashSequels => 'Sequels not in your library';
 
   @override
+  String get recommendationsPin => 'Pin';
+
+  @override
+  String get recommendationsUnpin => 'Unpin';
+
+  @override
   String get relatedTitle => 'Related';
 
   @override

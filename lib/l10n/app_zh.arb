@@ -649,6 +649,8 @@
   "recommendationsTrashedOn": "{date} 移入",
   "@recommendationsTrashedOn": { "placeholders": { "date": { "type": "String" } } },
   "recommendationsTrashSequels": "番剧库里还没有的续作",
+  "recommendationsPin": "钉选",
+  "recommendationsUnpin": "取消钉选",
   "relatedTitle": "相关推荐",
   "relatedEmpty": "番剧库里暂时没有相关的作品。",
   "relatedRefresh": "换一批",

@@ -4,15 +4,15 @@ This is the top-level index of the hand-written Function Explanation Layer docum
 `lib/` in the MyAnime repo. Each row links to a per-source-file page under `doc/en-us/functions/`
 mirroring the `lib/` tree (with `.dart` replaced by `.md`).
 
-**Totals:** the repo's `/// Purpose:` comment count is **1265** (per the Function Explanation Layer
+**Totals:** the repo's `/// Purpose:` comment count is **1301** (per the Function Explanation Layer
 convention in `AGENTS.md`, excluding generated `lib/l10n/` code — see [l10n/INDEX.md](l10n/INDEX.md)).
-The rows below sum to **1247** documented declarations.
+The rows below sum to **1283** documented declarations.
 
 | Tier | Count |
 |---|---|
-| Tier A (full entry: Purpose/Inputs/Returns/Side effects/Algorithm/Usage/Notes) | 752 |
-| Tier B (index row only) | 495 |
-| **Total** | **1247** |
+| Tier A (full entry: Purpose/Inputs/Returns/Side effects/Algorithm/Usage/Notes) | 759 |
+| Tier B (index row only) | 524 |
+| **Total** | **1283** |
 
 **Known gap.** These two numbers do not match: 18 declarations carry a `/// Purpose:` comment in
 source but have no row here, so the index under-covers `lib/` by that much. The 1.5.7 recount found
@@ -62,7 +62,14 @@ across seven new files (`manage_grouping.dart`, `recommendation_data.dart`,
 `anime_storage.dart`, `management_page.dart`, `ai_reason_service.dart`, `reason_prompt.dart`,
 `recommendation_service.dart`, `recommendations_page.dart` — `_reasonLabel` moved out to
 `reason_labels.dart` — and `app_settings.dart`; `router.dart`, `anime_detail_page.dart` and
-`backup_page.dart` changed without a new declaration); the gap stayed at 18. The
+`backup_page.dart` changed without a new declaration); the gap stayed at 18, and again in 1.6.3,
+which added 36 across one new file (`sequel_info_service.dart`) and six changed ones
+(`anime_detail_page.dart`, `recommendation_data.dart`, `recommendation_store.dart`,
+`recommendation_merge.dart`, `recommendations_page.dart` and `related_card.dart`;
+`recommendation_service.dart`, `category_widgets.dart` and `privacy_policy_page.dart` changed
+without a new declaration) and found that the `recommendation_store.dart` and `related_card.dart`
+rows had each claimed one Tier A entry more than their pages documented since 1.6.2 — the new
+entries on those pages now make the old figures true; the gap stayed at 18. The
 pre-1.4.0 figures (682
 `Purpose:` comments and 685 documented declarations) had drifted far from both the source and this
 file's own per-file rows, which summed to 615 at the time. If you change these numbers, measure
@@ -123,7 +130,7 @@ that carry a `/// Purpose:` comment. See [../on-device-ai.md](../on-device-ai.md
 | `lib/features/anime/services/metadata_update_service.dart` | [features/anime/services/metadata_update_service.md](features/anime/services/metadata_update_service.md) | 44 | 27 |
 | `lib/features/anime/services/series_service.dart` | [features/anime/services/series_service.md](features/anime/services/series_service.md) | 32 | 20 |
 | `lib/features/anime/views/anime1_labels.dart` | [features/anime/views/anime1_labels.md](features/anime/views/anime1_labels.md) | 4 | 4 |
-| `lib/features/anime/views/anime_detail_page.dart` | [features/anime/views/anime_detail_page.md](features/anime/views/anime_detail_page.md) | 34 | 16 |
+| `lib/features/anime/views/anime_detail_page.dart` | [features/anime/views/anime_detail_page.md](features/anime/views/anime_detail_page.md) | 37 | 16 |
 | `lib/features/anime/views/anime_edit_page.dart` | [features/anime/views/anime_edit_page.md](features/anime/views/anime_edit_page.md) | 30 | 15 |
 | `lib/features/anime/views/anime_search_dialog.dart` | [features/anime/views/anime_search_dialog.md](features/anime/views/anime_search_dialog.md) | 34 | 17 |
 | `lib/features/anime/views/archive_labels.dart` | [features/anime/views/archive_labels.md](features/anime/views/archive_labels.md) | 3 | 3 |
@@ -162,16 +169,17 @@ Automatic categories (1.6.0, M4). See
 
 | Source file | Page | Declarations | Tier A count |
 |---|---|---|---|
-| `lib/features/recommendations/models/recommendation_data.dart` | [features/recommendations/models/recommendation_data.md](features/recommendations/models/recommendation_data.md) | 25 | 5 |
+| `lib/features/recommendations/models/recommendation_data.dart` | [features/recommendations/models/recommendation_data.md](features/recommendations/models/recommendation_data.md) | 33 | 6 |
 | `lib/features/recommendations/services/ai_reason_service.dart` | [features/recommendations/services/ai_reason_service.md](features/recommendations/services/ai_reason_service.md) | 6 | 4 |
 | `lib/features/recommendations/services/reason_prompt.dart` | [features/recommendations/services/reason_prompt.md](features/recommendations/services/reason_prompt.md) | 5 | 4 |
-| `lib/features/recommendations/services/recommendation_merge.dart` | [features/recommendations/services/recommendation_merge.md](features/recommendations/services/recommendation_merge.md) | 5 | 5 |
+| `lib/features/recommendations/services/recommendation_merge.dart` | [features/recommendations/services/recommendation_merge.md](features/recommendations/services/recommendation_merge.md) | 6 | 6 |
 | `lib/features/recommendations/services/recommendation_service.dart` | [features/recommendations/services/recommendation_service.md](features/recommendations/services/recommendation_service.md) | 22 | 10 |
-| `lib/features/recommendations/services/recommendation_store.dart` | [features/recommendations/services/recommendation_store.md](features/recommendations/services/recommendation_store.md) | 14 | 8 |
+| `lib/features/recommendations/services/recommendation_store.dart` | [features/recommendations/services/recommendation_store.md](features/recommendations/services/recommendation_store.md) | 22 | 8 |
+| `lib/features/recommendations/services/sequel_info_service.dart` | [features/recommendations/services/sequel_info_service.md](features/recommendations/services/sequel_info_service.md) | 9 | 4 |
 | `lib/features/recommendations/views/reason_labels.dart` | [features/recommendations/views/reason_labels.md](features/recommendations/views/reason_labels.md) | 1 | 1 |
 | `lib/features/recommendations/views/recommendation_trash_page.dart` | [features/recommendations/views/recommendation_trash_page.md](features/recommendations/views/recommendation_trash_page.md) | 12 | 4 |
-| `lib/features/recommendations/views/recommendations_page.dart` | [features/recommendations/views/recommendations_page.md](features/recommendations/views/recommendations_page.md) | 16 | 8 |
-| `lib/features/recommendations/views/related_card.dart` | [features/recommendations/views/related_card.md](features/recommendations/views/related_card.md) | 14 | 7 |
+| `lib/features/recommendations/views/recommendations_page.dart` | [features/recommendations/views/recommendations_page.md](features/recommendations/views/recommendations_page.md) | 21 | 9 |
+| `lib/features/recommendations/views/related_card.dart` | [features/recommendations/views/related_card.md](features/recommendations/views/related_card.md) | 16 | 7 |
 
 Recommendations (1.6.0, M5); the synced trash bins, the related list and the trash page (1.6.2). See
 [../features/categories-and-recommendations.md](../features/categories-and-recommendations.md).
@@ -231,10 +239,10 @@ the 771 hand-documented declarations above).
 | Root (`lib/`) | 1 | 1 | 1 | 0 |
 | `app/` | 5 | 22 | 17 | 5 |
 | `features/ai/` | 6 | 75 | 29 | 46 |
-| `features/anime/` | 22 | 637 | 370 | 267 |
+| `features/anime/` | 22 | 640 | 370 | 270 |
 | `features/categories/` | 2 | 18 | 11 | 7 |
 | `features/kana/` | 1 | 19 | 3 | 16 |
-| `features/recommendations/` | 10 | 120 | 56 | 64 |
+| `features/recommendations/` | 11 | 153 | 63 | 90 |
 | `features/settings/` | 4 | 49 | 28 | 21 |
 | `shared/` (utils, widgets, providers, services, views) | 29 | 306 | 237 | 69 |
-| **Total** | **80** | **1247** | **752** | **495** |
+| **Total** | **81** | **1283** | **759** | **524** |

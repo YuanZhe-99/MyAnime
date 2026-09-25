@@ -120,15 +120,87 @@ class RecommendationStore {
   /// Inputs: `ids`.
   /// Returns: `Future<RecommendationData>`.
   /// Side effects: Writes the file.
-  /// Notes: An id already trashed keeps its original `hiddenAt`.
+  /// Notes: An id already trashed keeps its original `hiddenAt`. Trashing a
+  /// pinned record unpins it (1.6.3).
   static Future<RecommendationData> hide(Iterable<String> ids) {
     final now = DateTime.now().toUtc();
     return update((d) {
       for (final id in ids) {
         d.hidden.putIfAbsent(id, () => HiddenEntry(id, hiddenAt: now));
+        d.pinned.remove(id);
       }
     });
   }
+
+  /// Purpose: Pin library cards on "What to watch next".
+  /// Inputs: `ids`.
+  /// Returns: `Future<RecommendationData>`.
+  /// Side effects: Writes the file.
+  /// Notes: 1.6.3. A pinned card survives refresh and is shown first. Pinning
+  /// also takes the record out of the global trash, if it was there.
+  static Future<RecommendationData> pin(Iterable<String> ids) {
+    final now = DateTime.now().toUtc();
+    return update((d) {
+      for (final id in ids) {
+        d.pinned.putIfAbsent(id, () => PinnedEntry(id, pinnedAt: now));
+        d.hidden.remove(id);
+      }
+    });
+  }
+
+  /// Purpose: Unpin library cards.
+  /// Inputs: `ids`.
+  /// Returns: `Future<RecommendationData>`.
+  /// Side effects: Writes the file.
+  /// Notes: The card stays on screen until the next refresh.
+  static Future<RecommendationData> unpin(Iterable<String> ids) =>
+      update((d) => d.pinned.removeWhere((id, _) => ids.contains(id)));
+
+  /// Purpose: Pin missing-sequel cards.
+  /// Inputs: `keys` — dedupe keys from `sequelTrashKey`.
+  /// Returns: `Future<RecommendationData>`.
+  /// Side effects: Writes the file.
+  /// Notes: 1.6.3. Also takes the card out of the trash.
+  static Future<RecommendationData> pinSequels(Iterable<String> keys) {
+    final now = DateTime.now().toUtc();
+    return update((d) {
+      for (final k in keys) {
+        d.pinnedSequels.putIfAbsent(k, () => PinnedEntry(k, pinnedAt: now));
+        d.hiddenSequels.remove(k);
+      }
+    });
+  }
+
+  /// Purpose: Unpin missing-sequel cards.
+  /// Inputs: `keys`.
+  /// Returns: `Future<RecommendationData>`.
+  /// Side effects: Writes the file.
+  /// Notes: None.
+  static Future<RecommendationData> unpinSequels(Iterable<String> keys) =>
+      update((d) => d.pinnedSequels.removeWhere((k, _) => keys.contains(k)));
+
+  /// Purpose: Store what was fetched about one missing sequel.
+  /// Inputs: `key` — the dedupe key; `info`.
+  /// Returns: `Future<RecommendationData>`.
+  /// Side effects: Writes the file.
+  /// Notes: 1.6.3. Ignored while the card is in the trash, so a fetch that
+  /// finishes after the user trashed the card cannot bring its cover back.
+  static Future<RecommendationData> putSequelInfo(
+    String key,
+    SequelInfo info,
+  ) => update((d) {
+    if (d.hiddenSequels.containsKey(key)) return;
+    d.sequelInfo[key] = info;
+  });
+
+  /// Purpose: Drop fetched info for sequels no longer shown anywhere.
+  /// Inputs: `keys`.
+  /// Returns: `Future<RecommendationData>`.
+  /// Side effects: Writes the file when anything was removed.
+  /// Notes: Used when a sequel was added to the library or its relation
+  /// disappeared, so the synced file does not keep dead thumbnails.
+  static Future<RecommendationData> removeSequelInfo(Iterable<String> keys) =>
+      update((d) => d.sequelInfo.removeWhere((k, _) => keys.contains(k)));
 
   /// Purpose: Take records out of the global trash.
   /// Inputs: `ids`.
@@ -142,7 +214,8 @@ class RecommendationStore {
   /// Inputs: `entries` — `hiddenAt` is stamped when absent.
   /// Returns: `Future<RecommendationData>`.
   /// Side effects: Writes the file.
-  /// Notes: None.
+  /// Notes: Since 1.6.3 this also unpins the card and deletes its fetched
+  /// synopsis and thumbnail: the trash keeps only the basic labels.
   static Future<RecommendationData> hideSequels(
     Iterable<HiddenSequelEntry> entries,
   ) {
@@ -159,6 +232,8 @@ class RecommendationStore {
             hiddenAt: e.hiddenAt ?? now,
           ),
         );
+        d.pinnedSequels.remove(e.key);
+        d.sequelInfo.remove(e.key);
       }
     });
   }
@@ -176,7 +251,8 @@ class RecommendationStore {
   /// missing-sequel cards.
   /// Returns: `Future<RecommendationData>`.
   /// Side effects: One write, one auto-sync notification.
-  /// Notes: What the page's refresh action means.
+  /// Notes: What the page's refresh action means. Callers leave pinned cards
+  /// out (1.6.3); the trashed sequels' fetched info is deleted.
   static Future<RecommendationData> hideBatch(
     Iterable<String> ids,
     Iterable<HiddenSequelEntry> sequels,
@@ -185,8 +261,11 @@ class RecommendationStore {
     return update((d) {
       for (final id in ids) {
         d.hidden.putIfAbsent(id, () => HiddenEntry(id, hiddenAt: now));
+        d.pinned.remove(id);
       }
       for (final e in sequels) {
+        d.pinnedSequels.remove(e.key);
+        d.sequelInfo.remove(e.key);
         d.hiddenSequels.putIfAbsent(
           e.key,
           () => HiddenSequelEntry(
@@ -206,7 +285,7 @@ class RecommendationStore {
   /// Returns: `Future<RecommendationData>`.
   /// Side effects: Writes the file.
   /// Notes: Also removes them from the persisted list, so the card stops
-  /// showing them at once.
+  /// showing them at once, and unpins them (1.6.3).
   static Future<RecommendationData> hideRelated(
     String animeId,
     Iterable<String> ids,
@@ -216,10 +295,43 @@ class RecommendationStore {
       final s = d.relatedFor(animeId);
       for (final id in ids) {
         s.hidden.putIfAbsent(id, () => HiddenEntry(id, hiddenAt: now));
+        s.pinned.remove(id);
       }
       s.items.removeWhere((i) => ids.contains(i.id));
     });
   }
+
+  /// Purpose: Pin items in one record's related list.
+  /// Inputs: `animeId` — whose list; `ids`.
+  /// Returns: `Future<RecommendationData>`.
+  /// Side effects: Writes the file.
+  /// Notes: 1.6.3. Pinned items survive the card's refresh; pinning also
+  /// takes them out of that record's trash.
+  static Future<RecommendationData> pinRelated(
+    String animeId,
+    Iterable<String> ids,
+  ) {
+    final now = DateTime.now().toUtc();
+    return update((d) {
+      final s = d.relatedFor(animeId);
+      for (final id in ids) {
+        s.pinned.putIfAbsent(id, () => PinnedEntry(id, pinnedAt: now));
+        s.hidden.remove(id);
+      }
+    });
+  }
+
+  /// Purpose: Unpin items in one record's related list.
+  /// Inputs: `animeId`, `ids`.
+  /// Returns: `Future<RecommendationData>`.
+  /// Side effects: Writes the file.
+  /// Notes: The item stays in the list until the next refresh.
+  static Future<RecommendationData> unpinRelated(
+    String animeId,
+    Iterable<String> ids,
+  ) => update((d) {
+    d.related[animeId]?.pinned.removeWhere((id, _) => ids.contains(id));
+  });
 
   /// Purpose: Take records out of one record's related trash.
   /// Inputs: `animeId`, `ids`.
@@ -238,7 +350,8 @@ class RecommendationStore {
   /// Inputs: `animeId`; `items`; `generatedAt` — defaults to now.
   /// Returns: `Future<RecommendationData>`.
   /// Side effects: Writes the file.
-  /// Notes: Keeps the record's trash untouched.
+  /// Notes: Keeps the record's trash and pins untouched; callers put the
+  /// pinned items at the front of `items` themselves.
   static Future<RecommendationData> putRelated(
     String animeId,
     List<RelatedItem> items, {
@@ -251,6 +364,7 @@ class RecommendationStore {
         generatedAt: at,
         items: items,
         hidden: s.hidden,
+        pinned: s.pinned,
         extraJson: s.extraJson,
       );
     });

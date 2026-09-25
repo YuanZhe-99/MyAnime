@@ -134,12 +134,13 @@ a record's **related** list for the detail page (`related`), encodes that list's
 - **Usage:** The airing contribution in `rank`.
 - **Notes:** The airing bonus has no reason chip.
 
-### `static List<Recommendation> rank(List<Anime> library, {AiInsights? insights, Set<String> hidden = const {}, required DateTime nowJst, int limit = RecommendationWeights.globalBatch})` <a id="recommendationservice-rank"></a>
+### `static List<Recommendation> rank(List<Anime> library, {AiInsights? insights, Set<String> hidden = const {}, Set<String> pinned = const {}, required DateTime nowJst, int limit = RecommendationWeights.globalBatch})` <a id="recommendationservice-rank"></a>
 - **Kind:** static method of `RecommendationService`
 - **Source:** `lib/features/recommendations/services/recommendation_service.dart` (approx. line 328)
 - **Purpose:** Rank what to watch next.
 - **Inputs:** `library`; `insights` — the AI categories from `ai_insights.json`; `hidden` — the ids in
-  the global trash (`recommendations.json`, 1.6.2); `nowJst`; `limit` — the batch size, 10 (30
+  the global trash (`recommendations.json`, 1.6.2); `pinned` — the ids pinned on the page (1.6.3);
+  `nowJst`; `limit` — the batch size, 10 (30
   through 1.6.1).
 - **Returns:** `List<Recommendation>` — best first, at most `limit`.
 - **Side effects:** None.
@@ -164,9 +165,14 @@ a record's **related** list for the detail page (`related`), encodes that list's
   6. **Order:** with no rating and nothing completed anywhere (cold start), next-in-series first,
      then the external average, then the newest `createdAt`; otherwise by score. Ties fall back to
      the id, so the order is stable.
-- **Usage:** `_RecommendationsPageState._load`; `test/recommendations_test.dart`.
+  7. **Pins (1.6.3):** move the candidates in `pinned` to the front, keeping the order of step 6
+     within both groups, then cut to `limit`. Pins therefore count toward the batch.
+- **Usage:** `_RecommendationsPageState._load`; `test/recommendations_test.dart`,
+  `test/recommendation_pins_test.dart`.
 - **Notes:** Season 3 is never offered before season 1 is finished. Missing sequels (not in the
-  library) are not ranked here; the page appends them.
+  library) are not ranked here; the page appends them. A pinned record that is no longer a
+  candidate (finished, dropped, or no longer the earliest unfinished member of its series) is not
+  shown; its pin stays in the file, harmless like a trash entry for a deleted record.
 
 ### `static List<Recommendation> related(Anime subject, List<Anime> library, {AiInsights? insights, Set<String> exclude = const {}, int limit = RecommendationWeights.relatedBatch})` <a id="recommendationservice-related"></a>
 - **Kind:** static method of `RecommendationService`

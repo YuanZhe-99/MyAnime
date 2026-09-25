@@ -5,7 +5,8 @@ like this one, ranked by
 [`RecommendationService.related`](../services/recommendation_service.md#recommendationservice-related)
 and **persisted** in `recommendations.json`, so the list is the same on every visit and every device
 until the user refreshes it. Refresh puts the shown batch into this record's own trash and generates
-the next one; each row's ✕ trashes one item; the menu opens this record's trash. The detail page
+the next one; each row's ✕ trashes one item; the menu opens this record's trash. Since 1.6.3 each
+row has a pin toggle: pinned rows stay at the top through refreshes. The detail page
 shows the card only while recommendations are on. See
 [`../../../../features/categories-and-recommendations.md`](../../../../features/categories-and-recommendations.md#related-recommendations-on-the-detail-page).
 
@@ -23,10 +24,12 @@ shows the card only while recommendations are on. See
 | [`_aiReasons`](#_aireasons) | method | A | Ask the on-device model for reasons, if it can answer. |
 | [`_refresh`](#_refresh) | method | A | Trash the shown batch and generate the next one. |
 | `_hide` | method | B | Trash one related record; the list shrinks until the next refresh. |
+| `_togglePin` | method | B | Pin or unpin one related item in this record's list (1.6.3). |
 | `_openTrash` | method | B | Push `/recommendations/trash?anime=<id>`, then reload. |
 | [`_resolved`](#_resolved) | getter | A | Pair each stored item with its record. |
 | [`build`](#build) | method | A | Build the card. |
-| `_row` | method | B | Build one row: cover, title, reason chips, labelled AI reason, ✕. |
+| `_row` | method | B | Build one row: cover, title, reason chips, labelled AI reason, the pin toggle (1.6.3), ✕. |
+| [`keptPinnedItems`](#keptpinneditems) | top-level function | A | Pick the pinned items a regenerated list must keep (1.6.3). |
 
 `_RelatedAction` (`refresh`, `trash`) is the menu's private enum and carries no comment.
 
@@ -34,7 +37,7 @@ shows the card only while recommendations are on. See
 
 ### `Future<void> _load()` <a id="_load"></a>
 - **Kind:** method of `_RelatedRecommendationsCardState`
-- **Source:** `lib/features/recommendations/views/related_card.dart` (approx. line 104)
+- **Source:** `lib/features/recommendations/views/related_card.dart` (approx. line 105)
 - **Purpose:** Show the stored list, or make one.
 - **Inputs:** None.
 - **Returns:** None.
@@ -48,22 +51,26 @@ shows the card only while recommendations are on. See
 
 ### `Future<void> _generate(Set<String> exclude)` <a id="_generate"></a>
 - **Kind:** method of `_RelatedRecommendationsCardState`
-- **Source:** `lib/features/recommendations/views/related_card.dart` (approx. line 122)
+- **Source:** `lib/features/recommendations/views/related_card.dart` (approx. line 125)
 - **Purpose:** Make and persist a new list.
 - **Inputs:** `exclude` — this record's trash.
 - **Returns:** None.
 - **Side effects:** Writes `recommendations.json` once for the list and once more if the model wrote
   reasons; may run the model once.
-- **Algorithm:** 1) `AiInsightsCache.load()` for AI categories. 2)
-  `RecommendationService.related(anime, library, insights:, exclude:)`. 3) Encode each reason with
-  `encodeRelatedReason` and `putRelated` with one `generatedAt`; show it. 4) `_aiReasons`; when any
-  arrive, `putRelated` again with `aiReason` filled and the same `generatedAt`.
+- **Algorithm:** 1) (1.6.3) Load the stored snapshot and take
+  [`keptPinnedItems`](#keptpinneditems). 2) `AiInsightsCache.load()` for AI categories. 3)
+  `RecommendationService.related(anime, library, insights:, exclude: trash ∪ pinned ids, limit: 5 −
+  pinned count)`, skipped when the pins already fill the list. 4) Encode each reason with
+  `encodeRelatedReason` and `putRelated` the pinned items followed by the new ones, with one
+  `generatedAt`; show it. 5) `_aiReasons` for the new ones only; when any arrive, `putRelated` again
+  with `aiReason` filled and the same `generatedAt`.
 - **Usage:** `_load`, `_refresh`.
 - **Notes:** Guarded by `_busy`, so a sync reload during a generation does not start another.
+  Pinned items keep their stored reasons and AI reason.
 
 ### `Future<Map<String, String>> _aiReasons(List<Recommendation> ranked, AiInsights insights)` <a id="_aireasons"></a>
 - **Kind:** method of `_RelatedRecommendationsCardState`
-- **Source:** `lib/features/recommendations/views/related_card.dart` (approx. line 167)
+- **Source:** `lib/features/recommendations/views/related_card.dart` (approx. line 179)
 - **Purpose:** Get up to three generated reasons.
 - **Inputs:** `ranked`, `insights`.
 - **Returns:** Anime id to reason; empty when skipped.
@@ -76,19 +83,35 @@ shows the card only while recommendations are on. See
 
 ### `Future<void> _refresh()` <a id="_refresh"></a>
 - **Kind:** method of `_RelatedRecommendationsCardState`
-- **Source:** `lib/features/recommendations/views/related_card.dart` (approx. line 209)
+- **Source:** `lib/features/recommendations/views/related_card.dart` (approx. line 221)
 - **Purpose:** Pass over the shown batch.
 - **Inputs:** None.
 - **Returns:** None.
 - **Side effects:** Writes `recommendations.json` (synced).
-- **Algorithm:** `hideRelated(id, shownIds)`, then `_generate` with the updated trash.
+- **Algorithm:** `hideRelated(id, shownIds)` for the shown ids that are **not pinned** (1.6.3), then
+  `_generate` with the updated trash.
 - **Usage:** The header's refresh button and the menu's *Show others*.
 - **Notes:** With nothing shown it trashes nothing and simply regenerates, which is how records added
-  since the last list can appear.
+  since the last list can appear. Pinned rows survive and keep their place at the top.
+
+### `List<RelatedItem> keptPinnedItems(RelatedSnapshot? stored, Set<String> libraryIds)` <a id="keptpinneditems"></a>
+- **Kind:** top-level function
+- **Source:** `lib/features/recommendations/views/related_card.dart` (approx. line 441)
+- **Purpose:** Pick the pinned items a regenerated related list must keep (1.6.3).
+- **Inputs:** `stored` — the record's current snapshot, if any; `libraryIds`.
+- **Returns:** `List<RelatedItem>` — the pinned items in their stored order, with their reasons,
+  then pinned ids the stored list lacks as bare items (sorted by id); records not in the library are
+  left out.
+- **Side effects:** None.
+- **Algorithm:** Filter `stored.items` by the pinned ids that are in the library; append the rest of
+  those ids as `RelatedItem(id)`.
+- **Usage:** `_generate`; `test/recommendation_pins_test.dart`.
+- **Notes:** A pinned id can be missing from the stored list when a sync took another device's newer
+  list; it is put back instead of being lost.
 
 ### `List<(Anime, RelatedItem)> get _resolved` <a id="_resolved"></a>
 - **Kind:** getter of `_RelatedRecommendationsCardState`
-- **Source:** `lib/features/recommendations/views/related_card.dart` (approx. line 246)
+- **Source:** `lib/features/recommendations/views/related_card.dart` (approx. line 277)
 - **Purpose:** Turn stored ids into rows.
 - **Inputs:** None.
 - **Returns:** Items whose record exists and that are not trashed, in stored order.
@@ -99,7 +122,7 @@ shows the card only while recommendations are on. See
 
 ### `Widget build(BuildContext context)` <a id="build"></a>
 - **Kind:** method of `_RelatedRecommendationsCardState`
-- **Source:** `lib/features/recommendations/views/related_card.dart` (approx. line 263)
+- **Source:** `lib/features/recommendations/views/related_card.dart` (approx. line 294)
 - **Purpose:** Build the card.
 - **Inputs:** `context`.
 - **Returns:** Nothing until the first load, then a `Card`.

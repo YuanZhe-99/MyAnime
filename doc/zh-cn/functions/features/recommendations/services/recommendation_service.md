@@ -123,12 +123,13 @@
 - **用法：** `rank` 中的播出中加分。
 - **备注：** 播出中加分没有理由标签。
 
-### `static List<Recommendation> rank(List<Anime> library, {AiInsights? insights, Set<String> hidden = const {}, required DateTime nowJst, int limit = RecommendationWeights.globalBatch})` <a id="recommendationservice-rank"></a>
+### `static List<Recommendation> rank(List<Anime> library, {AiInsights? insights, Set<String> hidden = const {}, Set<String> pinned = const {}, required DateTime nowJst, int limit = RecommendationWeights.globalBatch})` <a id="recommendationservice-rank"></a>
 - **种类：** `RecommendationService` 的静态方法
 - **来源：** `lib/features/recommendations/services/recommendation_service.dart`（约第 328 行）
 - **用途：** 对接下来看什么排序。
 - **输入：** `library`；`insights` — 来自 `ai_insights.json` 的 AI 分类；`hidden` — 全局垃圾箱中的 id
-  （`recommendations.json`，1.6.2）；`nowJst`；`limit` — 每批的数量，10（1.6.1 及之前为 30）。
+  （`recommendations.json`，1.6.2）；`pinned` — 页面上钉选的 id（1.6.3）；
+  `nowJst`；`limit` — 每批的数量，10（1.6.1 及之前为 30）。
 - **返回：** `List<Recommendation>` — 最好的在前，至多 `limit` 条。
 - **副作用：** 无。
 - **算法：**
@@ -146,8 +147,12 @@
      记录就是候选本身时省略制作公司理由。
   6. **顺序：** 全库既无评分也无已看完记录时（冷启动），先是系列下一部，再按外部平均分，再按最新的 `createdAt`；否则按
      得分。平分时回退到 id，因此顺序稳定。
-- **用法：** `_RecommendationsPageState._load`；`test/recommendations_test.dart`。
-- **备注：** 第 1 季看完之前绝不推荐第 3 季。缺失续作（不在片库中）不在这里排序，由页面追加。
+  7. **钉选（1.6.3）：** 把 `pinned` 中的候选移到最前，两组内部都保持第 6 步的顺序，然后截断到 `limit`。因此钉选计入
+     这一批。
+- **用法：** `_RecommendationsPageState._load`；`test/recommendations_test.dart`、
+  `test/recommendation_pins_test.dart`。
+- **备注：** 第 1 季看完之前绝不推荐第 3 季。缺失续作（不在片库中）不在这里排序，由页面追加。不再是候选的钉选记录
+  （已看完、弃坑，或不再是所在系列最早的未看完成员）不显示；它的钉选留在文件中，像已删除记录的垃圾箱条目一样无害。
 
 ### `static List<Recommendation> related(Anime subject, List<Anime> library, {AiInsights? insights, Set<String> exclude = const {}, int limit = RecommendationWeights.relatedBatch})` <a id="recommendationservice-related"></a>
 - **种类：** `RecommendationService` 的静态方法

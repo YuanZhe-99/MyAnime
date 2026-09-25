@@ -162,7 +162,9 @@ pending link to that last member, written only on save. In a **full** build the 
 starts the online search with the title straight away, as `autoSearch` does. A **store** build gets
 the title pre-filled and no search. Relation data can reach a store build through sync — it is
 public metadata inside `externalMeta` — so the hint can appear there too; only the online lookup is
-gated on `AppFlavor.isFull`.
+gated on `AppFlavor.isFull`. Since 1.6.3 the hint also shows the sequel's cover thumbnail and a
+short synopsis, fetched once by full builds and synced in `recommendations.json` — see
+[`categories-and-recommendations.md`](categories-and-recommendations.md#missing-sequel-cards).
 
 ## Manual curation
 

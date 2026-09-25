@@ -677,6 +677,8 @@
   "recommendationsTrashedOn": "Trashed {date}",
   "@recommendationsTrashedOn": { "placeholders": { "date": { "type": "String" } } },
   "recommendationsTrashSequels": "Sequels not in your library",
+  "recommendationsPin": "Pin",
+  "recommendationsUnpin": "Unpin",
   "relatedTitle": "Related",
   "relatedEmpty": "Nothing in your library looks related yet.",
   "relatedRefresh": "Show others",

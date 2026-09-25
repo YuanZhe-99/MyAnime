@@ -1,3 +1,5 @@
+import 'dart:async';
+import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter/foundation.dart';
@@ -5,6 +7,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../app/flavor.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../../shared/providers/app_settings.dart';
 import '../../../shared/services/auto_sync_service.dart';
@@ -21,6 +24,7 @@ import '../models/recommendation_data.dart';
 import '../services/ai_reason_service.dart';
 import '../services/recommendation_service.dart';
 import '../services/recommendation_store.dart';
+import '../services/sequel_info_service.dart';
 import 'reason_labels.dart';
 
 /// "What to watch next": the library's own unwatched and in-progress records,
@@ -28,7 +32,9 @@ import 'reason_labels.dart';
 /// lacks are appended, clearly marked. With on-device AI on and a model
 /// available, up to three cards gain a short generated reason. Since 1.6.2
 /// the page shows a batch of ten, every card can go to the synced trash, and
-/// the refresh action trashes the whole batch and shows the next one.
+/// the refresh action trashes the whole batch and shows the next one. Since
+/// 1.6.3 a card can be pinned, which keeps it through refreshes, and
+/// missing-sequel cards show a fetched thumbnail and synopsis.
 class RecommendationsPage extends ConsumerStatefulWidget {
   /// Purpose: Create the recommendations page.
   /// Inputs: None.
@@ -51,6 +57,10 @@ class _RecommendationsPageState extends ConsumerState<RecommendationsPage> {
   List<Anime> _library = const [];
   List<Recommendation> _ranked = const [];
   List<(Anime, AnimeExternalRelation)> _missing = const [];
+  Set<String> _pinned = const {};
+  Set<String> _pinnedSequels = const {};
+  Map<String, SequelInfo> _sequelInfo = const {};
+  bool _fetchingInfo = false;
   AiInsights _insights = AiInsights();
   Map<String, String> _aiReasons = const {};
   bool _loading = true;
@@ -96,17 +106,21 @@ class _RecommendationsPageState extends ConsumerState<RecommendationsPage> {
     final insights = await AiInsightsCache.load(
       liveIds: {for (final a in data.animes) a.id},
     );
+    final pinned = store.pinned.keys.toSet();
     final ranked = RecommendationService.rank(
       data.animes,
       insights: insights,
       hidden: store.hidden.keys.toSet(),
+      pinned: pinned,
       nowJst: JstTime.now(),
     );
     final index = SeriesIndex.build(data.animes);
     final missing = <(Anime, AnimeExternalRelation)>[];
     final seen = <String>{};
+    // Every sequel any detail page could still show, whatever the viewing
+    // status: sequel info outside this set belongs to nothing any more.
+    final live = <String>{};
     for (final a in data.animes) {
-      if (a.viewingStatus != AnimeViewingStatus.completed) continue;
       final series = index.seriesOf(a.id);
       final last = series != null && series.members.length >= 2
           ? series.members.last
@@ -115,9 +129,22 @@ class _RecommendationsPageState extends ConsumerState<RecommendationsPage> {
       final sequel = index.missingSequelFor(a.id);
       if (sequel == null) continue;
       final key = sequelTrashKey(sequel);
+      live.add(key);
+      if (a.viewingStatus != AnimeViewingStatus.completed) continue;
       if (store.hiddenSequels.containsKey(key) || !seen.add(key)) continue;
       missing.add((last, sequel));
     }
+    final pinnedSequels = store.pinnedSequels.keys.toSet();
+    missing.sort((x, y) {
+      final px = pinnedSequels.contains(sequelTrashKey(x.$2)) ? 0 : 1;
+      final py = pinnedSequels.contains(sequelTrashKey(y.$2)) ? 0 : 1;
+      return px.compareTo(py);
+    });
+    final stale = [
+      for (final k in store.sequelInfo.keys)
+        if (!live.contains(k)) k,
+    ];
+    if (stale.isNotEmpty) await RecommendationStore.removeSequelInfo(stale);
     if (!mounted) return;
     final sameBatch =
         ranked.map((r) => r.anime.id).join('|') ==
@@ -127,10 +154,74 @@ class _RecommendationsPageState extends ConsumerState<RecommendationsPage> {
       _insights = insights;
       _ranked = ranked;
       _missing = missing;
+      _pinned = pinned;
+      _pinnedSequels = pinnedSequels;
+      _sequelInfo = {
+        for (final e in store.sequelInfo.entries)
+          if (live.contains(e.key)) e.key: e.value,
+      };
       _loading = false;
       if (!sameBatch) _aiReasons = const {};
     });
+    // Online lookups are a full-build feature; store builds show only what
+    // a full build fetched and synced.
+    if (AppFlavor.isFull) unawaited(_fetchSequelInfo());
     if (!sameBatch || _aiReasons.isEmpty) await _requestAiReasons();
+  }
+
+  /// Purpose: Fetch the synopsis and thumbnail of the shown missing-sequel
+  /// cards that have none yet.
+  /// Inputs: None.
+  /// Returns: None.
+  /// Side effects: Network, one card at a time; writes
+  /// `recommendations.json` per result; updates the cards as results land.
+  /// Notes: Internal helper used within this file only. Full builds only.
+  /// Sequential, so a batch of cards never bursts a database with parallel
+  /// requests; `SequelInfoService` skips keys already tried this session.
+  Future<void> _fetchSequelInfo() async {
+    if (_fetchingInfo) return;
+    _fetchingInfo = true;
+    try {
+      for (final (_, sequel) in [..._missing]) {
+        final key = sequelTrashKey(sequel);
+        if (_sequelInfo.containsKey(key)) continue;
+        final info = await SequelInfoService.ensure(key, sequel);
+        if (!mounted) return;
+        if (info != null) {
+          setState(() => _sequelInfo = {..._sequelInfo, key: info});
+        }
+      }
+    } finally {
+      _fetchingInfo = false;
+    }
+  }
+
+  /// Purpose: Pin or unpin one library card.
+  /// Inputs: `anime`.
+  /// Returns: None.
+  /// Side effects: Writes `recommendations.json` (synced).
+  /// Notes: Internal helper used within this file only. The card keeps its
+  /// place until the next load; a pinned card survives Refresh.
+  Future<void> _togglePin(Anime anime) async {
+    final data = _pinned.contains(anime.id)
+        ? await RecommendationStore.unpin([anime.id])
+        : await RecommendationStore.pin([anime.id]);
+    if (!mounted) return;
+    setState(() => _pinned = data.pinned.keys.toSet());
+  }
+
+  /// Purpose: Pin or unpin one missing-sequel card.
+  /// Inputs: `sequel`.
+  /// Returns: None.
+  /// Side effects: Writes `recommendations.json` (synced).
+  /// Notes: Internal helper used within this file only.
+  Future<void> _togglePinSequel(AnimeExternalRelation sequel) async {
+    final key = sequelTrashKey(sequel);
+    final data = _pinnedSequels.contains(key)
+        ? await RecommendationStore.unpinSequels([key])
+        : await RecommendationStore.pinSequels([key]);
+    if (!mounted) return;
+    setState(() => _pinnedSequels = data.pinnedSequels.keys.toSet());
   }
 
   /// Purpose: Ask the on-device model for reasons, if it can answer.
@@ -232,11 +323,17 @@ class _RecommendationsPageState extends ConsumerState<RecommendationsPage> {
   /// shows a snack bar whose Undo restores exactly that batch.
   /// Notes: Internal helper used within this file only. This is what the
   /// refresh action means: the batch the user looked at and passed over is
-  /// "not interested".
+  /// "not interested". Pinned cards (1.6.3) are left in place.
   Future<void> _refreshBatch() async {
     final l10n = AppLocalizations.of(context)!;
-    final ids = [for (final r in _ranked) r.anime.id];
-    final sequels = [for (final (s, q) in _missing) _sequelEntry(s, q)];
+    final ids = [
+      for (final r in _ranked)
+        if (!_pinned.contains(r.anime.id)) r.anime.id,
+    ];
+    final sequels = [
+      for (final (s, q) in _missing)
+        if (!_pinnedSequels.contains(sequelTrashKey(q))) _sequelEntry(s, q),
+    ];
     if (ids.isEmpty && sequels.isEmpty) return;
     await RecommendationStore.hideBatch(ids, sequels);
     await _load();
@@ -293,6 +390,9 @@ class _RecommendationsPageState extends ConsumerState<RecommendationsPage> {
       for (final (source, sequel) in _missing)
         _missingCard(source, sequel, l10n),
     ];
+    final refreshable =
+        _ranked.any((r) => !_pinned.contains(r.anime.id)) ||
+        _missing.any((m) => !_pinnedSequels.contains(sequelTrashKey(m.$2)));
 
     return Scaffold(
       appBar: AppBar(
@@ -301,7 +401,7 @@ class _RecommendationsPageState extends ConsumerState<RecommendationsPage> {
           IconButton(
             tooltip: l10n.recommendationsRefresh,
             icon: const Icon(Icons.refresh),
-            onPressed: _loading || items.isEmpty ? null : _refreshBatch,
+            onPressed: _loading || !refreshable ? null : _refreshBatch,
           ),
           IconButton(
             tooltip: l10n.recommendationsTrash,
@@ -397,12 +497,11 @@ class _RecommendationsPageState extends ConsumerState<RecommendationsPage> {
                       ),
                       Text(aiReason, style: theme.textTheme.bodyMedium),
                     ],
-                    Align(
-                      alignment: AlignmentDirectional.centerEnd,
-                      child: TextButton(
-                        onPressed: () => _hide(r.anime),
-                        child: Text(l10n.recommendationsNotInterested),
-                      ),
+                    _cardActions(
+                      pinned: _pinned.contains(r.anime.id),
+                      onPin: () => _togglePin(r.anime),
+                      onHide: () => _hide(r.anime),
+                      l10n: l10n,
                     ),
                   ],
                 ),
@@ -420,44 +519,120 @@ class _RecommendationsPageState extends ConsumerState<RecommendationsPage> {
   /// Side effects: None.
   /// Notes: Internal helper used within this file only. Opens the prefilled
   /// create page; the search starts only in full builds. Since 1.6.2 it has a
-  /// *Not interested* button like the library cards.
+  /// *Not interested* button like the library cards; since 1.6.3 it shows the
+  /// fetched thumbnail and synopsis when there are any, and can be pinned.
   Widget _missingCard(
     Anime source,
     AnimeExternalRelation sequel,
     AppLocalizations l10n,
   ) {
+    final theme = Theme.of(context);
+    final key = sequelTrashKey(sequel);
+    final info = _sequelInfo[key];
+    final synopsis = info?.synopsis;
     return Card(
       clipBehavior: Clip.antiAlias,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          ListTile(
-            leading: const Icon(Icons.new_releases_outlined),
-            title: Text(
-              l10n.seriesMissingSequel(sequel.title ?? '?', sequel.source),
-            ),
-            subtitle: Text(l10n.recommendationsNotInLibrary),
-            trailing: const Icon(Icons.add),
-            onTap: () async {
-              await context.push(
-                '/anime/edit',
-                extra: NextSeasonPrefill.fromRelation(source, sequel),
-              );
-              await _load();
-            },
-          ),
-          Align(
-            alignment: AlignmentDirectional.centerEnd,
-            child: Padding(
-              padding: const EdgeInsetsDirectional.only(end: 12, bottom: 4),
-              child: TextButton(
-                onPressed: () => _hideSequel(source, sequel),
-                child: Text(l10n.recommendationsNotInterested),
+      child: InkWell(
+        onTap: () async {
+          await context.push(
+            '/anime/edit',
+            extra: NextSeasonPrefill.fromRelation(source, sequel),
+          );
+          await _load();
+        },
+        child: Padding(
+          padding: const EdgeInsets.all(12),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              sequelThumb(info),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      l10n.seriesMissingSequel(
+                        sequel.title ?? '?',
+                        sequel.source,
+                      ),
+                      style: theme.textTheme.titleMedium,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    const SizedBox(height: 4),
+                    Row(
+                      children: [
+                        Icon(
+                          Icons.add_circle_outline,
+                          size: 14,
+                          color: theme.colorScheme.primary,
+                        ),
+                        const SizedBox(width: 4),
+                        Expanded(
+                          child: Text(
+                            l10n.recommendationsNotInLibrary,
+                            style: theme.textTheme.labelMedium?.copyWith(
+                              color: theme.colorScheme.primary,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                    if (synopsis != null) ...[
+                      const SizedBox(height: 6),
+                      Text(
+                        synopsis,
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          color: theme.colorScheme.onSurfaceVariant,
+                        ),
+                        maxLines: 3,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ],
+                    _cardActions(
+                      pinned: _pinnedSequels.contains(key),
+                      onPin: () => _togglePinSequel(sequel),
+                      onHide: () => _hideSequel(source, sequel),
+                      l10n: l10n,
+                    ),
+                  ],
+                ),
               ),
-            ),
+            ],
           ),
-        ],
+        ),
       ),
+    );
+  }
+
+  /// Purpose: Build a card's bottom row: pin toggle, then *Not interested*.
+  /// Inputs: `pinned`; `onPin`, `onHide`; `l10n`.
+  /// Returns: `Widget`.
+  /// Side effects: None.
+  /// Notes: Internal helper used within this file only (1.6.3). Shared by
+  /// library and missing-sequel cards so the two read the same.
+  Widget _cardActions({
+    required bool pinned,
+    required VoidCallback onPin,
+    required VoidCallback onHide,
+    required AppLocalizations l10n,
+  }) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.end,
+      children: [
+        IconButton(
+          tooltip: pinned ? l10n.recommendationsUnpin : l10n.recommendationsPin,
+          isSelected: pinned,
+          icon: const Icon(Icons.push_pin_outlined),
+          selectedIcon: const Icon(Icons.push_pin),
+          onPressed: onPin,
+        ),
+        TextButton(
+          onPressed: onHide,
+          child: Text(l10n.recommendationsNotInterested),
+        ),
+      ],
     );
   }
 
@@ -494,6 +669,46 @@ Widget recommendationCover(Anime anime, {Size size = const Size(56, 80)}) {
               fit: BoxFit.cover,
             )
           : SizedBox.fromSize(size: size),
+    ),
+  );
+}
+
+/// Purpose: Build a missing sequel's thumbnail, or a placeholder.
+/// Inputs: `info` — the fetched sequel info, if any; `size` — 56×80 by
+/// default.
+/// Returns: `Widget`.
+/// Side effects: Decodes the base64 thumbnail.
+/// Notes: 1.6.3. Shared by the recommendations page and the detail page's
+/// missing-sequel card. The thumbnail lives inside `recommendations.json`,
+/// never in `images/`, so trashing the card deletes it everywhere.
+Widget sequelThumb(SequelInfo? info, {Size size = const Size(56, 80)}) {
+  final thumb = info?.coverThumb;
+  Uint8List? bytes;
+  if (thumb != null && thumb.isNotEmpty) {
+    try {
+      bytes = base64Decode(thumb);
+    } catch (_) {
+      bytes = null;
+    }
+  }
+  if (bytes == null) {
+    return SizedBox.fromSize(
+      size: size,
+      child: const Icon(Icons.new_releases_outlined),
+    );
+  }
+  return ClipRRect(
+    borderRadius: BorderRadius.circular(6),
+    child: Image.memory(
+      bytes,
+      width: size.width,
+      height: size.height,
+      fit: BoxFit.cover,
+      gaplessPlayback: true,
+      errorBuilder: (_, _, _) => SizedBox.fromSize(
+        size: size,
+        child: const Icon(Icons.new_releases_outlined),
+      ),
     ),
   );
 }

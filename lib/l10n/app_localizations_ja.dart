@@ -1912,6 +1912,12 @@ class AppLocalizationsJa extends AppLocalizations {
   String get recommendationsTrashSequels => 'ライブラリにない続編';
 
   @override
+  String get recommendationsPin => 'ピン留め';
+
+  @override
+  String get recommendationsUnpin => 'ピン留めを外す';
+
+  @override
   String get relatedTitle => '関連作品';
 
   @override

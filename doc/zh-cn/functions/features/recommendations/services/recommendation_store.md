@@ -2,7 +2,9 @@
 
 `RecommendationStore`（1.6.2）负责 `AnimeStorage.getAppDir()` 下的 `recommendations.json`。与
 `ai_insights.json` 不同，它注册在 [`../../../app/data_modules.md`](../../../app/data_modules.md) 中，
-因此会同步、会被备份，每次保存都会调用 `AutoSyncService.notifySaved`。每次写入都是通过 `update`
+因此会同步、会被备份，每次保存都会调用 `AutoSyncService.notifySaved`。自 1.6.3 起
+它还负责钉选和取消钉选卡片，并保存每部缺失续作抓取到的资料；它的任何一次写入之后，同一张卡片的钉选和垃圾箱条目
+都不会同时存在。每次写入都是通过 `update`
 进行的读取-修改-写入，并在进程内排队，因此与一次*不感兴趣*点击同时发生的相关推荐列表保存
 不会丢掉任何一方的更改。见
 [`../../../../features/categories-and-recommendations.md`](../../../../features/categories-and-recommendations.md)。
@@ -16,12 +18,20 @@
 | [`load`](#load) | 静态方法 | A | 加载存储；不存在或无法读取时为空。 |
 | [`update`](#update) | 静态方法 | A | 应用一个排队的更改并保存。 |
 | [`_apply`](#_apply) | 静态方法 | A | 执行一个排队的更新。 |
-| `hide` | 静态方法 | B | 把记录放入全局垃圾箱；已在其中的 id 保留原有的 `hiddenAt`。 |
+| `hide` | 静态方法 | B | 把记录放入全局垃圾箱；已在其中的 id 保留原有的 `hiddenAt`；并取消钉选（1.6.3）。 |
+| `pin` | 静态方法 | B | 在「接下来看什么」上钉选片库卡片，并把它们移出全局垃圾箱（1.6.3）。 |
+| `unpin` | 静态方法 | B | 取消钉选片库卡片（1.6.3）。 |
+| `pinSequels` | 静态方法 | B | 钉选缺失续作卡片，并把它们移出垃圾箱（1.6.3）。 |
+| `unpinSequels` | 静态方法 | B | 取消钉选缺失续作卡片（1.6.3）。 |
+| [`putSequelInfo`](#putsequelinfo) | 静态方法 | A | 保存一部缺失续作抓取到的简介和缩略图（1.6.3）。 |
+| `removeSequelInfo` | 静态方法 | B | 丢弃已不在任何地方显示的续作的抓取资料（1.6.3）。 |
 | `restore` | 静态方法 | B | 把记录从全局垃圾箱中移出。 |
-| `hideSequels` | 静态方法 | B | 把缺失续作卡片放入全局垃圾箱。 |
+| `hideSequels` | 静态方法 | B | 把缺失续作卡片放入全局垃圾箱；自 1.6.3 起还取消其钉选并删除其抓取的资料。 |
 | `restoreSequels` | 静态方法 | B | 把缺失续作卡片从全局垃圾箱中移出。 |
 | [`hideBatch`](#hidebatch) | 静态方法 | A | 一次写入把全局页面当前这一批移入垃圾箱。 |
 | [`hideRelated`](#hiderelated) | 静态方法 | A | 把记录放入某条记录自己的相关推荐垃圾箱。 |
+| `pinRelated` | 静态方法 | B | 钉选某条记录相关推荐列表中的条目，并把它们移出其垃圾箱（1.6.3）。 |
+| `unpinRelated` | 静态方法 | B | 取消钉选某条记录相关推荐列表中的条目（1.6.3）。 |
 | `restoreRelated` | 静态方法 | B | 把记录从某条记录的相关推荐垃圾箱中移出。 |
 | [`putRelated`](#putrelated) | 静态方法 | A | 持久保存某条记录生成的相关推荐列表。 |
 | [`migrateFromInsights`](#migratefrominsights) | 静态方法 | A | 把 1.6.2 之前按设备保存的隐藏列表一次性移入同步的垃圾箱。 |
@@ -73,44 +83,59 @@
 
 ### `static Future<RecommendationData> hideBatch(Iterable<String> ids, Iterable<HiddenSequelEntry> sequels)` <a id="hidebatch"></a>
 - **种类：** `RecommendationStore` 的静态方法
-- **来源：** `lib/features/recommendations/services/recommendation_store.dart`（约第 179 行）
+- **来源：** `lib/features/recommendations/services/recommendation_store.dart`（约第 254 行）
 - **用途：** 把全局页面当前这一批移入垃圾箱。
 - **输入：** `ids` — 显示中的片库卡片；`sequels` — 显示中的缺失续作卡片。
 - **返回：** `Future<RecommendationData>`。
 - **副作用：** 一次写入，一次自动同步通知。
 - **算法：** 用同一个共享的 `hiddenAt` 添加每个 id 和每个续作键，保留
-  已经存在的条目。
+  已经存在的条目。自 1.6.3 起还会取消每个 id 和键的钉选，并删除每部移入垃圾箱的续作的 `sequelInfo`。
 - **用法：** 推荐页的换一批操作。
-- **备注：** 无。
+- **备注：** 页面不把钉选的卡片放进 `ids` 和 `sequels`（1.6.3），因此换一批从不会把钉选的卡片移入垃圾箱；这里的取消钉选
+  只对仍然传入钉选卡片的调用方有意义。
+
+### `static Future<RecommendationData> putSequelInfo(String key, SequelInfo info)` <a id="putsequelinfo"></a>
+- **种类：** `RecommendationStore` 的静态方法
+- **来源：** `lib/features/recommendations/services/recommendation_store.dart`（约第 188 行）
+- **用途：** 保存关于一部缺失续作抓取到的内容（1.6.3）。
+- **输入：** `key` — 来自 `sequelTrashKey` 的去重键；`info`。
+- **返回：** `Future<RecommendationData>`。
+- **副作用：** 除非卡片已在垃圾箱中，否则写入文件。
+- **算法：** 在一次 `update` 中：`hiddenSequels` 含有 `key` 时直接返回；否则设置
+  `sequelInfo[key] = info`。
+- **用法：** 抓取之后由 `SequelInfoService` 调用。
+- **备注：** 正是这项垃圾箱检查，使在用户把卡片移入垃圾箱之后才完成的抓取无法把缩略图放回去。移入垃圾箱的卡片只保留
+  其标签。
 
 ### `static Future<RecommendationData> hideRelated(String animeId, Iterable<String> ids)` <a id="hiderelated"></a>
 - **种类：** `RecommendationStore` 的静态方法
-- **来源：** `lib/features/recommendations/services/recommendation_store.dart`（约第 209 行）
+- **来源：** `lib/features/recommendations/services/recommendation_store.dart`（约第 287 行）
 - **用途：** 把记录放入某条记录自己的相关推荐垃圾箱。
 - **输入：** `animeId` — 哪条记录的列表；`ids` — 相关的记录。
 - **返回：** `Future<RecommendationData>`。
 - **副作用：** 写入文件。
-- **算法：** 把每个 id 加入 `related[animeId].hidden`，然后从其 `items` 中移除这些 id。
+- **算法：** 把每个 id 加入 `related[animeId].hidden`，并将其从该记录的 `pinned` 中移除（1.6.3），然后从其
+  `items` 中移除这些 id。
 - **用法：** 相关推荐卡片的换一批和*不感兴趣*。
 - **备注：** 每条记录的垃圾箱与全局垃圾箱相互独立：在这里移入垃圾箱永远不会让一条记录
   从「接下来看什么」中隐藏。
 
 ### `static Future<RecommendationData> putRelated(String animeId, List<RelatedItem> items, {DateTime? generatedAt})` <a id="putrelated"></a>
 - **种类：** `RecommendationStore` 的静态方法
-- **来源：** `lib/features/recommendations/services/recommendation_store.dart`（约第 241 行）
+- **来源：** `lib/features/recommendations/services/recommendation_store.dart`（约第 353 行）
 - **用途：** 持久保存某条记录生成的相关推荐列表。
 - **输入：** `animeId`；`items`；`generatedAt` — 默认为当前时间（UTC）。
 - **返回：** `Future<RecommendationData>`。
 - **副作用：** 写入文件。
 - **算法：** 用 `items` 和 `generatedAt` 的快照替换 `related[animeId]`，保留
-  现有的垃圾箱和未知键。
+  现有的垃圾箱、钉选（1.6.3）和未知键。
 - **用法：** 相关推荐卡片：列表生成时调用一次，AI 理由到达时以相同的
   `generatedAt` 再调用一次。
-- **备注：** 无。
+- **备注：** 调用方把钉选的条目放在 `items` 的最前面；存储不重新排序。
 
 ### `static Future<bool> migrateFromInsights()` <a id="migratefrominsights"></a>
 - **种类：** `RecommendationStore` 的静态方法
-- **来源：** `lib/features/recommendations/services/recommendation_store.dart`（约第 266 行）
+- **来源：** `lib/features/recommendations/services/recommendation_store.dart`（约第 379 行）
 - **用途：** 把 1.6.0–1.6.1 的*不感兴趣*列表移入同步的全局垃圾箱。
 - **输入：** 无。
 - **返回：** `Future<bool>` — 是否移动了任何内容。

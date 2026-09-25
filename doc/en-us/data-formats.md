@@ -380,7 +380,7 @@ migrates data files, backups, and images.
 | Data | File | Synced | Notes |
 | --- | --- | --- | --- |
 | Anime records | `anime_data.json` | Yes | Per-record by `id` and `modifiedAt`; unknown fields preserved |
-| Recommendation trash bins and related lists | `recommendations.json` | Yes | Since 1.6.2: the global trash, trashed missing-sequel cards, and each record's persisted Related list with its own trash; conflict-free set merge; created only when first needed |
+| Recommendation trash bins and related lists | `recommendations.json` | Yes | Since 1.6.2: the global trash, trashed missing-sequel cards, and each record's persisted Related list with its own trash; since 1.6.3 also pins and each missing sequel's synopsis and cover thumbnail; conflict-free set merge; created only when first needed |
 | Cover images | `images/` | Yes | Referenced-only additive sync by filename |
 | Theme mode | `storage_config.json` | No | Device-specific preference |
 | Locale | `storage_config.json` | No | Device-specific preference |
@@ -424,8 +424,11 @@ after `anime_data.json`, so it syncs, is backed up, is included in ZIP export, a
 `.sync_base/recommendations.json`. Its schema, and why its merge never produces a conflict, are in
 [`features/categories-and-recommendations.md`](features/categories-and-recommendations.md#the-file-recommendationsjson)
 and [`sync.md`](sync.md#the-recommendations-file). It refers to library records by id only; the
-only titles it stores are the database titles of trashed sequels, plus any generated reasons. It is
-not part of `.myanimeitem` share files.
+only titles it stores are the database titles of trashed sequels, plus any generated reasons. Since
+1.6.3 it also holds pins and, per missing sequel still shown, the database's synopsis (at most 600
+characters) and a base64 JPEG cover thumbnail (112 px wide, at most 24 KB) — public data about the
+work, deleted when the card is trashed. The thumbnail is deliberately **not** a file in `images/`,
+whose sync never deletes. It is not part of `.myanimeitem` share files.
 
 ### `storage_config.json`
 

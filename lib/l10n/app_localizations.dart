@@ -3509,6 +3509,18 @@ abstract class AppLocalizations {
   /// **'Sequels not in your library'**
   String get recommendationsTrashSequels;
 
+  /// No description provided for @recommendationsPin.
+  ///
+  /// In en, this message translates to:
+  /// **'Pin'**
+  String get recommendationsPin;
+
+  /// No description provided for @recommendationsUnpin.
+  ///
+  /// In en, this message translates to:
+  /// **'Unpin'**
+  String get recommendationsUnpin;
+
   /// No description provided for @relatedTitle.
   ///
   /// In en, this message translates to:

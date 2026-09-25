@@ -221,6 +221,10 @@ acgsecrets.hk 没有搜索端点。`_searchAcgsecrets` 下载整个季度页面
   仅限桌面的功能，而桌面构建以 `full` flavor 发布，不属于商店/移动端场景。
 - `main.dart` 仅在 `AppFlavor.isFull` 下启动 `MetadataUpdateService`，`management_page.dart` 与
   `settings_page.dart` 也以同样方式门禁其角标与设置项。
+- 自 1.6.3 起，`SequelInfoService` 对缺失续作的关联关系 URL 调用 `fetchByUrl`，以显示其简介和封面缩略图。它的调用方——
+  `recommendations_page.dart` 与 `anime_detail_page.dart`——只在 `AppFlavor.isFull` 下调用它；商店版只显示完整版抓取并同步
+  过来的内容。见
+  [`categories-and-recommendations.md`](categories-and-recommendations.md#缺失续作卡片)。
 
 ## 后台调用方
 

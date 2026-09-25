@@ -12,7 +12,9 @@ by default** and available on every platform; only the optional generated reason
 [Recommendations](#recommendations) below. Since 1.6.2 passed-over recommendations go to a
 **synced trash** that can be reviewed and restored, and each detail page has its own persisted
 **Related** list with its own trash — see [The trash](#the-trash) and
-[Related recommendations on the detail page](#related-recommendations-on-the-detail-page).
+[Related recommendations on the detail page](#related-recommendations-on-the-detail-page). Since
+1.6.3 any card can be **pinned** so a refresh keeps it ([Pinning](#pinning)), and missing-sequel
+cards carry a small cover and a synopsis ([Missing-sequel cards](#missing-sequel-cards)).
 
 The code for categories is [`functions/features/anime/models/anime_category.md`](../functions/features/anime/models/anime_category.md)
 (the taxonomy and genre mapping),
@@ -100,8 +102,8 @@ not personal data: it syncs, it is backed up, and it stays in share files. See
 
 ### Editing
 
-While automatic categories are on, the detail page shows the chips under the header chips, with an
-*Edit categories* chip. It opens a sheet of `FilterChip`s — a dialog instead where the window can
+While automatic categories are on, the detail page shows the chips under the action row, ending in an
+*Edit categories* icon button (a labelled chip through 1.6.2). It opens a sheet of `FilterChip`s — a dialog instead where the window can
 split ([`../adaptive-layout.md`](../adaptive-layout.md)). The editor starts from the effective ids,
 so saving writes them as the user's own list. **Saving is a user edit**: `modifiedAt` is stamped in
 UTC and the record syncs through the normal whole-record merge. *Reset to automatic* (shown only
@@ -186,6 +188,8 @@ and
 [`functions/features/recommendations/services/reason_prompt.md`](../functions/features/recommendations/services/reason_prompt.md),
 [`functions/features/recommendations/services/ai_reason_service.md`](../functions/features/recommendations/services/ai_reason_service.md)
 (AI reasons),
+[`functions/features/recommendations/services/sequel_info_service.md`](../functions/features/recommendations/services/sequel_info_service.md)
+(missing-sequel cover and synopsis, 1.6.3),
 [`functions/features/recommendations/views/recommendations_page.md`](../functions/features/recommendations/views/recommendations_page.md),
 [`functions/features/recommendations/views/recommendation_trash_page.md`](../functions/features/recommendations/views/recommendation_trash_page.md)
 and
@@ -268,10 +272,12 @@ Each AI reason sits under the "Generated on this device — may be wrong" label.
 - **Batch:** at most **10** ranked cards (30 through 1.6.1), then the missing-sequel cards.
 - ***Not interested*** moves a card to the [trash](#the-trash). Through 1.6.1 it wrote the per-device
   `ai_insights.json` and could not be undone; since 1.6.2 it syncs and can be restored.
+- **Pin** (1.6.3, beside *Not interested*) keeps a card through refreshes; see [Pinning](#pinning).
 - **Refresh** (app bar): the whole batch on screen — ranked cards and missing-sequel cards — goes to
   the trash in one write, and the next batch is shown. A snack bar "Moved N to the trash" offers
   **Undo**, which restores exactly that batch. The meaning is deliberate: a batch the user looked at
-  and passed over is "not interested".
+  and passed over is "not interested". Since 1.6.3 pinned cards are left out of the batch, and the
+  button is disabled when every card on screen is pinned.
 - **Trash** (app bar) opens the global trash page.
 - **Missing sequels:** after the ranked cards, one card per sequel the databases list but the
   library lacks — for each completed record that is the last of its series — marked **"Not in
@@ -279,9 +285,49 @@ Each AI reason sits under the "Generated on this device — may be wrong" label.
   only in full builds). Since 1.6.2 each has *Not interested* too, and cards are deduplicated by the
   sequel's canonical database key (`anilist:<id>`, `mal:<id>`, `bgm:<id>`), so one sequel listed at
   two bangumi hosts is one card. These come from relation data fetched by full builds, so a store
-  build shows them only for records that received it through sync.
+  build shows them only for records that received it through sync. Since 1.6.3 they show a cover
+  thumbnail and synopsis; see [Missing-sequel cards](#missing-sequel-cards).
 - The page reloads when a sync changes local data, so a trash change made on another device shows up
   without leaving the page.
+
+### Pinning
+
+Since 1.6.3 every card on "What to watch next" — library and missing-sequel alike — and every row
+of a detail page's Related card has a pin toggle (`push_pin`). Pinning answers "keep this one while I
+look at others":
+
+- **A pinned card survives refresh.** Refresh trashes only the unpinned cards; the pinned ones stay,
+  at the top. On the global page pinned library cards come first in ranked order and count toward
+  the batch of 10; pinned missing-sequel cards come first among the sequel cards.
+- **Pin and trash exclude each other.** Pinning a trashed card restores it; *Not interested* (or ✕)
+  on a pinned card unpins it. Unpinning leaves the card where it is until the next refresh.
+- **A pin is not a promise to show.** A pinned library record that stops being a candidate —
+  finished, dropped, or no longer the earliest unfinished member of its series — is not shown, and
+  its pin stays in the file, harmless like a trash entry for a deleted record.
+- **Pins sync.** They live in `recommendations.json` next to the trash: global pins, pinned sequel
+  keys, and each record's own Related pins. When one device pins a card while another refreshes it
+  away between two syncs, **the pin wins**.
+
+### Missing-sequel cards
+
+Through 1.6.2 a "Not in your library yet" card showed only "Next: <title> (<source>)". Since 1.6.3 it
+is laid out like a library card: a **thumbnail** of the sequel's cover, the title, the "Not in your
+library yet" label, and up to three lines of **synopsis**. The detail page's missing-sequel hint shows
+the same thumbnail and synopsis.
+
+- **Where it comes from.** Full builds fetch the sequel's page by id from its database — AniList,
+  MyAnimeList or bangumi.tv, through the same by-URL refresh the detail page uses — and download its
+  cover. One card at a time, once per card; a failed fetch is retried on the next launch. Store builds
+  never fetch; they show what a full build fetched, because the result syncs.
+- **Small on purpose.** The cover is shrunk to a 112 px wide JPEG (a few kilobytes, capped at 24 KB)
+  and stored base64 inside `recommendations.json`; the synopsis is cleaned and capped at 600
+  characters. The synopsis is in whatever language the database wrote it.
+- **Trashing deletes it.** *Not interested* or Refresh on a sequel card deletes its thumbnail and
+  synopsis; the trash keeps only the title, the database and the record it follows. The same happens
+  to info for a sequel that is no longer missing (it was added to the library) or no longer listed.
+- **Why not `images/`.** Cover files sync additively and are never deleted remotely, so a thumbnail
+  file would outlive its trashed card on every device. A field in the JSON file disappears
+  everywhere with the next sync.
 
 ## The trash
 
@@ -297,7 +343,8 @@ The two are independent: trashing a record from one anime's Related list does no
 
 **The trash page** lists trashed records newest first — cover, title, "Trashed <date>" and
 **Restore** — and, for the global bin, a "Sequels not in your library" section with each trashed
-sequel's title, database and the record it follows. *Restore all* restores everything shown.
+sequel's title, database and the record it follows. A trashed sequel has no thumbnail or synopsis
+any more (1.6.3); a restored one fetches them again in full builds. *Restore all* restores everything shown.
 **Restoring removes the entry from the trash, so it can be recommended again** — it is what "delete
 from the trash" means here. A restored related item is not put back into the stored list; it can
 come back on that card's next refresh.
@@ -341,11 +388,30 @@ Owned by `RecommendationStore`, under `AnimeStorage.getAppDir()`, registered as 
           "aiReason": "Both follow a slow-burn school romance."
         }
       ],
-      "hidden": [{ "id": "<animeId>", "hiddenAt": "2026-09-24T03:00:00.000Z" }]
+      "hidden": [{ "id": "<animeId>", "hiddenAt": "2026-09-24T03:00:00.000Z" }],
+      "pinned": [{ "id": "<animeId>", "pinnedAt": "2026-09-25T03:00:00.000Z" }]
+    }
+  },
+  "pinned": [
+    { "id": "<animeId>", "pinnedAt": "2026-09-25T03:00:00.000Z" }
+  ],
+  "pinnedSequels": [
+    { "key": "anilist:182255", "pinnedAt": "2026-09-25T03:00:00.000Z" }
+  ],
+  "sequelInfo": {
+    "anilist:182255": {
+      "synopsis": "Following the First-Class Mage Exam, the trio…",
+      "coverUrl": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/…",
+      "coverThumb": "<base64 JPEG, 112 px wide>",
+      "fetchedAt": "2026-09-25T03:00:00.000Z"
     }
   }
 }
 ```
+
+The three top-level keys and each record's `pinned` are 1.6.3 additions, **written only when
+non-empty**, so a file that never used them keeps the bytes 1.6.2 wrote. A 1.6.2 build keeps them
+through `extraJson` and simply does not act on them.
 
 - **Synced and backed up.** It rides WebDAV sync, backups and ZIP export like `anime_data.json`.
   A save notifies auto-sync. It is **not** part of `.myanimeitem` share files.
@@ -396,8 +462,10 @@ the databases", "Similar title" — at most three, largest first.
   device — may be wrong" label.
 - **Refresh** (the card's refresh button, or *Show others* in its menu) puts every item on screen into
   **this record's trash**, then generates the next five. With nothing on screen it trashes nothing and
-  simply regenerates, which is how newly added records get in.
-- **✕** on a row trashes that one item; the list shrinks until the next refresh.
+  simply regenerates, which is how newly added records get in. Since 1.6.3 pinned rows are not
+  trashed: they stay at the top with their stored reasons, and only the remaining slots are ranked.
+- **✕** on a row trashes that one item (and unpins it); the list shrinks until the next refresh.
+- **Pin** (1.6.3) on a row keeps it through refreshes; see [Pinning](#pinning).
 - **Trash** in the menu opens this record's own bin.
 - A record deleted from the library drops out of every list without a write.
 - If two devices generate the same record's list between syncs, the newer `generatedAt` wins; the

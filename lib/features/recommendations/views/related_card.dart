@@ -21,7 +21,8 @@ enum _RelatedAction { refresh, trash }
 /// The detail page's "Related" card (1.6.2): up to five library records like
 /// this one, persisted in `recommendations.json` so they are the same on
 /// every visit and every device until the user refreshes. Refresh puts the
-/// shown batch into this record's own trash and generates the next one.
+/// shown batch into this record's own trash and generates the next one;
+/// since 1.6.3 pinned rows are kept.
 class RelatedRecommendationsCard extends ConsumerStatefulWidget {
   /// The record the list is for.
   final Anime anime;
@@ -118,19 +119,30 @@ class _RelatedRecommendationsCardState
   /// Side effects: Writes `recommendations.json` once for the list and once
   /// more if the model wrote reasons; may run the model once.
   /// Notes: Internal helper used within this file only. The list shows at
-  /// once; the reasons fill in when they arrive.
+  /// once; the reasons fill in when they arrive. Since 1.6.3 pinned items
+  /// are kept at the front with their stored reasons, and only the remaining
+  /// slots are ranked anew.
   Future<void> _generate(Set<String> exclude) async {
     if (_busy) return;
     _busy = true;
     try {
+      final stored =
+          (await RecommendationStore.load()).related[widget.anime.id];
+      final kept = keptPinnedItems(stored, {
+        for (final a in widget.library) a.id,
+      });
       final insights = await AiInsightsCache.load();
-      final ranked = RecommendationService.related(
-        widget.anime,
-        widget.library,
-        insights: insights,
-        exclude: exclude,
-      );
-      final items = [
+      final room = RecommendationWeights.relatedBatch - kept.length;
+      final ranked = room <= 0
+          ? const <Recommendation>[]
+          : RecommendationService.related(
+              widget.anime,
+              widget.library,
+              insights: insights,
+              exclude: {...exclude, for (final i in kept) i.id},
+              limit: room,
+            );
+      final fresh = [
         for (final r in ranked)
           RelatedItem(
             r.anime.id,
@@ -138,18 +150,18 @@ class _RelatedRecommendationsCardState
           ),
       ];
       final at = DateTime.now().toUtc();
-      var data = await RecommendationStore.putRelated(
-        widget.anime.id,
-        items,
-        generatedAt: at,
-      );
+      var data = await RecommendationStore.putRelated(widget.anime.id, [
+        ...kept,
+        ...fresh,
+      ], generatedAt: at);
       if (!mounted) return;
       setState(() => _snapshot = data.related[widget.anime.id]);
 
       final reasons = await _aiReasons(ranked, insights);
       if (reasons.isEmpty || !mounted) return;
       data = await RecommendationStore.putRelated(widget.anime.id, [
-        for (final i in items) i.withAiReason(reasons[i.id]),
+        ...kept,
+        for (final i in fresh) i.withAiReason(reasons[i.id]),
       ], generatedAt: at);
       if (!mounted) return;
       setState(() => _snapshot = data.related[widget.anime.id]);
@@ -205,9 +217,13 @@ class _RelatedRecommendationsCardState
   /// Returns: None.
   /// Side effects: Writes `recommendations.json` (synced).
   /// Notes: Internal helper used within this file only. What the card's
-  /// refresh action means.
+  /// refresh action means. Pinned items (1.6.3) are not trashed.
   Future<void> _refresh() async {
-    final shown = [for (final (_, i) in _resolved) i.id];
+    final pinned = _snapshot?.pinned ?? const {};
+    final shown = [
+      for (final (_, i) in _resolved)
+        if (!pinned.containsKey(i.id)) i.id,
+    ];
     final data = await RecommendationStore.hideRelated(widget.anime.id, shown);
     if (!mounted) return;
     await _generate(
@@ -223,6 +239,21 @@ class _RelatedRecommendationsCardState
   /// the next refresh fills it again.
   Future<void> _hide(String id) async {
     final data = await RecommendationStore.hideRelated(widget.anime.id, [id]);
+    if (!mounted) return;
+    setState(() => _snapshot = data.related[widget.anime.id]);
+  }
+
+  /// Purpose: Pin or unpin one related item.
+  /// Inputs: `id`.
+  /// Returns: None.
+  /// Side effects: Writes `recommendations.json` (synced).
+  /// Notes: Internal helper used within this file only (1.6.3). The item
+  /// keeps its place; a pinned item survives the card's refresh.
+  Future<void> _togglePin(String id) async {
+    final pinned = _snapshot?.pinned.containsKey(id) ?? false;
+    final data = pinned
+        ? await RecommendationStore.unpinRelated(widget.anime.id, [id])
+        : await RecommendationStore.pinRelated(widget.anime.id, [id]);
     if (!mounted) return;
     setState(() => _snapshot = data.related[widget.anime.id]);
   }
@@ -325,6 +356,7 @@ class _RelatedRecommendationsCardState
     ThemeData theme,
   ) {
     final reasons = [for (final c in item.reasons) ?decodeRelatedReason(c)];
+    final pinned = _snapshot?.pinned.containsKey(item.id) ?? false;
     return InkWell(
       onTap: () => context.push('/anime/detail/${anime.id}'),
       child: Padding(
@@ -378,6 +410,15 @@ class _RelatedRecommendationsCardState
               ),
             ),
             IconButton(
+              tooltip: pinned
+                  ? l10n.recommendationsUnpin
+                  : l10n.recommendationsPin,
+              isSelected: pinned,
+              icon: const Icon(Icons.push_pin_outlined),
+              selectedIcon: const Icon(Icons.push_pin),
+              onPressed: () => _togglePin(item.id),
+            ),
+            IconButton(
               tooltip: l10n.recommendationsNotInterested,
               icon: const Icon(Icons.close),
               onPressed: () => _hide(item.id),
@@ -387,4 +428,29 @@ class _RelatedRecommendationsCardState
       ),
     );
   }
+}
+
+/// Purpose: Pick the pinned items a regenerated related list must keep.
+/// Inputs: `stored` — the record's current snapshot, if any; `libraryIds`.
+/// Returns: `List<RelatedItem>` — pinned items in their stored order (with
+/// their reasons), then pinned ids the stored list lacks as bare items;
+/// records no longer in the library are left out.
+/// Side effects: None.
+/// Notes: 1.6.3. A pinned id can be missing from the stored list when a sync
+/// took another device's newer list; it is put back rather than lost.
+List<RelatedItem> keptPinnedItems(
+  RelatedSnapshot? stored,
+  Set<String> libraryIds,
+) {
+  if (stored == null || stored.pinned.isEmpty) return const [];
+  final pinned = stored.pinned.keys.where(libraryIds.contains).toSet();
+  final kept = [
+    for (final i in stored.items)
+      if (pinned.contains(i.id)) i,
+  ];
+  final have = {for (final i in kept) i.id};
+  for (final id in stored.pinned.keys.toList()..sort()) {
+    if (pinned.contains(id) && have.add(id)) kept.add(RelatedItem(id));
+  }
+  return kept;
 }

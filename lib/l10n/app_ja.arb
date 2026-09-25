@@ -651,6 +651,8 @@
   "recommendationsTrashedOn": "{date} に移動",
   "@recommendationsTrashedOn": { "placeholders": { "date": { "type": "String" } } },
   "recommendationsTrashSequels": "ライブラリにない続編",
+  "recommendationsPin": "ピン留め",
+  "recommendationsUnpin": "ピン留めを外す",
   "relatedTitle": "関連作品",
   "relatedEmpty": "ライブラリに関連する作品はまだありません。",
   "relatedRefresh": "別の候補を表示",

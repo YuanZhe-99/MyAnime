@@ -217,6 +217,13 @@ order, **anime first**, under the same `.lock`, with its own `.sync_base/recomme
   side with the newer `generatedAt` wins, while its trash still merges as a set. Unknown keys are
   unioned. The module therefore always returns a complete outcome, never reaches the conflict
   dialog, and `autoResolve` stays irrelevant — it is still passed as `false`.
+- **Pins and sequel info (1.6.3)** keep that property. Pins — global, per missing sequel and per
+  Related list — are sets merged exactly like the trash. A missing sequel's fetched synopsis and
+  thumbnail is a cache keyed by the sequel: on both sides the later `fetchedAt` wins, and one
+  removed on one side (by a trash or a prune) stays removed. After the merge two rules are restored:
+  a card that ended up both pinned and trashed — one device pinned it while the other refreshed it
+  away — stays **pinned**, and a trashed sequel loses its info. A 1.6.2 build carries the new keys
+  through unchanged.
 - **Older builds** (1.6.1 and earlier) do not list the module, so they never download, upload or
   delete it; their trash stays in their own `ai_insights.json` until they update.
 - A save through `RecommendationStore` calls `AutoSyncService.notifySaved`, so trashing and restoring

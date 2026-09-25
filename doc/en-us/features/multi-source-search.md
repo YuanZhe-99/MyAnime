@@ -262,6 +262,11 @@ store-reachable caller must gate access explicitly:
   a store/mobile surface.
 - `main.dart` starts `MetadataUpdateService` only under `AppFlavor.isFull`, and `management_page.dart`
   and `settings_page.dart` gate its badge and settings the same way.
+- Since 1.6.3 `SequelInfoService` calls `fetchByUrl` for a missing sequel's relation URL to show its
+  synopsis and cover thumbnail. Its callers — `recommendations_page.dart` and
+  `anime_detail_page.dart` — call it only under `AppFlavor.isFull`; store builds show only what a full
+  build fetched and synced. See
+  [`categories-and-recommendations.md`](categories-and-recommendations.md#missing-sequel-cards).
 
 ## The background caller
 

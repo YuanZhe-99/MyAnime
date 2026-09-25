@@ -1,6 +1,7 @@
 /// The contents of `recommendations.json` (1.6.2): the recommendation trash
-/// bins and each record's persisted related-recommendation snapshot. The file
-/// is synced and backed up as its own module (`lib/app/data_modules.dart`),
+/// bins and each record's persisted related-recommendation snapshot; since
+/// 1.6.3 also the pinned recommendations and the fetched thumbnail and
+/// synopsis of each missing-sequel card. The file is synced and backed up as its own module (`lib/app/data_modules.dart`),
 /// so every class here keeps unknown JSON keys in `extraJson` and writes them
 /// back — an older build must never delete a newer build's data.
 library;
@@ -200,6 +201,154 @@ class HiddenSequelEntry {
   );
 }
 
+/// One pinned recommendation (1.6.3): a library record, or — in
+/// `pinnedSequels` — a missing-sequel card keyed by its dedupe key. A pinned
+/// card survives a refresh and is shown first.
+class PinnedEntry {
+  /// The anime id, or the missing-sequel dedupe key.
+  final String key;
+
+  /// When it was pinned (UTC), if known.
+  final DateTime? pinnedAt;
+
+  /// JSON keys this build does not know.
+  final Map<String, dynamic> extraJson;
+
+  /// Purpose: Create a pin.
+  /// Inputs: `key`, `pinnedAt`, `extraJson`.
+  /// Returns: A new `PinnedEntry`.
+  /// Side effects: None.
+  /// Notes: The same class serves library pins (JSON key `id`) and sequel
+  /// pins (JSON key `key`); `idKey` on read and write picks which.
+  const PinnedEntry(this.key, {this.pinnedAt, this.extraJson = const {}});
+
+  /// Purpose: Read a pin tolerantly.
+  /// Inputs: `json`; `idKey` — `id` for library pins, `key` for sequel pins.
+  /// Returns: `PinnedEntry?` — null without a string key.
+  /// Side effects: None.
+  /// Notes: None.
+  static PinnedEntry? fromJson(Object? json, {String idKey = 'id'}) {
+    if (json is! Map || json[idKey] is! String) return null;
+    return PinnedEntry(
+      json[idKey] as String,
+      pinnedAt: _time(json['pinnedAt']),
+      extraJson: _unknown(json, {idKey, 'pinnedAt'}),
+    );
+  }
+
+  /// Purpose: Serialize the pin.
+  /// Inputs: `idKey` — see [fromJson].
+  /// Returns: `Map<String, dynamic>`.
+  /// Side effects: None.
+  /// Notes: Unknown keys first, known keys over them.
+  Map<String, dynamic> toJson({String idKey = 'id'}) => {
+    ...extraJson,
+    idKey: key,
+    'pinnedAt': ?pinnedAt?.toUtc().toIso8601String(),
+  };
+
+  /// Purpose: Combine the two sides of one pin during a merge.
+  /// Inputs: `other` — the remote side.
+  /// Returns: `PinnedEntry` — the earlier `pinnedAt`, unknown keys unioned
+  /// with this side winning.
+  /// Side effects: None.
+  /// Notes: Both sides agree it is pinned; nothing can conflict.
+  PinnedEntry mergedWith(PinnedEntry other) => PinnedEntry(
+    key,
+    pinnedAt: _earlier(pinnedAt, other.pinnedAt),
+    extraJson: {...other.extraJson, ...extraJson},
+  );
+}
+
+/// What was fetched about one missing sequel (1.6.3): a short synopsis and
+/// a small cover thumbnail, so the "Not in your library yet" card shows more
+/// than a title. Synced with the rest of the file; deleted when the card is
+/// trashed, so the trash keeps only the basic labels.
+class SequelInfo {
+  /// The synopsis the database gave, normalised and capped.
+  final String? synopsis;
+
+  /// The full-size cover URL the thumbnail was made from.
+  final String? coverUrl;
+
+  /// A small JPEG thumbnail, base64-encoded.
+  final String? coverThumb;
+
+  /// When this was fetched (UTC).
+  final DateTime? fetchedAt;
+
+  /// JSON keys this build does not know.
+  final Map<String, dynamic> extraJson;
+
+  /// Purpose: Create sequel info.
+  /// Inputs: see fields.
+  /// Returns: A new `SequelInfo`.
+  /// Side effects: None.
+  /// Notes: Every field is optional: a source may report a synopsis and no
+  /// cover, or the other way round.
+  const SequelInfo({
+    this.synopsis,
+    this.coverUrl,
+    this.coverThumb,
+    this.fetchedAt,
+    this.extraJson = const {},
+  });
+
+  /// Purpose: Read sequel info tolerantly.
+  /// Inputs: `json`.
+  /// Returns: `SequelInfo?` — null when not an object.
+  /// Side effects: None.
+  /// Notes: Non-string fields read as absent.
+  static SequelInfo? fromJson(Object? json) {
+    if (json is! Map) return null;
+    String? s(String k) => json[k] is String ? json[k] as String : null;
+    return SequelInfo(
+      synopsis: s('synopsis'),
+      coverUrl: s('coverUrl'),
+      coverThumb: s('coverThumb'),
+      fetchedAt: _time(json['fetchedAt']),
+      extraJson: _unknown(json, const {
+        'synopsis',
+        'coverUrl',
+        'coverThumb',
+        'fetchedAt',
+      }),
+    );
+  }
+
+  /// Purpose: Serialize the info.
+  /// Inputs: None.
+  /// Returns: `Map<String, dynamic>`.
+  /// Side effects: None.
+  /// Notes: Absent fields are omitted.
+  Map<String, dynamic> toJson() => {
+    ...extraJson,
+    'synopsis': ?synopsis,
+    'coverUrl': ?coverUrl,
+    'coverThumb': ?coverThumb,
+    'fetchedAt': ?fetchedAt?.toUtc().toIso8601String(),
+  };
+
+  /// Purpose: Combine the two sides of one entry during a merge.
+  /// Inputs: `other` — the remote side.
+  /// Returns: `SequelInfo` — the side fetched later (a tie keeps this side),
+  /// with unknown keys unioned, this side winning.
+  /// Side effects: None.
+  /// Notes: The info is a cache of public data, so newer wins.
+  SequelInfo mergedWith(SequelInfo other) {
+    final o = other.fetchedAt;
+    final t = fetchedAt;
+    final newer = o != null && (t == null || o.isAfter(t)) ? other : this;
+    return SequelInfo(
+      synopsis: newer.synopsis,
+      coverUrl: newer.coverUrl,
+      coverThumb: newer.coverThumb,
+      fetchedAt: newer.fetchedAt,
+      extraJson: {...other.extraJson, ...extraJson},
+    );
+  }
+}
+
 /// One item of a persisted related-recommendation list.
 class RelatedItem {
   /// The related record's anime id.
@@ -285,6 +434,10 @@ class RelatedSnapshot {
   /// This record's own trash bin, by anime id.
   final Map<String, HiddenEntry> hidden;
 
+  /// Items pinned in this record's list, by anime id (1.6.3). A pinned item
+  /// survives the card's refresh and is shown first.
+  final Map<String, PinnedEntry> pinned;
+
   /// JSON keys this build does not know.
   final Map<String, dynamic> extraJson;
 
@@ -297,9 +450,11 @@ class RelatedSnapshot {
     this.generatedAt,
     List<RelatedItem>? items,
     Map<String, HiddenEntry>? hidden,
+    Map<String, PinnedEntry>? pinned,
     Map<String, dynamic>? extraJson,
   }) : items = items ?? [],
        hidden = hidden ?? {},
+       pinned = pinned ?? {},
        extraJson = extraJson ?? {};
 
   /// Purpose: Report whether a list has been generated at all.
@@ -318,6 +473,7 @@ class RelatedSnapshot {
       generatedAt == null &&
       items.isEmpty &&
       hidden.isEmpty &&
+      pinned.isEmpty &&
       extraJson.isEmpty;
 
   /// Purpose: Read a snapshot tolerantly.
@@ -336,7 +492,13 @@ class RelatedSnapshot {
           for (final i in items) ?RelatedItem.fromJson(i),
       ],
       hidden: _indexed(hidden, HiddenEntry.fromJson, (e) => e.id),
-      extraJson: _unknown(json, const {'generatedAt', 'items', 'hidden'}),
+      pinned: _indexed(json['pinned'], PinnedEntry.fromJson, (e) => e.key),
+      extraJson: _unknown(json, const {
+        'generatedAt',
+        'items',
+        'hidden',
+        'pinned',
+      }),
     );
   }
 
@@ -344,8 +506,8 @@ class RelatedSnapshot {
   /// Inputs: None.
   /// Returns: `Map<String, dynamic>`.
   /// Side effects: None.
-  /// Notes: The trash is sorted by id so unchanged data writes identical
-  /// bytes; items keep their ranked order. Empty parts are omitted.
+  /// Notes: The trash and the pins are sorted by id so unchanged data writes
+  /// identical bytes; items keep their ranked order. Empty parts are omitted.
   Map<String, dynamic> toJson() => {
     ...extraJson,
     'generatedAt': ?generatedAt?.toUtc().toIso8601String(),
@@ -353,6 +515,10 @@ class RelatedSnapshot {
     if (hidden.isNotEmpty)
       'hidden': [
         for (final id in hidden.keys.toList()..sort()) hidden[id]!.toJson(),
+      ],
+    if (pinned.isNotEmpty)
+      'pinned': [
+        for (final id in pinned.keys.toList()..sort()) pinned[id]!.toJson(),
       ],
   };
 }
@@ -374,6 +540,16 @@ class RecommendationData {
   /// Related recommendations per record, by anime id.
   final Map<String, RelatedSnapshot> related;
 
+  /// Pinned library cards on "What to watch next", by anime id (1.6.3).
+  final Map<String, PinnedEntry> pinned;
+
+  /// Pinned missing-sequel cards, by dedupe key (1.6.3).
+  final Map<String, PinnedEntry> pinnedSequels;
+
+  /// Fetched synopsis and thumbnail per missing sequel, by dedupe key
+  /// (1.6.3).
+  final Map<String, SequelInfo> sequelInfo;
+
   /// JSON keys this build does not know.
   final Map<String, dynamic> extraJson;
 
@@ -387,10 +563,16 @@ class RecommendationData {
     Map<String, HiddenEntry>? hidden,
     Map<String, HiddenSequelEntry>? hiddenSequels,
     Map<String, RelatedSnapshot>? related,
+    Map<String, PinnedEntry>? pinned,
+    Map<String, PinnedEntry>? pinnedSequels,
+    Map<String, SequelInfo>? sequelInfo,
     Map<String, dynamic>? extraJson,
   }) : hidden = hidden ?? {},
        hiddenSequels = hiddenSequels ?? {},
        related = related ?? {},
+       pinned = pinned ?? {},
+       pinnedSequels = pinnedSequels ?? {},
+       sequelInfo = sequelInfo ?? {},
        extraJson = extraJson ?? {};
 
   /// Purpose: Read the file tolerantly.
@@ -421,11 +603,25 @@ class RecommendationData {
             if (e.key is String)
               e.key as String: ?RelatedSnapshot.fromJson(e.value),
       },
+      pinned: _indexed(json['pinned'], PinnedEntry.fromJson, (e) => e.key),
+      pinnedSequels: _indexed(
+        json['pinnedSequels'],
+        (j) => PinnedEntry.fromJson(j, idKey: 'key'),
+        (e) => e.key,
+      ),
+      sequelInfo: {
+        if (json['sequelInfo'] case final Map info)
+          for (final e in info.entries)
+            if (e.key is String) e.key as String: ?SequelInfo.fromJson(e.value),
+      },
       extraJson: _unknown(json, const {
         'version',
         'hidden',
         'hiddenSequels',
         'related',
+        'pinned',
+        'pinnedSequels',
+        'sequelInfo',
       }),
     );
   }
@@ -436,7 +632,9 @@ class RecommendationData {
   /// Side effects: None.
   /// Notes: Every collection is sorted by its key, so unchanged data writes
   /// identical bytes and sync hits its raw-equality fast path. Empty
-  /// snapshots are dropped.
+  /// snapshots are dropped. The 1.6.3 keys (`pinned`, `pinnedSequels`,
+  /// `sequelInfo`) are written only when non-empty, so a file that never
+  /// used them keeps its 1.6.2 bytes.
   Map<String, dynamic> toJson() => {
     ...extraJson,
     'version': version,
@@ -451,6 +649,20 @@ class RecommendationData {
       for (final id in related.keys.toList()..sort())
         if (!related[id]!.isEmpty) id: related[id]!.toJson(),
     },
+    if (pinned.isNotEmpty)
+      'pinned': [
+        for (final id in pinned.keys.toList()..sort()) pinned[id]!.toJson(),
+      ],
+    if (pinnedSequels.isNotEmpty)
+      'pinnedSequels': [
+        for (final k in pinnedSequels.keys.toList()..sort())
+          pinnedSequels[k]!.toJson(idKey: 'key'),
+      ],
+    if (sequelInfo.isNotEmpty)
+      'sequelInfo': {
+        for (final k in sequelInfo.keys.toList()..sort())
+          k: sequelInfo[k]!.toJson(),
+      },
   };
 
   /// Purpose: Read one record's snapshot, creating it when absent.

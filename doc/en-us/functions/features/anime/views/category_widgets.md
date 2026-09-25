@@ -37,7 +37,7 @@ for the feature.
 
 ### `Widget build(BuildContext context)` (`CategoryChips`) <a id="categorychips-build"></a>
 - **Kind:** method of `CategoryChips`
-- **Source:** `lib/features/anime/views/category_widgets.dart` (approx. line 67)
+- **Source:** `lib/features/anime/views/category_widgets.dart` (approx. line 69)
 - **Purpose:** Build the chips.
 - **Inputs:** `context`.
 - **Returns:** A `Wrap`.
@@ -45,11 +45,13 @@ for the feature.
 - **Algorithm:** One `Chip` per effective id; when the origin is `ai`, each chip carries the
   `auto_awesome` sparkle and the `aiGeneratedLabel` tooltip ("Generated on this device — may be
   wrong"); when it is `user`, a `person_outline` icon and the `categoriesYours` tooltip ("Chosen by
-  you"); mapped chips carry neither and no tooltip. No ids → a `categoriesNone` chip. Always ends with an *Edit categories* `ActionChip`
-  calling `onEdit`.
+  you"); mapped chips carry neither and no tooltip. No ids → a `categoriesNone` chip. Every chip
+  uses `VisualDensity.compact`. Always ends with an `edit_outlined` `IconButton` whose tooltip is
+  `categoriesEdit` ("Edit categories"), calling `onEdit`.
 - **Usage:** `_buildHeaderChildren` in [`anime_detail_page.md`](anime_detail_page.md), only while
   automatic categories are on.
-- **Notes:** User and mapped chips look the same.
+- **Notes:** User and mapped chips look the same. Through 1.6.2 the edit action was a labelled
+  `ActionChip`; 1.6.3 made it an icon as part of the detail-page header redesign.
 
 ### `Future<CategoryEditResult?> showCategoryEditor(BuildContext context, {required List<String> initial, required bool hasOverride})` <a id="showcategoryeditor"></a>
 - **Kind:** top-level function

@@ -333,7 +333,7 @@ class AnimeSearchProgress {
 }
 
 class AnimeSearchService {
-  static const userAgent = 'MyAnime/1.6.2 (anime tracker)';
+  static const userAgent = 'MyAnime/1.6.3 (anime tracker)';
 
   /// Maximum results requested from, and kept per, each individual source.
   static const _maxPerSource = 10;

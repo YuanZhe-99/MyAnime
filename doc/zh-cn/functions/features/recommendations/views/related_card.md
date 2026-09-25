@@ -3,7 +3,8 @@
 `RelatedRecommendationsCard`（1.6.2）是详情页的「相关推荐」卡片：至多五条与本作品相似的片库记录，由
 [`RecommendationService.related`](../services/recommendation_service.md#recommendationservice-related)
 排序并**持久保存**在 `recommendations.json` 中，因此在用户换一批之前，每次访问、每台设备上看到的列表都相同。
-换一批会把当前显示的一批放进该记录自己的垃圾箱并生成下一批；每行的 ✕ 把一条移入垃圾箱；菜单打开该记录的垃圾箱。
+换一批会把当前显示的一批放进该记录自己的垃圾箱并生成下一批；每行的 ✕ 把一条移入垃圾箱；菜单打开该记录的垃圾箱。自 1.6.3 起每行都有一个钉选开关：
+钉选的行在换一批时保留在最前。
 详情页只在推荐开启时显示这张卡片。见
 [`../../../../features/categories-and-recommendations.md`](../../../../features/categories-and-recommendations.md#详情页的相关推荐)。
 
@@ -21,10 +22,12 @@
 | [`_aiReasons`](#_aireasons) | 方法 | A | 在端侧模型能回答时请它写理由。 |
 | [`_refresh`](#_refresh) | 方法 | A | 把当前显示的一批移入垃圾箱并生成下一批。 |
 | `_hide` | 方法 | B | 把一条相关记录移入垃圾箱；列表会变短，直到下次换一批。 |
+| `_togglePin` | 方法 | B | 钉选或取消钉选该记录列表中的一条相关推荐（1.6.3）。 |
 | `_openTrash` | 方法 | B | 压栈 `/recommendations/trash?anime=<id>`，然后重新加载。 |
 | [`_resolved`](#_resolved) | getter | A | 把每个已保存的条目与其记录配对。 |
 | [`build`](#build) | 方法 | A | 构建卡片。 |
-| `_row` | 方法 | B | 构建一行：封面、标题、理由标签、带标注的 AI 理由、✕。 |
+| `_row` | 方法 | B | 构建一行：封面、标题、理由标签、带标注的 AI 理由、钉选开关（1.6.3）、✕。 |
+| [`keptPinnedItems`](#keptpinneditems) | 顶层函数 | A | 挑出重新生成的列表必须保留的钉选条目（1.6.3）。 |
 
 `_RelatedAction`（`refresh`、`trash`）是菜单的私有枚举，没有注释。
 
@@ -32,7 +35,7 @@
 
 ### `Future<void> _load()` <a id="_load"></a>
 - **种类：** `_RelatedRecommendationsCardState` 的方法
-- **来源：** `lib/features/recommendations/views/related_card.dart`（约第 104 行）
+- **来源：** `lib/features/recommendations/views/related_card.dart`（约第 105 行）
 - **用途：** 显示已保存的列表，或生成一个。
 - **输入：** 无。
 - **返回：** 无。
@@ -43,21 +46,24 @@
 
 ### `Future<void> _generate(Set<String> exclude)` <a id="_generate"></a>
 - **种类：** `_RelatedRecommendationsCardState` 的方法
-- **来源：** `lib/features/recommendations/views/related_card.dart`（约第 122 行）
+- **来源：** `lib/features/recommendations/views/related_card.dart`（约第 125 行）
 - **用途：** 生成并持久保存一个新列表。
 - **输入：** `exclude` — 该记录的垃圾箱。
 - **返回：** 无。
 - **副作用：** 为列表写入一次 `recommendations.json`，模型写出理由时再写一次；可能运行一次模型。
-- **算法：** 1) `AiInsightsCache.load()` 取得 AI 分类。2)
-  `RecommendationService.related(anime, library, insights:, exclude:)`。3) 用 `encodeRelatedReason` 编码每条理由，
-  以同一个 `generatedAt` 调用 `putRelated`；显示它。4) `_aiReasons`；有理由返回时，填好 `aiReason`、以相同的
+- **算法：** 1)（1.6.3）加载已保存的快照，取
+  [`keptPinnedItems`](#keptpinneditems)。2) `AiInsightsCache.load()` 取得 AI 分类。3)
+  `RecommendationService.related(anime, library, insights:, exclude: trash ∪ pinned ids, limit: 5 −
+  pinned count)`，钉选已占满列表时跳过。4) 用 `encodeRelatedReason` 编码每条理由，以同一个 `generatedAt` 对钉选条目
+  加新条目调用 `putRelated`；显示它。5) 只对新条目调用 `_aiReasons`；有理由返回时，填好 `aiReason`、以相同的
   `generatedAt` 再次调用 `putRelated`。
 - **用法：** `_load`、`_refresh`。
 - **备注：** 由 `_busy` 保护，因此生成期间的同步重新加载不会再启动一次生成。
+  钉选条目保留其已保存的理由和 AI 理由。
 
 ### `Future<Map<String, String>> _aiReasons(List<Recommendation> ranked, AiInsights insights)` <a id="_aireasons"></a>
 - **种类：** `_RelatedRecommendationsCardState` 的方法
-- **来源：** `lib/features/recommendations/views/related_card.dart`（约第 167 行）
+- **来源：** `lib/features/recommendations/views/related_card.dart`（约第 179 行）
 - **用途：** 取得至多三条生成的理由。
 - **输入：** `ranked`、`insights`。
 - **返回：** 番剧 id 到理由的映射；跳过时为空。
@@ -70,18 +76,32 @@
 
 ### `Future<void> _refresh()` <a id="_refresh"></a>
 - **种类：** `_RelatedRecommendationsCardState` 的方法
-- **来源：** `lib/features/recommendations/views/related_card.dart`（约第 209 行）
+- **来源：** `lib/features/recommendations/views/related_card.dart`（约第 221 行）
 - **用途：** 略过当前显示的一批。
 - **输入：** 无。
 - **返回：** 无。
 - **副作用：** 写入 `recommendations.json`（会同步）。
-- **算法：** `hideRelated(id, shownIds)`，然后以更新后的垃圾箱调用 `_generate`。
+- **算法：** 对显示中**未钉选**的 id（1.6.3）调用 `hideRelated(id, shownIds)`，然后
+  以更新后的垃圾箱调用 `_generate`。
 - **用法：** 标题行的换一批按钮和菜单中的*换一批*。
-- **备注：** 没有显示任何条目时，它不移入任何东西、只是重新生成，上次生成列表之后新增的记录就是这样出现的。
+- **备注：** 没有显示任何条目时，它不移入任何东西、只是重新生成，上次生成列表之后新增的记录就是这样出现的。钉选的行会保留，
+  并保持在最前的位置。
+
+### `List<RelatedItem> keptPinnedItems(RelatedSnapshot? stored, Set<String> libraryIds)` <a id="keptpinneditems"></a>
+- **种类：** 顶层函数
+- **来源：** `lib/features/recommendations/views/related_card.dart`（约第 441 行）
+- **用途：** 挑出重新生成的相关推荐列表必须保留的钉选条目（1.6.3）。
+- **输入：** `stored` — 该记录当前的快照（如有）；`libraryIds`。
+- **返回：** `List<RelatedItem>` — 按保存顺序排列、带其理由的钉选条目，然后是已保存列表中缺少的钉选 id，作为只含 id 的
+  条目（按 id 排序）；不在片库中的记录被略去。
+- **副作用：** 无。
+- **算法：** 用片库中存在的钉选 id 过滤 `stored.items`；把这些 id 中剩下的作为 `RelatedItem(id)` 追加。
+- **用法：** `_generate`；`test/recommendation_pins_test.dart`。
+- **备注：** 当一次同步采用了另一台设备较新的列表时，某个钉选 id 可能不在已保存的列表中；它会被放回，而不是丢失。
 
 ### `List<(Anime, RelatedItem)> get _resolved` <a id="_resolved"></a>
 - **种类：** `_RelatedRecommendationsCardState` 的 getter
-- **来源：** `lib/features/recommendations/views/related_card.dart`（约第 246 行）
+- **来源：** `lib/features/recommendations/views/related_card.dart`（约第 277 行）
 - **用途：** 把已保存的 id 变成行。
 - **输入：** 无。
 - **返回：** 记录仍存在且未移入垃圾箱的条目，按保存的顺序。
@@ -92,7 +112,7 @@
 
 ### `Widget build(BuildContext context)` <a id="build"></a>
 - **种类：** `_RelatedRecommendationsCardState` 的方法
-- **来源：** `lib/features/recommendations/views/related_card.dart`（约第 263 行）
+- **来源：** `lib/features/recommendations/views/related_card.dart`（约第 294 行）
 - **用途：** 构建卡片。
 - **输入：** `context`。
 - **返回：** 首次加载前什么也不返回，之后返回一个 `Card`。

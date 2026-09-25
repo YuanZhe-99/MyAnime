@@ -63,7 +63,9 @@ class CategoryChips extends StatelessWidget {
   /// Inputs: `context`.
   /// Returns: A `Wrap`.
   /// Side effects: None.
-  /// Notes: None.
+  /// Notes: Since 1.6.3 the chips are compact and *Edit categories* is a
+  /// small icon button at the end of the row (its label is the tooltip),
+  /// part of the detail-page header redesign.
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
@@ -73,25 +75,34 @@ class CategoryChips extends StatelessWidget {
       _ => (null, null),
     };
     return Wrap(
-      spacing: 8,
+      spacing: 6,
       runSpacing: 4,
       crossAxisAlignment: WrapCrossAlignment.center,
       children: [
         for (final id in categories.ids)
           if (tip == null)
-            Chip(label: Text(categoryLabel(id, l10n)))
+            Chip(
+              visualDensity: VisualDensity.compact,
+              label: Text(categoryLabel(id, l10n)),
+            )
           else
             Tooltip(
               message: tip,
               child: Chip(
+                visualDensity: VisualDensity.compact,
                 avatar: Icon(icon, size: 16),
                 label: Text(categoryLabel(id, l10n)),
               ),
             ),
-        if (categories.ids.isEmpty) Chip(label: Text(l10n.categoriesNone)),
-        ActionChip(
-          avatar: const Icon(Icons.edit_outlined, size: 16),
-          label: Text(l10n.categoriesEdit),
+        if (categories.ids.isEmpty)
+          Chip(
+            visualDensity: VisualDensity.compact,
+            label: Text(l10n.categoriesNone),
+          ),
+        IconButton(
+          tooltip: l10n.categoriesEdit,
+          visualDensity: VisualDensity.compact,
+          icon: const Icon(Icons.edit_outlined, size: 18),
           onPressed: onEdit,
         ),
       ],

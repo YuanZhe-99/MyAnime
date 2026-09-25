@@ -206,6 +206,10 @@ Not copied to the other repos — no other app has these.
 | restore (from the trash) | 恢复 | 从垃圾箱中移出，使其可以再次被推荐；zh-TW 用「還原」，ja 用「戻す」 |
 | refresh (recommendations) | 换一批 | 把当前显示的一批移入垃圾箱，再显示下一批；与资料库信息的「刷新」不同，勿混用 |
 | related recommendations | 相关推荐 | 详情页上与该作品相似的片库内作品，持久保存直到刷新；ja 用「関連作品」 |
+| pin (a recommendation) | 钉选 | 1.6.3 起：让一张推荐卡片在「换一批」时保留并排在最前；取消为「取消钉选」。zh-TW 用「釘選」，ja 用「ピン留め」。勿译成「置顶」（那暗示排序而非保留）或「收藏」 |
+| sequel info | 续作资料 | 1.6.3 起：缺失续作卡片上从资料库取得的简介与封面缩略图，同步保存，移入垃圾箱时删除 |
+| thumbnail | 缩略图 | 缩小后的封面，内嵌在 `recommendations.json` 中；zh-TW 用「縮圖」，ja 用「サムネイル」 |
+| info line / action row (detail page) | 信息行 / 操作行 | 1.6.3 起详情页标题下方的两行：一行纯文字的季标签·长度·星期·时间，一行按钮 |
 | series view (Manage) | 按系列查看 | 管理页的另一种布局：每个系列一行、可展开成员；与「按季度查看」相对 |
 | season label | 季标签 | `Anime.season` 的自由文本，如 `Season 2`、`第二季`；勿写成「季度标签」，「季度」专指播出档期（quarter） |
 | default season label | 默认季标签 | `Season 1` 或空；自 1.6.1 起只有它会按标题自动改写为 `Season N` |

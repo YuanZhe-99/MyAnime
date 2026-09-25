@@ -173,6 +173,35 @@ void main() {
     });
   });
 
+  testWidgets('a pinned card survives refresh', (tester) async {
+    await pump(tester, OnDeviceAiService(backend: FakeBackend()));
+    expect(find.text('Frieren Season 2'), findsOneWidget);
+
+    await tester.runAsync(() async {
+      await tester.tap(find.byIcon(Icons.push_pin_outlined));
+    });
+    await settleIo(tester);
+    expect(find.byIcon(Icons.push_pin), findsOneWidget);
+    final stored = await tester.runAsync(RecommendationStore.load);
+    expect(stored!.pinned.keys, ['s2']);
+
+    // Everything shown is pinned, so there is nothing to refresh away.
+    final refresh = tester.widget<IconButton>(
+      find.widgetWithIcon(IconButton, Icons.refresh),
+    );
+    expect(refresh.onPressed, isNull);
+
+    await tester.runAsync(() async {
+      await tester.tap(find.byIcon(Icons.push_pin));
+    });
+    await settleIo(tester);
+    final after = await tester.runAsync(RecommendationStore.load);
+    expect(after!.pinned, isEmpty);
+    await tester.runAsync(() async {
+      if (storeFile().existsSync()) storeFile().deleteSync();
+    });
+  });
+
   testWidgets('the trash lists a trashed record and restores it', (
     tester,
   ) async {
