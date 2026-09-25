@@ -29,7 +29,8 @@ The series card (1.6.0, `SeriesCard` in [`series_widgets.md`](series_widgets.md)
 prev/next row in the same place in `_buildDetailChildren`, so in the two-pane layout it lands in the
 right pane. It appears only when the record's series has at least two members; the prev/next buttons
 below it, now driven by the series order, sit in a `Wrap` so they stack rather than overflow on a
-narrow phone. When the record belongs to no series — including a standalone one — the card is
+narrow phone. Since 1.6.1 a member row and the prev/next buttons `context.push` the other record's
+detail page rather than `context.go` to it, so back returns to the record the user came from. When the record belongs to no series — including a standalone one — the card is
 absent and an app-bar link menu (*Link to series…*, *Add next season*, and *Let the app decide* when
 the record carries a `seriesLink`) reaches the same actions. Directly above the series card sits the
 missing-sequel hint (1.6.0 M2): a card reading "Next: <title> (<source>)" when a database lists a
@@ -57,6 +58,7 @@ list read correctly whether it follows the progress bar or opens the right pane.
 | `AnimeDetailPage.createState` | method (`AnimeDetailPage`) | B | Create the mutable state object for this widget. |
 | `_AnimeDetailPageState.initState` | method (`_AnimeDetailPageState`) | B | Trigger the first data load. |
 | [`_load`](#_load) | method (`_AnimeDetailPageState`) | A | Load this anime and build the series index to find the series it belongs to. |
+| [`didUpdateWidget`](#didupdatewidget) | method (`_AnimeDetailPageState`) | A | Reload when the page is rebuilt for a different record. |
 | [`_editCategories`](#_editcategories) | method (`_AnimeDetailPageState`) | A | Let the user set this record's categories. |
 | [`_addMissingSequel`](#_addmissingsequel) | method (`_AnimeDetailPageState`) | A | Open the create page for a sequel the databases list but the library lacks. |
 | [`_runSeriesAction`](#_runseriesaction) | method (`_AnimeDetailPageState`) | A | Run one of the series card's (or the app-bar link menu's) actions. |
@@ -91,16 +93,18 @@ list read correctly whether it follows the progress bar or opens the right pane.
 
 ### `Future<void> _load()` <a id="_load"></a>
 - **Kind:** method of `_AnimeDetailPageState`
-- **Source:** `lib/features/anime/views/anime_detail_page.dart` (approx. line 70)
+- **Source:** `lib/features/anime/views/anime_detail_page.dart` (approx. line 89)
 - **Purpose:** Load the anime identified by `widget.animeId` and the series it belongs to.
 - **Inputs:** None (`widget.animeId` is read from the enclosing widget).
 - **Returns:** `Future<void>`.
-- **Side effects:** Calls `AnimeStorage.load()`, `AnimeStorage.getAutoCategoriesEnabled()` and, only
+- **Side effects:** Calls `AnimeStorage.loadFixingSeasonLabels(seasonLabelFixups)` (1.6.1), which may
+  rewrite default season labels without touching `modifiedAt`, `AnimeStorage.getAutoCategoriesEnabled()` and, only
   while that and on-device AI (`AnimeStorage.getOnDeviceAiEnabled()`) are both on,
   `AiInsightsCache.load()`; `setState`s `_anime`, `_seriesIndex`, `_series`,
-  `_missingSequel`, `_categoriesOn` and `_categories`. Writes nothing.
+  `_missingSequel`, `_categoriesOn` and `_categories`. Writes nothing else.
 - **Algorithm:**
-  1. Await `AnimeStorage.load()` and find the record whose `id == widget.animeId`.
+  1. Await [`AnimeStorage.loadFixingSeasonLabels`](../services/anime_storage.md#loadfixingseasonlabels)`(seasonLabelFixups)`
+     and find the record whose `id == widget.animeId`.
   2. Build a [`SeriesIndex`](../services/series_service.md#seriesindex-build) over the whole
      library and ask it for the record's series.
   3. `setState` with the record, the index, and the series — but only when that series has at
@@ -125,7 +129,20 @@ list read correctly whether it follows the progress bar or opens the right pane.
   never found a sequel whose title differed at all. It no longer compares strings: order comes from
   the series index (explicit `order`, then `firstAirDate`, season ordinal, `createdAt`, `id`), and
   the old identical-title rule survives only as one of the index's grouping edges. See
-  [`../../../../features/series-linking.md`](../../../../features/series-linking.md).
+  [`../../../../features/series-linking.md`](../../../../features/series-linking.md). Since 1.6.1
+  it loads through `loadFixingSeasonLabels`, so a record whose titles name a later season shows
+  `Season N` instead of the default `Season 1`.
+
+### `void didUpdateWidget(covariant AnimeDetailPage oldWidget)` <a id="didupdatewidget"></a>
+- **Kind:** method of `_AnimeDetailPageState` (Flutter lifecycle override)
+- **Source:** `lib/features/anime/views/anime_detail_page.dart` (approx. line 76)
+- **Purpose:** Reload when the page is rebuilt for a different record.
+- **Inputs:** `oldWidget`.
+- **Returns:** None.
+- **Side effects:** Calls [`_load`](#_load) when `animeId` changed.
+- **Notes:** Added in 1.6.1. The `/anime/detail/:id` route keys the page by `ValueKey(id)`
+  ([`../../../app/router.md`](../../../app/router.md)), so this is a safety net: before 1.6.1,
+  `context.go` between seasons reused one State and left the first-opened record on screen.
 
 ### `Future<void> _editCategories()` <a id="_editcategories"></a>
 - **Kind:** method of `_AnimeDetailPageState`
@@ -185,7 +202,7 @@ list read correctly whether it follows the progress bar or opens the right pane.
   SeriesCard(
     series: series,
     current: anime,
-    onOpen: (a) => context.go('/anime/detail/${a.id}'),
+    onOpen: (a) => context.push('/anime/detail/${a.id}'),
     onAction: _runSeriesAction,
   ),
   ```

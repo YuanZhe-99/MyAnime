@@ -10,7 +10,7 @@
 - **单栏** — 一个 `ListView`：封面，然后是信息块（日文标题、标签、进度条、`已看 / 总数`、评分／资料库／存档卡片、备注、系列卡片与上下季导航），最后是剧集列表。这就是原本的布局，未作改动。
 - **双栏** — 一个 `Row`。左栏定宽且占满高度，容纳从封面到观看进度标签的内容，封面尺寸由 `detailCoverSize` 按剩余高度算出。右栏是独立滚动的 `ListView`，容纳从卡片往下的全部内容，包括系列卡片和剧集列表。
 
-系列卡片（1.6.0，[`series_widgets.md`](series_widgets.md) 中的 `SeriesCard`）在 `_buildDetailChildren` 中取代了原来的上一季/下一季行，位置不变，因此在双栏布局中它落在右栏。只有记录所属系列至少有两个成员时才会出现；其下方的上一季/下一季按钮现在由系列顺序驱动，放在 `Wrap` 中，窄屏手机上会换行堆叠而不会溢出。记录不属于任何系列（包括独立（不归入系列）的记录）时，卡片不出现，改由应用栏的关联菜单（*关联到系列…*、*添加下一季*，记录带 `seriesLink` 时还有*交给应用自动判断*）提供相同操作。系列卡片正上方是缺失续作提示（1.6.0 M2）：当资料库列出了系列最后一个成员的某部续作、而片库中没有它时，显示一张写着「下一部：<标题>（<来源>）」的卡片。与系列卡片不同，记录不在任何系列中时它也会出现。见 [`../../../../features/series-linking.md`](../../../../features/series-linking.md)。
+系列卡片（1.6.0，[`series_widgets.md`](series_widgets.md) 中的 `SeriesCard`）在 `_buildDetailChildren` 中取代了原来的上一季/下一季行，位置不变，因此在双栏布局中它落在右栏。只有记录所属系列至少有两个成员时才会出现；其下方的上一季/下一季按钮现在由系列顺序驱动，放在 `Wrap` 中，窄屏手机上会换行堆叠而不会溢出。自 1.6.1 起，成员行和上一季/下一季按钮用 `context.push` 打开另一条记录的详情页，而不是 `context.go` 过去，因此返回会回到用户来时的记录。记录不属于任何系列（包括独立（不归入系列）的记录）时，卡片不出现，改由应用栏的关联菜单（*关联到系列…*、*添加下一季*，记录带 `seriesLink` 时还有*交给应用自动判断*）提供相同操作。系列卡片正上方是缺失续作提示（1.6.0 M2）：当资料库列出了系列最后一个成员的某部续作、而片库中没有它时，显示一张写着「下一部：<标题>（<来源>）」的卡片。与系列卡片不同，记录不在任何系列中时它也会出现。见 [`../../../../features/series-linking.md`](../../../../features/series-linking.md)。
 
 自动分类开启时（1.6.0 M4），`_buildHeaderChildren` 会在标签与进度条之间加一行分类标签（[`category_widgets.md`](category_widgets.md) 中的 `CategoryChips`），因此在双栏布局中它们留在左栏。其中的编辑标签打开分类编辑器。见 [`../../../../features/categories-and-recommendations.md`](../../../../features/categories-and-recommendations.md)。
 
@@ -24,6 +24,7 @@
 | `AnimeDetailPage.createState` | 方法（`AnimeDetailPage`） | B | 为此组件创建可变状态对象。 |
 | `_AnimeDetailPageState.initState` | 方法（`_AnimeDetailPageState`） | B | 触发首次数据加载。 |
 | [`_load`](#_load) | 方法（`_AnimeDetailPageState`） | A | 加载此动画并构建系列分组，找到它所属的系列。 |
+| [`didUpdateWidget`](#didupdatewidget) | 方法（`_AnimeDetailPageState`） | A | 页面为另一条记录重建时重新加载。 |
 | [`_editCategories`](#_editcategories) | 方法（`_AnimeDetailPageState`） | A | 让用户设置本记录的分类。 |
 | [`_addMissingSequel`](#_addmissingsequel) | 方法（`_AnimeDetailPageState`） | A | 为资料库列出、但片库中没有的续作打开新建页。 |
 | [`_runSeriesAction`](#_runseriesaction) | 方法（`_AnimeDetailPageState`） | A | 运行系列卡片（或应用栏关联菜单）中的某个操作。 |
@@ -58,13 +59,13 @@
 
 ### `Future<void> _load()` <a id="_load"></a>
 - **种类：** `_AnimeDetailPageState` 的方法
-- **来源：** `lib/features/anime/views/anime_detail_page.dart`（约第 70 行）
+- **来源：** `lib/features/anime/views/anime_detail_page.dart`（约第 89 行）
 - **用途：** 加载 `widget.animeId` 标识的动画及其所属的系列。
 - **输入：** 无（`widget.animeId` 从外层组件读取）。
 - **返回：** `Future<void>`。
-- **副作用：** 调用 `AnimeStorage.load()`、`AnimeStorage.getAutoCategoriesEnabled()`，仅在后者与端侧 AI（`AnimeStorage.getOnDeviceAiEnabled()`）都开启时调用 `AiInsightsCache.load()`；`setState` `_anime`、`_seriesIndex`、`_series`、`_missingSequel`、`_categoriesOn` 和 `_categories`。不写入任何内容。
+- **副作用：** 调用 `AnimeStorage.loadFixingSeasonLabels(seasonLabelFixups)`（1.6.1，可能在不改动 `modifiedAt` 的情况下改写默认季标签）、`AnimeStorage.getAutoCategoriesEnabled()`，仅在后者与端侧 AI（`AnimeStorage.getOnDeviceAiEnabled()`）都开启时调用 `AiInsightsCache.load()`；`setState` `_anime`、`_seriesIndex`、`_series`、`_missingSequel`、`_categoriesOn` 和 `_categories`。不写入其他任何内容。
 - **算法：**
-  1. Await `AnimeStorage.load()` 并找 `id == widget.animeId` 的记录。
+  1. Await [`AnimeStorage.loadFixingSeasonLabels`](../services/anime_storage.md#loadfixingseasonlabels)`(seasonLabelFixups)` 并找 `id == widget.animeId` 的记录。
   2. 在整个片库上构建 [`SeriesIndex`](../services/series_service.md#seriesindex-build)，向它查询该记录的系列。
   3. 用记录、索引和系列 `setState`——但只在该系列至少有两个成员时；否则 `_series` 为 `null`，不显示系列卡片。同时把 [`missingSequelFor`](../services/series_service.md#missingsequelfor) 的结果存为 `_missingSequel`，由它驱动缺失续作提示。
   4. 把自动分类开关存为 `_categoriesOn`，把记录的 [`resolveCategories`](../../categories/services/category_service.md#resolvecategories) 结果（读取了 AI 缓存时带上缓存）存为 `_categories`。
@@ -77,7 +78,16 @@
   }
   ```
   （`_AnimeDetailPageState.initState`，同一文件；编辑/删除/剧集操作后也调用它刷新页面）
-- **备注：** 1.6.0 之前，这里匹配 `displayTitle` 完全相同的记录，并用普通 `String.compareTo` 比较它们的 `season` 标签，结果把 `"Season 10"` 排在 `"Season 2"` 之前，而且标题稍有不同的续作永远找不到。现在不再比较字符串：顺序来自系列分组（显式 `order`，然后 `firstAirDate`、季数序数、`createdAt`、`id`），旧的相同标题规则只作为系列分组的一种边保留下来。见 [`../../../../features/series-linking.md`](../../../../features/series-linking.md)。
+- **备注：** 1.6.0 之前，这里匹配 `displayTitle` 完全相同的记录，并用普通 `String.compareTo` 比较它们的 `season` 标签，结果把 `"Season 10"` 排在 `"Season 2"` 之前，而且标题稍有不同的续作永远找不到。现在不再比较字符串：顺序来自系列分组（显式 `order`，然后 `firstAirDate`、季数序数、`createdAt`、`id`），旧的相同标题规则只作为系列分组的一种边保留下来。见 [`../../../../features/series-linking.md`](../../../../features/series-linking.md)。自 1.6.1 起它经 `loadFixingSeasonLabels` 加载，因此标题指明后续季数的记录显示 `Season N`，而不是默认的 `Season 1`。
+
+### `void didUpdateWidget(covariant AnimeDetailPage oldWidget)` <a id="didupdatewidget"></a>
+- **种类：** `_AnimeDetailPageState` 的方法（Flutter 生命周期重写）
+- **来源：** `lib/features/anime/views/anime_detail_page.dart`（约第 76 行）
+- **用途：** 页面为另一条记录重建时重新加载。
+- **输入：** `oldWidget`。
+- **返回：** 无。
+- **副作用：** `animeId` 改变时调用 [`_load`](#_load)。
+- **备注：** 1.6.1 新增。`/anime/detail/:id` 路由以 `ValueKey(id)` 为页面设置 key（[`../../../app/router.md`](../../../app/router.md)），因此这只是一道保险：1.6.1 之前，在各季之间 `context.go` 会复用同一个 State，屏幕上一直停留在最先打开的记录。
 
 ### `Future<void> _editCategories()` <a id="_editcategories"></a>
 - **种类：** `_AnimeDetailPageState` 的方法
@@ -122,7 +132,7 @@
   SeriesCard(
     series: series,
     current: anime,
-    onOpen: (a) => context.go('/anime/detail/${a.id}'),
+    onOpen: (a) => context.push('/anime/detail/${a.id}'),
     onAction: _runSeriesAction,
   ),
   ```

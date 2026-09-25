@@ -9,7 +9,7 @@ the `full`/`store` flavor split.
 - `bangumi.tv` — v0 search API (`POST /v0/search/subjects`).
 - MyAnimeList — via Jikan v4.
 - AniList — GraphQL API.
-- `acgsecrets.hk` — seasonal page JSON-LD.
+- `acgsecrets.hk` — seasonal page JSON-LD; see [acgsecrets.hk season pages](#acgsecretshk-season-pages).
 - `filmarks.com` — HTML scraping.
 - `anime1.me` — watch-URL lookup only, not metadata; since 1.5.7 it lives in its own service and
   matches against the site's series index — see [`watch-url-lookup.md`](watch-url-lookup.md).
@@ -118,11 +118,42 @@ title cleared the relevance threshold. It never recurses — there is exactly on
 worst case roughly doubles latency.
 
 Results are then deduplicated by `sourceUrl` (falling back to a title) and sorted by descending
-relevance.
+relevance (`_combine`).
+
+**Results are handed out as they arrive (1.6.1).** `searchAll` takes an optional `onResults`
+callback. Each time a source answers with results — in either round — the service re-runs
+`_combine` over everything received so far and passes the list to `onResults`. The order depends
+only on the results, never on which source answered first, and the final returned list equals the
+last list passed to `onResults`. Before 1.6.1 nothing was returned until every source of both
+rounds had finished, so one slow source held back every result.
 
 **Results are not merged across sources.** The same show appearing once from AniList and once from
 bangumi.tv is deliberate: the user picks which source to take metadata from, and merging would
 remove that choice.
+
+## acgsecrets.hk season pages
+
+acgsecrets.hk has no search endpoint. `_searchAcgsecrets` downloads whole season pages
+(`https://acgsecrets.hk/bangumi/<YYYYMM>/`) and fuzzy-matches the query against every entry's
+`name` and `alternateName` locally, keeping entries scoring at least 0.3.
+
+- **Seasons searched** (`acgsecretsSeasons`): the current season, the next one (shows added before
+  they air), then the two before the current one (shows caught up on late). Equal scores are broken
+  in that order.
+- **Parallel, per page** — every page is fetched at once with its own 15 s timeout. One page
+  failing only loses that season; the source counts as failed only when every page failed.
+- **Cached** — a parsed page is kept in memory for 30 minutes (`_acgsecretsPages`), including the
+  in-flight download, so round two, repeated searches and two searches started together reuse it.
+  A failed load is not cached. The pages are about 2.6 MB each and take the server 6–9 s to
+  generate, which is why this matters.
+- **Tolerant parsing** (`parseAcgsecretsPage`) — each JSON-LD entry is read on its own.
+  `numberOfEpisodes` may be a number or a numeric string, and `alternateName` a string or a list.
+
+Through 1.6.0 the pages were fetched one after another, only the current and previous seasons were
+searched, and one `try` wrapped the whole entry list. When the site began sending
+`"numberOfEpisodes": "19"` as a string, the failed cast discarded every later entry on that page, so
+the source looked empty. That in turn triggered round two, which downloaded both pages again: up to
+about a minute for nothing.
 
 ## Relevance scoring
 
@@ -160,6 +191,13 @@ status, duration, alternate titles, and the source's score) is a single checkbox
 round starts and again as each source answers. The dialog binds it to a determinate bar plus one chip
 per source: a spinner while pending, a tick with a result count once it lands, an error icon when it
 threw.
+
+Until the first results arrive, the bar and chips fill the dialog. From then on (1.6.1) they shrink
+to a strip above the result list, which is already usable — sortable, filterable, tappable — while
+the remaining sources finish. When a source's results land, `_runRound` reports them through
+`onSourceDone` before the progress snapshot, so a listener never sees a count without the results.
+An error after partial results keeps the results; only an empty list shows the error text. A
+generation counter in the dialog drops callbacks from an older search.
 
 This exists because a search can legitimately take about **half a minute** — every source has its own
 10–15 second timeout, and sources that come back empty are queried a second time with titles

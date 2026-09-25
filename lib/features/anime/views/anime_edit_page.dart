@@ -6,6 +6,7 @@ import '../../../app/flavor.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../../shared/services/image_service.dart';
 import '../../../shared/utils/detail_layout.dart';
+import '../../../shared/utils/season_label.dart';
 import '../models/anime.dart';
 import '../services/anime1_service.dart';
 import 'anime1_labels.dart';
@@ -83,6 +84,11 @@ class _AnimeEditPageState extends State<AnimeEditPage> {
   bool _autoSearched = false;
   Anime? _existing;
 
+  /// The season label this form last derived from the titles, or null when
+  /// the field holds anything else. While the field still shows this value
+  /// (or the default), it keeps following the titles.
+  String? _seasonFromTitles;
+
   /// Public metadata pulled from external databases. Edited only by applying a
   /// search result, never typed by hand, so it has no form controller.
   AnimeExternalMeta? _externalMeta;
@@ -113,6 +119,37 @@ class _AnimeEditPageState extends State<AnimeEditPage> {
 
     if (widget.animeId != null) {
       _loadExisting();
+    }
+    _titleController.addListener(_followTitlesForSeason);
+    _titleJaController.addListener(_followTitlesForSeason);
+  }
+
+  /// Purpose: Keep the season field in step with the season the titles name.
+  /// Inputs: None.
+  /// Returns: None.
+  /// Side effects: May set `_seasonController.text` and `_seasonFromTitles`.
+  /// Notes: Acts only while the field is empty, `Season 1`, or the label this
+  /// method last wrote, so a label the user typed — or the "Add next season"
+  /// prefill — is never replaced by nothing. Reads the title fields and the
+  /// titles of applied external metadata via `seasonLabelFromTitles`.
+  void _followTitlesForSeason() {
+    final current = _seasonController.text;
+    final ours = current == _seasonFromTitles;
+    if (!ours && !isDefaultSeasonLabel(current)) return;
+    final meta = _externalMeta;
+    final derived = seasonLabelFromTitles([
+      _titleController.text,
+      _titleJaController.text,
+      ?meta?.titleRomaji,
+      ?meta?.titleEn,
+      ...?meta?.synonyms,
+    ]);
+    if (derived != null) {
+      _seasonFromTitles = derived;
+      if (current != derived) _seasonController.text = derived;
+    } else if (ours) {
+      _seasonFromTitles = null;
+      _seasonController.text = defaultSeasonLabel;
     }
   }
 
@@ -156,6 +193,9 @@ class _AnimeEditPageState extends State<AnimeEditPage> {
             found.localArchive?.copies?.toString() ?? '';
         _archiveLocationController.text = found.localArchive?.location ?? '';
         _externalMeta = found.externalMeta;
+        // The title listeners fired before the stored label was put back.
+        _seasonFromTitles = null;
+        _followTitlesForSeason();
       });
       // Opened from the update-review screen: go straight to the search, now
       // that the title fields are filled in and can seed the query. Guarded so
@@ -317,6 +357,9 @@ class _AnimeEditPageState extends State<AnimeEditPage> {
         if (result.containsKey('externalMeta')) {
           _externalMeta = result['externalMeta'] as AnimeExternalMeta;
         }
+        // The applied metadata may name the season in a title the form has
+        // no field for.
+        _followTitlesForSeason();
       });
     }
   }

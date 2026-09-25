@@ -39,6 +39,8 @@ in [`../../../../features/series-linking.md`](../../../../features/series-linkin
 | [`seriesTitlesOf`](#seriestitlesof) | top-level function | A | Collect every non-empty title a record is known by. |
 | [`seriesBaseKeys`](#seriesbasekeys) | top-level function | A | Compute the base keys two seasons of one work share. |
 | [`seriesOrdinalOf`](#seriesordinalof) | top-level function | A | Return the season ordinal the index sorts a record by. |
+| [`derivedSeasonLabel`](#derivedseasonlabel) | top-level function | A | Work out the `Season N` label a record with a default label should carry. |
+| [`seasonLabelFixups`](#seasonlabelfixups) | top-level function | A | List the records whose default season label should be replaced. |
 | [`SeriesEditor(...)`](#serieseditor) | constructor (`SeriesEditor`) | A | Create an editor over an index, with an injectable clock and id generator. |
 | `_write` | method (`SeriesEditor`) | B | Return a record with a new (or no) series link, stamped `modifiedAt = now`. |
 | [`materialise`](#materialise) | method (`SeriesEditor`) | A | Give every member of a series the same curated `seriesId`. |
@@ -226,6 +228,39 @@ each class carry no `/// Purpose:` comment and are not indexed as rows.
 - **Side effects:** None.
 - **Notes:** Titles come first because most users never change the label from the default
   `Season 1`. An unnumbered final season reads as `finalSeasonOrdinal` (99).
+
+### `String? derivedSeasonLabel(Anime anime)` <a id="derivedseasonlabel"></a>
+- **Kind:** top-level function
+- **Source:** `lib/features/anime/services/series_service.dart` (approx. line 607)
+- **Purpose:** Work out the season label a record should carry, when its own label is still the
+  default.
+- **Inputs:** `anime`.
+- **Returns:** `String?` — `Season N` from the season its titles name
+  ([`seasonLabelFromTitles`](../../../shared/utils/season_label.md#seasonlabelfromtitles) over
+  [`seriesTitlesOf`](#seriestitlesof)); `null` when the label was typed by the user
+  ([`isDefaultSeasonLabel`](../../../shared/utils/season_label.md#isdefaultseasonlabel) is false),
+  the titles name no season past the first, or the derived label equals the current one.
+- **Side effects:** None.
+- **Notes:** Added in 1.6.1. Titles only, never the position in a series: an arc name such as
+  `遊郭編` says nothing about which season it is.
+
+### `Map<String, String> seasonLabelFixups(Iterable<Anime> records)` <a id="seasonlabelfixups"></a>
+- **Kind:** top-level function
+- **Source:** `lib/features/anime/services/series_service.dart` (approx. line 621)
+- **Purpose:** List the records whose default season label should be replaced.
+- **Inputs:** `records`.
+- **Returns:** `Map<String, String>` — record id to its new label
+  ([`derivedSeasonLabel`](#derivedseasonlabel)); empty when nothing needs changing.
+- **Side effects:** None.
+- **Usage:**
+  ```dart
+  final data = await AnimeStorage.loadFixingSeasonLabels(seasonLabelFixups);
+  ```
+  (`_load` in the Home, Manage and detail pages)
+- **Notes:** Added in 1.6.1. The caller writes these with
+  [`AnimeStorage.patchSeasonLabels`](anime_storage.md#patchseasonlabels), which keeps `modifiedAt`
+  so two devices correcting the same record never make a sync conflict. See
+  [`../../../../features/series-linking.md`](../../../../features/series-linking.md).
 
 ### `SeriesEditor(SeriesIndex index, {DateTime? now, String Function()? newId})` <a id="serieseditor"></a>
 - **Kind:** constructor of `SeriesEditor`

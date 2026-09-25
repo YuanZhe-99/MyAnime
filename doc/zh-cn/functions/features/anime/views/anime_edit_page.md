@@ -10,8 +10,9 @@
 |---|---|---|---|
 | `AnimeEditPage.new` | 构造函数（`AnimeEditPage`） | B | 创建 `AnimeEditPage`，可选绑定到既有动画 ID，或（仅新建路由）由 `NextSeasonPrefill` 预填。 |
 | `AnimeEditPage.createState` | 方法（`AnimeEditPage`） | B | 为此组件创建可变状态对象。 |
-| `_AnimeEditPageState.initState` | 方法（`_AnimeEditPageState`） | B | 设置默认季文本，新建时应用下一季预填（其 `autoSearch` 已设置且为完整版构建时启动在线搜索），编辑时触发加载既有记录。 |
+| `_AnimeEditPageState.initState` | 方法（`_AnimeEditPageState`） | B | 设置默认季文本，新建时应用下一季预填（其 `autoSearch` 已设置且为完整版构建时启动在线搜索），编辑时触发加载既有记录，并（1.6.1）让两个标题字段驱动 `_followTitlesForSeason`。 |
 | [`_loadExisting`](#_loadexisting) | 方法（`_AnimeEditPageState`） | A | 加载既有动画并从它填充每个表单字段/控制器。 |
+| [`_followTitlesForSeason`](#_followtitlesforseason) | 方法（`_AnimeEditPageState`） | A | 让季字段与标题指明的季数保持一致。 |
 | `_AnimeEditPageState.dispose` | 方法（`_AnimeEditPageState`） | B | 释放全部 17 个自有的 `TextEditingController`。 |
 | [`_pickCoverImage`](#_pickcoverimage) | 方法（`_AnimeEditPageState`） | A | 让用户选择封面图像文件并暂存其路径。 |
 | [`_searchWatchUrl`](#_searchwatchurl) | 方法（`_AnimeEditPageState`） | A | 用所有已知标题打开观看 URL 搜索对话框，并应用所选 URL 及其进度。 |
@@ -52,6 +53,7 @@
   2. 找到时，设 `_isEdit = true`、`_existing = found`，把每个可编辑字段复制进匹配的控制器（未设置的可选文本字段为空字符串）或暂存变量（`_airDayOfWeek`、`_firstAirDate`、`_manualType`、`_coverImage`、`_archived`、`_archiveSource`、`_archiveResolution`）。
   3. 评分子分在放进控制器之前经 `_formatScore`（Tier B，同一文件）格式化。
   4. 本地存档控件以空安全默认值从 `found.localArchive` 填充，因此没有存档记录的动画打开时开关关闭、各字段为空。
+  5. （1.6.1）在同一个 `setState` 中把 `_seasonFromTitles` 重置为 `null` 并调用 [`_followTitlesForSeason`](#_followtitlesforseason)：填充标题控制器时标题监听器已经触发，那时存储的标签还没有放回去。
 - **用法：**
   ```dart
   if (widget.animeId != null) {
@@ -60,6 +62,25 @@
   ```
   （`_AnimeEditPageState.initState`，同一文件）
 - **备注：** 没有记录匹配 `widget.animeId` 时，页面静默保持在创建模式（`_isEdit` 保持 `false`），而不是显示错误。
+
+### `void _followTitlesForSeason()` <a id="_followtitlesforseason"></a>
+- **种类：** `_AnimeEditPageState` 的方法
+- **来源：** `lib/features/anime/views/anime_edit_page.dart`（约第 135 行）
+- **用途：** 让季字段与标题指明的季数保持一致。
+- **输入：** 无。
+- **返回：** 无。
+- **副作用：** 可能设置 `_seasonController.text` 和 `_seasonFromTitles`。
+- **算法：**
+  1. 除非季字段是本方法上次写入的标签（`_seasonFromTitles`），或仍通过 `isDefaultSeasonLabel`（空或 `Season 1`），否则直接返回。
+  2. 对标题字段、日文标题字段以及 `_externalMeta` 中的 `titleRomaji`、`titleEn` 和每个别名运行 [`seasonLabelFromTitles`](../../../shared/utils/season_label.md#seasonlabelfromtitles) 推导标签。
+  3. 推导出标签时，把它记在 `_seasonFromTitles` 中，与字段不同时写入字段。没有推导出标签、但字段中是本方法先前写入的标签时，清空 `_seasonFromTitles` 并放回 `defaultSeasonLabel`。
+- **用法：**
+  ```dart
+  _titleController.addListener(_followTitlesForSeason);
+  _titleJaController.addListener(_followTitlesForSeason);
+  ```
+  （`_AnimeEditPageState.initState`；[`_loadExisting`](#_loadexisting) 结束时以及 [`_showSearchDialog`](#_showsearchdialog) 应用结果后也会调用）
+- **备注：** 1.6.1 新增。用户输入的标签——以及「添加下一季」的预填，它既不是默认值也不是本方法自己写入的标签——绝不被替换。应用搜索结果后调用它很重要，因为应用的元数据可能在一个表单没有对应字段的标题中指明季数。它维护的 `String? _seasonFromTitles` 字段没有 `/// Purpose:` 块，也没有对应行。见 [`../../../../features/series-linking.md`](../../../../features/series-linking.md)。
 
 ### `Future<void> _pickCoverImage()` <a id="_pickcoverimage"></a>
 - **种类：** `_AnimeEditPageState` 的方法
@@ -114,6 +135,7 @@
   1. 标题控制器的文本非空则用作初始查询，否则用日文标题。
   2. Await `showAnimeSearchDialog(...)`，把每个当前表单值作为 `currentXxx` 参数传入（使对话框能显示"当前 vs 获取"比较）。
   3. 返回非 null 结果映射时，把映射中存在的每个键应用到匹配的控制器/字段——十个可能键（`title`、`titleJa`、`endEpisode`、`firstAirDate`、`airDayOfWeek`、`airTime`、`notes`、`coverImage`、`infoUrl`、`externalMeta`）各自经 `result.containsKey(...)` 独立检查和应用。`externalMeta` 保存在 `_externalMeta` 中（不是表单控制器，因为它从不手工输入），并在 `_save()` 时随记录一并写入。
+  4. （1.6.1）仍在该 `setState` 中调用 [`_followTitlesForSeason`](#_followtitlesforseason)，使只在已应用元数据的标题中指明的季数也能进入季字段。
 - **用法：**
   ```dart
   if (AppFlavor.isFull)

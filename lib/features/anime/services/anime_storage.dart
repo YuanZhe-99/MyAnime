@@ -9,6 +9,7 @@ import '../../../shared/services/auto_sync_service.dart';
 import '../../../shared/services/reminder_service.dart';
 import '../../../shared/utils/adaptive_layout.dart';
 import '../../../shared/utils/calendar_preferences.dart';
+import '../../../shared/utils/season_label.dart';
 import '../models/anime.dart';
 
 class AnimeStorage {
@@ -274,6 +275,52 @@ class AnimeStorage {
     if (!touched) return false;
     await save(AnimeData(animes: list, extraJson: data.extraJson));
     return true;
+  }
+
+  /// Purpose: Replace default season labels with ones derived from titles,
+  /// without marking the records edited.
+  /// Inputs: `labels` — new label keyed by anime id, from
+  /// `seasonLabelFixups`.
+  /// Returns: `Future<bool>` — whether anything was actually written.
+  /// Side effects: Rewrites `anime_data.json` when at least one record still
+  /// had a default label.
+  /// Notes: Keeps `modifiedAt` for the reasons given on [patchExternalMeta]:
+  /// every device running 1.6.1 or later derives the same label, so the fix
+  /// needs no conflict, and a newer remote edit simply wins and is fixed again
+  /// on the next load. Re-reads first and skips any record whose label is no
+  /// longer the default, so a label the user just typed is never overwritten.
+  static Future<bool> patchSeasonLabels(Map<String, String> labels) async {
+    if (labels.isEmpty) return false;
+    final data = await load();
+    final list = List<Anime>.of(data.animes);
+    var touched = false;
+    for (var i = 0; i < list.length; i++) {
+      final label = labels[list[i].id];
+      if (label == null || !isDefaultSeasonLabel(list[i].season)) continue;
+      list[i] = list[i].copyWith(season: label, modifiedAt: list[i].modifiedAt);
+      touched = true;
+    }
+    if (!touched) return false;
+    await save(AnimeData(animes: list, extraJson: data.extraJson));
+    return true;
+  }
+
+  /// Purpose: Load the library after correcting default season labels.
+  /// Inputs: `fixups` — computes the labels to write from the loaded records;
+  /// pass `seasonLabelFixups`.
+  /// Returns: `Future<AnimeData>` — the library, re-read if anything changed.
+  /// Side effects: May call [patchSeasonLabels].
+  /// Notes: The derivation lives in `series_service.dart`, which this file
+  /// does not import, hence the parameter. Used by the pages that show season
+  /// labels (Home, Manage, detail) so records synced from older builds are
+  /// corrected the next time they are shown.
+  static Future<AnimeData> loadFixingSeasonLabels(
+    Map<String, String> Function(List<Anime> records) fixups,
+  ) async {
+    final data = await load();
+    final labels = fixups(data.animes);
+    if (labels.isEmpty || !await patchSeasonLabels(labels)) return data;
+    return load();
   }
 
   /// Purpose: Delete anime from the relevant storage or state.

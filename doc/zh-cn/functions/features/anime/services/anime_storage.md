@@ -18,6 +18,8 @@
 | [`_atomicWrite`](#atomicwrite) | 静态方法（`AnimeStorage`） | A | 通过临时文件-重命名步骤写入文件。 |
 | [`save`](#save) | 静态方法（`AnimeStorage`） | A | 持久化 `AnimeData`，然后通知自动同步和提醒。 |
 | [`patchExternalMeta`](#patchexternalmeta) | 静态方法（`AnimeStorage`） | A | 刷新缓存的外部元数据，**不**把记录标记为已编辑。 |
+| [`patchSeasonLabels`](#patchseasonlabels) | 静态方法（`AnimeStorage`） | A | 用从标题推导出的季标签替换默认季标签，**不**把记录标记为已编辑。 |
+| [`loadFixingSeasonLabels`](#loadfixingseasonlabels) | 静态方法（`AnimeStorage`） | A | 修正默认季标签后加载片库。 |
 | [`addOrUpdate`](#addorupdate) | 静态方法（`AnimeStorage`） | A | 按 `id` 插入或替换一条动画记录并保存。 |
 | [`addOrUpdateAll`](#addorupdateall) | 静态方法（`AnimeStorage`） | A | 用一次加载和一次保存插入或替换多条动画记录。 |
 | [`deleteAnime`](#deleteanime) | 静态方法（`AnimeStorage`） | A | 按 `id` 移除一条动画记录并保存。 |
@@ -85,6 +87,42 @@
   [`../../../../features/metadata-auto-update.md`](../../../../features/metadata-auto-update.md)。
 
   写入前会立即重读，因此一次长时间的后台扫描不会把陈旧快照覆盖到并发的用户编辑之上。
+
+### `static Future<bool> patchSeasonLabels(Map<String, String> labels)` <a id="patchseasonlabels"></a>
+- **种类：** `AnimeStorage` 的静态方法
+- **来源：** `lib/features/anime/services/anime_storage.dart`（约第 292 行）
+- **用途：** 用从标题推导出的季标签替换默认季标签，不把记录标记为已编辑。
+- **输入：** `labels` —— 按番剧 id 索引的新标签，来自 `seasonLabelFixups`
+  （[`series_service.md`](series_service.md#seasonlabelfixups)）。
+- **返回：** `Future<bool>` —— 是否真的写入了内容。
+- **副作用：** 至少有一条记录仍带默认标签时重写 `anime_data.json`，这也会通过 [`save`](#save) 通知自动同步与提醒。
+- **算法：**
+  1. 空映射立即返回 false。
+  2. 重新读取当前数据。
+  3. 对每条在 `labels` 中有条目、且 `season` 仍通过 `isDefaultSeasonLabel` 的记录，设置 `season`，
+     **并把该记录已有的 `modifiedAt` 传回去**。
+  4. 至少有一条记录改变时保存（保留 `extraJson`）。
+- **备注：** 1.6.1 新增。出于 [`patchExternalMeta`](#patchexternalmeta) 所述的理由保留 `modifiedAt`：
+  每台运行 1.6.1 或更高版本的设备都推导出相同的标签，因此这次修正不需要冲突；来自远端的较新编辑直接胜出，
+  并在下一次加载时再次被修正。重新读取加上默认标签检查，意味着用户刚输入的标签绝不会被覆盖。见
+  [`../../../../features/series-linking.md`](../../../../features/series-linking.md)。
+
+### `static Future<AnimeData> loadFixingSeasonLabels(Map<String, String> Function(List<Anime> records) fixups)` <a id="loadfixingseasonlabels"></a>
+- **种类：** `AnimeStorage` 的静态方法
+- **来源：** `lib/features/anime/services/anime_storage.dart`（约第 317 行）
+- **用途：** 修正默认季标签后加载片库。
+- **输入：** `fixups` —— 根据加载的记录计算要写入的标签；传入 `seasonLabelFixups`。
+- **返回：** `Future<AnimeData>` —— 片库；有任何改动时为重新读取的结果。
+- **副作用：** 可能调用 [`patchSeasonLabels`](#patchseasonlabels)。
+- **算法：** [`load`](#load)；对记录运行 `fixups`；映射为空或 `patchSeasonLabels` 什么都没写时返回第一次加载的结果，
+  否则再次 `load()`。
+- **用法：**
+  ```dart
+  final data = await AnimeStorage.loadFixingSeasonLabels(seasonLabelFixups);
+  ```
+  （`home_page.dart`、`management_page.dart` 与 `anime_detail_page.dart` 中的 `_load`）
+- **备注：** 1.6.1 新增。推导逻辑位于 `series_service.dart`，而本文件并不导入它，因此以参数传入。
+  由显示季标签的页面（首页、管理页、详情页）使用，使从旧版本构建同步来的记录在下一次显示时得到修正。
 
 ### `static Future<Directory> _getDefaultAppDir()` <a id="getdefaultappdir"></a>
 - **种类：** `AnimeStorage` 的静态方法

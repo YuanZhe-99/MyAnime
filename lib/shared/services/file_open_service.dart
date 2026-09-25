@@ -20,14 +20,15 @@ class FileOpenService {
   /// Purpose: Implement the init behavior for this file.
   /// Inputs: None.
   /// Returns: None.
-  /// Side effects: None.
-  /// Notes: None.
+  /// Side effects: Registers the `openFile` channel handler, which imports
+  /// the file and pushes its detail page.
+  /// Notes: Pushes rather than `go`es, so back returns to the shell.
   static void init() {
     _channel.setMethodCallHandler((call) async {
       if (call.method == 'openFile') {
         final path = call.arguments as String;
         final id = await handleFile(path);
-        if (id != null) appRouter.go('/anime/detail/$id');
+        if (id != null) appRouter.push('/anime/detail/$id');
       }
     });
   }
@@ -44,14 +45,14 @@ class FileOpenService {
   /// Purpose: Implement the process pending file behavior for this file.
   /// Inputs: None.
   /// Returns: None.
-  /// Side effects: None.
-  /// Notes: None.
+  /// Side effects: Imports the pending file and pushes its detail page.
+  /// Notes: Pushes rather than `go`es, so back returns to the shell.
   static Future<void> processPendingFile() async {
     if (_pendingFile != null) {
       final path = _pendingFile!;
       _pendingFile = null;
       final id = await handleFile(path);
-      if (id != null) appRouter.go('/anime/detail/$id');
+      if (id != null) appRouter.push('/anime/detail/$id');
     }
   }
 

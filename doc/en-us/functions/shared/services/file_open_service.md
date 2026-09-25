@@ -44,15 +44,16 @@ registers the `.myanimeitem` file association.
 - **Inputs:** None.
 - **Returns:** None.
 - **Side effects:** Sets a method-call handler on the shared `MethodChannel`; on `'openFile'`,
-  imports the file and navigates the app router to the new anime's detail page.
+  imports the file and pushes the new anime's detail page onto the app router.
 - **Algorithm:** On `'openFile'`, call [`handleFile`](#handlefile) with the given path; if it
-  returned a non-null anime id, call `appRouter.go('/anime/detail/$id')`.
+  returned a non-null anime id, call `appRouter.push('/anime/detail/$id')`.
 - **Usage:**
   ```dart
   FileOpenService.init();
   ```
   (from `lib/main.dart`, during startup, right after registering the reminder/tray services)
-- **Notes:** None.
+- **Notes:** Pushes rather than `go`es (1.6.1), so back returns to the shell instead of leaving
+  the detail page as the only route.
 
 ### `static Future<void> processPendingFile()` <a id="processpendingfile"></a>
 - **Kind:** static method of `FileOpenService`
@@ -61,9 +62,9 @@ registers the `.myanimeitem` file association.
   `setPendingFile` before the widget tree existed, then navigate to it.
 - **Inputs:** None.
 - **Returns:** `Future<void>`.
-- **Side effects:** Clears `_pendingFile`; imports the file into storage; navigates the router.
+- **Side effects:** Clears `_pendingFile`; imports the file into storage; pushes its detail page.
 - **Algorithm:** If `_pendingFile` is set, clear it, call [`handleFile`](#handlefile), and if it
-  returned an id, navigate to `/anime/detail/$id`.
+  returned an id, `appRouter.push('/anime/detail/$id')`.
 - **Usage:**
   ```dart
   WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -72,7 +73,7 @@ registers the `.myanimeitem` file association.
   ```
   (from `lib/main.dart`, after the first frame, for a desktop cold start via
   `args.where((a) => a.endsWith('.myanimeitem'))`)
-- **Notes:** Designed to run after the first frame so `appRouter.go` has a valid `Navigator` to
+- **Notes:** Pushes rather than `go`es (1.6.1), so back returns to the shell. Designed to run after the first frame so `appRouter.push` has a valid `Navigator` to
   target.
 
 ### `static Future<String?> handleFile(String path)` <a id="handlefile"></a>

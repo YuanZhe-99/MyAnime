@@ -27,6 +27,8 @@ notifies `AutoSyncService`/`ReminderService` after every save. See
 | [`_atomicWrite`](#atomicwrite) | static method (`AnimeStorage`) | A | Write a file via a temp-file-then-rename step. |
 | [`save`](#save) | static method (`AnimeStorage`) | A | Persist an `AnimeData`, then notify auto-sync and reminders. |
 | [`patchExternalMeta`](#patchexternalmeta) | static method (`AnimeStorage`) | A | Refresh cached external metadata **without** marking records edited. |
+| [`patchSeasonLabels`](#patchseasonlabels) | static method (`AnimeStorage`) | A | Replace default season labels with title-derived ones **without** marking records edited. |
+| [`loadFixingSeasonLabels`](#loadfixingseasonlabels) | static method (`AnimeStorage`) | A | Load the library after correcting default season labels. |
 | [`addOrUpdate`](#addorupdate) | static method (`AnimeStorage`) | A | Insert or replace one anime record by `id` and save. |
 | [`addOrUpdateAll`](#addorupdateall) | static method (`AnimeStorage`) | A | Insert or replace several anime records in one load and one save. |
 | [`deleteAnime`](#deleteanime) | static method (`AnimeStorage`) | A | Remove one anime record by `id` and save. |
@@ -102,6 +104,48 @@ notifies `AutoSyncService`/`ReminderService` after every save. See
 
   Re-reads immediately before writing so a long background sweep cannot write a stale snapshot over
   a concurrent user edit.
+
+### `static Future<bool> patchSeasonLabels(Map<String, String> labels)` <a id="patchseasonlabels"></a>
+- **Kind:** static method of `AnimeStorage`
+- **Source:** `lib/features/anime/services/anime_storage.dart` (approx. line 292)
+- **Purpose:** Replace default season labels with ones derived from titles, without marking the
+  records edited.
+- **Inputs:** `labels` — new label keyed by anime id, from `seasonLabelFixups`
+  ([`series_service.md`](series_service.md#seasonlabelfixups)).
+- **Returns:** `Future<bool>` — whether anything was actually written.
+- **Side effects:** Rewrites `anime_data.json` when at least one record still had a default label,
+  which also notifies auto-sync and reminders through [`save`](#save).
+- **Algorithm:**
+  1. Return false immediately for an empty map.
+  2. Re-read the current data.
+  3. For each record with an entry in `labels` whose `season` still passes
+     `isDefaultSeasonLabel`, set `season` **and pass the record's existing `modifiedAt` back in**.
+  4. Save (keeping `extraJson`) when at least one record changed.
+- **Notes:** Added in 1.6.1. Keeps `modifiedAt` for the reasons given on
+  [`patchExternalMeta`](#patchexternalmeta): every device running 1.6.1 or later derives the same
+  label, so the fix needs no conflict, and a newer remote edit simply wins and is fixed again on the
+  next load. The re-read plus the default-label check means a label the user just typed is never
+  overwritten. See
+  [`../../../../features/series-linking.md`](../../../../features/series-linking.md).
+
+### `static Future<AnimeData> loadFixingSeasonLabels(Map<String, String> Function(List<Anime> records) fixups)` <a id="loadfixingseasonlabels"></a>
+- **Kind:** static method of `AnimeStorage`
+- **Source:** `lib/features/anime/services/anime_storage.dart` (approx. line 317)
+- **Purpose:** Load the library after correcting default season labels.
+- **Inputs:** `fixups` — computes the labels to write from the loaded records; pass
+  `seasonLabelFixups`.
+- **Returns:** `Future<AnimeData>` — the library, re-read if anything changed.
+- **Side effects:** May call [`patchSeasonLabels`](#patchseasonlabels).
+- **Algorithm:** [`load`](#load); run `fixups` over the records; when the map is empty or
+  `patchSeasonLabels` wrote nothing, return the first load, otherwise `load()` again.
+- **Usage:**
+  ```dart
+  final data = await AnimeStorage.loadFixingSeasonLabels(seasonLabelFixups);
+  ```
+  (`_load` in `home_page.dart`, `management_page.dart` and `anime_detail_page.dart`)
+- **Notes:** Added in 1.6.1. The derivation lives in `series_service.dart`, which this file does
+  not import, hence the parameter. Used by the pages that show season labels (Home, Manage, detail)
+  so records synced from older builds are corrected the next time they are shown.
 
 ### `static Future<Directory> _getDefaultAppDir()` <a id="getdefaultappdir"></a>
 - **Kind:** static method of `AnimeStorage`

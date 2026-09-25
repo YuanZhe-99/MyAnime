@@ -29,7 +29,8 @@
 | `total` | getter（`AnimeSearchProgress`） | B | 本轮查询多少个来源。 |
 | [`fraction`](#searchprogressfraction) | getter（`AnimeSearchProgress`） | A | 本轮的完成比例，或 `null`。 |
 | `isPending` | 方法（`AnimeSearchProgress`） | B | 某个来源是否仍在等待中。 |
-| [`searchAll`](#searchall) | 静态方法（`AnimeSearchService`） | A | 执行两阶段跨语言检索并返回一个排好序的列表。 |
+| [`searchAll`](#searchall) | 静态方法（`AnimeSearchService`） | A | 执行两阶段跨语言检索并返回一个排好序的列表；可在来源回应时陆续交出部分列表。 |
+| [`_combine`](#combine) | 静态方法（`AnimeSearchService`） | A | 把按来源分组的结果合并为一个去重、排好序的列表。 |
 | [`queryVariants`](#queryvariants) | 静态方法（`AnimeSearchService`） | A | 为查询构建简体/繁体变体集合。 |
 | [`relevance`](#relevance) | 静态方法（`AnimeSearchService`） | A | 用查询变体集合对结果的全部标题打分。 |
 | [`_languageAffinity`](#languageaffinity) | 静态方法（`AnimeSearchService`） | A | 报告结果是否带有用户界面语言的标题。 |
@@ -51,8 +52,13 @@
 | [`mapJikanAnime`](#mapjikananime) | 静态方法（`AnimeSearchService`） | A | 把一个 Jikan 番剧对象映射为 `AnimeSearchResult`。 |
 | [`parseJikanDuration`](#parsejikanduration) | 静态方法（`AnimeSearchService`） | A | 把 Jikan 的自然语言时长字符串解析为分钟数。 |
 | [`_namedList`](#namedlist) | 静态方法（`AnimeSearchService`） | B | 把 Jikan 的 `[{name: ...}]` 数组读成字符串列表。 |
-| [`_searchAcgsecrets`](#searchacgsecrets) | 静态方法（`AnimeSearchService`） | A | 抓取 acgsecrets.hk 季度页面 JSON-LD 并对照查询做模糊匹配。 |
-| [`_recentSeasons`](#recentseasons) | 静态方法（`AnimeSearchService`） | B | 计算当前与上一季度的季度代码（`YYYYMM`）。 |
+| [`_searchAcgsecrets`](#searchacgsecrets) | 静态方法（`AnimeSearchService`） | A | 把查询与最近几个 acgsecrets.hk 季度页面做模糊匹配。 |
+| [`_acgsecretsSeason`](#acgsecretsseason) | 静态方法（`AnimeSearchService`） | A | 从缓存或网络取得一个季度页面的条目。 |
+| `_fetchAcgsecretsSeason` | 静态方法（`AnimeSearchService`） | B | 下载并解析一个 acgsecrets.hk 季度页面；非 200 响应、超时或网络错误时为 `null`，绝不抛出异常。 |
+| [`parseAcgsecretsPage`](#parseacgsecretspage) | 静态方法（`AnimeSearchService`），`@visibleForTesting` | A | 从 acgsecrets.hk 季度页面的 JSON-LD 中读取每个条目。 |
+| [`_acgsecretsItem`](#acgsecretsitem) | 静态方法（`AnimeSearchService`） | A | 把一个 JSON-LD 条目映射为一条搜索结果。 |
+| `_looseInt` | 静态方法（`AnimeSearchService`） | B | 读取可能以数字或数字字符串形式到达的整数；其他情况为 `null`。 |
+| [`acgsecretsSeasons`](#acgsecretsseasons) | 静态方法（`AnimeSearchService`），`@visibleForTesting` | A | 列出值得检索的 acgsecrets.hk 季度页面。 |
 | [`_containsJapanese`](#containsjapanese) | 静态方法（`AnimeSearchService`） | A | 检查字符串是否包含平假名/片假名字符。 |
 | [`_isLatinScript`](#islatinscript) | 静态方法（`AnimeSearchService`） | A | 检查字符串是否为拉丁字母书写。 |
 | [`_isLikelyChinese`](#islikelychinese) | 静态方法（`AnimeSearchService`） | A | 检查字符串读起来是中文而非日文。 |
@@ -83,15 +89,27 @@
 | `_BackfillTitles(...)` | 构造函数（`_BackfillTitles`） | B | 每个语言家族保存一个补搜标题。 |
 | `hasAny` | getter（`_BackfillTitles`） | B | 报告是否收集到任何可用标题。 |
 
-关于校验计数的说明：截至 1.6.0 源文件有 65 个 `/// Purpose:` 文档注释
-（1.5.7 时为 59 个；M2 为关联元数据新增了六个）。历史上多出的那一行——`searchAnime1` 带的是普通
+关于校验计数的说明：截至 1.6.1 源文件有 71 个 `/// Purpose:` 文档注释
+（1.6.0 时为 65 个，1.5.7 时为 59 个；M2 为关联元数据新增了六个）。1.6.1 新增七个——`_combine` 和六个
+acgsecrets.hk 辅助函数——并移除一个 `_recentSeasons`，由 `acgsecretsSeasons` 取代。历史上多出的那一行——`searchAnime1` 带的是普通
 （非 `Purpose:`）文档注释——随该方法一起消失：它迁到 `anime1_service.dart` 成为 `search`，并获得了完整注释块。
 
-有十个声明（`mapBangumiSubject`、`parseBangumiWeekday`、`mapJikanAnime`、`parseJikanDuration`、
+有十二个声明（`mapBangumiSubject`、`parseBangumiWeekday`、`mapJikanAnime`、`parseJikanDuration`、
 `mapAniListMedia`、`parseDayOfWeek`、`aliasCandidatesFrom`、
-`mapAniListRelations`、`mapJikanRelations`、`mapBangumiRelations`）标注了 `@visibleForTesting`。它们公开的唯一原因是让
-`test/anime_search_test.dart` 与 `test/relations_test.dart` 能用固定 JSON 数据检验各来源的格式解析——HTTP 调用是静态的、无法注入
+`mapAniListRelations`、`mapJikanRelations`、`mapBangumiRelations`，以及自 1.6.1 起的
+`parseAcgsecretsPage` 和 `acgsecretsSeasons`）标注了 `@visibleForTesting`。它们公开的唯一原因是让
+`test/anime_search_test.dart`、`test/relations_test.dart` 与 `test/search_aggregation_test.dart` 能用固定 JSON 或 HTML 数据检验各来源的格式解析——HTTP 调用是静态的、无法注入
 client，因此这些映射函数是唯一可行的测试接缝。不要在本文件之外的生产代码中调用它们。
+
+有五个静态字段带普通文档注释但没有 `Purpose:` 块，因此没有对应行：
+
+| 字段 | 含义 |
+|---|---|
+| `debugSourceOverrides` | `@visibleForTesting`（1.6.1）。按来源名替换各来源抓取函数的测试专用映射，使 [`_runRound`](#runround) 无需网络即可检验。应用中始终为 `null`；`test/search_aggregation_test.dart` 会设置它。 |
+| `_acgsecretsPageTtl` | 30 分钟——下载的 acgsecrets.hk 季度页面可复用多久（1.6.1）。 |
+| `_acgsecretsTimeout` | 15 秒——单个季度页面的请求超时（1.6.1）。 |
+| `_acgsecretsPages` | 内存页面缓存：季度代码 → `(at, items)`，其中 `items` 是进行中或已完成的 `Future<List<AnimeSearchResult>?>`，因此同时发起的两次检索共享一次下载（1.6.1）。 |
+| `_acgsecretsLdPattern` | `<script type="application/ld+json">` 正则，已从逐页循环中提出（1.6.1）。 |
 
 ## 文档
 
@@ -146,27 +164,47 @@ client，因此这些映射函数是唯一可行的测试接缝。不要在本�
 - **备注：** 每个字段都是防御式读取的 —— 由更新版本写入、或被手工编辑过的缓存会得到 null 而不是抛出。
   `source` 回退为空字符串，因此格式错误的条目仍然可读，可以由调用方丢弃，而不会把整个文件一起拖垮。
 
-### `static Future<List<AnimeSearchResult>> searchAll(String query, {String? preferredLanguage, void Function(AnimeSearchProgress)? onProgress})` <a id="searchall"></a>
+### `static Future<List<AnimeSearchResult>> searchAll(String query, {String? preferredLanguage, void Function(AnimeSearchProgress)? onProgress, void Function(List<AnimeSearchResult> soFar)? onResults})` <a id="searchall"></a>
 - **种类：** `AnimeSearchService` 的静态方法
-- **来源：** `lib/features/anime/services/anime_search_service.dart`（第 173 行）
+- **来源：** `lib/features/anime/services/anime_search_service.dart`（约第 374 行）
 - **用途：** 查询每个元数据来源，返回一个去重且按相关度排序的列表。
-- **输入：** `query`；`preferredLanguage` —— 调用方传入的界面语言标签（如 `zh_TW`、`ja`）。
-- **返回：** `Future<List<AnimeSearchResult>>`。
-- **副作用：** 并发向五个外部服务发起 HTTP 请求；跨语言补搜触发时会对其中一部分再发一次。
+- **输入：** `query`；`preferredLanguage` —— 调用方传入的界面语言标签（如 `zh_TW`、`ja`）；`onProgress` —— 每轮的进度快照；`onResults`（1.6.1）—— 每当某个来源带着结果作出回应时，收到目前为止合并并排好序的列表。
+- **返回：** `Future<List<AnimeSearchResult>>` —— 等于最后一次交给 `onResults` 的列表；什么都没找到时为空。
+- **副作用：** 并发向五个外部服务发起 HTTP 请求；跨语言补搜触发时会对其中一部分再发一次。无论哪一轮，每个以非空列表作出回应的来源都会触发一次 `onResults`。
 - **算法：**
-  1. 构建 `variants = queryVariants(query)`。
-  2. 经 [`_runRound`](#runround) 执行**第一轮**，按源做语言定向：bangumi.tv 收到简体形式，acgsecrets.hk 收到繁体形式，filmarks.com 收到原始查询（带 `Accept-Language: ja`），MyAnimeList/AniList 收到原始查询。
+  1. 构建 `variants = queryVariants(query)` 和一个空的按来源映射 `combined`。局部函数 `sourceDone(source, results)` 忽略空列表；否则把 `results` 追加到 `combined[source]`，并以 [`_combine`](#combine)`(combined, …)` 调用 `onResults`。
+  2. 经 [`_runRound`](#runround) 执行**第一轮**，把 `sourceDone` 作为 `onSourceDone` 传入，按源做语言定向：bangumi.tv 收到简体形式，acgsecrets.hk 收到繁体形式，filmarks.com 收到原始查询（带 `Accept-Language: ja`），MyAnimeList/AniList 收到原始查询。
   3. 计算零结果的来源集合。若为空，直接跳到第 6 步。
   4. 经 [`_harvestBackfillTitles`](#harvestbackfilltitles) 最多收集三个跨语言标题。若什么都没收集到，跳到第 6 步。
-  5. 经 `_runRound` 执行**第二轮**，*仅*为零结果的来源传入查询，每个来源用它自己的语言。没有收集到拉丁标题时，MyAnimeList 与 AniList 回退到收集到的日文标题，因为两者同样索引原文标题。
-  6. 按 `sourceUrl`（回退到 `title`，再回退到 `titleJa`）去重，并按 `AnimeSearchSource.all` 顺序遍历来源，使输出稳定。
-  7. 按 [`relevance`](#relevance) 降序排序，同分时按来源名排序。
+  5. 经 `_runRound` 执行**第二轮**，同样传入 `onSourceDone: sourceDone`，*仅*为零结果的来源传入查询，每个来源用它自己的语言。没有收集到拉丁标题时，MyAnimeList 与 AniList 回退到收集到的日文标题，因为两者同样索引原文标题。
+  6. 返回 `_combine(combined, variants, preferredLanguage)`。
 - **用法：**
   ```dart
-  final results = await AnimeSearchService.searchAll(query, preferredLanguage: language);
+  final results = await AnimeSearchService.searchAll(
+    query,
+    preferredLanguage: language,
+    onProgress: (progress) {
+      if (current()) setState(() => _progress = progress);
+    },
+    onResults: (soFar) {
+      if (current()) setState(() => _results = soFar);
+    },
+  );
   ```
   （`lib/features/anime/views/anime_search_dialog.dart`，`_search`）
-- **备注：** 取代了 1.4.0 之前的单轮实现——旧实现把原始查询发给每个来源，只对 bangumi.tv 做了简繁特判。额外轮次恰好只有一轮、不递归，因此最坏情况下延迟约翻倍，而各来源仍通过 `.catchError` 各自独立失败。`anime1.me` 刻意不属于 `searchAll`；其查找住在 [`anime1_service.md`](anime1_service.md)。
+- **备注：** 取代了 1.4.0 之前的单轮实现——旧实现把原始查询发给每个来源，只对 bangumi.tv 做了简繁特判。额外轮次恰好只有一轮、不递归，因此最坏情况下延迟约翻倍，而各来源仍通过 `.catchError` 各自独立失败。1.6.1 之前，要等两轮的每个来源都结束才返回任何内容，因此一个慢来源会拖住所有结果；`onResults` 让对话框在结果落地时就显示它们。`anime1.me` 刻意不属于 `searchAll`；其查找住在 [`anime1_service.md`](anime1_service.md)。
+
+### `static List<AnimeSearchResult> _combine(Map<String, List<AnimeSearchResult>> bySource, List<String> variants, String? preferredLanguage)` <a id="combine"></a>
+- **种类：** `AnimeSearchService` 的静态方法
+- **来源：** `lib/features/anime/services/anime_search_service.dart`（约第 441 行）
+- **用途：** 把按来源分组的结果合并为一个去重、排好序的列表。
+- **输入：** `bySource` —— 以来源名为键的结果；`variants` —— 来自 [`queryVariants`](#queryvariants)；`preferredLanguage`。
+- **返回：** `List<AnimeSearchResult>` —— 按 `sourceUrl`（回退到 `title`，再回退到 `titleJa`）去重，按 [`relevance`](#relevance) 降序排序，同分时按来源名排序。
+- **副作用：** 无。
+- **算法：**
+  1. 按 `AnimeSearchSource.all` 顺序遍历来源去重，每个键保留第一条结果，使输出稳定。
+  2. 按 `relevance(r, variants, preferredLanguage: …)` 降序排序，同分时按来源名排序。
+- **备注：** 1.6.1 新增：`searchAll` 的收尾部分被拆出来，以便在每个来源回应后运行。它只取决于结果本身，与哪个来源碰巧先回应无关，因此每个中间列表和最终列表的顺序规则相同。
 
 ### `static List<String> queryVariants(String query)` <a id="queryvariants"></a>
 - **种类：** `AnimeSearchService` 的静态方法
@@ -245,15 +283,15 @@ client，因此这些映射函数是唯一可行的测试接缝。不要在本�
   （`lib/features/anime/views/anime_detail_page.dart`，`_refreshExternalMeta`）
 - **备注：** 失败或无法识别的 URL 会被跳过而不是让整次刷新失败，与 `searchAll` 容忍失效来源的方式一致。
 
-### `static Future<Map<String, List<AnimeSearchResult>>> _runRound({required bangumiQuery, required acgsecretsQuery, required filmarksQuery, required globalQuery, malQuery, anilistQuery})` <a id="runround"></a>
+### `static Future<Map<String, List<AnimeSearchResult>>> _runRound({required bangumiQuery, required acgsecretsQuery, required filmarksQuery, required globalQuery, malQuery, anilistQuery, round, onProgress, onSourceDone})` <a id="runround"></a>
 - **种类：** `AnimeSearchService` 的静态方法
-- **来源：** `lib/features/anime/services/anime_search_service.dart`（第 404 行）
+- **来源：** `lib/features/anime/services/anime_search_service.dart`（约第 681 行）
 - **用途：** 并行查询指定来源一轮，并容忍单点失败。
-- **输入：** 每个来源一个查询；`globalQuery` 是 MyAnimeList 与 AniList 的默认值，在补搜轮中由 `malQuery`/`anilistQuery` 覆盖。
+- **输入：** 每个来源一个查询；`globalQuery` 是 MyAnimeList 与 AniList 的默认值，在补搜轮中由 `malQuery`/`anilistQuery` 覆盖。`round` 标注发出的进度；`onProgress` 在本轮开始时收到一次快照，此后每个来源回应时再收到一次；`onSourceDone`（1.6.1）在某个来源成功回应后立即收到它的结果。
 - **返回：** `Future<Map<String, List<AnimeSearchResult>>>`，以来源名为键。
-- **副作用：** 每个非 null、非空白的查询一次 HTTP 请求。
-- **算法：** 局部函数 `run(query, fetch)` 在查询为 `null` 或空白时返回一个立即完成的空列表，否则调用 `fetch(query.trim()).catchError((_) => [])`。五个 future 一并 await，再按来源名 zip 回去。
-- **备注：** `null` 或空白查询表示「本轮跳过该来源」——第二轮正是靠这一点只针对零结果来源发起查询。返回值以来源为键，才使 `searchAll` 能区分「返回了空」与「本来就没问」。
+- **副作用：** 每个非 null、非空白的查询一次 HTTP 请求，除非 `debugSourceOverrides` 替换了抓取函数。
+- **算法：** 局部函数 `run(source, query, fetch)` 在查询为 `null` 或空白时返回一个立即完成的空列表。否则选用 `debugSourceOverrides?[source] ?? fetch`，以 `query.trim()` 调用它；成功时记录条数，调用 `onSourceDone(source, results)`，**然后**发出进度；失败记入 `failed` 并变为 `[]`。五个 future 一并 await，再按来源名 zip 回去。
+- **备注：** `null` 或空白查询表示「本轮跳过该来源」——第二轮正是靠这一点只针对零结果来源发起查询。返回值以来源为键，才使 `searchAll` 能区分「返回了空」与「本来就没问」。结果先于进度快照发出，因此响应快照的监听方已经能看到该来源的结果——绝不会看到只有条数而没有结果的状态。
 
 ### `static _BackfillTitles _harvestBackfillTitles(Map<String, List<AnimeSearchResult>> round, List<String> queryVariants)` <a id="harvestbackfilltitles"></a>
 - **种类：** `AnimeSearchService` 的静态方法
@@ -393,26 +431,68 @@ client，因此这些映射函数是唯一可行的测试接缝。不要在本�
 
 ### `static Future<List<AnimeSearchResult>> _searchAcgsecrets(String query)` <a id="searchacgsecrets"></a>
 - **种类：** `AnimeSearchService` 的静态方法
-- **来源：** `lib/features/anime/services/anime_search_service.dart`（第 901 行）
-- **用途：** 抓取 `acgsecrets.hk` 的季度番剧列表（内嵌为 `application/ld+json` 脚本块），对照查询做模糊匹配，先试当前季度、再回退到上一季度。
+- **来源：** `lib/features/anime/services/anime_search_service.dart`（约第 1298 行）
+- **用途：** 把查询与最近几个 `acgsecrets.hk` 季度页面做模糊匹配。
 - **输入：** `query` —— 实践中是繁体变体。
-- **返回：** `Future<List<AnimeSearchResult>>` —— 最多 `_maxPerSource` 条，按模糊匹配分降序。
-- **副作用：** 向 `acgsecrets.hk` 发起最多两次 HTTP GET（各 15 秒超时）。
+- **返回：** `Future<List<AnimeSearchResult>>` —— 最多 `_maxPerSource` 条，按匹配分降序，再按季度（当前季度在前）。
+- **副作用：** 向 `acgsecrets.hk` 并行发起最多四次 HTTP GET，各 15 秒超时；页面在内存中缓存 30 分钟。
 - **算法：**
-  1. 从 [`_recentSeasons`](#recentseasons) 取 `[当前季度, 上一季度]`；计算繁体与简体变体。
-  2. 逐季度：GET 季度页面，非 200 则跳过。提取每个 `<script type="application/ld+json">` 块并 JSON 解码，对每个 `itemListElement` 计算其 `name`/`alternateName` 与各查询变体的最佳 [`_similarity`](#similarity)；低于 `0.3` 的跳过；已见过的 `url` 跳过。
-  3. 构建结果时，`startDate` 经 `DateTime.tryParse` 解析，有 `numberOfEpisodes` 则读入，第一个含假名的 `alternateName` 作为 `titleJa`，**其余全部别名进入 `synonyms`**。
-  4. 当前季度已有结果时，不再尝试上一季度。
-  5. 按分数降序排序并返回前 `_maxPerSource` 条。
-- **备注：** 任何单个 `<script>` 块的 JSON 解码失败都被逐块捕获，因此一个损坏的块不会中断整季度的解析。保留全部别名（而非 1.4.0 之前只保留日文那一个）正是让这个来源能贡献跨语言补搜标题的原因。
+  1. 从 [`acgsecretsSeasons`](#acgsecretsseasons)`(DateTime.now())` 取季度代码，在 `Future.wait` 下经 [`_acgsecretsSeason`](#acgsecretsseason) 同时加载所有页面。
+  2. 若每个页面都返回 `null`，抛出异常——该来源算作失败。
+  3. 构建查询集合 `{query, toTraditional(query), toSimplified(query)}`。
+  4. 对每个页面的每个条目，计算其 `title`、`titleJa` 与 `synonyms` 对查询集合的最佳 [`_similarity`](#similarity)；低于 `0.3` 的条目和已见过的 `sourceUrl` 跳过；记下页面序号。
+  5. 按分数降序、再按页面序号排序，返回前 `_maxPerSource` 条。
+- **备注：** 该站点没有搜索端点，因此下载整个季度页面在本地匹配。一个页面失败或超时只丢失那一季。直到 1.6.0 为止，页面是逐个抓取的，只检索当前和上一个季度，当前季度有匹配时就跳过上一季度，并且一个页面的整个条目列表外面只包了一个 `try`——站点开始以字符串形式发送 `numberOfEpisodes` 后，页面上之后的每个条目都丢失了。保留全部别名（而非 1.4.0 之前只保留日文那一个）正是让这个来源能贡献跨语言补搜标题的原因。见 [`../../../../features/multi-source-search.md#acgsecretshk-季度页面`](../../../../features/multi-source-search.md#acgsecretshk-季度页面)。
 
-### `static List<String> _recentSeasons()` <a id="recentseasons"></a>
+### `static Future<List<AnimeSearchResult>?> _acgsecretsSeason(String season)` <a id="acgsecretsseason"></a>
 - **种类：** `AnimeSearchService` 的静态方法
-- **来源：** `lib/features/anime/services/anime_search_service.dart`（第 987 行）
-- **用途：** 计算 `acgsecrets.hk` 的「本季度」与「上一季度」代码（`YYYYMM`），最新在前。
-- **返回：** 恰好 2 个季度代码的 `List<String>`。
+- **来源：** `lib/features/anime/services/anime_search_service.dart`（约第 1341 行）
+- **用途：** 从缓存或网络取得一个季度页面的条目。
+- **输入：** `season` —— `YYYYMM`。
+- **返回：** `Future<List<AnimeSearchResult>?>` —— 页面无法加载时为 `null`。
+- **副作用：** 可能经 `_fetchAcgsecretsSeason` 发起一次 HTTP GET；更新 `_acgsecretsPages`。
+- **算法：** 缓存条目比 `_acgsecretsPageTtl`（30 分钟）新时，直接返回缓存的 future。否则启动 `_fetchAcgsecretsSeason(season)`，立即存入 `(at: now, items: future)`；该 future 以 `null` 完成后移除这个条目——但仅当它仍是同一个条目时。
+- **备注：** 缓存进行中的 future，使第二轮、重复检索以及同时发起的两次检索共享一次下载。加载失败的条目被丢弃，因此下一次检索会重试。每个页面约 2.6 MB，服务器生成需要 6–9 秒，这就是需要缓存的原因。
+
+### `static List<AnimeSearchResult> parseAcgsecretsPage(String html)` <a id="parseacgsecretspage"></a>
+- **种类：** `AnimeSearchService` 的静态方法，`@visibleForTesting`
+- **来源：** `lib/features/anime/services/anime_search_service.dart`（约第 1391 行）
+- **用途：** 从 acgsecrets.hk 季度页面的 JSON-LD 中读取每个条目。
+- **输入：** `html` —— 页面。
+- **返回：** `List<AnimeSearchResult>` —— 每个有名称的 `itemListElement` 条目一条，保持页面顺序。
 - **副作用：** 无。
-- **算法：** 用 `[1, 4, 7, 10].lastWhere((s) => m >= s)` 求当前季度起始月；上一季度减三个月，1 月时回绕到 `year - 1, 10`。
+- **算法：** 对 `_acgsecretsLdPattern` 的每个匹配，JSON 解码该块（失败则跳过），要求它是带 `List` 型 `itemListElement` 的 `Map`，并在各自的 `try` 中把每个 `Map` 条目交给 [`_acgsecretsItem`](#acgsecretsitem) 映射，保留非 null 的结果。
+- **用法：**
+  ```dart
+  final results = AnimeSearchService.parseAcgsecretsPage(html);
+  ```
+  （`test/search_aggregation_test.dart`）
+- **备注：** 每个条目单独读取，因此一个格式错误的条目绝不会丢掉页面上的其余条目。1.6.1 之前，只要有一个条目的 `numberOfEpisodes` 是字符串 `"19"`，其后的每个条目都会被静默丢弃。
+
+### `static AnimeSearchResult? _acgsecretsItem(Map item)` <a id="acgsecretsitem"></a>
+- **种类：** `AnimeSearchService` 的静态方法
+- **来源：** `lib/features/anime/services/anime_search_service.dart`（约第 1423 行）
+- **用途：** 把一个 JSON-LD 条目映射为一条搜索结果。
+- **输入：** `item` —— 一个 `itemListElement` 条目。
+- **返回：** `AnimeSearchResult?` —— 条目既没有 `name` 也没有 `alternateName` 时为 `null`。
+- **副作用：** 无。
+- **算法：** 读取 `name`（trim 后），以及字符串或字符串列表形式的 `alternateName`，丢弃空白项。`titleJa` 是第一个含假名的别名（[`_containsJapanese`](#containsjapanese)）；其余别名都成为 synonym。`numberOfEpisodes` 经 `_looseInt` 读取；`url`、`image` 和 `startDate` 只在是字符串时使用，最后一个经 `DateTime.tryParse` 解析。
+- **备注：** 每个字段都做类型检查而不是强制转换，因此意外的形态只会导致字段缺失，而不是抛出异常。
+
+### `static List<String> acgsecretsSeasons(DateTime now)` <a id="acgsecretsseasons"></a>
+- **种类：** `AnimeSearchService` 的静态方法，`@visibleForTesting`
+- **来源：** `lib/features/anime/services/anime_search_service.dart`（约第 1469 行）
+- **用途：** 列出值得检索的 acgsecrets.hk 季度页面。
+- **输入：** `now` —— 本地日期。
+- **返回：** `List<String>` —— 四个 `YYYYMM` 代码（月份为 01/04/07/10）：当前季度、下一个季度，然后是当前季度之前的两个季度。
+- **副作用：** 无。
+- **算法：** 以 `((month - 1) ~/ 3) * 3 + 1` 求当前季度的起始月，再经 `DateTime` 偏移 0、+1、−1、−2 个季度，由 `DateTime` 处理跨年。
+- **用法：**
+  ```dart
+  final seasons = acgsecretsSeasons(DateTime.now());
+  ```
+  （同文件的 `_searchAcgsecrets`；`test/search_aggregation_test.dart` 会检验它）
+- **备注：** 1.6.1 中取代了 `_recentSeasons`（只含当前和上一个季度）。下一个季度覆盖开播前就已加入的作品；之前的两个季度覆盖晚些时候才补看的作品。这个顺序也是同分匹配的先后顺序。
 
 ### `static bool _containsJapanese(String s)` <a id="containsjapanese"></a>
 - **种类：** `AnimeSearchService` 的静态方法

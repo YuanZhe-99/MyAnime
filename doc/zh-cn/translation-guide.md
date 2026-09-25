@@ -178,6 +178,10 @@
 | recommendation | 推荐 | 从用户自己的片库中挑出接下来看什么；界面标题为「接下来看什么」。模型只按编号挑选，从不自己说出作品名 |
 | reason chip | 推荐理由标签 | 推荐卡片上说明理由的小标签，如「《…》的下一部」 |
 | Not interested | 不感兴趣 | 只在本设备上隐藏一条推荐，不同步 |
+| season label | 季标签 | `Anime.season` 的自由文本，如 `Season 2`、`第二季`；勿写成「季度标签」，「季度」专指播出档期（quarter） |
+| default season label | 默认季标签 | `Season 1` 或空；自 1.6.1 起只有它会按标题自动改写为 `Season N` |
+| split-cour marker | 分割放送标记 | 标题中的 `Part 2`、`Cour 2`、`第2クール`；表示同一季的后半部分，不是新的一季 |
+| partial results | 部分结果 | 检索仍在进行时已经到达的结果；自 1.6.1 起即时显示 |
 
 ## 6. 复查清单（提交中文页面之前运行）
 

@@ -54,8 +54,10 @@ underlying episode air-date logic this page consumes.
 - **Purpose:** Reload the full anime list from storage into `_allAnime`.
 - **Inputs:** None.
 - **Returns:** `Future<void>`.
-- **Side effects:** Calls `AnimeStorage.load()`; `setState`s `_allAnime`.
-- **Algorithm:** Await `AnimeStorage.load()`; if still mounted, `setState(() => _allAnime =
+- **Side effects:** Calls `AnimeStorage.loadFixingSeasonLabels(seasonLabelFixups)` (1.6.1), which may
+  rewrite default season labels without touching `modifiedAt`; `setState`s `_allAnime`.
+- **Algorithm:** Await
+  [`AnimeStorage.loadFixingSeasonLabels`](../services/anime_storage.md#loadfixingseasonlabels)`(seasonLabelFixups)`; if still mounted, `setState(() => _allAnime =
   data.animeList)`.
 - **Usage:**
   ```dart

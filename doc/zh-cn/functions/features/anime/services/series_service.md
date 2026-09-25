@@ -26,6 +26,8 @@
 | [`seriesTitlesOf`](#seriestitlesof) | 顶层函数 | A | 收集一条记录的每个非空标题。 |
 | [`seriesBaseKeys`](#seriesbasekeys) | 顶层函数 | A | 计算同一作品两季共享的基础键。 |
 | [`seriesOrdinalOf`](#seriesordinalof) | 顶层函数 | A | 返回系列分组用于给记录排序的季数序数。 |
+| [`derivedSeasonLabel`](#derivedseasonlabel) | 顶层函数 | A | 算出带默认标签的记录应当带的 `Season N` 标签。 |
+| [`seasonLabelFixups`](#seasonlabelfixups) | 顶层函数 | A | 列出默认季标签应被替换的记录。 |
 | [`SeriesEditor(...)`](#serieseditor) | 构造函数（`SeriesEditor`） | A | 在一个索引上创建编辑器，时钟与 id 生成器可注入。 |
 | `_write` | 方法（`SeriesEditor`） | B | 返回带新系列链接（或不带）的记录，标记 `modifiedAt = now`。 |
 | [`materialise`](#materialise) | 方法（`SeriesEditor`） | A | 给系列的每个成员写入同一个手动关联的 `seriesId`。 |
@@ -148,6 +150,29 @@
 - **返回：** `int` — 任一标题暗示的第一个序数（[`titleSeasonOrdinal`](../../../shared/utils/season_label.md#titleseasonordinal)），否则取 `season` 标签中的序数（`halfWidthAscii` 之后的 `seasonOrdinal`），否则为 `1`。
 - **副作用：** 无。
 - **备注：** 标题优先，因为多数用户从不改动默认的 `Season 1` 标签。没有编号的最终季读作 `finalSeasonOrdinal`（99）。
+
+### `String? derivedSeasonLabel(Anime anime)` <a id="derivedseasonlabel"></a>
+- **种类：** 顶层函数
+- **来源：** `lib/features/anime/services/series_service.dart`（约第 607 行）
+- **用途：** 当记录自身的标签仍是默认值时，算出它应当带的季标签。
+- **输入：** `anime`。
+- **返回：** `String?` — 从其标题指明的季数得出的 `Season N`（对 [`seriesTitlesOf`](#seriestitlesof) 运行 [`seasonLabelFromTitles`](../../../shared/utils/season_label.md#seasonlabelfromtitles)）；标签由用户输入（[`isDefaultSeasonLabel`](../../../shared/utils/season_label.md#isdefaultseasonlabel) 为 false）、标题没有指明第一季之后的季数、或推导出的标签与当前标签相同时为 `null`。
+- **副作用：** 无。
+- **备注：** 1.6.1 新增。只看标题，从不看在系列中的位置：`遊郭編` 这样的篇章名说明不了它是第几季。
+
+### `Map<String, String> seasonLabelFixups(Iterable<Anime> records)` <a id="seasonlabelfixups"></a>
+- **种类：** 顶层函数
+- **来源：** `lib/features/anime/services/series_service.dart`（约第 621 行）
+- **用途：** 列出默认季标签应被替换的记录。
+- **输入：** `records`。
+- **返回：** `Map<String, String>` — 记录 id 到其新标签（[`derivedSeasonLabel`](#derivedseasonlabel)）；无需改动时为空。
+- **副作用：** 无。
+- **用法：**
+  ```dart
+  final data = await AnimeStorage.loadFixingSeasonLabels(seasonLabelFixups);
+  ```
+  （首页、管理页和详情页中的 `_load`）
+- **备注：** 1.6.1 新增。调用方用 [`AnimeStorage.patchSeasonLabels`](anime_storage.md#patchseasonlabels) 写入这些标签，它保留 `modifiedAt`，因此两台设备修正同一条记录时绝不会产生同步冲突。见 [`../../../../features/series-linking.md`](../../../../features/series-linking.md)。
 
 ### `SeriesEditor(SeriesIndex index, {DateTime? now, String Function()? newId})` <a id="serieseditor"></a>
 - **种类：** `SeriesEditor` 的构造函数

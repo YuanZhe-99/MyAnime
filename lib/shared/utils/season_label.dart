@@ -240,3 +240,43 @@ String _englishSuffix(int n) {
     _ => 'th',
   };
 }
+
+/// The label every record starts with when nobody typed one.
+const String defaultSeasonLabel = 'Season 1';
+
+final _splitCourMarker = RegExp(
+  r'\bpart\s*\d+\b|\bcour\s*\d+\b|第\s*[一二三四五六七八九十\d]+\s*クール',
+  caseSensitive: false,
+);
+
+/// Purpose: Tell whether a season label is still the untouched default.
+/// Inputs: `label`.
+/// Returns: `bool` — true for an empty label or `Season 1`, ignoring case,
+/// width and extra spaces.
+/// Side effects: None.
+/// Notes: Only such labels are ever rewritten automatically; anything the user
+/// typed, even `S1` or `第一季`, is left alone.
+bool isDefaultSeasonLabel(String label) {
+  final t = halfWidthAscii(label).trim().replaceAll(_spaces, ' ');
+  return t.isEmpty || t.toLowerCase() == defaultSeasonLabel.toLowerCase();
+}
+
+/// Purpose: Derive a `Season N` label from the season a title names.
+/// Inputs: `titles` — in priority order; the first title carrying a season
+/// marker decides.
+/// Returns: `String?` — `Season N` for 2 ≤ N < [finalSeasonOrdinal]; `null`
+/// when no title names a season, names season 1, or only says "final season".
+/// Side effects: None.
+/// Notes: Split-cour markers (`Part 2`, `Cour 2`, `第2クール`) are removed
+/// first, so `The Final Season Part 2` is not read as season 2. Reads markers
+/// the same way [titleSeasonOrdinal] does, which is also what orders a series.
+String? seasonLabelFromTitles(Iterable<String> titles) {
+  for (final title in titles) {
+    final t = halfWidthAscii(title).replaceAll(_splitCourMarker, ' ');
+    final n = titleSeasonOrdinal(t);
+    if (n == null) continue;
+    if (n < 2 || n >= finalSeasonOrdinal) return null;
+    return 'Season $n';
+  }
+  return null;
+}

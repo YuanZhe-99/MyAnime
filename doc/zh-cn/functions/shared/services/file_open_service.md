@@ -33,14 +33,14 @@
 - **用途：** 注册 `com.yuanzhe.my_anime/file_open` `MethodChannel` 处理器，使原生代码（Android/iOS 文件关联）能把打开的文件路径交给 Dart。
 - **输入：** 无。
 - **返回：** 无。
-- **副作用：** 在共享 `MethodChannel` 上设置方法调用处理器；`'openFile'` 时导入文件并把应用路由器导航到新动画的详情页。
-- **算法：** `'openFile'` 时用给定路径调用 [`handleFile`](#handlefile)；返回非 null 动画 id 时调用 `appRouter.go('/anime/detail/$id')`。
+- **副作用：** 在共享 `MethodChannel` 上设置方法调用处理器；`'openFile'` 时导入文件，并在应用路由器上压栈打开新动画的详情页。
+- **算法：** `'openFile'` 时用给定路径调用 [`handleFile`](#handlefile)；返回非 null 动画 id 时调用 `appRouter.push('/anime/detail/$id')`。
 - **用法：**
   ```dart
   FileOpenService.init();
   ```
   （来自 `lib/main.dart`，启动期间，注册提醒/托盘服务后）
-- **备注：** 无。
+- **备注：** 压栈而不是 `go`（1.6.1），因此返回会回到外壳，而不是让详情页成为唯一的路由。
 
 ### `static Future<void> processPendingFile()` <a id="processpendingfile"></a>
 - **种类：** `FileOpenService` 的静态方法
@@ -48,8 +48,8 @@
 - **用途：** 导入在组件树存在前经 `setPendingFile` 捕获的 `.myanimeitem` 文件路径，然后导航到它。
 - **输入：** 无。
 - **返回：** `Future<void>`。
-- **副作用：** 清除 `_pendingFile`；把文件导入存储；导航路由器。
-- **算法：** `_pendingFile` 已设置时，清除它，调用 [`handleFile`](#handlefile)，返回 id 时导航到 `/anime/detail/$id`。
+- **副作用：** 清除 `_pendingFile`；把文件导入存储；压栈打开它的详情页。
+- **算法：** `_pendingFile` 已设置时，清除它，调用 [`handleFile`](#handlefile)，返回 id 时 `appRouter.push('/anime/detail/$id')`。
 - **用法：**
   ```dart
   WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -57,7 +57,7 @@
   });
   ```
   （来自 `lib/main.dart`，第一帧后，用于经 `args.where((a) => a.endsWith('.myanimeitem'))` 的桌面冷启动）
-- **备注：** 设计为在第一帧后运行，使 `appRouter.go` 有有效的 `Navigator` 可指向。
+- **备注：** 压栈而不是 `go`（1.6.1），因此返回会回到外壳。设计为在第一帧后运行，使 `appRouter.push` 有有效的 `Navigator` 可指向。
 
 ### `static Future<String?> handleFile(String path)` <a id="handlefile"></a>
 - **种类：** `FileOpenService` 的静态方法

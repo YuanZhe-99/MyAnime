@@ -77,6 +77,55 @@ void main() {
       expect(nextSeasonLabel('S2'), 'S3');
       expect(nextSeasonLabel('TV'), isNull);
     });
+
+    test('isDefaultSeasonLabel accepts only the untouched default', () {
+      expect(isDefaultSeasonLabel('Season 1'), isTrue);
+      expect(isDefaultSeasonLabel(' season  1 '), isTrue);
+      expect(isDefaultSeasonLabel('Ｓｅａｓｏｎ １'), isTrue);
+      expect(isDefaultSeasonLabel(''), isTrue);
+      expect(isDefaultSeasonLabel('S1'), isFalse);
+      expect(isDefaultSeasonLabel('第一季'), isFalse);
+      expect(isDefaultSeasonLabel('Season 2'), isFalse);
+    });
+
+    test('seasonLabelFromTitles reads seasons, never split cours', () {
+      expect(seasonLabelFromTitles(['葬送的芙莉莲 第二季']), 'Season 2');
+      expect(seasonLabelFromTitles(['かぐや様は告らせたい 2期']), 'Season 2');
+      expect(seasonLabelFromTitles(['Title 3rd Season']), 'Season 3');
+      expect(seasonLabelFromTitles(['Overlord IV']), 'Season 4');
+      expect(seasonLabelFromTitles(['Dr. STONE 第3期 第2クール']), 'Season 3');
+      // Split cours and unnumbered final seasons carry no season number.
+      expect(seasonLabelFromTitles(['進撃の巨人 The Final Season Part 2']), isNull);
+      expect(seasonLabelFromTitles(['Title Part 2']), isNull);
+      expect(seasonLabelFromTitles(['Title Season 1']), isNull);
+      expect(seasonLabelFromTitles(['鬼灭之刃 游郭篇']), isNull);
+      // The first title that names a season decides.
+      expect(
+        seasonLabelFromTitles(['葬送的芙莉莲', 'Frieren 2nd Season']),
+        'Season 2',
+      );
+    });
+
+    test('derivedSeasonLabel leaves typed labels alone', () {
+      expect(derivedSeasonLabel(rec('a', '葬送的芙莉莲 第二季')), 'Season 2');
+      expect(
+        derivedSeasonLabel(
+          rec('a', '葬送的芙莉莲', synonyms: ['Sousou no Frieren 2nd Season']),
+        ),
+        'Season 2',
+      );
+      expect(derivedSeasonLabel(rec('a', '葬送的芙莉莲 第二季', season: '第二季')), isNull);
+      expect(derivedSeasonLabel(rec('a', '葬送的芙莉莲')), isNull);
+    });
+
+    test('seasonLabelFixups lists only records that change', () {
+      final fixes = seasonLabelFixups([
+        rec('a', '葬送的芙莉莲'),
+        rec('b', '葬送的芙莉莲 第二季'),
+        rec('c', '进击的巨人 Season 3', season: 'S3'),
+      ]);
+      expect(fixes, {'b': 'Season 2'});
+    });
   });
 
   group('automatic grouping', () {

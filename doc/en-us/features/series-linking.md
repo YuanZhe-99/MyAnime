@@ -58,6 +58,30 @@ from its `season` label, else it is 1 — titles first, because most users never
 `Season 1` label. An unnumbered final-season marker reads as 99 (`finalSeasonOrdinal`), so it sorts
 after every numbered season. See [`../functions/shared/utils/season_label.md`](../functions/shared/utils/season_label.md).
 
+**Season labels follow the titles (1.6.1).** Ordinals decide the order, but through 1.6.0 the
+`season` label itself was never updated, so `葬送的芙莉莲 第二季` still read `Season 1` on the card
+and the detail chip. Now, when a record's label is still the default (`Season 1` or empty, ignoring
+case and width — `isDefaultSeasonLabel`), it is replaced with `Season N` taken from the first title
+that names a season (`seasonLabelFromTitles` over `seriesTitlesOf`; `derivedSeasonLabel`):
+
+- Split-cour markers (`Part 2`, `Cour 2`, `第2クール`) are removed first, so
+  `進撃の巨人 The Final Season Part 2` is not read as season 2. An unnumbered final season, a
+  season-1 marker, or no marker at all leaves the label alone.
+- Only titles count, never the position in a series, because an arc name such as `遊郭編` says
+  nothing about which season it is.
+- A label the user typed — `S2`, `第二季`, anything but the default — is never replaced.
+
+Where it runs:
+- **Stored records** — Home, Manage and the detail page load through
+  `AnimeStorage.loadFixingSeasonLabels(seasonLabelFixups)`, which writes the corrected labels with
+  `patchSeasonLabels`. Like `patchExternalMeta` it **keeps `modifiedAt`**. Every device on 1.6.1 or
+  later derives the same label, so no sync conflict appears, and a newer edit from another device
+  simply wins and is corrected again on the next load. `patchSeasonLabels` re-reads the file and
+  skips a record whose label is no longer the default.
+- **The edit page** — the season field follows the title fields and applied external-metadata
+  titles while it still shows the default or the label it derived itself. Typing anything else stops
+  it, and it never touches the "Add next season" prefill.
+
 **Edges**, strongest first. An edge joins an auto record to another auto record or to a curated
 record; standalone records get none.
 
@@ -177,6 +201,10 @@ If that is wrong, open that record and use *Remove from series* or link it where
   the series is *Linked by you* or *Grouped automatically*. Its menu holds *Manage series…*, *Add
   next season*, *Remove from series* and, when applicable, *Let the app decide*. The prev/next
   buttons stay below it, now driven by the series order, in a `Wrap` so they stack on a narrow phone.
+  A member row and the prev/next buttons **push** the other record's detail page, and the route
+  keys each detail page by id. In 1.6.0 they used `context.go`: the first hop replaced the whole
+  stack, leaving nothing to go back to, and the second hop reused the same page State, so nothing
+  changed on screen.
 - **Missing-sequel hint.** A card above the series card, shown whenever
   [a database-listed sequel is missing](#database-relations) — also for a record in no series.
 - **App-bar link menu.** When the record belongs to no series — including a standalone one — the

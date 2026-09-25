@@ -333,7 +333,7 @@ class AnimeSearchProgress {
 }
 
 class AnimeSearchService {
-  static const userAgent = 'MyAnime/1.6.0 (anime tracker)';
+  static const userAgent = 'MyAnime/1.6.1 (anime tracker)';
 
   /// Maximum results requested from, and kept per, each individual source.
   static const _maxPerSource = 10;
@@ -366,12 +366,25 @@ class AnimeSearchService {
   /// only the sources that came back empty, using titles harvested from round
   /// one, so a Chinese query can still reach a Japanese-only source. Results
   /// are deduplicated by `sourceUrl` and sorted by descending relevance.
+  ///
+  /// `onResults`, when given, receives the combined, sorted list so far each
+  /// time a source answers with results, so a caller can show them without
+  /// waiting for the slowest source. The returned list equals the last list
+  /// passed to `onResults` (or is empty when nothing was found).
   static Future<List<AnimeSearchResult>> searchAll(
     String query, {
     String? preferredLanguage,
     void Function(AnimeSearchProgress)? onProgress,
+    void Function(List<AnimeSearchResult> soFar)? onResults,
   }) async {
     final variants = queryVariants(query);
+    final combined = <String, List<AnimeSearchResult>>{};
+
+    void sourceDone(String source, List<AnimeSearchResult> results) {
+      if (results.isEmpty) return;
+      combined[source] = [...?combined[source], ...results];
+      onResults?.call(_combine(combined, variants, preferredLanguage));
+    }
 
     final firstRound = await _runRound(
       bangumiQuery: ChineseConvert.toSimplified(query),
@@ -379,9 +392,8 @@ class AnimeSearchService {
       filmarksQuery: query,
       globalQuery: query,
       onProgress: onProgress,
+      onSourceDone: sourceDone,
     );
-
-    final combined = <String, List<AnimeSearchResult>>{...firstRound};
 
     final emptySources = AnimeSearchSource.all
         .where((s) => (firstRound[s] ?? const []).isEmpty)
@@ -389,7 +401,7 @@ class AnimeSearchService {
     if (emptySources.isNotEmpty) {
       final backfill = _harvestBackfillTitles(firstRound, variants);
       if (backfill.hasAny) {
-        final secondRound = await _runRound(
+        await _runRound(
           bangumiQuery: emptySources.contains(AnimeSearchSource.bangumi)
               ? backfill.chinese
               : null,
@@ -410,18 +422,32 @@ class AnimeSearchService {
               : null,
           round: 2,
           onProgress: onProgress,
+          onSourceDone: sourceDone,
         );
-        for (final entry in secondRound.entries) {
-          combined[entry.key] = [...?combined[entry.key], ...entry.value];
-        }
       }
     }
 
-    // Deduplicate by sourceUrl, preserving first-seen order.
+    return _combine(combined, variants, preferredLanguage);
+  }
+
+  /// Purpose: Merge per-source results into one deduplicated, ranked list.
+  /// Inputs: `bySource` — results keyed by source name; `variants` — from
+  /// [queryVariants]; `preferredLanguage`.
+  /// Returns: `List<AnimeSearchResult>` — deduplicated by `sourceUrl` (falling
+  /// back to a title), sorted by descending [relevance], ties by source name.
+  /// Side effects: None.
+  /// Notes: Called after every source answers, so the order depends only on
+  /// the results, never on which source happened to answer first.
+  static List<AnimeSearchResult> _combine(
+    Map<String, List<AnimeSearchResult>> bySource,
+    List<String> variants,
+    String? preferredLanguage,
+  ) {
+    // Deduplicate by sourceUrl, preserving source order.
     final seen = <String>{};
     final deduped = <AnimeSearchResult>[];
     for (final source in AnimeSearchSource.all) {
-      for (final r in combined[source] ?? const <AnimeSearchResult>[]) {
+      for (final r in bySource[source] ?? const <AnimeSearchResult>[]) {
         final key = r.sourceUrl ?? r.title ?? r.titleJa ?? '';
         if (seen.add(key)) deduped.add(r);
       }
@@ -632,13 +658,22 @@ class AnimeSearchService {
 
   // ──── Round orchestration ────
 
+  /// Test-only replacements for the per-source fetchers, keyed by source name.
+  /// Lets the round logic be exercised without the network; always null in
+  /// the app.
+  @visibleForTesting
+  static Map<String, Future<List<AnimeSearchResult>> Function(String query)>?
+  debugSourceOverrides;
+
   /// Purpose: Query the requested sources once, in parallel, tolerating failures.
   /// Inputs: `bangumiQuery`, `acgsecretsQuery`, `filmarksQuery`, `globalQuery`,
   /// `malQuery`, `anilistQuery`; `round` labels the emitted progress and
   /// `onProgress` receives one snapshot when the round starts and one more as
-  /// each source answers.
+  /// each source answers; `onSourceDone` receives each source's results as
+  /// soon as that source answers successfully.
   /// Returns: `Future<Map<String, List<AnimeSearchResult>>>` keyed by source name.
-  /// Side effects: One HTTP request per non-null, non-blank query.
+  /// Side effects: One HTTP request per non-null, non-blank query, unless
+  /// [debugSourceOverrides] replaces the fetcher.
   /// Notes: Internal helper used within this file only. `globalQuery` is the
   /// default for MyAnimeList and AniList, which index every language; passing
   /// `malQuery`/`anilistQuery` overrides it for the backfill round. A `null` or
@@ -652,6 +687,7 @@ class AnimeSearchService {
     String? anilistQuery,
     int round = 1,
     void Function(AnimeSearchProgress)? onProgress,
+    void Function(String source, List<AnimeSearchResult> results)? onSourceDone,
   }) async {
     final active = <String>[];
     final counts = <String, int>{};
@@ -677,9 +713,13 @@ class AnimeSearchService {
         return Future.value(const <AnimeSearchResult>[]);
       }
       active.add(source);
-      return fetch(query.trim())
+      final fetcher = debugSourceOverrides?[source] ?? fetch;
+      return fetcher(query.trim())
           .then((results) {
             counts[source] = results.length;
+            // Results first, then progress: a listener reacting to the
+            // progress snapshot already sees this source's results.
+            onSourceDone?.call(source, results);
             emit();
             return results;
           })
@@ -1227,111 +1267,213 @@ class AnimeSearchService {
 
   // ──── acgsecrets.hk ────
 
-  /// Purpose: acgsecrets.hk — scrape seasonal page JSON-LD data and fuzzy-match.
+  /// How long a downloaded acgsecrets.hk season page is reused. The pages are
+  /// large (about 2.6 MB) and slow to generate (6–9 s), and change rarely.
+  static const _acgsecretsPageTtl = Duration(minutes: 30);
+
+  /// Per-request timeout for one acgsecrets.hk season page.
+  static const _acgsecretsTimeout = Duration(seconds: 15);
+
+  /// Parsed season pages kept in memory for [_acgsecretsPageTtl], keyed by
+  /// season code. Holds the in-flight future too, so two searches started
+  /// together share one download.
+  static final _acgsecretsPages =
+      <String, ({DateTime at, Future<List<AnimeSearchResult>?> items})>{};
+
+  static final _acgsecretsLdPattern = RegExp(
+    r'<script[^>]*type="application/ld\+json"[^>]*>(.*?)</script>',
+    dotAll: true,
+  );
+
+  /// Purpose: acgsecrets.hk — fuzzy-match the query against recent season pages.
   /// Inputs: `query`.
-  /// Returns: `Future<List<AnimeSearchResult>>` sorted by descending match score.
-  /// Side effects: Up to two HTTP GETs (15s timeout each) to `acgsecrets.hk`.
-  /// Notes: Internal helper used within this file only.
+  /// Returns: `Future<List<AnimeSearchResult>>` sorted by descending match
+  /// score, then by season (current season first); at most `_maxPerSource`.
+  /// Side effects: Up to four HTTP GETs to `acgsecrets.hk`, in parallel, 15 s
+  /// timeout each; pages are cached in memory for 30 minutes.
+  /// Notes: Internal helper used within this file only. The site has no search
+  /// endpoint, so whole season pages ([acgsecretsSeasons]) are downloaded and
+  /// matched locally. One page failing or timing out only loses that season;
+  /// the source counts as failed only when every page failed.
   static Future<List<AnimeSearchResult>> _searchAcgsecrets(String query) async {
-    final seasons = _recentSeasons();
-    final allResults = <(AnimeSearchResult, double)>[];
-    final seenUrls = <String>{};
-    final queryTrad = ChineseConvert.toTraditional(query);
-    final querySimp = ChineseConvert.toSimplified(query);
-
-    for (final season in seasons) {
-      final url = Uri.parse('https://acgsecrets.hk/bangumi/$season/');
-      final resp = await http
-          .get(url, headers: {'User-Agent': userAgent})
-          .timeout(const Duration(seconds: 15));
-      if (resp.statusCode != 200) continue;
-
-      final html = utf8.decode(resp.bodyBytes);
-      final ldPattern = RegExp(
-        r'<script[^>]*type="application/ld\+json"[^>]*>(.*?)</script>',
-        dotAll: true,
-      );
-      for (final m in ldPattern.allMatches(html)) {
-        try {
-          final data = jsonDecode(m.group(1)!) as Map<String, dynamic>;
-          final items = data['itemListElement'] as List?;
-          if (items == null) continue;
-          for (final item in items) {
-            if (item is! Map) continue;
-            final name = item['name'] as String? ?? '';
-            final altNames =
-                (item['alternateName'] as List?)?.cast<String>() ?? [];
-            final allNames = [name, ...altNames];
-
-            // Compute best fuzzy score against query variants.
-            double bestScore = 0;
-            for (final n in allNames) {
-              for (final q in [query, queryTrad, querySimp]) {
-                final s = _similarity(n, q);
-                if (s > bestScore) bestScore = s;
-              }
-            }
-            if (bestScore < 0.3) continue;
-
-            final itemUrl = item['url'] as String?;
-            if (itemUrl != null && !seenUrls.add(itemUrl)) continue;
-
-            DateTime? startDate;
-            if (item['startDate'] != null) {
-              startDate = DateTime.tryParse(item['startDate'] as String);
-            }
-            // Pick Japanese title from alternateName.
-            String? titleJa;
-            for (final n in altNames) {
-              if (_containsJapanese(n)) {
-                titleJa = n;
-                break;
-              }
-            }
-            allResults.add((
-              AnimeSearchResult(
-                source: AnimeSearchSource.acgsecrets,
-                sourceUrl: itemUrl,
-                title: name.isNotEmpty ? name : null,
-                titleJa: titleJa,
-                synonyms: altNames.where((n) => n != titleJa).toList(),
-                episodes: item['numberOfEpisodes'] as int?,
-                coverImageUrl: item['image'] as String?,
-                firstAirDate: startDate,
-              ),
-              bestScore,
-            ));
-          }
-        } catch (_) {}
-      }
-      // If we already found matches in the current season, skip older ones.
-      if (allResults.isNotEmpty) break;
+    final seasons = acgsecretsSeasons(DateTime.now());
+    final pages = await Future.wait(seasons.map(_acgsecretsSeason));
+    if (pages.every((p) => p == null)) {
+      throw Exception('acgsecrets.hk: no season page could be loaded');
     }
 
-    // Sort by score descending.
-    allResults.sort((a, b) => b.$2.compareTo(a.$2));
-    return allResults.take(_maxPerSource).map((e) => e.$1).toList();
+    final queries = {
+      query,
+      ChineseConvert.toTraditional(query),
+      ChineseConvert.toSimplified(query),
+    };
+    final scored = <(AnimeSearchResult, double, int)>[];
+    final seenUrls = <String>{};
+    for (var i = 0; i < pages.length; i++) {
+      for (final r in pages[i] ?? const <AnimeSearchResult>[]) {
+        final names = [?r.title, ?r.titleJa, ...r.synonyms];
+        var best = 0.0;
+        for (final n in names) {
+          for (final q in queries) {
+            final s = _similarity(n, q);
+            if (s > best) best = s;
+          }
+        }
+        if (best < 0.3) continue;
+        if (r.sourceUrl != null && !seenUrls.add(r.sourceUrl!)) continue;
+        scored.add((r, best, i));
+      }
+    }
+    scored.sort((a, b) {
+      final cmp = b.$2.compareTo(a.$2);
+      return cmp != 0 ? cmp : a.$3.compareTo(b.$3);
+    });
+    return scored.take(_maxPerSource).map((e) => e.$1).toList();
   }
 
-  /// Purpose: Return recent season codes (YYYYMM) for scraping, newest first.
-  /// Inputs: None.
-  /// Returns: `List<String>`.
-  /// Side effects: None.
-  /// Notes: Internal helper used within this file only. Return recent season codes (YYYYMM) for scraping, newest first.
-  static List<String> _recentSeasons() {
+  /// Purpose: Get one season page's entries, from the cache or the network.
+  /// Inputs: `season` — `YYYYMM`.
+  /// Returns: `Future<List<AnimeSearchResult>?>` — null when the page could
+  /// not be loaded.
+  /// Side effects: May issue one HTTP GET; updates [_acgsecretsPages].
+  /// Notes: Internal helper used within this file only. A failed load is
+  /// dropped from the cache so the next search tries again.
+  static Future<List<AnimeSearchResult>?> _acgsecretsSeason(String season) {
     final now = DateTime.now();
-    final y = now.year;
-    final m = now.month;
-    // Current season month: 01, 04, 07, 10.
-    final sm = [1, 4, 7, 10].lastWhere((s) => m >= s);
-    final seasons = <String>['$y${sm.toString().padLeft(2, '0')}'];
-    // Previous season.
-    if (sm == 1) {
-      seasons.add('${y - 1}10');
-    } else {
-      seasons.add('$y${(sm - 3).toString().padLeft(2, '0')}');
+    final hit = _acgsecretsPages[season];
+    if (hit != null && now.difference(hit.at) < _acgsecretsPageTtl) {
+      return hit.items;
     }
-    return seasons;
+    final items = _fetchAcgsecretsSeason(season);
+    final entry = (at: now, items: items);
+    _acgsecretsPages[season] = entry;
+    items.then((list) {
+      if (list == null && identical(_acgsecretsPages[season], entry)) {
+        _acgsecretsPages.remove(season);
+      }
+    });
+    return items;
+  }
+
+  /// Purpose: Download and parse one acgsecrets.hk season page.
+  /// Inputs: `season` — `YYYYMM`.
+  /// Returns: `Future<List<AnimeSearchResult>?>` — every entry on the page;
+  /// null on a non-200 answer, a timeout or a network error.
+  /// Side effects: One HTTP GET with a 15 s timeout.
+  /// Notes: Internal helper used within this file only. Never throws.
+  static Future<List<AnimeSearchResult>?> _fetchAcgsecretsSeason(
+    String season,
+  ) async {
+    try {
+      final resp = await http
+          .get(
+            Uri.parse('https://acgsecrets.hk/bangumi/$season/'),
+            headers: {'User-Agent': userAgent},
+          )
+          .timeout(_acgsecretsTimeout);
+      if (resp.statusCode != 200) return null;
+      return parseAcgsecretsPage(utf8.decode(resp.bodyBytes));
+    } catch (_) {
+      return null;
+    }
+  }
+
+  /// Purpose: Read every entry from an acgsecrets.hk season page's JSON-LD.
+  /// Inputs: `html` — the page.
+  /// Returns: `List<AnimeSearchResult>` — one per `itemListElement` entry that
+  /// has a name, in page order.
+  /// Side effects: None.
+  /// Notes: Each entry is read on its own, so one malformed entry never drops
+  /// the rest of the page. Before 1.6.1 a single entry whose
+  /// `numberOfEpisodes` was the string `"19"` silently discarded every entry
+  /// after it.
+  @visibleForTesting
+  static List<AnimeSearchResult> parseAcgsecretsPage(String html) {
+    final out = <AnimeSearchResult>[];
+    for (final m in _acgsecretsLdPattern.allMatches(html)) {
+      Object? data;
+      try {
+        data = jsonDecode(m.group(1)!);
+      } catch (_) {
+        continue;
+      }
+      if (data is! Map) continue;
+      final items = data['itemListElement'];
+      if (items is! List) continue;
+      for (final item in items) {
+        if (item is! Map) continue;
+        try {
+          if (_acgsecretsItem(item) case final r?) out.add(r);
+        } catch (_) {
+          // Skip just this entry.
+        }
+      }
+    }
+    return out;
+  }
+
+  /// Purpose: Map one JSON-LD entry to a search result.
+  /// Inputs: `item` — one `itemListElement` entry.
+  /// Returns: `AnimeSearchResult?` — null when the entry has no name.
+  /// Side effects: None.
+  /// Notes: Internal helper used within this file only. Accepts
+  /// `alternateName` as a string or a list, and `numberOfEpisodes` as a
+  /// number or a numeric string; the Japanese title is the first alternate
+  /// name containing kana.
+  static AnimeSearchResult? _acgsecretsItem(Map item) {
+    final rawName = item['name'];
+    final name = rawName is String ? rawName.trim() : '';
+    final rawAlt = item['alternateName'];
+    final altNames = [
+      if (rawAlt is String) rawAlt,
+      if (rawAlt is List) ...rawAlt.whereType<String>(),
+    ].where((n) => n.trim().isNotEmpty).toList();
+    if (name.isEmpty && altNames.isEmpty) return null;
+    final titleJa = altNames.where(_containsJapanese).firstOrNull;
+    final startDate = item['startDate'];
+    final image = item['image'];
+    final url = item['url'];
+    return AnimeSearchResult(
+      source: AnimeSearchSource.acgsecrets,
+      sourceUrl: url is String ? url : null,
+      title: name.isNotEmpty ? name : null,
+      titleJa: titleJa,
+      synonyms: altNames.where((n) => n != titleJa).toList(),
+      episodes: _looseInt(item['numberOfEpisodes']),
+      coverImageUrl: image is String ? image : null,
+      firstAirDate: startDate is String ? DateTime.tryParse(startDate) : null,
+    );
+  }
+
+  /// Purpose: Read an integer that may arrive as a number or a numeric string.
+  /// Inputs: `value`.
+  /// Returns: `int?` — null for anything else.
+  /// Side effects: None.
+  /// Notes: Internal helper used within this file only.
+  static int? _looseInt(Object? value) => switch (value) {
+    final int n => n,
+    final num n => n.toInt(),
+    final String s => int.tryParse(s.trim()),
+    _ => null,
+  };
+
+  /// Purpose: List the acgsecrets.hk season pages worth searching.
+  /// Inputs: `now` — the local date.
+  /// Returns: `List<String>` — `YYYYMM` codes (month 01/04/07/10): the current
+  /// season, the next one, then the two before the current one.
+  /// Side effects: None.
+  /// Notes: The next season covers shows added before they air; the two
+  /// earlier seasons cover a show the user catches up on late. The order is
+  /// also the tie-break order for equally good matches.
+  @visibleForTesting
+  static List<String> acgsecretsSeasons(DateTime now) {
+    final start = DateTime(now.year, ((now.month - 1) ~/ 3) * 3 + 1);
+    String code(int offsetQuarters) {
+      final d = DateTime(start.year, start.month + offsetQuarters * 3);
+      return '${d.year}${d.month.toString().padLeft(2, '0')}';
+    }
+
+    return [code(0), code(1), code(-1), code(-2)];
   }
 
   /// Purpose: Check if a string contains Japanese kana characters.

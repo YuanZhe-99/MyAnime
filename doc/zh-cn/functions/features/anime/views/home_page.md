@@ -39,8 +39,8 @@
 - **用途：** 把完整动画列表从存储重载进 `_allAnime`。
 - **输入：** 无。
 - **返回：** `Future<void>`。
-- **副作用：** 调用 `AnimeStorage.load()`；`setState` `_allAnime`。
-- **算法：** Await `AnimeStorage.load()`；仍 mounted 时 `setState(() => _allAnime = data.animeList)`。
+- **副作用：** 调用 `AnimeStorage.loadFixingSeasonLabels(seasonLabelFixups)`（1.6.1，可能在不改动 `modifiedAt` 的情况下改写默认季标签）；`setState` `_allAnime`。
+- **算法：** Await [`AnimeStorage.loadFixingSeasonLabels`](../services/anime_storage.md#loadfixingseasonlabels)`(seasonLabelFixups)`；仍 mounted 时 `setState(() => _allAnime = data.animeList)`。
 - **用法：**
   ```dart
   @override

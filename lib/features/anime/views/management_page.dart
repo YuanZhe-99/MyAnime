@@ -19,6 +19,7 @@ import '../../categories/services/category_service.dart';
 import '../models/anime.dart';
 import '../models/anime_category.dart';
 import '../services/anime_storage.dart';
+import '../services/series_service.dart';
 import '../services/metadata_update_service.dart';
 import 'category_widgets.dart';
 import 'quarter_picker_dialog.dart';
@@ -156,7 +157,7 @@ class _ManagementPageState extends ConsumerState<ManagementPage> {
   /// Side effects: May read or mutate application state, storage, or service resources.
   /// Notes: Internal helper used within this file only.
   Future<void> _load() async {
-    final data = await AnimeStorage.load();
+    final data = await AnimeStorage.loadFixingSeasonLabels(seasonLabelFixups);
     final insights = await AnimeStorage.getOnDeviceAiEnabled()
         ? await AiInsightsCache.load()
         : null;

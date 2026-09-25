@@ -14,7 +14,9 @@ quarter-placement logic built on top of these fields, see
 - `id` — a UUID, stable across edits, sync, and merges.
 - `title` — main display title (Chinese/English). If null, `titleJa` is used instead.
 - `titleJa` — optional Japanese title. At least one of `title`/`titleJa` must be set.
-- `season` — a season identifier string, e.g. `"Season 1"`.
+- `season` — a season identifier string, e.g. `"Season 1"`. Since 1.6.1 a default label
+  (`Season 1` or empty) is replaced with `Season N` when a title names season N, without changing
+  `modifiedAt` — see [`features/series-linking.md`](features/series-linking.md).
 
 ### URLs
 

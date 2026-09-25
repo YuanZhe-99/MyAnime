@@ -65,6 +65,19 @@ class _AnimeDetailPageState extends State<AnimeDetailPage> {
     _load();
   }
 
+  /// Purpose: Reload when the page is rebuilt for a different record.
+  /// Inputs: `oldWidget`.
+  /// Returns: None.
+  /// Side effects: Calls `_load()` when `animeId` changed.
+  /// Notes: Flutter lifecycle override. The route keys the page by id, so this
+  /// is a safety net: before 1.6.1, `context.go` between seasons reused one
+  /// State and left the first-opened record on screen.
+  @override
+  void didUpdateWidget(covariant AnimeDetailPage oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.animeId != widget.animeId) _load();
+  }
+
   /// Purpose: Load the record and the series it belongs to.
   /// Inputs: None.
   /// Returns: None.
@@ -74,7 +87,7 @@ class _AnimeDetailPageState extends State<AnimeDetailPage> {
   /// matching an identical `displayTitle` and comparing season labels as
   /// strings (which put `Season 10` before `Season 2`). Nothing is written.
   Future<void> _load() async {
-    final data = await AnimeStorage.load();
+    final data = await AnimeStorage.loadFixingSeasonLabels(seasonLabelFixups);
     final found = data.animeList
         .where((a) => a.id == widget.animeId)
         .firstOrNull;
@@ -624,7 +637,7 @@ class _AnimeDetailPageState extends State<AnimeDetailPage> {
         SeriesCard(
           series: series,
           current: anime,
-          onOpen: (a) => context.go('/anime/detail/${a.id}'),
+          onOpen: (a) => context.push('/anime/detail/${a.id}'),
           onAction: _runSeriesAction,
         ),
         const SizedBox(height: 8),
@@ -638,13 +651,13 @@ class _AnimeDetailPageState extends State<AnimeDetailPage> {
               TextButton.icon(
                 icon: const Icon(Icons.arrow_back, size: 16),
                 label: Text(l10n.animePrevSeason),
-                onPressed: () => context.go('/anime/detail/${prev.id}'),
+                onPressed: () => context.push('/anime/detail/${prev.id}'),
               ),
             if (series.nextOf(anime.id) case final next?)
               TextButton.icon(
                 icon: const Icon(Icons.arrow_forward, size: 16),
                 label: Text(l10n.animeNextSeason),
-                onPressed: () => context.go('/anime/detail/${next.id}'),
+                onPressed: () => context.push('/anime/detail/${next.id}'),
               ),
           ],
         ),

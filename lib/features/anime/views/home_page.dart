@@ -19,6 +19,7 @@ import '../../../shared/utils/calendar_preferences.dart';
 import '../../../shared/utils/jst_time.dart';
 import '../models/anime.dart';
 import '../services/anime_storage.dart';
+import '../services/series_service.dart';
 
 class HomePage extends ConsumerStatefulWidget {
   /// Purpose: Create a home page instance.
@@ -73,7 +74,7 @@ class _HomePageState extends ConsumerState<HomePage> {
   /// Side effects: May read or mutate application state, storage, or service resources.
   /// Notes: Internal helper used within this file only.
   Future<void> _load() async {
-    final data = await AnimeStorage.load();
+    final data = await AnimeStorage.loadFixingSeasonLabels(seasonLabelFixups);
     if (mounted) setState(() => _allAnime = data.animeList);
   }
 

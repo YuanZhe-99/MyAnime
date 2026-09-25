@@ -83,9 +83,11 @@ for the quarter-placement rules this page's grouping relies on.
 - **Purpose:** Reload the full anime list from storage into `_allAnime`.
 - **Inputs:** None.
 - **Returns:** `Future<void>`.
-- **Side effects:** Calls `AnimeStorage.load()`, `AnimeStorage.getOnDeviceAiEnabled()` and, only
+- **Side effects:** Calls `AnimeStorage.loadFixingSeasonLabels(seasonLabelFixups)` (1.6.1), which may
+  rewrite default season labels without touching `modifiedAt`, `AnimeStorage.getOnDeviceAiEnabled()` and, only
   while on-device AI is on, `AiInsightsCache.load()`; `setState`s `_allAnime` and `_insights`.
-- **Algorithm:** Await `AnimeStorage.load()`, then — only while on-device AI is on —
+- **Algorithm:** Await
+  [`AnimeStorage.loadFixingSeasonLabels`](../services/anime_storage.md#loadfixingseasonlabels)`(seasonLabelFixups)`, then — only while on-device AI is on —
   `AiInsightsCache.load()` (1.6.0 M4, without pruning; otherwise `_insights` is `null`, so
   AI-suggested categories stop matching the filter once AI is off); if mounted, `setState` both `_allAnime = data.animeList` and `_insights`.
 - **Usage:**

@@ -594,6 +594,34 @@ int seriesOrdinalOf(Anime anime) {
   return seasonOrdinal(halfWidthAscii(anime.season)) ?? 1;
 }
 
+/// Purpose: Work out the season label a record should carry, when its own
+/// label is still the default.
+/// Inputs: `anime`.
+/// Returns: `String?` — `Season N` from the season its titles name
+/// ([seasonLabelFromTitles] over [seriesTitlesOf]); `null` when the label was
+/// typed by the user, the titles name no season past the first, or the
+/// derived label equals the current one.
+/// Side effects: None.
+/// Notes: Titles only, never the position in a series: an arc name such as
+/// `遊郭編` says nothing about which season it is.
+String? derivedSeasonLabel(Anime anime) {
+  if (!isDefaultSeasonLabel(anime.season)) return null;
+  final label = seasonLabelFromTitles(seriesTitlesOf(anime));
+  return label == null || label == anime.season ? null : label;
+}
+
+/// Purpose: List the records whose default season label should be replaced.
+/// Inputs: `records`.
+/// Returns: `Map<String, String>` — record id to its new label; empty when
+/// nothing needs changing.
+/// Side effects: None.
+/// Notes: The caller writes these with `AnimeStorage.patchSeasonLabels`, which
+/// keeps `modifiedAt` so two devices correcting the same record never make a
+/// sync conflict.
+Map<String, String> seasonLabelFixups(Iterable<Anime> records) => {
+  for (final a in records) a.id: ?derivedSeasonLabel(a),
+};
+
 /// Pure series-curation operations. Each returns the records to write; the
 /// caller persists them with `AnimeStorage.addOrUpdateAll`, and nothing is
 /// written in the background.

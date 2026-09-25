@@ -9,7 +9,8 @@
 - `id` — UUID，在编辑、同步和合并中保持稳定。
 - `title` — 主显示标题（中文/英文）。为 null 时改用 `titleJa`。
 - `titleJa` — 可选的日文标题。`title`/`titleJa` 至少设置一个。
-- `season` — 季标识字符串，如 `"Season 1"`。
+- `season` — 季标识字符串，如 `"Season 1"`。自 1.6.1 起，当某个标题指明第 N 季时，默认标签
+  （`Season 1` 或空）会被替换为 `Season N`，且不改动 `modifiedAt`——见 [`features/series-linking.md`](features/series-linking.md)。
 
 ### URL
 

@@ -40,7 +40,7 @@
   SeriesCard(
     series: series,
     current: anime,
-    onOpen: (a) => context.go('/anime/detail/${a.id}'),
+    onOpen: (a) => context.push('/anime/detail/${a.id}'),
     onAction: _runSeriesAction,
   ),
   ```

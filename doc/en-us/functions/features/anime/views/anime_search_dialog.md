@@ -19,7 +19,7 @@ see the flavor-gating rule in
 | `createState` | method (`_SearchDialog`) | B | Flutter lifecycle override. |
 | `initState` | method (`_SearchDialogState`) | B | Seed the query controller from `initialQuery`. |
 | `dispose` | method (`_SearchDialogState`) | B | Dispose the query controller. |
-| [`_search`](#search) | method (`_SearchDialogState`) | A | Run the search and reset the result-list controls. |
+| [`_search`](#search) | method (`_SearchDialogState`) | A | Run the search, showing results as each source answers, and reset the result-list controls. |
 | [`_visibleResults`](#visibleresults) | getter (`_SearchDialogState`) | A | Apply the active filters and sort order to the raw result list. |
 | [`_availableSources`](#availablesources) | getter (`_SearchDialogState`) | A | List the source names present in the current raw results. |
 | [`_selectResult`](#selectresult) | method (`_SearchDialogState`) | A | Enter the preview phase with per-field checkboxes pre-set. |
@@ -27,12 +27,12 @@ see the flavor-gating rule in
 | `_fetchCover` | method (`_SearchDialogState`) | B | Download the cover image and show a before/after preview. |
 | [`_apply`](#apply) | method (`_SearchDialogState`) | A | Close the dialog with the checked field values. |
 | `build` | method (`_SearchDialogState`) | B | Render the search or preview phase. |
-| `_buildSearchView` | method (`_SearchDialogState`) | B | Query field, search button, toolbar, and result list. |
+| `_buildSearchView` | method (`_SearchDialogState`) | B | Query field, search button, the compact progress strip while partial results are shown (1.6.1), toolbar, and result list. |
 | [`_buildResultToolbar`](#buildresulttoolbar) | method (`_SearchDialogState`) | A | Build the sort/filter/group toolbar shown above the result list. |
 | `_sortLabel` | method (`_SearchDialogState`) | B | Localized label for one `_SearchSort` value. |
 | [`_showFilterSheet`](#showfiltersheet) | method (`_SearchDialogState`) | A | Show the source and field filters in a bottom sheet. |
-| `_buildSearchResults` | method (`_SearchDialogState`) | B | Choose between spinner, error, empty, grouped, or flat list. |
-| [`_buildSearchProgress`](#_buildsearchprogress) | method | A | Show which sources have answered while a search runs. |
+| `_buildSearchResults` | method (`_SearchDialogState`) | B | Choose between the full progress panel (only until the first results arrive), error, empty, grouped, or flat list. |
+| [`_buildSearchProgress`](#_buildsearchprogress) | method | A | Show which sources have answered while a search runs, as a full panel or a compact strip. |
 | `_sourceChip` | method | B | Render one source's pending/found/failed state. |
 | [`_buildGroupedResults`](#buildgroupedresults) | method (`_SearchDialogState`) | A | Render the result list as one collapsible section per source. |
 | [`_resultTile`](#resulttile) | method (`_SearchDialogState`) | A | Build one row of the search result list. |
@@ -66,12 +66,18 @@ comments; the enums themselves are counted as types rather than declarations her
 
 ### `Future<void> _search()` <a id="search"></a>
 - **Kind:** method of `_SearchDialogState`
-- **Source:** `lib/features/anime/views/anime_search_dialog.dart` (line 156)
+- **Source:** `lib/features/anime/views/anime_search_dialog.dart` (approx. line 164)
 - **Purpose:** Run the search and reset the result-list controls.
 - **Returns:** None.
-- **Side effects:** Network I/O via `AnimeSearchService.searchAll`; rebuilds state.
-- **Algorithm:** Reads `Localizations.localeOf(context).toLanguageTag()` as `preferredLanguage`, clears results and all filters, awaits `searchAll`, then stores both the results and `AnimeSearchService.queryVariants(query)`. Sets `_error` to the "no results" message when the list comes back empty, and to the exception text on failure.
-- **Notes:** The variants are cached in state deliberately — every relevance-sorted rebuild scores against them, and re-deriving them per frame would be wasteful and could drift from what the service actually searched with. Filters are reset on each new search because a source chip from the previous query may not exist in the new results.
+- **Side effects:** Network I/O via `AnimeSearchService.searchAll`; rebuilds state as each source answers; bumps `_searchGeneration`.
+- **Algorithm:**
+  1. Return for a blank query or while a search is already running.
+  2. Read `Localizations.localeOf(context).toLanguageTag()` as `preferredLanguage`, bump `_searchGeneration`, and define `current()` as "still mounted and still the newest search".
+  3. Clear results, error and all filters, and store `AnimeSearchService.queryVariants(query)` and the language **before** the first result arrives, so partial results already sort by relevance.
+  4. Await `searchAll` with `onProgress` storing `_progress` and `onResults` (1.6.1) storing `_results`, each only while `current()`.
+  5. When it returns and `current()` still holds, store the final results and clear `_searching`; set `_error` to the "no results" message when the list is empty.
+  6. On an exception (and `current()`), clear `_searching`; set `_error` to the exception text only when no results have arrived.
+- **Notes:** The variants are cached in state deliberately — every relevance-sorted rebuild scores against them, and re-deriving them per frame would be wasteful and could drift from what the service actually searched with. Filters are reset on each new search because a source chip from the previous query may not exist in the new results. Since 1.6.1 the list is usable long before the slowest source finishes and re-sorts as more results arrive; an error after partial results keeps them. The generation guard drops callbacks from an older search that is still finishing in the background. The `int _searchGeneration` field it maintains has no `/// Purpose:` block and no row.
 
 ### `List<AnimeSearchResult> get _visibleResults` <a id="visibleresults"></a>
 - **Kind:** getter of `_SearchDialogState`
@@ -194,15 +200,25 @@ comments; the enums themselves are counted as types rather than declarations her
 - **Algorithm:** A compact `Wrap` of chips: format, status, duration, each studio, each genre, and the score.
 - **Notes:** Read-only by design — the single checkbox above governs whether any of it is written. It exists so the user can see what "6 fields from AniList" actually means before accepting it.
 
-### `Widget _buildSearchProgress(AppLocalizations)` <a id="_buildsearchprogress"></a>
+### `Widget _buildSearchProgress(AppLocalizations, {bool compact = false})` <a id="_buildsearchprogress"></a>
 - **Kind:** method
+- **Source:** `lib/features/anime/views/anime_search_dialog.dart` (approx. line 708)
 - **Purpose:** Show which sources have answered while a search is still running.
-- **Inputs:** `l10n`.
+- **Inputs:** `l10n`; `compact` (1.6.1) — the slim strip shown above partial results instead of the
+  full panel.
 - **Returns:** `Widget`.
 - **Side effects:** None.
 - **Algorithm:** Render a determinate bar from `AnimeSearchProgress.fraction`, a caption naming the
   round and the count, and one chip per source — spinner while pending, a tick and a result count
-  once it lands, an error icon when it threw.
+  once it lands, an error icon when it threw. `compact` shrinks the padding and spacing and uses
+  `bodySmall` for the caption.
+- **Usage:**
+  ```dart
+  if (_searching && _results.isNotEmpty)
+    _buildSearchProgress(l10n, compact: true),
+  ```
+  (`_buildSearchView`, above the result toolbar; `_buildSearchResults` shows the full panel while
+  `_searching && _results.isEmpty`)
 - **Notes:** Replaces the bare `CircularProgressIndicator` this screen used through 1.5.0. A search
   can legitimately take about half a minute — each source has its own 10–15 second timeout, and
   sources that come back empty are queried a second time with titles harvested from the first round
@@ -211,5 +227,9 @@ comments; the enums themselves are counted as types rather than declarations her
   The chips are the part that actually answers the question: when one source is slow, the other four
   are already ticked, which says "working" rather than "stuck", and names the one holding things up.
 
-  Falls back to the plain spinner before the first progress snapshot arrives, so there is never a
-  frame with an empty bar and no chips.
+  Falls back to the plain spinner (a bare `LinearProgressIndicator` when `compact`) before the first
+  progress snapshot arrives, so there is never a frame with an empty bar and no chips.
+
+  Since 1.6.1 the full panel fills the dialog only until the first results arrive; after that it
+  shrinks to the compact strip above the already usable result list while the remaining sources
+  finish.

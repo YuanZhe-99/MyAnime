@@ -67,8 +67,8 @@
 - **用途：** 把完整动画列表从存储重载进 `_allAnime`。
 - **输入：** 无。
 - **返回：** `Future<void>`。
-- **副作用：** 调用 `AnimeStorage.load()`、`AnimeStorage.getOnDeviceAiEnabled()`，并仅在端侧 AI 开启时调用 `AiInsightsCache.load()`；`setState` `_allAnime` 和 `_insights`。
-- **算法：** Await `AnimeStorage.load()`，然后——仅在端侧 AI 开启时——`AiInsightsCache.load()`（1.6.0 M4，不做修剪；否则 `_insights` 为 `null`，因此 AI 关闭后 AI 建议的分类不再匹配筛选）；mounted 时同时 `setState` `_allAnime = data.animeList` 和 `_insights`。
+- **副作用：** 调用 `AnimeStorage.loadFixingSeasonLabels(seasonLabelFixups)`（1.6.1，可能在不改动 `modifiedAt` 的情况下改写默认季标签）、`AnimeStorage.getOnDeviceAiEnabled()`，并仅在端侧 AI 开启时调用 `AiInsightsCache.load()`；`setState` `_allAnime` 和 `_insights`。
+- **算法：** Await [`AnimeStorage.loadFixingSeasonLabels`](../services/anime_storage.md#loadfixingseasonlabels)`(seasonLabelFixups)`，然后——仅在端侧 AI 开启时——`AiInsightsCache.load()`（1.6.0 M4，不做修剪；否则 `_insights` 为 `null`，因此 AI 关闭后 AI 建议的分类不再匹配筛选）；mounted 时同时 `setState` `_allAnime = data.animeList` 和 `_insights`。
 - **用法：**
   ```dart
   AutoSyncService.instance.addOnLocalDataChanged(_load);

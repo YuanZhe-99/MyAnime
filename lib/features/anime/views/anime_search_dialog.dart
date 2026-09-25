@@ -113,6 +113,10 @@ class _SearchDialogState extends State<_SearchDialog> {
   AnimeSearchProgress? _progress;
   String? _error;
 
+  /// Bumped by every search, so callbacks from an earlier search that is
+  /// still finishing in the background cannot overwrite a newer one.
+  int _searchGeneration = 0;
+
   // Result list controls
   _SearchSort _sort = _SearchSort.relevance;
   final Set<String> _hiddenSources = {};
@@ -155,16 +159,22 @@ class _SearchDialogState extends State<_SearchDialog> {
   /// Side effects: May perform network or file-system operations.
   /// Notes: Internal helper used within this file only. Passes the active UI
   /// locale so the service can favour titles in the user's own language.
+  /// Results are shown as each source answers, so the list is usable long
+  /// before the slowest source finishes; it re-sorts as more arrive.
   Future<void> _search() async {
     final query = _queryController.text.trim();
-    if (query.isEmpty) return;
+    if (query.isEmpty || _searching) return;
     final language = Localizations.localeOf(context).toLanguageTag();
+    final generation = ++_searchGeneration;
+    bool current() => mounted && generation == _searchGeneration;
 
     setState(() {
       _searching = true;
       _progress = null;
       _error = null;
       _results = [];
+      _queryVariants = AnimeSearchService.queryVariants(query);
+      _searchLanguage = language;
       _hiddenSources.clear();
       _onlyWithCover = false;
       _onlyWithAirDate = false;
@@ -175,10 +185,13 @@ class _SearchDialogState extends State<_SearchDialog> {
         query,
         preferredLanguage: language,
         onProgress: (progress) {
-          if (mounted) setState(() => _progress = progress);
+          if (current()) setState(() => _progress = progress);
+        },
+        onResults: (soFar) {
+          if (current()) setState(() => _results = soFar);
         },
       );
-      if (!mounted) return;
+      if (!current()) return;
       setState(() {
         _progress = null;
         _results = results;
@@ -190,11 +203,12 @@ class _SearchDialogState extends State<_SearchDialog> {
         }
       });
     } catch (e) {
-      if (!mounted) return;
+      if (!current()) return;
       setState(() {
         _searching = false;
         _progress = null;
-        _error = e.toString();
+        // Keep whatever already arrived; only an empty list shows the error.
+        if (_results.isEmpty) _error = e.toString();
       });
     }
   }
@@ -216,9 +230,7 @@ class _SearchDialogState extends State<_SearchDialog> {
 
     switch (_sort) {
       case _SearchSort.relevance:
-        filtered.sort(
-          (a, b) => _relevance(b).compareTo(_relevance(a)),
-        );
+        filtered.sort((a, b) => _relevance(b).compareTo(_relevance(a)));
       case _SearchSort.firstAirDate:
         filtered.sort((a, b) {
           if (a.firstAirDate == null && b.firstAirDate == null) return 0;
@@ -463,6 +475,10 @@ class _SearchDialogState extends State<_SearchDialog> {
             ],
           ),
         ),
+        // While sources are still answering, their progress sits above the
+        // results that have already arrived.
+        if (_searching && _results.isNotEmpty)
+          _buildSearchProgress(l10n, compact: true),
         if (_results.isNotEmpty) _buildResultToolbar(l10n),
         Expanded(child: _buildSearchResults(l10n)),
       ],
@@ -634,9 +650,11 @@ class _SearchDialogState extends State<_SearchDialog> {
   /// Inputs: `l10n`.
   /// Returns: `Widget`.
   /// Side effects: None.
-  /// Notes: Internal helper used within this file only.
+  /// Notes: Internal helper used within this file only. The full progress
+  /// panel is shown only until the first results arrive; after that the list
+  /// renders while the search continues.
   Widget _buildSearchResults(AppLocalizations l10n) {
-    if (_searching) {
+    if (_searching && _results.isEmpty) {
       return _buildSearchProgress(l10n);
     }
     if (_error != null) {
@@ -678,7 +696,8 @@ class _SearchDialogState extends State<_SearchDialog> {
   }
 
   /// Purpose: Show which sources have answered while a search is running.
-  /// Inputs: `l10n`.
+  /// Inputs: `l10n`; `compact` — the slim strip shown above partial results
+  /// instead of the full panel.
   /// Returns: `Widget`.
   /// Side effects: None.
   /// Notes: Internal helper used within this file only. A search can take half
@@ -686,25 +705,34 @@ class _SearchDialogState extends State<_SearchDialog> {
   /// come back empty are queried again with titles harvested from the first
   /// round. A bare spinner over that is indistinguishable from a hang, so each
   /// source reports itself as it lands and the slow one is visible by name.
-  Widget _buildSearchProgress(AppLocalizations l10n) {
+  Widget _buildSearchProgress(AppLocalizations l10n, {bool compact = false}) {
     final theme = Theme.of(context);
     final progress = _progress;
     if (progress == null || progress.total == 0) {
-      return const Center(child: CircularProgressIndicator());
+      return compact
+          ? const LinearProgressIndicator()
+          : const Center(child: CircularProgressIndicator());
     }
     final label = progress.round >= 2
         ? l10n.searchProgressRound2(progress.done, progress.total)
         : l10n.searchProgressRound1(progress.done, progress.total);
 
     return Padding(
-      padding: const EdgeInsets.fromLTRB(24, 32, 24, 24),
+      padding: compact
+          ? const EdgeInsets.fromLTRB(12, 0, 12, 8)
+          : const EdgeInsets.fromLTRB(24, 32, 24, 24),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           LinearProgressIndicator(value: progress.fraction),
-          const SizedBox(height: 12),
-          Text(label, style: theme.textTheme.bodyMedium),
-          const SizedBox(height: 12),
+          SizedBox(height: compact ? 6 : 12),
+          Text(
+            label,
+            style: compact
+                ? theme.textTheme.bodySmall
+                : theme.textTheme.bodyMedium,
+          ),
+          SizedBox(height: compact ? 4 : 12),
           Wrap(
             spacing: 8,
             runSpacing: 4,
@@ -781,9 +809,7 @@ class _SearchDialogState extends State<_SearchDialog> {
     for (final r in visible) {
       grouped.putIfAbsent(r.source, () => []).add(r);
     }
-    final sources = AnimeSearchSource.all
-        .where(grouped.containsKey)
-        .toList();
+    final sources = AnimeSearchSource.all.where(grouped.containsKey).toList();
     return ListView.builder(
       itemCount: sources.length,
       padding: const EdgeInsets.only(bottom: 8),
@@ -794,10 +820,7 @@ class _SearchDialogState extends State<_SearchDialog> {
           initiallyExpanded: true,
           dense: true,
           tilePadding: const EdgeInsets.symmetric(horizontal: 12),
-          title: Text(
-            source,
-            style: Theme.of(context).textTheme.titleSmall,
-          ),
+          title: Text(source, style: Theme.of(context).textTheme.titleSmall),
           trailing: Text(
             '${items.length}',
             style: Theme.of(context).textTheme.bodySmall,
@@ -881,7 +904,10 @@ class _SearchDialogState extends State<_SearchDialog> {
         '★ ${r.score!.toStringAsFixed(1)}/${r.scoreMax.toStringAsFixed(0)}',
       if (r.format != null) r.format!,
       if (r.airDayOfWeek != null)
-        [_dayName(r.airDayOfWeek!), if (r.airTime != null) r.airTime!].join(' '),
+        [
+          _dayName(r.airDayOfWeek!),
+          if (r.airTime != null) r.airTime!,
+        ].join(' '),
       if (r.airDayOfWeek == null && r.firstAirDate != null)
         DateFormat.yMd().format(r.firstAirDate!),
       if (r.studios.isNotEmpty) r.studios.first,
@@ -953,10 +979,7 @@ class _SearchDialogState extends State<_SearchDialog> {
                 ..._detailRows(l10n, r, theme),
                 if (r.summary?.isNotEmpty == true) ...[
                   const Divider(height: 24),
-                  SelectableText(
-                    r.summary!,
-                    style: theme.textTheme.bodySmall,
-                  ),
+                  SelectableText(r.summary!, style: theme.textTheme.bodySmall),
                 ],
               ],
             ),
@@ -983,8 +1006,7 @@ class _SearchDialogState extends State<_SearchDialog> {
         (l10n.animeFirstAirDate, DateFormat.yMd().format(r.firstAirDate!)),
       if (r.endDate != null)
         (l10n.animeEndDate, DateFormat.yMd().format(r.endDate!)),
-      if (r.airDayOfWeek != null)
-        (l10n.animeAirDay, _dayName(r.airDayOfWeek!)),
+      if (r.airDayOfWeek != null) (l10n.animeAirDay, _dayName(r.airDayOfWeek!)),
       if (r.airTime != null) (l10n.animeAirTime, r.airTime!),
       if (r.format != null) (l10n.animeFormat, r.format!),
       if (r.status != null) (l10n.animeStatus, r.status!),
@@ -1019,10 +1041,7 @@ class _SearchDialogState extends State<_SearchDialog> {
                 ),
               ),
               Expanded(
-                child: SelectableText(
-                  value,
-                  style: theme.textTheme.bodyMedium,
-                ),
+                child: SelectableText(value, style: theme.textTheme.bodyMedium),
               ),
             ],
           ),

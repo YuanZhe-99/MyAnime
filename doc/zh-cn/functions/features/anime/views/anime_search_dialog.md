@@ -18,7 +18,7 @@
 | `createState` | 方法（`_SearchDialog`） | B | Flutter 生命周期覆写。 |
 | `initState` | 方法（`_SearchDialogState`） | B | 用 `initialQuery` 初始化查询控制器。 |
 | `dispose` | 方法（`_SearchDialogState`） | B | 释放查询控制器。 |
-| [`_search`](#search) | 方法（`_SearchDialogState`） | A | 执行搜索并重置结果列表控件。 |
+| [`_search`](#search) | 方法（`_SearchDialogState`） | A | 执行搜索，在每个来源回应时显示结果，并重置结果列表控件。 |
 | [`_visibleResults`](#visibleresults) | getter（`_SearchDialogState`） | A | 对原始结果列表应用当前过滤条件与排序。 |
 | [`_availableSources`](#availablesources) | getter（`_SearchDialogState`） | A | 列出当前原始结果中出现过的来源名。 |
 | [`_selectResult`](#selectresult) | 方法（`_SearchDialogState`） | A | 进入预览阶段并预设各字段复选框。 |
@@ -26,12 +26,12 @@
 | `_fetchCover` | 方法（`_SearchDialogState`） | B | 下载封面图并显示前后对比预览。 |
 | [`_apply`](#apply) | 方法（`_SearchDialogState`） | A | 用已勾选的字段值关闭对话框。 |
 | `build` | 方法（`_SearchDialogState`） | B | 渲染搜索阶段或预览阶段。 |
-| `_buildSearchView` | 方法（`_SearchDialogState`） | B | 查询框、搜索按钮、工具栏与结果列表。 |
+| `_buildSearchView` | 方法（`_SearchDialogState`） | B | 查询框、搜索按钮、显示部分结果时的紧凑进度条（1.6.1）、工具栏与结果列表。 |
 | [`_buildResultToolbar`](#buildresulttoolbar) | 方法（`_SearchDialogState`） | A | 构建结果列表上方的排序/过滤/分组工具栏。 |
 | `_sortLabel` | 方法（`_SearchDialogState`） | B | 单个 `_SearchSort` 值的本地化标签。 |
 | [`_showFilterSheet`](#showfiltersheet) | 方法（`_SearchDialogState`） | A | 在底部面板中展示来源与字段过滤条件。 |
-| `_buildSearchResults` | 方法（`_SearchDialogState`） | B | 在加载圈、错误、空、分组或平铺列表之间选择。 |
-| [`_buildSearchProgress`](#_buildsearchprogress) | 方法 | A | 在检索进行中显示哪些来源已回应。 |
+| `_buildSearchResults` | 方法（`_SearchDialogState`） | B | 在完整进度面板（仅在首批结果到达之前）、错误、空、分组或平铺列表之间选择。 |
+| [`_buildSearchProgress`](#_buildsearchprogress) | 方法 | A | 在检索进行中以完整面板或紧凑窄条显示哪些来源已回应。 |
 | `_sourceChip` | 方法 | B | 渲染单个来源的等待/找到/失败状态。 |
 | [`_buildGroupedResults`](#buildgroupedresults) | 方法（`_SearchDialogState`） | A | 把结果列表渲染成每个来源一个可折叠分区。 |
 | [`_resultTile`](#resulttile) | 方法（`_SearchDialogState`） | A | 构建搜索结果列表的一行。 |
@@ -65,12 +65,18 @@
 
 ### `Future<void> _search()` <a id="search"></a>
 - **种类：** `_SearchDialogState` 的方法
-- **来源：** `lib/features/anime/views/anime_search_dialog.dart`（第 156 行）
+- **来源：** `lib/features/anime/views/anime_search_dialog.dart`（约第 164 行）
 - **用途：** 执行搜索并重置结果列表控件。
 - **返回：** 无。
-- **副作用：** 经 `AnimeSearchService.searchAll` 执行网络 I/O；重建状态。
-- **算法：** 读取 `Localizations.localeOf(context).toLanguageTag()` 作为 `preferredLanguage`，清空结果与全部过滤条件，await `searchAll`，随后同时保存结果与 `AnimeSearchService.queryVariants(query)`。列表为空时把 `_error` 设为「无结果」文案，失败时设为异常文本。
-- **备注：** 变体缓存在 state 中是刻意的——每次按相关度排序的重建都要用它们打分，逐帧重新推导既浪费又可能与服务实际检索时使用的集合产生偏差。每次新搜索都重置过滤条件，是因为上一次查询的某个来源 chip 在新结果中可能根本不存在。
+- **副作用：** 经 `AnimeSearchService.searchAll` 执行网络 I/O；每个来源回应时重建状态；递增 `_searchGeneration`。
+- **算法：**
+  1. 查询为空白或已有检索在进行时直接返回。
+  2. 读取 `Localizations.localeOf(context).toLanguageTag()` 作为 `preferredLanguage`，递增 `_searchGeneration`，并定义 `current()` 为「仍已挂载且仍是最新一次检索」。
+  3. 清空结果、错误与全部过滤条件，并在首批结果到达**之前**保存 `AnimeSearchService.queryVariants(query)` 和语言，使部分结果已能按相关度排序。
+  4. Await `searchAll`，`onProgress` 保存 `_progress`，`onResults`（1.6.1）保存 `_results`，两者都只在 `current()` 时生效。
+  5. 返回后若 `current()` 仍成立，保存最终结果并清除 `_searching`；列表为空时把 `_error` 设为「无结果」文案。
+  6. 抛出异常时（且 `current()`），清除 `_searching`；只有尚无任何结果到达时才把 `_error` 设为异常文本。
+- **备注：** 变体缓存在 state 中是刻意的——每次按相关度排序的重建都要用它们打分，逐帧重新推导既浪费又可能与服务实际检索时使用的集合产生偏差。每次新搜索都重置过滤条件，是因为上一次查询的某个来源 chip 在新结果中可能根本不存在。自 1.6.1 起，列表在最慢的来源结束之前很久就已可用，并随更多结果到达重新排序；已有部分结果时发生的错误会保留这些结果。代次检查会丢弃仍在后台收尾的较早检索的回调。它维护的 `int _searchGeneration` 字段没有 `/// Purpose:` 块，也没有对应行。
 
 ### `List<AnimeSearchResult> get _visibleResults` <a id="visibleresults"></a>
 - **种类：** `_SearchDialogState` 的 getter
@@ -193,14 +199,22 @@
 - **算法：** 一个紧凑的 chip `Wrap`：作品形式、播出状态、时长、每个制作公司、每个类型标签，以及评分。
 - **备注：** 设计上是只读的——上方那个复选框决定其中是否有任何内容被写入。它存在的意义是让用户在接受之前看清「来自 AniList 的 6 项信息」究竟指什么。
 
-### `Widget _buildSearchProgress(AppLocalizations)` <a id="_buildsearchprogress"></a>
+### `Widget _buildSearchProgress(AppLocalizations, {bool compact = false})` <a id="_buildsearchprogress"></a>
 - **种类：** 方法
+- **来源：** `lib/features/anime/views/anime_search_dialog.dart`（约第 708 行）
 - **用途：** 在检索仍在进行时，显示哪些来源已经回应。
-- **输入：** `l10n`。
+- **输入：** `l10n`；`compact`（1.6.1）—— 显示在部分结果上方的窄条，取代完整面板。
 - **返回：** `Widget`。
 - **副作用：** 无。
 - **算法：** 用 `AnimeSearchProgress.fraction` 画一条确定进度条，配一行说明当前轮次与计数的文案，
-  再为每个来源画一个 chip——等待中是转圈，落地后是对勾加结果条数，抛异常则是错误图标。
+  再为每个来源画一个 chip——等待中是转圈，落地后是对勾加结果条数，抛异常则是错误图标。`compact`
+  缩小内边距与间距，并用 `bodySmall` 显示文案。
+- **用法：**
+  ```dart
+  if (_searching && _results.isNotEmpty)
+    _buildSearchProgress(l10n, compact: true),
+  ```
+  （`_buildSearchView`，位于结果工具栏上方；`_searching && _results.isEmpty` 时由 `_buildSearchResults` 显示完整面板）
 - **备注：** 取代了本界面直到 1.5.0 一直使用的光秃秃 `CircularProgressIndicator`。一次检索确实可能
   耗时约半分钟——每个来源各有 10–15 秒超时，且空手而归的来源会用首轮采集到的标题再查一次——
   在这段时间里，孤零零一个转圈与真正的卡死无法区分。
@@ -208,4 +222,7 @@
   真正回答问题的是那些 chip：当某一个来源很慢时，其余四个已经打上对勾，这说明的是「在工作」
   而不是「卡住了」，并且直接点名了拖后腿的那一个。
 
-  在首个进度快照到达之前回退为普通转圈，因此不会出现「空进度条且没有 chip」的那一帧。
+  在首个进度快照到达之前回退为普通转圈（`compact` 时为一条无确定值的 `LinearProgressIndicator`），因此不会出现「空进度条且没有 chip」的那一帧。
+
+  自 1.6.1 起，完整面板只在首批结果到达之前占满对话框；此后它收缩为已可使用的结果列表上方的紧凑窄条，
+  其余来源则继续完成。

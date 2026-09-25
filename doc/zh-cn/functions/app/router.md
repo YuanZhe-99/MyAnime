@@ -40,7 +40,7 @@
 | `/stats` | `StatisticsPage` | 外壳标签 |
 | `/kana` | `KanaPage` | 外壳标签，仅在假名标签开启时；否则重定向到 `/home` |
 | `/settings` | `SettingsPage` | 外壳标签 |
-| `/anime/detail/:id` | `AnimeDetailPage` | 压栈在外壳之上；`id` 必填 |
+| `/anime/detail/:id` | `AnimeDetailPage` | 压栈在外壳之上；`id` 必填。自 1.6.1 起页面以 `ValueKey(id)` 为 key，因此从另一个详情页压栈打开的详情页绝不会复用上一条记录的 State |
 | `/anime/edit` | `AnimeEditPage` | 创建流程（无 `animeId`）；`extra` 可携带来自"添加下一季"的 `NextSeasonPrefill`（1.6.0，见 [`../features/anime/services/series_service.md`](../features/anime/services/series_service.md#nextseasonprefill)）；其他 `extra` 被忽略 |
 | `/anime/edit/:id` | `AnimeEditPage` | 编辑流程（`animeId` 来自路径）；`extra: true` 会在加载后打开在线搜索 |
 | `/metadata-updates` | `MetadataUpdatesPage` | 压栈在外壳之上；`extra` 可携带当前页的动画 id |

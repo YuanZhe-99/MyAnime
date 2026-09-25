@@ -58,8 +58,12 @@ final appRouter = GoRouter(
     ),
     GoRoute(
       path: '/anime/detail/:id',
-      builder: (context, state) =>
-          AnimeDetailPage(animeId: state.pathParameters['id']!),
+      // Keyed by id, so a detail page reached from another detail page
+      // never reuses the previous record's State.
+      builder: (context, state) => AnimeDetailPage(
+        key: ValueKey(state.pathParameters['id']!),
+        animeId: state.pathParameters['id']!,
+      ),
     ),
     GoRoute(
       path: '/anime/edit',

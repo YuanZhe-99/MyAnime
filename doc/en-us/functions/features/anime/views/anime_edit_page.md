@@ -30,8 +30,9 @@ pre-filled and no search, even when the relation data arrived through sync.
 |---|---|---|---|
 | `AnimeEditPage.new` | constructor (`AnimeEditPage`) | B | Create an `AnimeEditPage`, optionally bound to an existing anime ID, or (create route only) prefilled by a `NextSeasonPrefill`. |
 | `AnimeEditPage.createState` | method (`AnimeEditPage`) | B | Create the mutable state object for this widget. |
-| `_AnimeEditPageState.initState` | method (`_AnimeEditPageState`) | B | Set the default season text, apply a next-season prefill when creating (starting the online search when its `autoSearch` is set and the build is full), and trigger loading an existing record if editing. |
+| `_AnimeEditPageState.initState` | method (`_AnimeEditPageState`) | B | Set the default season text, apply a next-season prefill when creating (starting the online search when its `autoSearch` is set and the build is full), trigger loading an existing record if editing, and (1.6.1) make both title fields drive `_followTitlesForSeason`. |
 | [`_loadExisting`](#_loadexisting) | method (`_AnimeEditPageState`) | A | Load an existing anime and populate every form field/controller from it. |
+| [`_followTitlesForSeason`](#_followtitlesforseason) | method (`_AnimeEditPageState`) | A | Keep the season field in step with the season the titles name. |
 | `_AnimeEditPageState.dispose` | method (`_AnimeEditPageState`) | B | Dispose all 17 owned `TextEditingController`s. |
 | [`_pickCoverImage`](#_pickcoverimage) | method (`_AnimeEditPageState`) | A | Let the user pick a cover image file and stage its path. |
 | [`_searchWatchUrl`](#_searchwatchurl) | method (`_AnimeEditPageState`) | A | Open the watch-URL search dialog with every known title, and apply the chosen URL plus its progress. |
@@ -85,8 +86,41 @@ pre-filled and no search, even when the relation data arrived through sync.
   }
   ```
   (`_AnimeEditPageState.initState`, same file)
+  5. (1.6.1) Inside the same `setState`, reset `_seasonFromTitles` to `null` and call
+     [`_followTitlesForSeason`](#_followtitlesforseason): the title listeners fired while the title
+     controllers were being filled, before the stored label was put back.
 - **Notes:** If no record matches `widget.animeId`, the page silently stays in create mode
   (`_isEdit` remains `false`) rather than showing an error.
+
+### `void _followTitlesForSeason()` <a id="_followtitlesforseason"></a>
+- **Kind:** method of `_AnimeEditPageState`
+- **Source:** `lib/features/anime/views/anime_edit_page.dart` (approx. line 135)
+- **Purpose:** Keep the season field in step with the season the titles name.
+- **Inputs:** None.
+- **Returns:** None.
+- **Side effects:** May set `_seasonController.text` and `_seasonFromTitles`.
+- **Algorithm:**
+  1. Return unless the season field is the label this method last wrote (`_seasonFromTitles`) or
+     still passes `isDefaultSeasonLabel` (empty or `Season 1`).
+  2. Derive a label with
+     [`seasonLabelFromTitles`](../../../shared/utils/season_label.md#seasonlabelfromtitles) over the
+     title field, the Japanese title field, and — from `_externalMeta` — `titleRomaji`, `titleEn`
+     and every synonym.
+  3. When a label is derived, remember it in `_seasonFromTitles` and write it into the field if it
+     differs. When none is derived but the field holds this method's own earlier label, clear
+     `_seasonFromTitles` and put `defaultSeasonLabel` back.
+- **Usage:**
+  ```dart
+  _titleController.addListener(_followTitlesForSeason);
+  _titleJaController.addListener(_followTitlesForSeason);
+  ```
+  (`_AnimeEditPageState.initState`; also called at the end of [`_loadExisting`](#_loadexisting)
+  and after [`_showSearchDialog`](#_showsearchdialog) applies a result)
+- **Notes:** Added in 1.6.1. A label the user typed — or the "Add next season" prefill, which is
+  neither the default nor this method's own label — is never replaced. Calling it after a search
+  result is applied matters because the applied metadata may name the season in a title the form
+  has no field for. The `String? _seasonFromTitles` field it maintains has no `/// Purpose:` block
+  and no row. See [`../../../../features/series-linking.md`](../../../../features/series-linking.md).
 
 ### `Future<void> _pickCoverImage()` <a id="_pickcoverimage"></a>
 - **Kind:** method of `_AnimeEditPageState`
@@ -168,6 +202,9 @@ pre-filled and no search, even when the relation data arrived through sync.
      is checked and applied independently via `result.containsKey(...)`. `externalMeta` is held in
      `_externalMeta` rather than a form controller — it is never typed by hand — and is written
      out with the record in `_save()`.
+  4. (1.6.1) Still inside that `setState`, call
+     [`_followTitlesForSeason`](#_followtitlesforseason), so a season named only in the applied
+     metadata's titles reaches the season field.
 - **Usage:**
   ```dart
   if (AppFlavor.isFull)

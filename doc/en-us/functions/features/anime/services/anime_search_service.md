@@ -34,7 +34,8 @@ and the metadata block becomes `externalMeta`).
 | `total` | getter (`AnimeSearchProgress`) | B | How many sources this round queries. |
 | [`fraction`](#searchprogressfraction) | getter (`AnimeSearchProgress`) | A | This round's completed fraction, or `null`. |
 | `isPending` | method (`AnimeSearchProgress`) | B | Whether one source is still being waited on. |
-| [`searchAll`](#searchall) | static method (`AnimeSearchService`) | A | Run the two-round cross-language search and return one ranked list. |
+| [`searchAll`](#searchall) | static method (`AnimeSearchService`) | A | Run the two-round cross-language search and return one ranked list, optionally handing out partial lists as sources answer. |
+| [`_combine`](#combine) | static method (`AnimeSearchService`) | A | Merge per-source results into one deduplicated, ranked list. |
 | [`queryVariants`](#queryvariants) | static method (`AnimeSearchService`) | A | Build the Simplified/Traditional variant set for a query. |
 | [`relevance`](#relevance) | static method (`AnimeSearchService`) | A | Score a result against a query variant set, across all its titles. |
 | [`_languageAffinity`](#languageaffinity) | static method (`AnimeSearchService`) | A | Report whether a result carries a title in the user's UI language. |
@@ -56,8 +57,13 @@ and the metadata block becomes `externalMeta`).
 | [`mapJikanAnime`](#mapjikananime) | static method (`AnimeSearchService`) | A | Map one Jikan anime object onto an `AnimeSearchResult`. |
 | [`parseJikanDuration`](#parsejikanduration) | static method (`AnimeSearchService`) | A | Parse Jikan's prose duration string into minutes. |
 | [`_namedList`](#namedlist) | static method (`AnimeSearchService`) | B | Read a Jikan `[{name: ...}]` array into a string list. |
-| [`_searchAcgsecrets`](#searchacgsecrets) | static method (`AnimeSearchService`) | A | Scrape acgsecrets.hk seasonal-page JSON-LD and fuzzy-match against the query. |
-| [`_recentSeasons`](#recentseasons) | static method (`AnimeSearchService`) | B | Compute the current and previous season codes (`YYYYMM`). |
+| [`_searchAcgsecrets`](#searchacgsecrets) | static method (`AnimeSearchService`) | A | Fuzzy-match the query against recent acgsecrets.hk season pages. |
+| [`_acgsecretsSeason`](#acgsecretsseason) | static method (`AnimeSearchService`) | A | Get one season page's entries, from the cache or the network. |
+| `_fetchAcgsecretsSeason` | static method (`AnimeSearchService`) | B | Download and parse one acgsecrets.hk season page; `null` on a non-200 answer, a timeout or a network error, never throws. |
+| [`parseAcgsecretsPage`](#parseacgsecretspage) | static method (`AnimeSearchService`), `@visibleForTesting` | A | Read every entry from an acgsecrets.hk season page's JSON-LD. |
+| [`_acgsecretsItem`](#acgsecretsitem) | static method (`AnimeSearchService`) | A | Map one JSON-LD entry to a search result. |
+| `_looseInt` | static method (`AnimeSearchService`) | B | Read an integer that may arrive as a number or a numeric string; `null` for anything else. |
+| [`acgsecretsSeasons`](#acgsecretsseasons) | static method (`AnimeSearchService`), `@visibleForTesting` | A | List the acgsecrets.hk season pages worth searching. |
 | [`_containsJapanese`](#containsjapanese) | static method (`AnimeSearchService`) | A | Check whether a string contains Hiragana/Katakana characters. |
 | [`_isLatinScript`](#islatinscript) | static method (`AnimeSearchService`) | A | Check whether a string is written in Latin script. |
 | [`_isLikelyChinese`](#islikelychinese) | static method (`AnimeSearchService`) | A | Check whether a string reads as Chinese rather than Japanese. |
@@ -88,17 +94,30 @@ and the metadata block becomes `externalMeta`).
 | `_BackfillTitles(...)` | constructor (`_BackfillTitles`) | B | Hold one harvested title per language family. |
 | `hasAny` | getter (`_BackfillTitles`) | B | Report whether any usable title was harvested. |
 
-Note on the verification count: the source file has 65 `/// Purpose:` doc comments as of 1.6.0
-(59 in 1.5.7; M2 added six for relation metadata).
+Note on the verification count: the source file has 71 `/// Purpose:` doc comments as of 1.6.1
+(65 in 1.6.0, 59 in 1.5.7; M2 added six for relation metadata). 1.6.1 added seven — `_combine` and
+six acgsecrets.hk helpers — and removed one, `_recentSeasons`, which `acgsecretsSeasons` replaced.
 The historical one-row surplus — `searchAnime1` carried a plain (non-`Purpose:`) doc comment — is
 gone with that method, which moved to `anime1_service.dart` as `search` and gained a full block.
 
-Ten declarations (`mapBangumiSubject`, `parseBangumiWeekday`, `mapJikanAnime`,
+Twelve declarations (`mapBangumiSubject`, `parseBangumiWeekday`, `mapJikanAnime`,
 `parseJikanDuration`, `mapAniListMedia`, `parseDayOfWeek`, `aliasCandidatesFrom`,
-`mapAniListRelations`, `mapJikanRelations`, `mapBangumiRelations`) are marked `@visibleForTesting`. They are
-public solely so `test/anime_search_test.dart` and `test/relations_test.dart` can exercise the source-format parsing against
-fixture JSON — the HTTP calls are static and take no injectable client, so the mappers are the only
+`mapAniListRelations`, `mapJikanRelations`, `mapBangumiRelations`, and, since 1.6.1,
+`parseAcgsecretsPage` and `acgsecretsSeasons`) are marked `@visibleForTesting`. They are
+public solely so `test/anime_search_test.dart`, `test/relations_test.dart` and
+`test/search_aggregation_test.dart` can exercise the source-format parsing against
+fixture JSON or HTML — the HTTP calls are static and take no injectable client, so the mappers are the only
 practical seam. Do not call them from production code outside this file.
+
+Five static fields carry a plain doc comment but no `Purpose:` block, so they have no row:
+
+| Field | Meaning |
+|---|---|
+| `debugSourceOverrides` | `@visibleForTesting` (1.6.1). Test-only replacements for the per-source fetchers, keyed by source name, so [`_runRound`](#runround) can be exercised without the network. Always `null` in the app; `test/search_aggregation_test.dart` sets it. |
+| `_acgsecretsPageTtl` | 30 minutes — how long a downloaded acgsecrets.hk season page is reused (1.6.1). |
+| `_acgsecretsTimeout` | 15 seconds — the per-request timeout for one season page (1.6.1). |
+| `_acgsecretsPages` | The in-memory page cache: season code → `(at, items)`, where `items` is the in-flight or completed `Future<List<AnimeSearchResult>?>`, so two searches started together share one download (1.6.1). |
+| `_acgsecretsLdPattern` | The `<script type="application/ld+json">` regex, hoisted out of the per-page loop (1.6.1). |
 
 ## Documentation
 
@@ -156,27 +175,47 @@ practical seam. Do not call them from production code outside this file.
   yields nulls rather than throwing. `source` falls back to an empty string so a malformed entry is
   still readable and can be discarded by the caller rather than taking the whole file down with it.
 
-### `static Future<List<AnimeSearchResult>> searchAll(String query, {String? preferredLanguage, void Function(AnimeSearchProgress)? onProgress})` <a id="searchall"></a>
+### `static Future<List<AnimeSearchResult>> searchAll(String query, {String? preferredLanguage, void Function(AnimeSearchProgress)? onProgress, void Function(List<AnimeSearchResult> soFar)? onResults})` <a id="searchall"></a>
 - **Kind:** static method of `AnimeSearchService`
-- **Source:** `lib/features/anime/services/anime_search_service.dart` (line 173)
+- **Source:** `lib/features/anime/services/anime_search_service.dart` (approx. line 374)
 - **Purpose:** Query every metadata source and return one deduplicated, relevance-ranked list.
-- **Inputs:** `query`; `preferredLanguage` — the UI language tag (e.g. `zh_TW`, `ja`) passed by the caller.
-- **Returns:** `Future<List<AnimeSearchResult>>`.
-- **Side effects:** Issues HTTP requests to five external services concurrently, and to a subset of them a second time when cross-language backfill runs.
+- **Inputs:** `query`; `preferredLanguage` — the UI language tag (e.g. `zh_TW`, `ja`) passed by the caller; `onProgress` — per-round progress snapshots; `onResults` (1.6.1) — receives the combined, sorted list so far each time a source answers with results.
+- **Returns:** `Future<List<AnimeSearchResult>>` — equal to the last list passed to `onResults`, or empty when nothing was found.
+- **Side effects:** Issues HTTP requests to five external services concurrently, and to a subset of them a second time when cross-language backfill runs. Calls `onResults` once per source that answers with a non-empty list, in either round.
 - **Algorithm:**
-  1. Build `variants = queryVariants(query)`.
-  2. **Round one** via [`_runRound`](#runround), with per-source language targeting: bangumi.tv gets the Simplified form, acgsecrets.hk the Traditional form, filmarks.com the raw query (with `Accept-Language: ja`), and MyAnimeList/AniList the raw query.
+  1. Build `variants = queryVariants(query)` and an empty per-source map `combined`. A local `sourceDone(source, results)` ignores an empty list; otherwise it appends `results` to `combined[source]` and calls `onResults` with [`_combine`](#combine)`(combined, …)`.
+  2. **Round one** via [`_runRound`](#runround), passing `sourceDone` as `onSourceDone`, with per-source language targeting: bangumi.tv gets the Simplified form, acgsecrets.hk the Traditional form, filmarks.com the raw query (with `Accept-Language: ja`), and MyAnimeList/AniList the raw query.
   3. Compute the set of sources that returned nothing. If it is empty, skip to step 6.
   4. Harvest up to three cross-language titles via [`_harvestBackfillTitles`](#harvestbackfilltitles). If nothing was harvested, skip to step 6.
-  5. **Round two** via `_runRound`, passing a query *only* for the empty sources, each in its own language. MyAnimeList and AniList fall back to the harvested Japanese title when no Latin one was found, since both index native titles too.
-  6. Deduplicate by `sourceUrl` (falling back to `title`, then `titleJa`), iterating sources in `AnimeSearchSource.all` order so the output is stable.
-  7. Sort by descending [`relevance`](#relevance), breaking ties by source name.
+  5. **Round two** via `_runRound`, again with `onSourceDone: sourceDone`, passing a query *only* for the empty sources, each in its own language. MyAnimeList and AniList fall back to the harvested Japanese title when no Latin one was found, since both index native titles too.
+  6. Return `_combine(combined, variants, preferredLanguage)`.
 - **Usage:**
   ```dart
-  final results = await AnimeSearchService.searchAll(query, preferredLanguage: language);
+  final results = await AnimeSearchService.searchAll(
+    query,
+    preferredLanguage: language,
+    onProgress: (progress) {
+      if (current()) setState(() => _progress = progress);
+    },
+    onResults: (soFar) {
+      if (current()) setState(() => _results = soFar);
+    },
+  );
   ```
   (`lib/features/anime/views/anime_search_dialog.dart`, `_search`)
-- **Notes:** Replaces the pre-1.4.0 single round, which sent every source the raw query and only special-cased bangumi.tv for Simplified/Traditional. There is exactly one extra round — no recursion — so the worst case roughly doubles latency, and each source still fails independently via `.catchError`. `anime1.me` is deliberately not part of `searchAll`; its lookup lives in [`anime1_service.md`](anime1_service.md).
+- **Notes:** Replaces the pre-1.4.0 single round, which sent every source the raw query and only special-cased bangumi.tv for Simplified/Traditional. There is exactly one extra round — no recursion — so the worst case roughly doubles latency, and each source still fails independently via `.catchError`. Before 1.6.1 nothing was returned until every source of both rounds had finished, so one slow source held back every result; `onResults` lets the dialog show results as they land. `anime1.me` is deliberately not part of `searchAll`; its lookup lives in [`anime1_service.md`](anime1_service.md).
+
+### `static List<AnimeSearchResult> _combine(Map<String, List<AnimeSearchResult>> bySource, List<String> variants, String? preferredLanguage)` <a id="combine"></a>
+- **Kind:** static method of `AnimeSearchService`
+- **Source:** `lib/features/anime/services/anime_search_service.dart` (approx. line 441)
+- **Purpose:** Merge per-source results into one deduplicated, ranked list.
+- **Inputs:** `bySource` — results keyed by source name; `variants` — from [`queryVariants`](#queryvariants); `preferredLanguage`.
+- **Returns:** `List<AnimeSearchResult>` — deduplicated by `sourceUrl` (falling back to `title`, then `titleJa`), sorted by descending [`relevance`](#relevance), ties broken by source name.
+- **Side effects:** None.
+- **Algorithm:**
+  1. Deduplicate, iterating sources in `AnimeSearchSource.all` order and keeping the first result per key, so the output is stable.
+  2. Sort by descending `relevance(r, variants, preferredLanguage: …)`, breaking ties by source name.
+- **Notes:** Added in 1.6.1, when the end of `searchAll` was split out so it can run after every source answers. Because it depends only on the results, never on which source happened to answer first, each intermediate list and the final one are ordered the same way.
 
 ### `static List<String> queryVariants(String query)` <a id="queryvariants"></a>
 - **Kind:** static method of `AnimeSearchService`
@@ -255,15 +294,15 @@ practical seam. Do not call them from production code outside this file.
   (`lib/features/anime/views/anime_detail_page.dart`, `_refreshExternalMeta`)
 - **Notes:** A failing or unrecognized URL is skipped rather than failing the whole refresh, matching how `searchAll` tolerates a dead source.
 
-### `static Future<Map<String, List<AnimeSearchResult>>> _runRound({required bangumiQuery, required acgsecretsQuery, required filmarksQuery, required globalQuery, malQuery, anilistQuery})` <a id="runround"></a>
+### `static Future<Map<String, List<AnimeSearchResult>>> _runRound({required bangumiQuery, required acgsecretsQuery, required filmarksQuery, required globalQuery, malQuery, anilistQuery, round, onProgress, onSourceDone})` <a id="runround"></a>
 - **Kind:** static method of `AnimeSearchService`
-- **Source:** `lib/features/anime/services/anime_search_service.dart` (line 404)
+- **Source:** `lib/features/anime/services/anime_search_service.dart` (approx. line 681)
 - **Purpose:** Query the requested sources once, in parallel, tolerating failures.
-- **Inputs:** one query per source; `globalQuery` is the default for MyAnimeList and AniList, overridden by `malQuery`/`anilistQuery` in the backfill round.
+- **Inputs:** one query per source; `globalQuery` is the default for MyAnimeList and AniList, overridden by `malQuery`/`anilistQuery` in the backfill round. `round` labels the emitted progress; `onProgress` receives one snapshot when the round starts and one more as each source answers; `onSourceDone` (1.6.1) receives each source's results as soon as that source answers successfully.
 - **Returns:** `Future<Map<String, List<AnimeSearchResult>>>` keyed by source name.
-- **Side effects:** One HTTP request per non-null, non-blank query.
-- **Algorithm:** A local `run(query, fetch)` returns an immediately-completed empty list when the query is `null` or blank, and otherwise calls `fetch(query.trim()).catchError((_) => [])`. All five futures are awaited together and zipped back onto their source names.
-- **Notes:** A `null` or blank query means "skip this source in this round" — that is exactly how round two addresses only the sources that came back empty. Keeping the return keyed by source is what lets `searchAll` tell "returned nothing" from "was not asked".
+- **Side effects:** One HTTP request per non-null, non-blank query, unless `debugSourceOverrides` replaces the fetcher.
+- **Algorithm:** A local `run(source, query, fetch)` returns an immediately-completed empty list when the query is `null` or blank. Otherwise it picks `debugSourceOverrides?[source] ?? fetch`, calls it with `query.trim()`, and on success records the count, calls `onSourceDone(source, results)` and **then** emits progress; a failure is recorded in `failed` and becomes `[]`. All five futures are awaited together and zipped back onto their source names.
+- **Notes:** A `null` or blank query means "skip this source in this round" — that is exactly how round two addresses only the sources that came back empty. Keeping the return keyed by source is what lets `searchAll` tell "returned nothing" from "was not asked". Results go out before the progress snapshot so a listener reacting to the snapshot already sees that source's results — it never sees a count without the results.
 
 ### `static _BackfillTitles _harvestBackfillTitles(Map<String, List<AnimeSearchResult>> round, List<String> queryVariants)` <a id="harvestbackfilltitles"></a>
 - **Kind:** static method of `AnimeSearchService`
@@ -403,26 +442,68 @@ practical seam. Do not call them from production code outside this file.
 
 ### `static Future<List<AnimeSearchResult>> _searchAcgsecrets(String query)` <a id="searchacgsecrets"></a>
 - **Kind:** static method of `AnimeSearchService`
-- **Source:** `lib/features/anime/services/anime_search_service.dart` (line 901)
-- **Purpose:** Scrape `acgsecrets.hk`'s per-season anime list (embedded as `application/ld+json` script blocks) and fuzzy-match entries against the query, trying the current season and falling back to the previous one.
+- **Source:** `lib/features/anime/services/anime_search_service.dart` (approx. line 1298)
+- **Purpose:** Fuzzy-match the query against recent `acgsecrets.hk` season pages.
 - **Inputs:** `query` — in practice the Traditional variant.
-- **Returns:** `Future<List<AnimeSearchResult>>` — up to `_maxPerSource`, sorted by descending fuzzy-match score.
-- **Side effects:** Up to two HTTP GETs (15s timeout each) to `acgsecrets.hk`.
+- **Returns:** `Future<List<AnimeSearchResult>>` — up to `_maxPerSource`, sorted by descending match score, then by season (current season first).
+- **Side effects:** Up to four HTTP GETs to `acgsecrets.hk`, in parallel, 15 s timeout each; pages are cached in memory for 30 minutes.
 - **Algorithm:**
-  1. Get `[currentSeason, previousSeason]` from [`_recentSeasons`](#recentseasons); compute Traditional and Simplified variants.
-  2. For each season: GET the season page; skip on non-200. Extract every `<script type="application/ld+json">` block, JSON-decode it, and for each `itemListElement` compute the best [`_similarity`](#similarity) of the item's `name`/`alternateName`s against the query variants; skip items below `0.3`; skip already-seen `url`s.
-  3. Build a result with `startDate` parsed via `DateTime.tryParse`, `numberOfEpisodes` when present, the first Kana-containing `alternateName` as `titleJa`, and **every remaining alternate name as `synonyms`**.
-  4. Stop before the previous season if the current one produced anything.
-  5. Sort by score descending and return the top `_maxPerSource`.
-- **Notes:** A JSON-decode failure on any individual `<script>` block is caught per-block so one malformed block doesn't abort the season's parse. Keeping all alternate names (rather than only the Japanese one, as before 1.4.0) is what lets this source contribute cross-language backfill titles.
+  1. Get the season codes from [`acgsecretsSeasons`](#acgsecretsseasons)`(DateTime.now())` and load every page at once through [`_acgsecretsSeason`](#acgsecretsseason) under `Future.wait`.
+  2. If every page came back `null`, throw — the source counts as failed.
+  3. Build the query set `{query, toTraditional(query), toSimplified(query)}`.
+  4. For every entry of every page, compute the best [`_similarity`](#similarity) of its `title`, `titleJa` and `synonyms` against the query set; skip entries below `0.3` and already-seen `sourceUrl`s; remember the page index.
+  5. Sort by score descending, then by page index, and return the top `_maxPerSource`.
+- **Notes:** The site has no search endpoint, so whole season pages are downloaded and matched locally. One page failing or timing out only loses that season. Through 1.6.0 the pages were fetched one after another, only the current and previous seasons were searched, the previous season was skipped once the current one matched, and one `try` wrapped a page's whole entry list — when the site began sending `numberOfEpisodes` as a string, every later entry on the page was lost. Keeping all alternate names (rather than only the Japanese one, as before 1.4.0) is what lets this source contribute cross-language backfill titles. See [`../../../../features/multi-source-search.md#acgsecretshk-season-pages`](../../../../features/multi-source-search.md#acgsecretshk-season-pages).
 
-### `static List<String> _recentSeasons()` <a id="recentseasons"></a>
+### `static Future<List<AnimeSearchResult>?> _acgsecretsSeason(String season)` <a id="acgsecretsseason"></a>
 - **Kind:** static method of `AnimeSearchService`
-- **Source:** `lib/features/anime/services/anime_search_service.dart` (line 987)
-- **Purpose:** Compute the `acgsecrets.hk` season codes (`YYYYMM`) for "this season" and "the previous season", newest first.
-- **Returns:** `List<String>` of exactly 2 season codes.
+- **Source:** `lib/features/anime/services/anime_search_service.dart` (approx. line 1341)
+- **Purpose:** Get one season page's entries, from the cache or the network.
+- **Inputs:** `season` — `YYYYMM`.
+- **Returns:** `Future<List<AnimeSearchResult>?>` — `null` when the page could not be loaded.
+- **Side effects:** May issue one HTTP GET via `_fetchAcgsecretsSeason`; updates `_acgsecretsPages`.
+- **Algorithm:** Returns the cached future when the entry is younger than `_acgsecretsPageTtl` (30 minutes). Otherwise starts `_fetchAcgsecretsSeason(season)`, stores `(at: now, items: future)` immediately, and, once the future completes with `null`, removes the entry — but only if it is still the same entry.
+- **Notes:** Caching the in-flight future means round two, repeated searches and two searches started together share one download. A failed load is dropped so the next search tries again. The pages are about 2.6 MB and take the server 6–9 s to generate, which is why the cache exists.
+
+### `static List<AnimeSearchResult> parseAcgsecretsPage(String html)` <a id="parseacgsecretspage"></a>
+- **Kind:** static method of `AnimeSearchService`, `@visibleForTesting`
+- **Source:** `lib/features/anime/services/anime_search_service.dart` (approx. line 1391)
+- **Purpose:** Read every entry from an acgsecrets.hk season page's JSON-LD.
+- **Inputs:** `html` — the page.
+- **Returns:** `List<AnimeSearchResult>` — one per `itemListElement` entry that has a name, in page order.
 - **Side effects:** None.
-- **Algorithm:** Finds the current season-start month from `[1, 4, 7, 10].lastWhere((s) => m >= s)`; computes the previous season by subtracting 3 months, wrapping to `year - 1, 10` in January.
+- **Algorithm:** For each `_acgsecretsLdPattern` match, JSON-decode the block (skip it on failure), require a `Map` with a `List` `itemListElement`, and map each `Map` entry through [`_acgsecretsItem`](#acgsecretsitem) inside its own `try`, keeping the non-null results.
+- **Usage:**
+  ```dart
+  final results = AnimeSearchService.parseAcgsecretsPage(html);
+  ```
+  (`test/search_aggregation_test.dart`)
+- **Notes:** Each entry is read on its own, so one malformed entry never drops the rest of the page. Before 1.6.1 a single entry whose `numberOfEpisodes` was the string `"19"` silently discarded every entry after it.
+
+### `static AnimeSearchResult? _acgsecretsItem(Map item)` <a id="acgsecretsitem"></a>
+- **Kind:** static method of `AnimeSearchService`
+- **Source:** `lib/features/anime/services/anime_search_service.dart` (approx. line 1423)
+- **Purpose:** Map one JSON-LD entry to a search result.
+- **Inputs:** `item` — one `itemListElement` entry.
+- **Returns:** `AnimeSearchResult?` — `null` when the entry has neither a `name` nor an `alternateName`.
+- **Side effects:** None.
+- **Algorithm:** Reads `name` (trimmed) and `alternateName` as a string or a list of strings, dropping blanks. `titleJa` is the first alternate name containing kana ([`_containsJapanese`](#containsjapanese)); every other alternate name becomes a synonym. `numberOfEpisodes` goes through `_looseInt`; `url`, `image` and `startDate` are used only when they are strings, the last via `DateTime.tryParse`.
+- **Notes:** Every field is type-checked rather than cast, so an unexpected shape yields a missing field, not an exception.
+
+### `static List<String> acgsecretsSeasons(DateTime now)` <a id="acgsecretsseasons"></a>
+- **Kind:** static method of `AnimeSearchService`, `@visibleForTesting`
+- **Source:** `lib/features/anime/services/anime_search_service.dart` (approx. line 1469)
+- **Purpose:** List the acgsecrets.hk season pages worth searching.
+- **Inputs:** `now` — the local date.
+- **Returns:** `List<String>` — four `YYYYMM` codes (month 01/04/07/10): the current season, the next one, then the two before the current one.
+- **Side effects:** None.
+- **Algorithm:** Finds the current season's start month as `((month - 1) ~/ 3) * 3 + 1`, then offsets it by 0, +1, −1 and −2 quarters through `DateTime`, which rolls the year over.
+- **Usage:**
+  ```dart
+  final seasons = acgsecretsSeasons(DateTime.now());
+  ```
+  (`_searchAcgsecrets`, same file; `test/search_aggregation_test.dart` checks it)
+- **Notes:** Replaced `_recentSeasons` (current and previous season only) in 1.6.1. The next season covers shows added before they air; the two earlier seasons cover a show the user catches up on late. The order is also the tie-break order for equally good matches.
 
 ### `static bool _containsJapanese(String s)` <a id="containsjapanese"></a>
 - **Kind:** static method of `AnimeSearchService`
