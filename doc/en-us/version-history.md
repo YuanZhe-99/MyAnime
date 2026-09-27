@@ -8,7 +8,7 @@ changing it — several entries record deliberate safety fixes that look like qu
 - Confirm season boundaries before mapping episode links; preserve gaps, extras and manual corrections.
 - Native-first playback with embedded website fallback; Windows ARM64 uses the website player.
 - Version 1.6.4+65; installer/MSIX version 1.6.4.0.
-- Release build repair: pin the macOS WebView implementation to the Xcode 26.6 compatibility fix in upstream PR #2870. Rebuild the same version and replace the failed release tag with the owner's explicit authorization.
+- Release build repair: pin the macOS WebView implementation to the Xcode 26.6 compatibility fix in upstream PR #2870. Same version rebuilt; at the owner's request, the failed `v1.6.4` tag was moved to the repaired commit.
 
 ## Repository caveat
 
