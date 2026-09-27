@@ -344,7 +344,7 @@ verbatim.
   names the device it would break. It also asserts that `useDetailTwoPane` and `canSplitLayout`
   still agree, so the delegation cannot silently drift.
 - `test/detail_layout_test.dart` — the detail page's pane and cover sizing.
-- `test/list_columns_ui_test.dart`, `test/detail_layout_ui_test.dart`,
+- `test/list_columns_ui_test.dart`, `test/detail_layout_ui_test.dart`, `test/detail_header_ui_test.dart`,
   `test/kana_layout_ui_test.dart`, `test/settings_two_pane_ui_test.dart`,
   `test/statistics_layout_ui_test.dart`, `test/metadata_updates_layout_ui_test.dart` and
   `test/shell_nav_ui_test.dart` — the rendered result, driven through the real pages at the same

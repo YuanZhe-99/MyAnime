@@ -536,16 +536,17 @@ class _AnimeDetailPageState extends State<AnimeDetailPage> {
     );
   }
 
-  /// Purpose: Build the header block: Japanese title, info line, action row,
-  /// categories, and watch progress.
+  /// Purpose: Build the header block: Japanese title, info line, categories,
+  /// the Watch row, watch progress, and the site progress line.
   /// Inputs: `anime`, `theme`, `l10n`, `totalEps`, `watchedCount`.
   /// Returns: `List<Widget>` for a `crossAxisAlignment.start` `Column`.
   /// Side effects: None.
   /// Notes: This is everything the two-pane layout keeps in its left pane, so
   /// the split point between this and `_buildDetailChildren` is what decides
-  /// which column each section lands in. Through 1.6.2 the facts and the
-  /// actions were one row of look-alike chips; since 1.6.3 the facts are a
-  /// text line and the actions a separate button row.
+  /// which column each section lands in. Since 1.6.6 the rows are grouped by
+  /// role — facts, then the one Watch row, then progress — and no row mixes
+  /// variable-length text with buttons, so every record lays out the same way.
+  /// *Info* and *Refresh database info* live in the database-info card.
   List<Widget> _buildHeaderChildren(
     Anime anime,
     ThemeData theme,
@@ -570,13 +571,13 @@ class _AnimeDetailPageState extends State<AnimeDetailPage> {
           color: theme.colorScheme.onSurfaceVariant,
         ),
       ),
-      if (_hasHeaderActions(anime)) ...[
-        const SizedBox(height: 8),
-        _buildHeaderActions(anime, l10n),
-      ],
       if (_categoriesOn) ...[
         const SizedBox(height: 4),
         CategoryChips(categories: _categories, onEdit: _editCategories),
+      ],
+      if (_buildWatchRow(anime, l10n) case final row?) ...[
+        const SizedBox(height: 8),
+        row,
       ],
       const SizedBox(height: 8),
       LinearProgressIndicator(
@@ -587,6 +588,7 @@ class _AnimeDetailPageState extends State<AnimeDetailPage> {
         '$watchedCount / $totalEps ${l10n.animeEpisodes}',
         style: theme.textTheme.bodySmall,
       ),
+      ?_buildSiteProgress(anime, theme, l10n),
     ];
   }
 
@@ -604,91 +606,127 @@ class _AnimeDetailPageState extends State<AnimeDetailPage> {
     if (anime.airTime != null && anime.airTime!.isNotEmpty) anime.airTime!,
   ].join(' · ');
 
-  /// Purpose: Report whether the header has any action to show.
+  /// Purpose: Report whether the database-info card has an action to show.
   /// Inputs: `anime`.
   /// Returns: `bool`.
   /// Side effects: None.
-  /// Notes: Mirrors the conditions in [_buildHeaderActions].
-  bool _hasHeaderActions(Anime anime) =>
-      anime.watchUrl != null ||
+  /// Notes: 1.6.6. *Info* needs an `infoUrl`; *Refresh database info* needs
+  /// a full build and a refreshable source. A card with an action renders
+  /// even when it has no data rows, so those actions stay reachable.
+  bool _hasMetaActions(Anime anime) =>
       anime.infoUrl != null ||
       (AppFlavor.isFull && _refreshableUrls(anime).isNotEmpty);
 
-  /// Purpose: Build the header's action row.
+  /// Purpose: Build the header's Watch row.
   /// Inputs: `anime`, `l10n`.
-  /// Returns: `Widget` — a `Wrap`.
-  /// Side effects: None; the buttons open URLs or start refreshes.
-  /// Notes: 1.6.3 header redesign. *Watch* is the one labelled, tonal button;
-  /// the anime1 progress sits beside it as a text button (tap re-checks in
-  /// full builds); *Info* and *Refresh database info* are outlined icon
-  /// buttons whose labels are tooltips. Flavor gating is unchanged: refresh
-  /// and the anime1 re-check are full-build only, and the stored progress
-  /// shows in every flavor.
-  Widget _buildHeaderActions(Anime anime, AppLocalizations l10n) {
-    Widget spinner() => const SizedBox(
-      width: 16,
-      height: 16,
-      child: CircularProgressIndicator(strokeWidth: 2),
-    );
-    return Wrap(
-      spacing: 8,
-      runSpacing: 4,
-      crossAxisAlignment: WrapCrossAlignment.center,
-      children: [
-        if (anime.watchUrl != null)
-          FilledButton.tonalIcon(
-            icon: const Icon(Icons.play_circle_outline, size: 18),
-            label: Text(l10n.animeOpenUrl),
-            onPressed: () async {
-              await openAnimeWatch(context, anime);
-              if (mounted) await _load();
-            },
-          ),
-        // The stored progress is public site data and renders in every
-        // flavor; only the re-check (a network call) is a full-build action.
-        if (AppFlavor.isFull &&
-            AnimeEpisodeService.isPageUrl(anime.watchUrl?.trim() ?? ''))
-          IconButton(
-            icon: const Icon(Icons.playlist_play),
-            tooltip: l10n.episodeMappingTitle,
-            onPressed: () async {
-              await openAnimeWatch(context, anime, edit: true);
-              if (mounted) await _load();
-            },
-          ),
-        if (Anime1Service.isAnime1Url(anime.watchUrl))
-          TextButton.icon(
-            key: const ValueKey('detailAnime1Progress'),
-            icon: _checkingProgress
-                ? spinner()
-                : const Icon(Icons.update, size: 18),
-            label: Text(_watchProgressChipLabel(anime, l10n)),
-            onPressed: AppFlavor.isFull && !_checkingProgress
-                ? () => _checkWatchProgress(anime)
-                : null,
-          ),
-        if (anime.infoUrl != null)
-          IconButton.outlined(
-            tooltip: l10n.animeOpenInfoUrl,
-            icon: const Icon(Icons.info_outline, size: 20),
-            onPressed: () => launchUrl(
-              Uri.parse(anime.infoUrl!),
-              mode: LaunchMode.externalApplication,
+  /// Returns: `Widget?` — null when the record has no watch URL.
+  /// Side effects: None; the buttons open the watch route.
+  /// Notes: 1.6.6. *Watch* fills the row and the episode-links icon (full
+  /// builds, anime1.me page URLs) sits at its end, so the row never wraps.
+  /// Capped at 400 wide so single-column tablets do not get a giant pill.
+  /// Through 1.6.5 this was `_buildHeaderActions`, a `Wrap` that also held
+  /// the anime1 progress, *Info* and *Refresh database info*.
+  Widget? _buildWatchRow(Anime anime, AppLocalizations l10n) {
+    if (anime.watchUrl == null) return null;
+    return ConstrainedBox(
+      constraints: const BoxConstraints(maxWidth: 400),
+      child: Row(
+        children: [
+          Expanded(
+            child: FilledButton.tonalIcon(
+              icon: const Icon(Icons.play_circle_outline, size: 18),
+              label: Text(
+                l10n.animeOpenUrl,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+              onPressed: () async {
+                await openAnimeWatch(context, anime);
+                if (mounted) await _load();
+              },
             ),
           ),
-        // Online lookups are a full-build feature; store builds
-        // must never reach AnimeSearchService.
-        if (AppFlavor.isFull && _refreshableUrls(anime).isNotEmpty)
-          IconButton.outlined(
-            tooltip: l10n.animeRefreshMeta,
-            icon: _refreshingMeta
-                ? spinner()
-                : const Icon(Icons.sync, size: 20),
-            onPressed: _refreshingMeta
-                ? null
-                : () => _refreshExternalMeta(anime),
+          if (AppFlavor.isFull &&
+              AnimeEpisodeService.isPageUrl(anime.watchUrl?.trim() ?? '')) ...[
+            const SizedBox(width: 8),
+            IconButton.outlined(
+              icon: const Icon(Icons.playlist_play, size: 20),
+              tooltip: l10n.episodeMappingTitle,
+              onPressed: () async {
+                await openAnimeWatch(context, anime, edit: true);
+                if (mounted) await _load();
+              },
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  /// Purpose: Build the site progress line under the watched-episode count.
+  /// Inputs: `anime`, `theme`, `l10n`.
+  /// Returns: `Widget?` — null for a non-anime1 URL, or in a store build
+  /// when nothing is stored.
+  /// Side effects: None; tapping starts [_checkWatchProgress].
+  /// Notes: 1.6.6; replaces `_watchProgressChipLabel` and the progress button
+  /// that used to sit in the action row. The label is the mapped
+  /// local/Anime1 episode or the stored site progress, else the "check"
+  /// prompt in full builds. The stored progress is public site data and
+  /// shows in every flavor; only the re-check (a network call) is a
+  /// full-build action, so store builds get plain text, not a disabled
+  /// button. Zero padding keeps the icon flush with the count above it.
+  Widget? _buildSiteProgress(
+    Anime anime,
+    ThemeData theme,
+    AppLocalizations l10n,
+  ) {
+    if (!Anime1Service.isAnime1Url(anime.watchUrl)) return null;
+    final stored = animeEpisodeProgressLabel(l10n, anime, library: _library);
+    if (stored == null && !AppFlavor.isFull) return null;
+    final color = theme.colorScheme.primary;
+    final content = Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        if (_checkingProgress)
+          SizedBox(
+            width: 14,
+            height: 14,
+            child: CircularProgressIndicator(strokeWidth: 2, color: color),
+          )
+        else
+          Icon(Icons.update, size: 16, color: color),
+        const SizedBox(width: 6),
+        Flexible(
+          child: Text(
+            stored ?? l10n.anime1CheckProgress,
+            style: theme.textTheme.bodySmall?.copyWith(color: color),
           ),
+        ),
       ],
+    );
+    const key = ValueKey('detailAnime1Progress');
+    if (!AppFlavor.isFull) {
+      return ConstrainedBox(
+        key: key,
+        constraints: const BoxConstraints(minHeight: 40),
+        child: Align(
+          alignment: AlignmentDirectional.centerStart,
+          child: content,
+        ),
+      );
+    }
+    return TextButton(
+      key: key,
+      onPressed: _checkingProgress ? null : () => _checkWatchProgress(anime),
+      style: TextButton.styleFrom(
+        padding: EdgeInsets.zero,
+        minimumSize: const Size(0, 40),
+        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+        visualDensity: VisualDensity.standard,
+        alignment: AlignmentDirectional.centerStart,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
+      ),
+      child: content,
     );
   }
 
@@ -709,9 +747,9 @@ class _AnimeDetailPageState extends State<AnimeDetailPage> {
         const SizedBox(height: 12),
         _buildRatingCard(anime.rating!, theme, l10n),
       ],
-      if (anime.externalMeta?.hasAnyData == true) ...[
+      if (_buildExternalMetaCard(anime, theme, l10n) case final card?) ...[
         const SizedBox(height: 12),
-        _buildExternalMetaCard(anime.externalMeta!, theme, l10n),
+        card,
       ],
       if (anime.localArchive?.hasAnyData == true) ...[
         const SizedBox(height: 12),
@@ -1044,7 +1082,7 @@ class _AnimeDetailPageState extends State<AnimeDetailPage> {
   /// Returns: `List<String>`.
   /// Side effects: None.
   /// Notes: Internal helper used within this file only. Delegates to
-  /// `MetadataUpdateService.refreshableUrls` so the manual chip and the
+  /// `MetadataUpdateService.refreshableUrls` so the manual button and the
   /// background refresher agree on what "refreshable" means.
   List<String> _refreshableUrls(Anime anime) =>
       MetadataUpdateService.refreshableUrls(anime);
@@ -1108,47 +1146,46 @@ class _AnimeDetailPageState extends State<AnimeDetailPage> {
     }
   }
 
-  /// Purpose: Label the anime1.me chip from the stored watch progress.
-  /// Inputs: `anime`, `l10n`.
-  /// Returns: `String`.
-  /// Side effects: None.
-  /// Notes: Internal helper used within this file only. Falls back to the
-  /// "check" prompt when nothing valid is stored — including when the watch
-  /// URL was edited after the last check.
-  String _watchProgressChipLabel(Anime anime, AppLocalizations l10n) {
-    return animeEpisodeProgressLabel(l10n, anime, library: _library) ??
-        l10n.anime1CheckProgress;
-  }
-
   /// Purpose: Re-read what anime1.me currently lists for this record's URL.
   /// Inputs: `anime`.
   /// Returns: None.
-  /// Side effects: Up to three HTTP requests, a write through
-  /// `AnimeStorage.patchExternalMeta`, and a snack bar on failure.
+  /// Side effects: Up to three HTTP requests for the progress plus, for an
+  /// anime1.me page URL, a forced episode-directory refresh; writes through
+  /// `AnimeStorage.patchExternalMeta`; a snack bar when nothing was found or
+  /// the check failed.
   /// Notes: Internal helper used within this file only. Like
   /// `_refreshExternalMeta`, this never bumps `modifiedAt` — the progress is a
   /// cache of public site data, not a user edit. Callers gate on
-  /// `AppFlavor.isFull`.
+  /// `AppFlavor.isFull`. Since 1.6.6 it patches only `watchProgress` (merged
+  /// into the stored meta, skipped if the URL changed meanwhile) instead of
+  /// saving this page's snapshot, which could put back an older directory;
+  /// and it forces the directory refresh, because a mapped label
+  /// ("Local 12 / Anime1 24") comes from the directory, not from the
+  /// progress, so the tap used to change nothing visible.
   Future<void> _checkWatchProgress(Anime anime) async {
     final l10n = AppLocalizations.of(context)!;
     final url = anime.watchUrl;
     if (url == null) return;
+    final source = url.trim();
     setState(() => _checkingProgress = true);
     try {
       final progress = await Anime1Service.fetchProgress(url);
+      if (progress != null) {
+        await AnimeStorage.patchExternalMeta(
+          {anime.id: AnimeExternalMeta(watchProgress: progress)},
+          expectedWatchUrls: {anime.id: source},
+        );
+      }
+      final directory =
+          AnimeEpisodeService.isPageUrl(source) &&
+          await AnimeEpisodeService.ensure(anime, force: true);
       if (!mounted) return;
-      if (progress == null) {
-        setState(() => _checkingProgress = false);
+      setState(() => _checkingProgress = false);
+      if (progress == null && !directory) {
         ScaffoldMessenger.of(
           context,
         ).showSnackBar(SnackBar(content: Text(l10n.anime1ProgressUnknown)));
-        return;
       }
-      final merged = (anime.externalMeta ?? const AnimeExternalMeta())
-          .mergedWith(AnimeExternalMeta(watchProgress: progress));
-      await AnimeStorage.patchExternalMeta({anime.id: merged});
-      if (!mounted) return;
-      setState(() => _checkingProgress = false);
       await _load();
     } catch (e) {
       if (!mounted) return;
@@ -1159,18 +1196,26 @@ class _AnimeDetailPageState extends State<AnimeDetailPage> {
     }
   }
 
-  /// Purpose: Render the public metadata pulled from external databases.
-  /// Inputs: `meta`, `theme`, `l10n`.
-  /// Returns: `Widget`.
-  /// Side effects: None.
+  /// Purpose: Render the public metadata pulled from external databases,
+  /// with the *Info* and *Refresh database info* actions in its header.
+  /// Inputs: `anime`, `theme`, `l10n`.
+  /// Returns: `Widget?` — null when there is nothing to show and no action.
+  /// Side effects: None; the header buttons open the info page or start
+  /// [_refreshExternalMeta].
   /// Notes: Internal helper used within this file only. Kept visually distinct
   /// from the personal rating card above it — external scores never merge into
-  /// the user's own rating.
-  Widget _buildExternalMetaCard(
-    AnimeExternalMeta meta,
+  /// the user's own rating. Since 1.6.6 the two actions sit here, beside the
+  /// data they act on, and the date is on its own line so the header fits the
+  /// narrowest split pane. A record whose meta holds only the watch progress,
+  /// the episode directory or relations no longer shows an empty card; one
+  /// with an action but no data shows the header alone. Refresh is full-build
+  /// only; store builds must never reach AnimeSearchService.
+  Widget? _buildExternalMetaCard(
+    Anime anime,
     ThemeData theme,
     AppLocalizations l10n,
   ) {
+    final meta = anime.externalMeta ?? const AnimeExternalMeta();
     final rows = <(String, String)>[
       if (meta.format != null) (l10n.animeFormat, meta.format!),
       if (meta.status != null) (l10n.animeStatus, meta.status!),
@@ -1184,8 +1229,11 @@ class _AnimeDetailPageState extends State<AnimeDetailPage> {
         (l10n.animeAlternateTitles, meta.synonyms.join(' / ')),
     ];
     final scored = meta.ratings.where((r) => r.score != null).toList();
+    final canRefresh = AppFlavor.isFull && _refreshableUrls(anime).isNotEmpty;
+    if (rows.isEmpty && scored.isEmpty && !_hasMetaActions(anime)) return null;
 
     return Card(
+      key: const ValueKey('detailExternalMetaCard'),
       margin: EdgeInsets.zero,
       child: Padding(
         padding: const EdgeInsets.all(12),
@@ -1201,19 +1249,51 @@ class _AnimeDetailPageState extends State<AnimeDetailPage> {
                 ),
                 const SizedBox(width: 8),
                 Expanded(
-                  child: Text(
-                    l10n.animeExternalMeta,
-                    style: theme.textTheme.titleSmall,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        l10n.animeExternalMeta,
+                        style: theme.textTheme.titleSmall,
+                      ),
+                      if (meta.refreshedAt != null)
+                        Text(
+                          l10n.animeRefreshedAt(
+                            DateFormat.yMd().format(
+                              meta.refreshedAt!.toLocal(),
+                            ),
+                          ),
+                          style: theme.textTheme.bodySmall?.copyWith(
+                            color: theme.colorScheme.onSurfaceVariant,
+                          ),
+                        ),
+                    ],
                   ),
                 ),
-                if (meta.refreshedAt != null)
-                  Text(
-                    l10n.animeRefreshedAt(
-                      DateFormat.yMd().format(meta.refreshedAt!.toLocal()),
+                if (anime.infoUrl != null)
+                  IconButton(
+                    tooltip: l10n.animeOpenInfoUrl,
+                    visualDensity: VisualDensity.compact,
+                    icon: const Icon(Icons.info_outline, size: 20),
+                    onPressed: () => launchUrl(
+                      Uri.parse(anime.infoUrl!),
+                      mode: LaunchMode.externalApplication,
                     ),
-                    style: theme.textTheme.bodySmall?.copyWith(
-                      color: theme.colorScheme.onSurfaceVariant,
-                    ),
+                  ),
+                if (canRefresh)
+                  IconButton(
+                    tooltip: l10n.animeRefreshMeta,
+                    visualDensity: VisualDensity.compact,
+                    icon: _refreshingMeta
+                        ? const SizedBox(
+                            width: 16,
+                            height: 16,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          )
+                        : const Icon(Icons.sync, size: 20),
+                    onPressed: _refreshingMeta
+                        ? null
+                        : () => _refreshExternalMeta(anime),
                   ),
               ],
             ),

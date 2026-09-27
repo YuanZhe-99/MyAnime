@@ -3,6 +3,14 @@
 Release-by-release summary of MyAnime!!!!!. Useful for understanding *why* a behavior exists before
 changing it — several entries record deliberate safety fixes that look like quirks otherwise.
 
+## 1.6.6 — Tidier detail header, a re-check that works, and mapping by Anime1's own name
+
+- **Detail header grouped by role.** The 1.6.3 action row was one `Wrap` mixing a tonal button, an icon, a text button carrying the variable-length Anime1 progress and two outlined icons, so it broke differently for every anime. Now the category chips sit under the info line, *Watch* fills its own non-wrapping row (with the episode-links icon at its end, capped at 400 wide), and the Anime1 progress is a line under the watched-episode count. *Info* and *Refresh database info* moved into the database-info card's header, beside the date they refresh; the date sits under the title so the header fits the narrowest split pane. The card no longer appears empty for records that store only the watch progress, episode directory or relations. A store build with no stored progress shows no line instead of a disabled "Check Anime1".
+- **The progress re-check refreshes what it shows.** Tapping the line now also force-refreshes the episode directory (a mapped label such as `本地第 12 集／Anime1 第 24 集` comes from it, so the tap used to change nothing visible), and it patches only the progress instead of saving the page's snapshot, which could put back an older directory. Still full-build only; still never touches `modifiedAt`.
+- **Episode mapping also matches the collection's own Anime1 name** (index and page title), so Taiwan titles and prefixes map automatically: 碧蓝之海 第三季 ↔ `GRAND BLUE 碧藍之海 第三季`, 还要与你相恋到生命尽头 ↔ `與妳相戀到生命盡頭` (verified against the live collections). The season-number, unmarked-sequel and single-candidate guards are unchanged; a different-season record on the same collection keeps an unmarked group ambiguous.
+- **"Anime1" is spelled one way.** Four older strings (progress label, check prompt, not-found and failure messages) said "anime1" in all four languages while the 1.6.4 mapping strings said "Anime1", so the management page mixed both; the domain stays `anime1.me`. `test/l10n_site_name_test.dart` guards it.
+- Tests grew from 566 to 582. Version 1.6.6+67; installer/MSIX version 1.6.6.0.
+
 ## 1.6.5 — Foldable episode screen, player controls and synced playback progress
 
 - **Episode screen on the shared split rule.** On a window `canSplitLayout` admits, the season-mapping form sits in a left pane and the episodes and extras fill the right pane in columns of at least 360 dp; phones and portrait foldables keep one column. The bottom safe-area inset, lost because padding was set on the list itself, is restored.

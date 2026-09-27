@@ -37,7 +37,7 @@
 当远端**确实**改动了这条记录时，远端获胜、本地这次缓存更新被丢弃 —— 这是正确的，因为它是缓存，刷新队列
 之后会重新抓取。
 
-`AnimeStorage.patchExternalMeta` 是缓存元数据唯一的写入路径，后台服务与详情页的手动刷新 chip 都走它。1.6.0 起这也包括 `externalMeta.relations`：刷新会把各来源的关联作品与其余数据一起带回，并以同样方式写入，不推进 `modifiedAt`，因此新的关联关系以缓存数据而非编辑的身份到达其他设备。系列分组在计算时读取它们，不写入任何内容——见 [`series-linking.md`](series-linking.md)。
+`AnimeStorage.patchExternalMeta` 是缓存元数据唯一的写入路径，后台服务与详情页的手动刷新按钮都走它。1.6.0 起这也包括 `externalMeta.relations`：刷新会把各来源的关联作品与其余数据一起带回，并以同样方式写入，不推进 `modifiedAt`，因此新的关联关系以缓存数据而非编辑的身份到达其他设备。系列分组在计算时读取它们，不写入任何内容——见 [`series-linking.md`](series-linking.md)。
 
 > **陷阱：** `Anime.copyWith` 在省略 `modifiedAt` 参数时会把它填成**当前时间**，而不是保留原值。任何
 > 想要保留原值的调用者都必须显式把旧值传回去。`test/metadata_update_test.dart` 锁定了这个行为，防止

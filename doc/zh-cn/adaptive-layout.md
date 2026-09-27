@@ -292,7 +292,7 @@ Fold 8 在其两个方向上给出两个不同的答案，而那个行为——�
   钉在上表中每一台设备的真实逻辑像素几何上，并在注释中写明设备名，这样一次回归会说出它会弄坏的那台设备。它
   还断言 `useDetailTwoPane` 与 `canSplitLayout` 仍然一致，使这条委托无法悄然走样。
 - `test/detail_layout_test.dart`——详情页的栏宽与封面尺寸。
-- `test/list_columns_ui_test.dart`、`test/detail_layout_ui_test.dart`、`test/kana_layout_ui_test.dart`、
+- `test/list_columns_ui_test.dart`、`test/detail_layout_ui_test.dart`、`test/detail_header_ui_test.dart`、`test/kana_layout_ui_test.dart`、
   `test/settings_two_pane_ui_test.dart`、`test/statistics_layout_ui_test.dart`、
   `test/metadata_updates_layout_ui_test.dart` 与 `test/shell_nav_ui_test.dart`——在同样的几何下，通过真实页面
   驱动出来的渲染结果。

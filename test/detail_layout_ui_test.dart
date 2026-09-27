@@ -102,11 +102,7 @@ void main() {
     if (tempDir.existsSync()) tempDir.deleteSync(recursive: true);
   });
 
-  Future<void> pumpAt(
-    WidgetTester tester,
-    double width,
-    double height,
-  ) async {
+  Future<void> pumpAt(WidgetTester tester, double width, double height) async {
     tester.view.devicePixelRatio = 1.0;
     tester.view.physicalSize = Size(width, height);
     addTearDown(tester.view.reset);
@@ -172,6 +168,23 @@ void main() {
     await pumpAt(tester, 915, 412);
 
     expect(find.byType(VerticalDivider), findsNothing);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('the narrowest split fits the full database card', (
+    tester,
+  ) async {
+    await pumpAt(tester, 600, 700);
+
+    expect(find.byType(VerticalDivider), findsOneWidget);
+    // Since 1.6.6 Info sits in the card header beside the updated date.
+    expect(
+      find.descendant(
+        of: find.byKey(const ValueKey('detailExternalMetaCard')),
+        matching: find.byTooltip('資訊'),
+      ),
+      findsOneWidget,
+    );
     expect(tester.takeException(), isNull);
   });
 

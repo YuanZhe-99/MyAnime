@@ -264,19 +264,19 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String get anime1CheckProgress => 'Check anime1';
+  String get anime1CheckProgress => 'Check Anime1';
 
   @override
   String anime1ProgressLabel(String status) {
-    return 'anime1: $status';
+    return 'Anime1: $status';
   }
 
   @override
-  String get anime1ProgressUnknown => 'anime1: no episode info found';
+  String get anime1ProgressUnknown => 'Anime1: no episode info found';
 
   @override
   String anime1ProgressFailed(String error) {
-    return 'anime1 lookup failed: $error';
+    return 'Anime1 lookup failed: $error';
   }
 
   @override

@@ -3,7 +3,7 @@
 四个纯标签辅助函数，把 anime1.me 的集数单元格、年份/季节单元格、一条排序后的命中，以及已存的
 `AnimeWatchProgress` 变成面向用户的文本。它们像 [`archive_labels.md`](archive_labels.md) 一样作为一个共享文件
 存在，因为有三处调用方需要——[`anime_edit_page.md`](anime_edit_page.md)（观看链接对话框的行）、
-[`anime_detail_page.md`](anime_detail_page.md)（进度标签）以及测试——而同一个「第 1-12+OVA 集」无论出现在哪里
+[`anime_detail_page.md`](anime_detail_page.md)（站点进度行）以及测试——而同一个「第 1-12+OVA 集」无论出现在哪里
 都必须读起来一致。季节名复用日历的 `seasonWinter`/`seasonSpring`/`seasonSummer`/`seasonFall` 键；站点自己的
 后缀如 `+OVA` 不翻译。见
 [`../../../../features/watch-url-lookup.md`](../../../../features/watch-url-lookup.md#集数文本)。

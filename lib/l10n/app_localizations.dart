@@ -578,25 +578,25 @@ abstract class AppLocalizations {
   /// No description provided for @anime1CheckProgress.
   ///
   /// In en, this message translates to:
-  /// **'Check anime1'**
+  /// **'Check Anime1'**
   String get anime1CheckProgress;
 
   /// No description provided for @anime1ProgressLabel.
   ///
   /// In en, this message translates to:
-  /// **'anime1: {status}'**
+  /// **'Anime1: {status}'**
   String anime1ProgressLabel(String status);
 
   /// No description provided for @anime1ProgressUnknown.
   ///
   /// In en, this message translates to:
-  /// **'anime1: no episode info found'**
+  /// **'Anime1: no episode info found'**
   String get anime1ProgressUnknown;
 
   /// No description provided for @anime1ProgressFailed.
   ///
   /// In en, this message translates to:
-  /// **'anime1 lookup failed: {error}'**
+  /// **'Anime1 lookup failed: {error}'**
   String anime1ProgressFailed(String error);
 
   /// No description provided for @searchSort.

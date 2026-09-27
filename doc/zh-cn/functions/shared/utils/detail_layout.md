@@ -15,7 +15,7 @@
 | [`detailCoverSize`](#detailcoversize) | 顶层函数 | A | 返回详情页左栏封面图的尺寸。 |
 | [`editCoverSize`](#editcoversize) | 顶层函数 | A | 返回编辑页左栏封面选择器的尺寸。 |
 
-四个常量是没有 `/// Purpose:` 注释的普通声明，不作为单独行索引。`detailCoverAspectRatio`（180/260）保持单栏布局一直使用的封面比例，`detailLeftPaneHeaderBudget`（220.0）是封面下方为日文标题、标签行、进度条及其标签预留的纵向空间。`editCoverAspectRatio`（120/170）与 `editLeftPaneFieldBudget`（200.0）是编辑页的对应物，其预算涵盖两个 56 dp 的文本框、它们之间的 12、封面下方的 16、16 的底部内边距，以及为标题下方可能出现的校验错误留出的 44 余量。
+四个常量是没有 `/// Purpose:` 注释的普通声明，不作为单独行索引。`detailCoverAspectRatio`（180/260）保持单栏布局一直使用的封面比例，`detailLeftPaneHeaderBudget`（220.0）是封面下方为日文标题、信息行、分类标签、观看行、进度条及其下方文字预留的纵向空间。`editCoverAspectRatio`（120/170）与 `editLeftPaneFieldBudget`（200.0）是编辑页的对应物，其预算涵盖两个 56 dp 的文本框、它们之间的 12、封面下方的 16、16 的底部内边距，以及为标题下方可能出现的校验错误留出的 44 余量。
 
 ## 文档
 

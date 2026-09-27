@@ -191,7 +191,7 @@ injectable client. `parseEpisodes` and `catIdFromUrl` are plainly public because
 - **Purpose:** Report whether a URL points at anime1.me (the bare host or any subdomain).
 - **Returns:** `bool`; `false` for `null` or blank.
 - **Side effects:** None.
-- **Notes:** The gate every progress feature runs through — the detail chip, the list hints, and `MetadataUpdateService.isWatchProgressStale`.
+- **Notes:** The gate every progress feature runs through — the detail page's site progress line, the list hints, and `MetadataUpdateService.isWatchProgressStale`.
 
 ### `static int? catIdFromUrl(String url)` <a id="catidfromurl"></a>
 - **Kind:** static method of `Anime1Service`

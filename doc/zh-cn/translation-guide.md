@@ -156,7 +156,7 @@
 | folded form / fold | 归一化形式 / 归一化 | 只用于匹配、不用于显示的标题形式：半角、小写、去标点、转简体 |
 | season boost | 档期加分 | 行的年份/季节与记录首播季度一致时的加分 |
 | alias harvest | 别名补采 | 本地无命中时向 bangumi.tv 取一次别名再匹配 |
-| episode text | 集数文本 | anime1 的原文单元格，如 `1-12+OVA`、`連載中(09)` |
+| episode text | 集数文本 | Anime1 的原文单元格，如 `1-12+OVA`、`連載中(09)` |
 | watch progress | 观看进度 | 观看站点已更新到第几集；zh-TW 用「觀看進度」，ja 用「視聴進捗」 |
 | update proposal | 更新建议 | 已下载但等待用户确认的核心字段改动，绝不自动应用 |
 | discovery | 探索 | 为资料不全的记录发起的全源搜索，区别于「刷新」 |
@@ -190,13 +190,15 @@
 | pin (a recommendation) | 钉选 | 1.6.3 起：让一张推荐卡片在「换一批」时保留并排在最前；取消为「取消钉选」。zh-TW 用「釘選」，ja 用「ピン留め」。勿译成「置顶」（那暗示排序而非保留）或「收藏」 |
 | sequel info | 续作资料 | 1.6.3 起：缺失续作卡片上从资料库取得的简介与封面缩略图，同步保存，移入垃圾箱时删除 |
 | thumbnail | 缩略图 | 缩小后的封面，内嵌在 `recommendations.json` 中；zh-TW 用「縮圖」，ja 用「サムネイル」 |
-| info line / action row (detail page) | 信息行 / 操作行 | 1.6.3 起详情页标题下方的两行：一行纯文字的季标签·长度·星期·时间，一行按钮 |
+| info line / Watch row (detail page) | 信息行 / 观看行 | 1.6.3 起详情页标题下方纯文字的一行季标签·长度·星期·时间；1.6.6 起按钮只剩观看行（*观看*加集数对应图标）。1.6.3–1.6.5 的按钮行称「操作行」 |
+| site progress line (detail page) | 站点进度行 | 1.6.6 起已看集数下方的一行：Anime1 的「更新进度」或本地／Anime1 集数对应，点按重新检查（仅完整版）；勿与观看进度或「播放进度」混用 |
+| Anime1 (site name) | Anime1 | 站点名在文字中一律写作 Anime1，只有域名与网址写作 anime1.me；1.6.6 起四种语言统一，勿写成小写 anime1 |
 | series view (Manage) | 按系列查看 | 管理页的另一种布局：每个系列一行、可展开成员；与「按季度查看」相对 |
 | season label | 季标签 | `Anime.season` 的自由文本，如 `Season 2`、`第二季`；勿写成「季度标签」，「季度」专指播出档期（quarter） |
 | default season label | 默认季标签 | `Season 1` 或空；自 1.6.1 起只有它会按标题自动改写为 `Season N` |
 | split-cour marker | 分割放送标记 | 标题中的 `Part 2`、`Cour 2`、`第2クール`；表示同一季的后半部分，不是新的一季 |
 | partial results | 部分结果 | 检索仍在进行时已经到达的结果；自 1.6.1 起即时显示 |
-| playback progress | 播放进度 | 1.6.5 起：应用内播放器记住的每集停止位置，保存在 `playback_progress.json` 并同步；勿与 anime1 的「更新进度」或观看集数混用。zh-TW 用「播放進度」，ja 用「再生位置」 |
+| playback progress | 播放进度 | 1.6.5 起：应用内播放器记住的每集停止位置，保存在 `playback_progress.json` 并同步；勿与 Anime1 的「更新进度」或观看集数混用。zh-TW 用「播放進度」，ja 用「再生位置」 |
 | resume (playback) | 续播 | 从上次停止的位置继续播放；界面写作「续播 12:34」。zh-TW 用「續播」，ja 用「〜から再開」 |
 | playback speed | 播放速度 | 倍速菜单的标题；数值写作 `1.5x`，不翻译 |
 | full screen | 全屏 | zh-TW 用「全螢幕」，ja 用「全画面」 |

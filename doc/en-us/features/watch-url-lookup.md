@@ -120,9 +120,13 @@ episode 9 of a series the URL no longer points at.
 
 Where it shows:
 
-- the **detail page** chip reads `anime1：更新至第 9 集` (or "Check anime1" when nothing valid is
-  stored); tapping it re-reads the site and writes the result through `patchExternalMeta`. The chip
-  renders stored data in every flavor; only the tap is a full-build action;
+- the **detail page** shows it as the site progress line under the watched-episode count (a chip in
+  the action row through 1.6.5): `Anime1：更新至第 9 集`, the mapped `本地第 12 集／Anime1 第 24 集`,
+  or "Check Anime1" when nothing valid is stored. Tapping it re-reads the site and, for an
+  anime1.me page URL, force-refreshes the episode directory (1.6.6 — a mapped label comes from the
+  directory, so through 1.6.5 the tap changed nothing visible), writing only through
+  `patchExternalMeta`. The line renders stored data in every flavor; only the tap is a full-build
+  action, and a store build with nothing stored shows no line;
 - the **home page** turns an episode row's watch button primary, with the progress as its
   tooltip, when the directory resolves that local episode to a real page;
 - the **management page** shows verified local/site progress, or explicitly labeled raw site progress;
@@ -152,7 +156,7 @@ by construction.
 ## Flavor gating
 
 `Anime1Service` does not check the flavor itself, matching `AnimeSearchService`. The edit page's
-search icon and the detail chip's tap are gated on `AppFlavor.isFull`; displaying a stored record
+search icon and the detail page's progress-line tap are gated on `AppFlavor.isFull`; displaying a stored record
 is not, for the same reason the external-metadata card is not. The background caller is started
 only under `AppFlavor.isFull` by `main.dart`.
 
@@ -165,7 +169,13 @@ Full builds resolve collection and episode URLs into a paginated directory of ac
 pages. Directory refreshes preserve modifiedAt. User-confirmed season scope, starting number
 and individual overrides are separate user data; changing the source invalidates both.
 Incomplete fetches never replace a complete directory. Titles and explicit season markers
-identify the season. A matching index range or an unambiguous episode 1 establishes its
+identify the season. Since 1.6.6 the chosen collection's own Anime1 names — its index title and
+page title — count as titles too, because Anime1 names works in Taiwan translations that often
+differ from the local title: `GRAND BLUE 碧藍之海 第三季` for 碧蓝之海 第三季 (an English prefix),
+`與妳相戀到生命盡頭` for 还要与你相恋到生命尽头 (a different translation that no script conversion
+bridges). Every season guard still applies — an explicit season number must agree, an unmarked
+group cannot be a sequel, and another record on the same collection with a different season
+shares those names, so it keeps an unmarked group ambiguous. A matching index range or an unambiguous episode 1 establishes its
 start; the smallest available number greater than 1 does not. Dates, series links and counts
 are context, never sufficient evidence for a boundary. Gaps remain gaps, duplicate numbers
 need selection, and fractional episodes, OVA and SP remain separate extras.

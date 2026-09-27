@@ -76,7 +76,12 @@ which added 101 across six new files (`playback_progress.dart`, `playback_progre
 `playback_progress_store.dart`, `playback_progress_service.dart`, `anime_player_controls.dart` and
 `playback_time.dart`) and four changed ones (`data_modules.dart`, `anime_episode_page.dart`,
 `anime_player_page.dart` and `anime_native_player.dart`; `adaptive_layout.dart` and
-`backup_page.dart` changed without a new declaration); the gap stayed at 18. The
+`backup_page.dart` changed without a new declaration); the gap stayed at 18, and again in 1.6.6,
+which added none: `anime_detail_page.dart` replaced three helpers with three (`_hasHeaderActions`,
+`_buildHeaderActions` and `_watchProgressChipLabel` became `_hasMetaActions`, `_buildWatchRow` and
+`_buildSiteProgress`), and `anime_episode_service.dart`, `anime1_service.dart` and
+`metadata_update_service.dart` changed without a new declaration; the totals and the gap of 18 are
+unchanged. The
 pre-1.4.0 figures (682
 `Purpose:` comments and 685 documented declarations) had drifted far from both the source and this
 file's own per-file rows, which summed to 615 at the time. If you change these numbers, measure

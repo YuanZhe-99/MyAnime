@@ -205,7 +205,7 @@
 - **用途：** 报告 URL 是否指向 anime1.me（裸主机或任意子域）。
 - **返回：** `bool`；`null` 或空白为 `false`。
 - **副作用：** 无。
-- **备注：** 每个进度功能都经过的门——详情页标签、列表提示与 `MetadataUpdateService.isWatchProgressStale`。
+- **备注：** 每个进度功能都经过的门——详情页站点进度行、列表提示与 `MetadataUpdateService.isWatchProgressStale`。
 
 ### `static int? catIdFromUrl(String url)` <a id="catidfromurl"></a>
 - **种类：** `Anime1Service` 的静态方法

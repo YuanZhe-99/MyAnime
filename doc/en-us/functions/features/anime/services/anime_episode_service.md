@@ -20,3 +20,5 @@ Pure season resolution and bounded paginated collection fetching. The stored dir
 ## Contract
 
 See [watch-URL behavior](../../../../features/watch-url-lookup.md) and the structured source comments for inputs, results and side effects. Network parsing uses injectable clients; mappings are deterministic. Player objects and temporary credentials are never serialized.
+
+Callers of `ensure`: the detail page on entry (unforced, so the 6 h / 168 h window applies) and, since 1.6.6, the detail page's progress-line re-check with `force: true`, because a mapped label comes from this directory. Since 1.6.6 `resolve` also matches groups against the collection's own Anime1 names (`catalog.indexTitle`, `catalog.title`) besides the local aliases; the season-number, unmarked-sequel and exactly-one-candidate guards are unchanged, and a different-season record on the same URL shares those names, so it keeps an unmarked group ambiguous. See [watch-url-lookup.md](../../../../features/watch-url-lookup.md#season-aware-episode-playback-164) and `test/anime_episode_test.dart`.

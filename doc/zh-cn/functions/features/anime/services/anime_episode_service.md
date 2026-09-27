@@ -20,3 +20,5 @@
 ## 契约
 
 输入、结果及副作用参见[观看链接行为](../../../../features/watch-url-lookup.md)与源码结构化注释。网络解析支持注入客户端，映射为确定性计算。播放器对象和临时凭据不会被序列化。
+
+`ensure` 的调用方：详情页进入时（不强制，因此适用 6 小时／168 小时窗口），以及自 1.6.6 起详情页站点进度行的重新检查（`force: true`），因为对应后的文案来自这份目录。自 1.6.6 起，`resolve` 除本地别名外，也用合集在 Anime1 上自己的名称（`catalog.indexTitle`、`catalog.title`）匹配分组；季序号、未标季不能当续作、必须恰好一个候选这几道防护不变，同一链接上另一条不同季的记录共享这些名称，因此会让未标季的分组保持待确认。见 [watch-url-lookup.md](../../../../features/watch-url-lookup.md) 与 `test/anime_episode_test.dart`。

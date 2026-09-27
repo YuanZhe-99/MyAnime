@@ -1,6 +1,6 @@
 # lib/features/anime/views/anime_detail_page.dart
 
-`AnimeDetailPage` is the read/act page for one tracked anime: cover, an info line and action row, rating
+`AnimeDetailPage` is the read/act page for one tracked anime: cover, an info line, category chips, a Watch row and the watch progress, rating
 summary, local-archive summary, the series card with prev/next-season navigation, and the per-episode watch-status list
 with schedule-shift controls. It reads and writes through `AnimeStorage` ([`../services/anime_storage.md`](../services/anime_storage.md))
 and operates on the `Anime`/`AnimeRating`/`AnimeLocalArchive` model
@@ -17,12 +17,13 @@ air-date/rollover and schedule-shift semantics this page exposes controls for.
 The page renders in one of two layouts, chosen per frame from the viewport size by
 `useDetailTwoPane` in [`../../../shared/utils/detail_layout.md`](../../../shared/utils/detail_layout.md):
 
-- **Single column** — one `ListView`: cover, then the info block (Japanese title, info line, action
-  row, category chips, progress bar, `watched / total`, the rating / database / archive cards, notes,
+- **Single column** — one `ListView`: cover, then the info block (Japanese title, info line, category
+  chips, Watch row, progress bar, `watched / total`, the site progress line, the rating / database /
+  archive cards, notes,
   the series card and
   prev/next season), then the episode list. This is the original layout, unchanged.
 - **Two panes** — a `Row`. The left pane is fixed-width and full-height, holding the cover through
-  the watch-progress label, with the cover sized by `detailCoverSize` from whatever height is left
+  the site progress line, with the cover sized by `detailCoverSize` from whatever height is left
   over. The right pane is an independently scrolling `ListView` holding everything from the cards
   down, including the series card and the episode list.
 
@@ -60,6 +61,27 @@ The action row is omitted when the record has none of its actions. Flavor gating
 *Refresh database info* and the anime1.me re-check are full-build only, and the stored anime1.me
 progress shows in every flavor.
 
+### The header (1.6.6)
+
+The 1.6.3 action row was still one `Wrap` mixing four styles: the tonal *Watch*, a plain
+episode-links icon, a text button whose label was the variable-length anime1.me progress
+(`本地第 12 集／Anime1 第 24 集`, `Check Anime1`, or nothing), and two outlined icons. That label
+decided where the row broke, so every record laid out differently — on a phone *Info* and
+*Refresh* dropped to a line of their own; in a foldable's left pane the label did. Since 1.6.6 the
+rows are grouped by role and no row mixes variable-length text with buttons:
+
+| Row | What | Built by |
+|---|---|---|
+| Japanese title, info line | Unchanged | `_buildHeaderChildren`, `_infoLine` |
+| Categories | Moved up from below the actions, so the facts about the work sit together | `CategoryChips` |
+| Watch row | Only with a watch URL: *Watch* fills a `Row` capped at 400 wide, the outlined episode-links icon (full builds, anime1.me page URLs) at its end; it never wraps | `_buildWatchRow` |
+| Progress | Bar and `watched / total`, unchanged | `_buildHeaderChildren` |
+| Site progress line | Only for an anime1.me URL: the mapped or stored progress in accent text, flush with the count; tapping re-checks (full builds). A store build with nothing stored shows no line instead of a disabled button | `_buildSiteProgress` |
+
+*Info* and *Refresh database info* moved into the database-info card's header, beside the date
+they refresh (see [`_buildExternalMetaCard`](#_buildexternalmetacard)). Flavor gating is
+unchanged.
+
 While recommendations are on (1.6.2), `_buildDetailChildren` places the **Related** card
 (`RelatedRecommendationsCard`, [`../../recommendations/views/related_card.md`](../../recommendations/views/related_card.md))
 after the notes and before the missing-sequel hint, so in the two-pane layout it lands in the right
@@ -68,8 +90,8 @@ persistence, refresh and trash; the page only decides whether it appears. See
 [`../../../../features/categories-and-recommendations.md`](../../../../features/categories-and-recommendations.md#related-recommendations-on-the-detail-page).
 
 While automatic categories are on (1.6.0 M4), `_buildHeaderChildren` adds a row of category chips
-(`CategoryChips` in [`category_widgets.md`](category_widgets.md)) between the action row and the
-progress bar, so in the two-pane layout they stay in the left pane. Its edit button opens the
+(`CategoryChips` in [`category_widgets.md`](category_widgets.md)) directly under the info line (between
+the action row and the progress bar through 1.6.5), so in the two-pane layout they stay in the left pane. Its edit button opens the
 category editor.
 See [`../../../../features/categories-and-recommendations.md`](../../../../features/categories-and-recommendations.md).
 
@@ -98,19 +120,19 @@ list read correctly whether it follows the progress bar or opens the right pane.
 | [`_delete`](#_delete) | method (`_AnimeDetailPageState`) | A | Confirm and delete this anime record. |
 | `_AnimeDetailPageState.build` | method (`_AnimeDetailPageState`, widget build) | B | Build the detail page scaffold, choosing the single-column or two-pane layout. |
 | `_buildCover` | method (widget helper) | B | Build the cover image block at an explicit size. |
-| `_buildHeaderChildren` | method (widget helper) | B | Build the header block: Japanese title, the info line, the action row, the category chips while automatic categories are on, and the watched-episode bar (1.6.3 layout). |
+| `_buildHeaderChildren` | method (widget helper) | B | Build the header block: Japanese title, info line, category chips while automatic categories are on, the Watch row, the watched-episode bar and the site progress line (1.6.6 layout). |
 | `_infoLine` | method (`_AnimeDetailPageState`) | B | Join season label, length type, weekday and time into the header's info line (1.6.3). |
-| `_hasHeaderActions` | method (`_AnimeDetailPageState`) | B | Report whether the header has any action to show (1.6.3). |
-| `_buildHeaderActions` | method (widget helper) | B | Build the action row: *Watch*, the anime1.me progress, *Info* and *Refresh database info* (1.6.3). |
+| `_hasMetaActions` | method (`_AnimeDetailPageState`) | B | Report whether the database-info card has *Info* or *Refresh database info* to show (1.6.6). |
+| `_buildWatchRow` | method (widget helper) | B | Build the Watch row: *Watch* and the episode-links icon, or null without a watch URL (1.6.6; `_buildHeaderActions` through 1.6.5). |
 | `_buildDetailChildren` | method (widget helper) | B | Build the cards below the progress bar, plus the related card (1.6.2, while recommendations are on), the missing-sequel hint, the series card and prev/next buttons. |
 | `_buildEpisodeChildren` | method (widget helper) | B | Build the episode list header and one row per tracked episode. |
 | [`_toggleAllWatched`](#_toggleallwatched) | method (`_AnimeDetailPageState`) | A | Mark every tracked episode watched, or all unwatched if already complete. |
 | `_buildAbandonOrResume` | method (widget helper) | B | Render the "Abandon"/"Resume" action button for the episode list header. |
 | [`_refreshableUrls`](#_refreshableurls) | method (`_AnimeDetailPageState`) | A | List the source pages this anime can be refreshed from. |
 | [`_refreshExternalMeta`](#_refreshexternalmeta) | method (`_AnimeDetailPageState`) | A | Re-fetch external metadata from every remembered source page. |
-| `_watchProgressChipLabel` | method (`_AnimeDetailPageState`) | B | Label the anime1.me progress button from the stored watch progress, or the "check" prompt. |
+| `_buildSiteProgress` | method (widget helper) | B | Build the site progress line under the count, or null (1.6.6; replaces `_watchProgressChipLabel`). |
 | [`_checkWatchProgress`](#_checkwatchprogress) | method (`_AnimeDetailPageState`) | A | Re-read what anime1.me lists for this record's URL and store it. |
-| [`_buildExternalMetaCard`](#_buildexternalmetacard) | method (widget helper) | A | Render the public metadata pulled from external databases. |
+| [`_buildExternalMetaCard`](#_buildexternalmetacard) | method (widget helper) | A | Render the public metadata pulled from external databases, with *Info* and *Refresh database info* in its header. |
 | `_buildRatingCard` | method (widget helper) | B | Render the user's own rating summary card. |
 | `_buildLocalArchiveCard` | method (widget helper) | B | Render the read-only local-archive summary card. |
 | `_formatScore` | method (`_AnimeDetailPageState`) | B | Format a score as an integer when whole, else one decimal place. |
@@ -409,14 +431,15 @@ list read correctly whether it follows the progress bar or opens the right pane.
   deletion made on another device. `patchExternalMeta` leaves the timestamp alone. See
   [`../../../../sync.md`](../../../../sync.md).
 
-### `Widget _buildExternalMetaCard(AnimeExternalMeta meta, ThemeData theme, AppLocalizations l10n)` <a id="_buildexternalmetacard"></a>
+### `Widget? _buildExternalMetaCard(Anime anime, ThemeData theme, AppLocalizations l10n)` <a id="_buildexternalmetacard"></a>
 - **Kind:** method of `_AnimeDetailPageState` (widget helper)
-- **Source:** `lib/features/anime/views/anime_detail_page.dart` (line 691)
-- **Purpose:** Render the public metadata pulled from external databases.
-- **Returns:** `Widget`.
-- **Side effects:** None.
-- **Algorithm:** A card headed by the source icon, the section title, and the localized `refreshedAt` date; then a label/value row for each supplied field (format, status, duration, last air date, studios, genres, alternate titles); then, when any rating has a score, a divider, the "external ratings" heading, an explanatory line, and one chip per source showing `source score/max · votes`.
-- **Notes:** Sits directly below the personal rating card and is styled to read as a separate block on purpose — the explanatory line under the ratings heading exists so nobody mistakes an external score for their own. The card itself is **not** flavor-gated: displaying already-synced data is not a network feature, and a store build can legitimately receive this data through WebDAV sync or an imported share file.
+- **Source:** `lib/features/anime/views/anime_detail_page.dart` (approx. line 1200)
+- **Purpose:** Render the public metadata pulled from external databases, with the *Info* and *Refresh database info* actions in its header.
+- **Returns:** `Widget?` — null when there are no rows, no scored rating and no action (`_hasMetaActions`).
+- **Side effects:** None; the header buttons open `infoUrl` externally or start [`_refreshExternalMeta`](#_refreshexternalmeta).
+- **Algorithm:** A card (key `detailExternalMetaCard`) headed by the source icon, the section title with the localized `refreshedAt` date on its own line beneath, then *Info* (when `infoUrl` is set) and *Refresh database info* (full builds with a refreshable source; a spinner while refreshing) as compact plain icon buttons; then a label/value row for each supplied field (format, status, duration, last air date, studios, genres, alternate titles); then, when any rating has a score, a divider, the "external ratings" heading and one chip per source showing `source score/max · votes`.
+- **Notes:** Sits directly below the personal rating card and is styled to read as a separate block on purpose, so nobody mistakes an external score for their own. The card is **not** flavor-gated: displaying already-synced data is not a network feature, and a store build can legitimately receive this data through WebDAV sync or an imported share file; only *Refresh* is full-build. Since 1.6.6 the two actions live here, beside the data they act on, instead of in the header; the date moved under the title so the header fits the narrowest split pane (≈283 px) in every language. Through 1.6.5 the card rendered whenever `externalMeta.hasAnyData`, which is also true for a record holding only `watchProgress`, the episode directory or relations — every full-build anime1.me visit writes the directory — so those records showed an empty card; now they show none, and a record with an action but no data shows the header alone.
+
 
 ### `Future<void> _abandonAnime()` <a id="_abandonanime"></a>
 - **Kind:** method of `_AnimeDetailPageState`
@@ -470,33 +493,27 @@ list read correctly whether it follows the progress bar or opens the right pane.
 
 ### `Future<void> _checkWatchProgress(Anime anime)` <a id="_checkwatchprogress"></a>
 - **Kind:** method of `_AnimeDetailPageState`
-- **Source:** `lib/features/anime/views/anime_detail_page.dart` (approx. line 816)
+- **Source:** `lib/features/anime/views/anime_detail_page.dart` (approx. line 1150)
 - **Purpose:** Re-read what anime1.me currently lists for this record's watch URL and store it.
 - **Inputs:** `anime`.
 - **Returns:** `Future<void>`.
-- **Side effects:** Up to three HTTP requests via `Anime1Service.fetchProgress`; a write through
-  `AnimeStorage.patchExternalMeta`; `setState`s `_checkingProgress`; a snack bar on failure.
+- **Side effects:** Up to three HTTP requests via `Anime1Service.fetchProgress`; for an anime1.me page URL, a forced directory refresh via `AnimeEpisodeService.ensure(force: true)`; writes through `AnimeStorage.patchExternalMeta`; `setState`s `_checkingProgress`; a snack bar when nothing was found or the check failed.
 - **Algorithm:**
-  1. Return when there is no watch URL; set the button's spinner.
-  2. Await `Anime1Service.fetchProgress(url)`; `null` → snack bar `anime1ProgressUnknown`.
-  3. Otherwise merge the record into `externalMeta` via `mergedWith(AnimeExternalMeta(watchProgress: …))`, write it with `patchExternalMeta`, and `_load()`.
-  4. Any exception → snack bar `anime1ProgressFailed`; the spinner is always cleared when mounted.
+  1. Return when there is no watch URL; set the line's spinner.
+  2. Await `Anime1Service.fetchProgress(url)`; when it returns a record, patch **only** `watchProgress` with `expectedWatchUrls: {id: url.trim()}`, which merges it into the stored meta and skips a record whose URL changed meanwhile.
+  3. When `AnimeEpisodeService.isPageUrl`, await [`ensure`](../services/anime_episode_service.md)`(anime, force: true)`.
+  4. Clear the spinner; show `anime1ProgressUnknown` only when there was no progress and no complete directory; then `_load()`. Any exception → `anime1ProgressFailed`, spinner cleared.
 - **Usage:**
   ```dart
-  onPressed: AppFlavor.isFull && !_checkingProgress
-      ? () => _checkWatchProgress(anime)
-      : null,
+  onPressed: _checkingProgress ? null : () => _checkWatchProgress(anime),
   ```
-  (`_buildHeaderActions`, the anime1.me progress button — the button itself renders in every flavor)
-- **Notes:** Like `_refreshExternalMeta`, this never bumps `modifiedAt`: the progress is a cache of
-  public site data, not a user edit. The button's label comes from `_watchProgressChipLabel`, which
-  reads `Anime.validWatchProgress`, so a URL edited after the last check shows the "check" prompt
-  rather than a stale count.
+  (`_buildSiteProgress`, the site progress line under the count — full builds only; store builds render the line as plain text)
+- **Notes:** Like `_refreshExternalMeta`, this never bumps `modifiedAt`: the progress is a cache of public site data, not a user edit. The line's label reads `animeEpisodeProgressLabel`, which prefers the mapped local/Anime1 episode from the directory and otherwise `Anime.validWatchProgress`, so a URL edited after the last check shows the "check" prompt rather than a stale count. Through 1.6.5 the tap re-read only the index progress — but a mapped label comes from the directory, which `_load`'s unforced `ensure` does not refetch inside its 6 h TTL, so the tap changed nothing visible; and it saved this page's snapshot meta merged with the progress without `expectedWatchUrls`, which replaces the stored meta and could put back an older directory. Both fixed in 1.6.6 (`test/detail_progress_recheck_test.dart`).
 
 
 ## Changes in 1.6.4
 
-`_loadEpisodeDirectory` refreshes the directory on full-build detail entry and ignores stale route/source results. `_load` calls it; `_buildHeaderActions` opens shared watch/mapping routes; `_buildEpisodeList` adds per-episode play; `_watchProgressChipLabel` shows season-aware progress.
+`_loadEpisodeDirectory` refreshes the directory on full-build detail entry and ignores stale route/source results. `_load` calls it; `_buildHeaderActions` (since 1.6.6 `_buildWatchRow`) opens shared watch/mapping routes; `_buildEpisodeChildren` adds per-episode play; `_watchProgressChipLabel` (since 1.6.6 folded into `_buildSiteProgress`) shows season-aware progress.
 
 | Declaration | Kind | Tier | Purpose |
 |---|---|---|---|

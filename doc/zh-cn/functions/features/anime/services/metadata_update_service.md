@@ -114,7 +114,7 @@
 
 ### `static List<String> refreshableUrls(Anime)` <a id="refreshableurls"></a>
 - **用途：** 把 `infoUrl` 与每条已存外部评分记住的 URL 合并起来。
-- **备注：** 与详情页的手动刷新 chip 共用，因此两者对「可刷新」的定义一致。由多个来源构建的记录会刷新
+- **备注：** 与详情页的手动刷新按钮 共用，因此两者对「可刷新」的定义一致。由多个来源构建的记录会刷新
   全部来源。
 
 ### `Future<void> _tick()` <a id="_tick"></a>

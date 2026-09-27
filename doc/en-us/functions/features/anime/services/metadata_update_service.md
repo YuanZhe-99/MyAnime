@@ -123,7 +123,7 @@ Applying a *proposal* is the opposite case and does bump it — that is a user e
 
 ### `static List<String> refreshableUrls(Anime)` <a id="refreshableurls"></a>
 - **Purpose:** Combine `infoUrl` with the URL each stored external rating remembers.
-- **Notes:** Shared with the detail page's manual refresh chip, so both agree on what "refreshable"
+- **Notes:** Shared with the detail page's manual refresh button, so both agree on what "refreshable"
   means. A record built from several sources refreshes all of them.
 
 ### `Future<void> _tick()` <a id="_tick"></a>

@@ -45,7 +45,7 @@ remote *did* change the record, the remote wins and the local cache update is dr
 correct, because it is a cache and the refresh queue will fetch it again.
 
 `AnimeStorage.patchExternalMeta` is the only write path for cached metadata, and both the background
-service and the detail page's manual refresh chip go through it. Since 1.6.0 that includes
+service and the detail page's manual refresh button go through it. Since 1.6.0 that includes
 `externalMeta.relations`: a refresh brings each source's related works back with the rest and
 writes them the same way, without bumping `modifiedAt`, so a new relation reaches other devices as
 cached data rather than as an edit. Series grouping reads them when it is computed and writes

@@ -300,6 +300,12 @@ class AnimeEpisodeService {
   /// Returns: Per-local-episode links plus confirmation state.
   /// Side effects: None.
   /// Notes: Dates, counts and relationship order never manufacture a missing starting number.
+  /// Since 1.6.6 the chosen collection's own Anime1 names (index title and
+  /// page title) also identify its groups, so a Taiwan translation
+  /// (还要与你相恋到生命尽头 vs 與妳相戀到生命盡頭) or an English prefix
+  /// (GRAND BLUE 碧藍之海 第三季) no longer blocks the match. Every season
+  /// guard still applies, and a different-season sibling on the same URL
+  /// shares those names, so it keeps an unmarked group ambiguous.
   static AnimeEpisodeResolution resolve(
     Anime anime, {
     AnimeEpisodeMapping? choices,
@@ -318,6 +324,12 @@ class AnimeEpisodeService {
       anime.externalMeta?.titleRomaji,
       ...?anime.externalMeta?.synonyms,
     ].whereType<String>().toList();
+    // The collection's own names on Anime1: the user chose this URL, so
+    // they identify the work even when its translation differs locally.
+    final siteNames = [
+      catalog.indexTitle,
+      catalog.title,
+    ].whereType<String>().where((t) => t.trim().isNotEmpty).toList();
     final ordinal =
         titleSeasonOrdinal(anime.displayTitle) ?? seasonOrdinal(anime.season);
     final groups = catalog.pages
@@ -333,15 +345,16 @@ class AnimeEpisodeService {
         }
         // An unnumbered franchise title cannot identify a sequel on its own.
         if (number == null && ordinal != null && ordinal > 1) return false;
-        final matches =
-            aliases.any((a) => _sameTitle(a, g)) ||
+        bool names(List<String> titles) =>
+            titles.any((a) => _sameTitle(a, g)) ||
             (number != null &&
                 number == ordinal &&
-                aliases.any(
+                titles.any(
                   (a) =>
                       _sameTitle(stripSeasonMarkers(a), stripSeasonMarkers(g)),
                 ));
-        if (!matches) return false;
+        final viaSite = names(siteNames);
+        if (!names(aliases) && !viaSite) return false;
         // A sibling sharing this unmarked title makes the season boundary ambiguous.
         return number != null ||
             !library.any(
@@ -349,10 +362,12 @@ class AnimeEpisodeService {
                   a.id != anime.id &&
                   a.watchUrl == anime.watchUrl &&
                   a.season != anime.season &&
-                  _sameTitle(
-                    stripSeasonMarkers(a.displayTitle),
-                    stripSeasonMarkers(g),
-                  ),
+                  // A sibling on the same URL shares the collection's names.
+                  (viaSite ||
+                      _sameTitle(
+                        stripSeasonMarkers(a.displayTitle),
+                        stripSeasonMarkers(g),
+                      )),
             );
       }).toList();
       if (candidates.length == 1) group = candidates.single;

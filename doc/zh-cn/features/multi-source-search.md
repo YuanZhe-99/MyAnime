@@ -202,7 +202,7 @@ acgsecrets.hk 没有搜索端点。`_searchAcgsecrets` 下载整个季度页面
 
 `refreshAll(urls)` 并行抓取多个 URL，单个失败会被跳过而不是让整批失败。
 
-详情页（`anime_detail_page.dart`）以「刷新资料库信息」动作 chip 暴露该能力。它收集 `infoUrl` 加上每一条
+详情页（`anime_detail_page.dart`）以资料库信息卡片标题行里的「刷新资料库信息」按钮暴露该能力（1.6.2 及之前是动作 chip，1.6.3–1.6.5 是头部的图标按钮）。它收集 `infoUrl` 加上每一条
 `externalMeta.ratings[].sourceUrl`，通过 `AnimeExternalMeta.mergedWith` 把每条抓取结果合并进已有记录后
 保存。**只有外部元数据会被改动** —— 用户自己的评分、观看进度与手动编辑保持原样。`mergedWith` 只在新的抓取
 提供了某来源的关联关系时才替换该来源的关联关系，并保留其他来源的。
@@ -214,7 +214,7 @@ acgsecrets.hk 没有搜索端点。`_searchAcgsecrets` 下载整个季度页面
 
 - `anime_edit_page.dart` 把搜索动作放在 `AppFlavor.isFull` 之后，因此在线番剧搜索对面向商店的界面
   （`store` flavor：Google Play / App Store 构建）保持隐藏。
-- `anime_detail_page.dart` 出于同样原因把「刷新资料库信息」chip 放在 `AppFlavor.isFull` 之后。外部元数据
+- `anime_detail_page.dart` 出于同样原因把「刷新资料库信息」按钮放在 `AppFlavor.isFull` 之后。外部元数据
   *卡片*本身不做门禁 —— 展示已经同步过来的数据不属于网络功能。
 - 桌面本地 API 服务器（`local_api_server.dart`，见
   [`../platform-notes.md`](../platform-notes.md)）可以直接调用 `AnimeSearchService.searchAll()`，因为它是

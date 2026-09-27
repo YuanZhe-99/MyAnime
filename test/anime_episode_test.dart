@@ -412,4 +412,97 @@ void main() {
       isNull,
     );
   });
+
+  /// Purpose: Build a record whose local title differs from Anime1's name.
+  /// Inputs: Local title and season, the collection's Anime1 name, pages,
+  /// optional index range, id and extra library records.
+  /// Returns: Anime fixture.
+  /// Side effects: None.
+  /// Notes: Mirrors the 1.6.6 reports (cat 1935 and cat 1905 on anime1.me).
+  Anime named(
+    String title,
+    String season,
+    String siteName,
+    List<AnimeEpisodePage> pages, {
+    String? range,
+    String id = 'local',
+  }) => Anime(
+    id: id,
+    title: title,
+    season: season,
+    startEpisode: 1,
+    endEpisode: 12,
+    watchUrl: source,
+    externalMeta: AnimeExternalMeta(
+      episodeCatalog: AnimeEpisodeCatalog(
+        sourceUrl: source,
+        categoryUrl: source,
+        title: siteName,
+        catId: 7,
+        indexTitle: siteName,
+        indexEpisodes: range,
+        complete: true,
+        checkedAt: DateTime.utc(2026),
+        pages: pages,
+      ),
+    ),
+    createdAt: DateTime.utc(2025),
+    modifiedAt: DateTime.utc(2025),
+  );
+
+  test('the collection\'s Anime1 name maps a differently translated title', () {
+    const name = '與妳相戀到生命盡頭';
+    final result = AnimeEpisodeService.resolve(
+      named('还要与你相恋到生命尽头', 'Season 1', name, [
+        page('01', group: name),
+        page('02', group: name),
+      ], range: '連載中(02)'),
+    );
+    expect(result.needsConfirmation, false);
+    expect(result.group, name);
+    expect(result.links[1]?.number, 1);
+    expect(result.links[2]?.number, 2);
+  });
+
+  test('a prefixed Anime1 name maps when the season numbers agree', () {
+    const name = 'GRAND BLUE 碧藍之海 第三季';
+    final pages = [page('01', group: name), page('12', group: name)];
+    final result = AnimeEpisodeService.resolve(
+      named('碧蓝之海 第三季', 'Season 3', name, pages, range: '1-12'),
+    );
+    expect(result.first, 1);
+    expect(result.links.keys, [1, 12]);
+    // The same collection cannot stand in for a different season.
+    expect(
+      AnimeEpisodeService.resolve(
+        named('碧蓝之海 第二季', 'Season 2', name, pages, range: '1-12'),
+      ).links,
+      isEmpty,
+    );
+  });
+
+  test('an unmarked Anime1 name cannot map a sequel', () {
+    const name = '與妳相戀到生命盡頭';
+    final result = AnimeEpisodeService.resolve(
+      named('还要与你相恋到生命尽头 第二季', 'Season 2', name, [page('01', group: name)]),
+    );
+    expect(result.links, isEmpty);
+    expect(result.needsConfirmation, true);
+  });
+
+  test('a sibling on the same collection keeps an unmarked name ambiguous', () {
+    const name = '與妳相戀到生命盡頭';
+    final pages = [page('01', group: name), page('13', group: name)];
+    final first = named('还要与你相恋到生命尽头', 'Season 1', name, pages);
+    final second = named(
+      '还要与你相恋到生命尽头 第二季',
+      'Season 2',
+      name,
+      pages,
+      id: 'sequel',
+    );
+    final result = AnimeEpisodeService.resolve(first, library: [first, second]);
+    expect(result.links, isEmpty);
+    expect(result.needsConfirmation, true);
+  });
 }

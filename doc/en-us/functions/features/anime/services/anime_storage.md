@@ -89,7 +89,7 @@ notifies `AutoSyncService`/`ReminderService` after every save. See
      `modifiedAt` back in**.
   4. Save when at least one record matched.
 - **Usage:** The only write path for cached metadata — used by the background updater and by the
-  detail page's manual "refresh database info" chip.
+  detail page's manual "refresh database info" button.
 - **Notes:** **Deliberately leaves `modifiedAt` untouched.** `mergeRecords` decides whether a record
   changed purely by comparing `modifiedAt` against the sync base, never by comparing content, so
   bumping it here would (a) resurrect records another device deleted, because a locally "modified"

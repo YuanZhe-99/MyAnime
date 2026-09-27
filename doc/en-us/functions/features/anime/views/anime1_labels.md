@@ -4,7 +4,7 @@ Four pure label helpers that turn anime1.me's episode cell, year/season cell, a 
 a stored `AnimeWatchProgress` into user-facing text. They exist as one shared file, like
 [`archive_labels.md`](archive_labels.md), because three call sites need them —
 [`anime_edit_page.md`](anime_edit_page.md) (the watch-URL dialog rows),
-[`anime_detail_page.md`](anime_detail_page.md) (the progress chip), and the tests — and the same
+[`anime_detail_page.md`](anime_detail_page.md) (the site progress line), and the tests — and the same
 "Episodes 1-12+OVA" must read identically wherever it appears. Season names reuse the calendar's
 `seasonWinter`/`seasonSpring`/`seasonSummer`/`seasonFall` keys; the site's own suffixes such as
 `+OVA` are not translated. See

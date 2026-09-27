@@ -260,19 +260,19 @@ class AppLocalizationsJa extends AppLocalizations {
   }
 
   @override
-  String get anime1CheckProgress => 'anime1 を確認';
+  String get anime1CheckProgress => 'Anime1 を確認';
 
   @override
   String anime1ProgressLabel(String status) {
-    return 'anime1: $status';
+    return 'Anime1: $status';
   }
 
   @override
-  String get anime1ProgressUnknown => 'anime1: 話数情報が見つかりません';
+  String get anime1ProgressUnknown => 'Anime1: 話数情報が見つかりません';
 
   @override
   String anime1ProgressFailed(String error) {
-    return 'anime1 の確認に失敗しました: $error';
+    return 'Anime1 の確認に失敗しました: $error';
   }
 
   @override

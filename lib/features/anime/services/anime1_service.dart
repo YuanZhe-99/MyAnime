@@ -322,10 +322,10 @@ class Anime1Service {
         )
         .timeout(_indexTimeout);
     if (resp.statusCode != 200) {
-      throw StateError('anime1 index HTTP ${resp.statusCode}');
+      throw StateError('Anime1 index HTTP ${resp.statusCode}');
     }
     final entries = parseIndex(utf8.decode(resp.bodyBytes));
-    if (entries.isEmpty) throw StateError('anime1 index is empty');
+    if (entries.isEmpty) throw StateError('Anime1 index is empty');
     return entries;
   }
 
@@ -699,7 +699,9 @@ class Anime1Service {
       dotAll: true,
     );
     for (final m in entry.allMatches(html)) {
-      final n = RegExp(r'\[(\d+)(?:\.\d+)?\]\s*$').firstMatch(m.group(1)!.trim());
+      final n = RegExp(
+        r'\[(\d+)(?:\.\d+)?\]\s*$',
+      ).firstMatch(m.group(1)!.trim());
       if (n == null) continue;
       final value = int.parse(n.group(1)!);
       if (latest == null || value > latest) latest = value;
@@ -808,7 +810,7 @@ class Anime1Service {
         )
         .timeout(_pageTimeout);
     if (resp.statusCode != 200) {
-      throw StateError('anime1 page HTTP ${resp.statusCode}');
+      throw StateError('Anime1 page HTTP ${resp.statusCode}');
     }
     return utf8.decode(resp.bodyBytes);
   }
@@ -916,7 +918,9 @@ class Anime1Service {
     );
     if (results.isEmpty) {
       collect(
-        RegExp(r'<a[^>]*href="(https://anime1\.me/\?cat=\d+)"[^>]*>([^<]+)</a>'),
+        RegExp(
+          r'<a[^>]*href="(https://anime1\.me/\?cat=\d+)"[^>]*>([^<]+)</a>',
+        ),
       );
     }
     if (results.isEmpty) {

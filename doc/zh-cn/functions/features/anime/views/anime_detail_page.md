@@ -1,14 +1,14 @@
 # lib/features/anime/views/anime_detail_page.dart
 
-`AnimeDetailPage` 是一部被跟踪动画的读/操作页：封面、一行信息行和操作行、评分摘要、本地存档摘要、带上一季/下一季导航的系列卡片，以及带日程偏移控件的逐集观看状态列表。它通过 `AnimeStorage`（[`../services/anime_storage.md`](../services/anime_storage.md)）读写，并操作 `Anime`/`AnimeRating`/`AnimeLocalArchive` 模型（[`../models/anime.md`](../models/anime.md)），存档枚举通过 [`archive_labels.md`](archive_labels.md) 渲染。存档卡片仅供展示，且刻意不出现在本页分享操作生成的分享图片卡片中——见 [`../../../../features/share-and-import.md`](../../../../features/share-and-import.md)。本页为剧集播出日期/回卷和日程偏移语义暴露的控件见 [`../../../../features/anime-tracking.md`](../../../../features/anime-tracking.md)。
+`AnimeDetailPage` 是一部被跟踪动画的读/操作页：封面、信息行、分类标签、观看行与观看进度、评分摘要、本地存档摘要、带上一季/下一季导航的系列卡片，以及带日程偏移控件的逐集观看状态列表。它通过 `AnimeStorage`（[`../services/anime_storage.md`](../services/anime_storage.md)）读写，并操作 `Anime`/`AnimeRating`/`AnimeLocalArchive` 模型（[`../models/anime.md`](../models/anime.md)），存档枚举通过 [`archive_labels.md`](archive_labels.md) 渲染。存档卡片仅供展示，且刻意不出现在本页分享操作生成的分享图片卡片中——见 [`../../../../features/share-and-import.md`](../../../../features/share-and-import.md)。本页为剧集播出日期/回卷和日程偏移语义暴露的控件见 [`../../../../features/anime-tracking.md`](../../../../features/anime-tracking.md)。
 
 
 ## 布局
 
 页面以两种布局之一渲染，每帧由 [`../../../shared/utils/detail_layout.md`](../../../shared/utils/detail_layout.md) 中的 `useDetailTwoPane` 依视口尺寸选定：
 
-- **单栏** — 一个 `ListView`：封面，然后是信息块（日文标题、信息行、操作行、分类标签、进度条、`已看 / 总数`、评分／资料库／存档卡片、备注、系列卡片与上下季导航），最后是剧集列表。这就是原本的布局，未作改动。
-- **双栏** — 一个 `Row`。左栏定宽且占满高度，容纳从封面到观看进度标签的内容，封面尺寸由 `detailCoverSize` 按剩余高度算出。右栏是独立滚动的 `ListView`，容纳从卡片往下的全部内容，包括系列卡片和剧集列表。
+- **单栏** — 一个 `ListView`：封面，然后是信息块（日文标题、信息行、分类标签、观看行、进度条、`已看 / 总数`、站点进度行、评分／资料库／存档卡片、备注、系列卡片与上下季导航），最后是剧集列表。这就是原本的布局，未作改动。
+- **双栏** — 一个 `Row`。左栏定宽且占满高度，容纳从封面到站点进度行的内容，封面尺寸由 `detailCoverSize` 按剩余高度算出。右栏是独立滚动的 `ListView`，容纳从卡片往下的全部内容，包括系列卡片和剧集列表。
 
 系列卡片（1.6.0，[`series_widgets.md`](series_widgets.md) 中的 `SeriesCard`）在 `_buildDetailChildren` 中取代了原来的上一季/下一季行，位置不变，因此在双栏布局中它落在右栏。只有记录所属系列至少有两个成员时才会出现；其下方的上一季/下一季按钮现在由系列顺序驱动，放在 `Wrap` 中，窄屏手机上会换行堆叠而不会溢出。自 1.6.1 起，成员行和上一季/下一季按钮用 `context.push` 打开另一条记录的详情页，而不是 `context.go` 过去，因此返回会回到用户来时的记录。记录不属于任何系列（包括独立（不归入系列）的记录）时，卡片不出现，改由应用栏的关联菜单（*关联到系列…*、*添加下一季*，记录带 `seriesLink` 时还有*交给应用自动判断*）提供相同操作。系列卡片正上方是缺失续作提示（1.6.0 M2）：当资料库列出了系列最后一个成员的某部续作、而片库中没有它时，显示一张写着「下一部：<标题>（<来源>）」的卡片。与系列卡片不同，记录不在任何系列中时它也会出现。自 1.6.3 起，提示以续作抓取到的缩略图作为前置图片，并显示至多三行简介，二者都从 `recommendations.json` 读取（见 [`../../recommendations/services/sequel_info_service.md`](../../recommendations/services/sequel_info_service.md)）。见 [`../../../../features/series-linking.md`](../../../../features/series-linking.md)。
 
@@ -26,9 +26,24 @@
 
 记录没有任何操作时省略操作行。构建风味门禁不变：*刷新资料库信息*和 anime1.me 重新检查只在完整版中提供，已保存的 anime1.me 进度在每种构建风味下都显示。
 
+### 头部（1.6.6）
+
+1.6.3 的操作行仍是一个混合四种样式的 `Wrap`：色块*观看*按钮、一个普通的集数对应图标、一个文案为长度不定的 anime1.me 进度的文字按钮（`本地第 12 集／Anime1 第 24 集`、`查看 Anime1 更新`，或者没有），以及两个描边图标。这段文案决定在哪里断行，所以每条记录排出来都不一样——手机上*信息*和*刷新*被挤到单独一行；折叠屏左栏里则是这段文案自己占一行。自 1.6.6 起，各行按角色分组，不再有哪一行把长度不定的文字和按钮混在一起：
+
+| 行 | 内容 | 构建者 |
+|---|---|---|
+| 日文标题、信息行 | 不变 | `_buildHeaderChildren`、`_infoLine` |
+| 分类 | 从操作下方上移，让作品本身的资料排在一起 | `CategoryChips` |
+| 观看行 | 仅在有观看链接时出现：*观看*撑满一个最宽 400 的 `Row`，描边的集数对应图标（完整版、anime1.me 页面链接）在其末端；它从不换行 | `_buildWatchRow` |
+| 进度 | 进度条和 `已看 / 总数`，不变 | `_buildHeaderChildren` |
+| 站点进度行 | 仅用于 anime1.me 链接：以强调色文字显示对应后的或已保存的进度，与集数左对齐；点击重新检查（完整版）。商店构建在没有已保存数据时不显示这一行，而不是显示一个禁用按钮 | `_buildSiteProgress` |
+
+*信息*和*刷新资料库信息*移到了资料库信息卡片的标题行，紧挨它们所刷新的日期（见 [`_buildExternalMetaCard`](#_buildexternalmetacard)）。构建风味门禁不变。
+
+
 推荐开启时（1.6.2），`_buildDetailChildren` 把**相关推荐**卡片（`RelatedRecommendationsCard`，[`../../recommendations/views/related_card.md`](../../recommendations/views/related_card.md)）放在备注之后、缺失续作提示之前，因此在双栏布局中它落在右栏。它以记录 id 为键，接收 `_load` 读取的片库，并自行负责加载、持久保存、换一批和垃圾箱；页面只决定它是否出现。见 [`../../../../features/categories-and-recommendations.md`](../../../../features/categories-and-recommendations.md#详情页的相关推荐)。
 
-自动分类开启时（1.6.0 M4），`_buildHeaderChildren` 会在操作行与进度条之间加一行分类标签（[`category_widgets.md`](category_widgets.md) 中的 `CategoryChips`），因此在双栏布局中它们留在左栏。其中的编辑按钮打开分类编辑器。见 [`../../../../features/categories-and-recommendations.md`](../../../../features/categories-and-recommendations.md)。
+自动分类开启时（1.6.0 M4），`_buildHeaderChildren` 会在信息行正下方加一行分类标签（[`category_widgets.md`](category_widgets.md) 中的 `CategoryChips`；1.6.5 及之前位于操作行与进度条之间），因此在双栏布局中它们留在左栏。其中的编辑按钮打开分类编辑器。见 [`../../../../features/categories-and-recommendations.md`](../../../../features/categories-and-recommendations.md)。
 
 两种布局都由同样四个构建函数拼装——`_buildCover`、`_buildHeaderChildren`、`_buildDetailChildren`、`_buildEpisodeChildren`——因此每个区块的组件代码只有一份。`_buildHeaderChildren` 与 `_buildDetailChildren` 之间的分界**就是**分栏边界：把某个区块移过这条缝，它就会换栏。`_buildDetailChildren` 中每一项都自带前置的 `SizedBox(height: 12)`，正是这一点让同一份列表无论跟在进度条之后还是作为右栏开头都能正确呈现。
 
@@ -50,19 +65,19 @@
 | [`_delete`](#_delete) | 方法（`_AnimeDetailPageState`） | A | 确认并删除这条动画记录。 |
 | `_AnimeDetailPageState.build` | 方法（`_AnimeDetailPageState`，组件构建） | B | 构建详情页脚手架，并在单栏与双栏布局之间取舍。 |
 | `_buildCover` | 方法（组件辅助） | B | 按明确尺寸构建封面图块。 |
-| `_buildHeaderChildren` | 方法（组件辅助） | B | 构建头部块：日文标题、信息行、操作行、自动分类开启时的分类标签，以及已看集数条（1.6.3 布局）。 |
+| `_buildHeaderChildren` | 方法（组件辅助） | B | 构建头部块：日文标题、信息行、自动分类开启时的分类标签、观看行、已看集数条和站点进度行（1.6.6 布局）。 |
 | `_infoLine` | 方法（`_AnimeDetailPageState`） | B | 把季标签、长度类型、星期和时间连成头部的信息行（1.6.3）。 |
-| `_hasHeaderActions` | 方法（`_AnimeDetailPageState`） | B | 报告头部是否有任何可显示的操作（1.6.3）。 |
-| `_buildHeaderActions` | 方法（组件辅助） | B | 构建操作行：*观看*、anime1.me 进度、*信息*和*刷新资料库信息*（1.6.3）。 |
+| `_hasMetaActions` | 方法（`_AnimeDetailPageState`） | B | 报告资料库信息卡片是否有*信息*或*刷新资料库信息*可显示（1.6.6）。 |
+| `_buildWatchRow` | 方法（组件辅助） | B | 构建观看行：*观看*和集数对应图标，没有观看链接时为 null（1.6.6；1.6.5 及之前为 `_buildHeaderActions`）。 |
 | `_buildDetailChildren` | 方法（组件辅助） | B | 构建进度条下方的卡片，以及相关推荐卡片（1.6.2，推荐开启时）、缺失续作提示、系列卡片和上一季/下一季按钮。 |
 | `_buildEpisodeChildren` | 方法（组件辅助） | B | 构建剧集列表表头及每一集一行。 |
 | [`_toggleAllWatched`](#_toggleallwatched) | 方法（`_AnimeDetailPageState`） | A | 把每个被跟踪剧集标记为已看，已完整时则全部标记为未看。 |
 | `_buildAbandonOrResume` | 方法（组件辅助） | B | 渲染剧集列表页头的"放弃"/"恢复"操作按钮。 |
 | [`_refreshableUrls`](#_refreshableurls) | 方法（`_AnimeDetailPageState`） | A | 列出这部番剧可用于刷新的来源页面。 |
 | [`_refreshExternalMeta`](#_refreshexternalmeta) | 方法（`_AnimeDetailPageState`） | A | 从每个已记住的来源页面重新抓取外部元数据。 |
-| `_watchProgressChipLabel` | 方法（`_AnimeDetailPageState`） | B | 用已存的观看进度给 anime1.me 进度按钮取文案，否则用「查看」提示。 |
+| `_buildSiteProgress` | 方法（组件辅助） | B | 构建已看集数下方的站点进度行，或 null（1.6.6；取代 `_watchProgressChipLabel`）。 |
 | [`_checkWatchProgress`](#_checkwatchprogress) | 方法（`_AnimeDetailPageState`） | A | 重新读取 anime1.me 为本记录 URL 列出的内容并存储。 |
-| [`_buildExternalMetaCard`](#_buildexternalmetacard) | 方法（组件辅助） | A | 渲染从外部资料库拉取的公开元数据。 |
+| [`_buildExternalMetaCard`](#_buildexternalmetacard) | 方法（组件辅助） | A | 渲染从外部资料库拉取的公开元数据，标题行带*信息*与*刷新资料库信息*。 |
 | `_buildRatingCard` | 方法（组件辅助） | B | 渲染用户自己的评分摘要卡片。 |
 | `_buildLocalArchiveCard` | 方法（组件辅助） | B | 渲染只读的本地存档摘要卡片。 |
 | `_formatScore` | 方法（`_AnimeDetailPageState`） | B | 分数为整数时格式化为整数，否则保留一位小数。 |
@@ -291,14 +306,15 @@
   一条被刷新过的记录可能在另一台设备做出的删除中幸存下来。`patchExternalMeta` 不碰这个时间戳。见
   [`../../../../sync.md`](../../../../sync.md)。
 
-### `Widget _buildExternalMetaCard(AnimeExternalMeta meta, ThemeData theme, AppLocalizations l10n)` <a id="_buildexternalmetacard"></a>
+### `Widget? _buildExternalMetaCard(Anime anime, ThemeData theme, AppLocalizations l10n)` <a id="_buildexternalmetacard"></a>
 - **种类：** `_AnimeDetailPageState` 的方法（组件辅助）
-- **来源：** `lib/features/anime/views/anime_detail_page.dart`（第 691 行）
-- **用途：** 渲染从外部资料库拉取的公开元数据。
-- **返回：** `Widget`。
-- **副作用：** 无。
-- **算法：** 卡片顶部是来源图标、区块标题与本地化的 `refreshedAt` 日期；随后为每个已提供字段渲染一行标签/值（作品形式、播出状态、时长、完结日期、制作公司、类型标签、别名）；最后，当任一评分有分值时，加一条分隔线、「外部评分」标题、一行说明文字，以及每个来源一个显示 `来源 评分/满分 · 票数` 的 chip。
-- **备注：** 它刻意紧邻个人评分卡片下方，并在视觉上作为独立区块呈现——评分标题下的说明文字存在的意义，就是让人不会把外部评分误认成自己的评分。卡片本身**不**做 flavor 门禁：展示已经同步过来的数据不属于网络功能，而商店构建完全可能通过 WebDAV 同步或导入的分享文件正当地拿到这些数据。
+- **来源：** `lib/features/anime/views/anime_detail_page.dart`（约第 1200 行）
+- **用途：** 渲染从外部资料库拉取的公开元数据，并在卡片标题行放置*信息*与*刷新资料库信息*两个操作。
+- **返回：** `Widget?`——没有数据行、没有带分值的评分、也没有任何操作（`_hasMetaActions`）时为 null。
+- **副作用：** 无；标题行按钮在外部打开 `infoUrl`，或开始 [`_refreshExternalMeta`](#_refreshexternalmeta)。
+- **算法：** 卡片（键 `detailExternalMetaCard`）顶部是来源图标、区块标题，标题下方另起一行是本地化的 `refreshedAt` 日期，随后是紧凑的普通图标按钮*信息*（设置了 `infoUrl` 时）与*刷新资料库信息*（完整版且有可刷新来源时；刷新中显示转圈）；随后为每个已提供字段渲染一行标签/值（作品形式、播出状态、时长、完结日期、制作公司、类型标签、别名）；最后，当任一评分有分值时，加一条分隔线、「外部评分」标题，以及每个来源一个显示 `来源 评分/满分 · 票数` 的 chip。
+- **备注：** 它刻意紧邻个人评分卡片下方，并在视觉上作为独立区块呈现，让人不会把外部评分误认成自己的评分。卡片本身**不**做 flavor 门禁：展示已经同步过来的数据不属于网络功能，而商店构建完全可能通过 WebDAV 同步或导入的分享文件正当地拿到这些数据；只有*刷新*限完整版。自 1.6.6 起这两个操作放在这里，紧挨它们作用的数据，而不再放在头部；日期移到标题下方，使标题行在每种语言下都能放进最窄的双栏右栏（约 283 px）。1.6.5 及之前，只要 `externalMeta.hasAnyData` 为真卡片就会渲染，而仅存有 `watchProgress`、分集目录或关联关系的记录也满足这一条件——完整版每次打开 anime1.me 记录都会写入目录——因此这些记录会显示一张空卡片；现在它们不再显示卡片，而有操作却没有数据的记录只显示标题行。
+
 
 ### `Future<void> _abandonAnime()` <a id="_abandonanime"></a>
 - **种类：** `_AnimeDetailPageState` 的方法
@@ -344,29 +360,28 @@
 
 ### `Future<void> _checkWatchProgress(Anime anime)` <a id="_checkwatchprogress"></a>
 - **种类：** `_AnimeDetailPageState` 的方法
-- **来源：** `lib/features/anime/views/anime_detail_page.dart`（约第 816 行）
+- **来源：** `lib/features/anime/views/anime_detail_page.dart`（约第 1150 行）
 - **用途：** 重新读取 anime1.me 当前为本记录观看链接列出的内容并存储。
 - **输入：** `anime`。
 - **返回：** `Future<void>`。
-- **副作用：** 经 `Anime1Service.fetchProgress` 至多三次 HTTP 请求；经 `AnimeStorage.patchExternalMeta` 写入；`setState` `_checkingProgress`；失败时显示 snack bar。
+- **副作用：** 经 `Anime1Service.fetchProgress` 至多三次 HTTP 请求；观看链接是 anime1.me 页面时，经 `AnimeEpisodeService.ensure(force: true)` 强制刷新分集目录；经 `AnimeStorage.patchExternalMeta` 写入；`setState` `_checkingProgress`；什么也没找到或检查失败时显示 snack bar。
 - **算法：**
-  1. 没有观看链接则返回；打开按钮上的转圈。
-  2. Await `Anime1Service.fetchProgress(url)`；`null` → snack bar `anime1ProgressUnknown`。
-  3. 否则经 `mergedWith(AnimeExternalMeta(watchProgress: …))` 把记录并入 `externalMeta`，用 `patchExternalMeta` 写入，并 `_load()`。
-  4. 任何异常 → snack bar `anime1ProgressFailed`；只要仍 mounted，转圈总会清除。
+  1. 没有观看链接则返回；打开这一行上的转圈。
+  2. Await `Anime1Service.fetchProgress(url)`；返回记录时，**只**修补 `watchProgress`，并带上 `expectedWatchUrls: {id: url.trim()}`：它并入已存的元数据，且链接在此期间被改过的记录会被跳过。
+  3. `AnimeEpisodeService.isPageUrl` 成立时，await [`ensure`](../services/anime_episode_service.md)`(anime, force: true)`。
+  4. 清除转圈；只有既没有进度、也没有完整目录时才显示 `anime1ProgressUnknown`；然后 `_load()`。任何异常 → `anime1ProgressFailed`，转圈清除。
 - **用法：**
   ```dart
-  onPressed: AppFlavor.isFull && !_checkingProgress
-      ? () => _checkWatchProgress(anime)
-      : null,
+  onPressed: _checkingProgress ? null : () => _checkWatchProgress(anime),
   ```
-  （`_buildHeaderActions`，anime1.me 进度按钮——按钮本身在每个 flavor 下都渲染）
-- **备注：** 与 `_refreshExternalMeta` 一样，这绝不修改 `modifiedAt`：进度是公开站点数据的缓存，不是用户编辑。按钮文案来自 `_watchProgressChipLabel`，它读取 `Anime.validWatchProgress`，因此上次检查后被改过的 URL 会显示「查看」提示而不是过期的集数。
+  （`_buildSiteProgress`，已看集数下方的站点进度行——仅完整版；商店构建把这一行渲染为纯文字）
+- **备注：** 与 `_refreshExternalMeta` 一样，这绝不修改 `modifiedAt`：进度是公开站点数据的缓存，不是用户编辑。这一行的文案来自 `animeEpisodeProgressLabel`，它优先使用目录给出的本地／Anime1 集数对应，否则读取 `Anime.validWatchProgress`，因此上次检查后被改过的 URL 会显示「查看」提示而不是过期的集数。1.6.5 及之前，点击只重新读取索引进度——但对应后的文案来自目录，而 `_load` 中不强制的 `ensure` 在 6 小时有效期内不会重新抓取，所以点击后看不到任何变化；而且它保存的是本页快照元数据与进度合并的结果，没有带 `expectedWatchUrls`，这会整体替换已存的元数据，可能把较旧的目录写回去。两者都在 1.6.6 修复（`test/detail_progress_recheck_test.dart`）。
+
 
 
 ## 1.6.4 变更
 
-`_loadEpisodeDirectory` 在完整版详情进入时刷新目录，并忽略旧路由／来源结果。`_load` 调用它，`_buildHeaderActions` 打开共用观看／对应页，`_buildEpisodeList` 增加分集播放，`_watchProgressChipLabel` 显示按季进度。
+`_loadEpisodeDirectory` 在完整版详情进入时刷新目录，并忽略旧路由／来源结果。`_load` 调用它，`_buildHeaderActions`（自 1.6.6 起为 `_buildWatchRow`）打开共用观看／对应页，`_buildEpisodeChildren` 增加分集播放，`_watchProgressChipLabel`（自 1.6.6 起并入 `_buildSiteProgress`）显示按季进度。
 
 | 声明 | 类型 | 层级 | 用途 |
 |---|---|---|---|

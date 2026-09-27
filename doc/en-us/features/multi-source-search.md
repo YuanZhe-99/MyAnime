@@ -239,7 +239,8 @@ one (see [`metadata-auto-update.md`](metadata-auto-update.md)). Relations feed s
 
 `refreshAll(urls)` fetches several in parallel, skipping failures rather than failing the batch.
 
-The detail page (`anime_detail_page.dart`) exposes this as a "refresh database info" action chip. It
+The detail page (`anime_detail_page.dart`) exposes this as a "refresh database info" button in the database-info card's header (an
+action chip through 1.6.2, a header icon button in 1.6.3–1.6.5). It
 collects `infoUrl` plus every `externalMeta.ratings[].sourceUrl`, merges each fetched result into
 the existing record via `AnimeExternalMeta.mergedWith`, and saves. **Only external metadata is
 touched** — the user's own rating, episode progress, and manual edits are left exactly as they are.
@@ -253,7 +254,7 @@ store-reachable caller must gate access explicitly:
 
 - `anime_edit_page.dart` gates its search actions behind `AppFlavor.isFull`, so online anime search
   stays hidden from store-facing UI (`store` flavor: Google Play / App Store builds).
-- `anime_detail_page.dart` gates the "refresh database info" chip behind `AppFlavor.isFull` for the
+- `anime_detail_page.dart` gates the "refresh database info" button behind `AppFlavor.isFull` for the
   same reason. The external-metadata *card* is not gated — displaying already-synced data is not a
   network feature.
 - The desktop local API server (`local_api_server.dart`, see

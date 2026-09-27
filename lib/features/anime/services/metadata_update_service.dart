@@ -15,7 +15,7 @@
 ///
 /// Callers must not start this in store builds: it is an online lookup feature
 /// and is gated on `AppFlavor.isFull` at the call site, matching how the search
-/// dialog and the detail page's refresh chip are gated.
+/// dialog and the detail page's refresh button are gated.
 library;
 
 import 'dart:async';
@@ -342,7 +342,7 @@ class MetadataUpdateService {
   /// Side effects: None.
   /// Notes: Combines `infoUrl` with the URL each stored external rating
   /// remembers, so a record built from several sources refreshes all of them.
-  /// Shared with the detail page's manual refresh chip so both agree on what
+  /// Shared with the detail page's manual refresh button so both agree on what
   /// "refreshable" means.
   static List<String> refreshableUrls(Anime anime) {
     final urls = <String>{

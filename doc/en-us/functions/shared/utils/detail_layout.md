@@ -33,8 +33,8 @@ geometries by `test/detail_layout_ui_test.dart` and `test/anime_edit_two_pane_ui
 The four constants are plain declarations without `/// Purpose:` comments and are not indexed as
 separate rows. `detailCoverAspectRatio` (180/260) preserves the cover proportions the
 single-column layout has always used, and `detailLeftPaneHeaderBudget` (220.0) is the vertical
-space reserved below the cover for the Japanese title, the chip row, the progress bar and its
-label. `editCoverAspectRatio` (120/170) and `editLeftPaneFieldBudget` (200.0) are the edit page's
+space reserved below the cover for the Japanese title, the info line, the category chips, the Watch row, the progress bar
+and the lines under it. `editCoverAspectRatio` (120/170) and `editLeftPaneFieldBudget` (200.0) are the edit page's
 equivalents, the budget covering two 56 dp text fields, the 12 between them, the 16 under the
 cover, 16 of bottom padding and 44 of slack for a validation error under the title.
 

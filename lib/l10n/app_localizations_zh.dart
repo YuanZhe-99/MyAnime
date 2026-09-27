@@ -260,19 +260,19 @@ class AppLocalizationsZh extends AppLocalizations {
   }
 
   @override
-  String get anime1CheckProgress => '查看 anime1 更新';
+  String get anime1CheckProgress => '查看 Anime1 更新';
 
   @override
   String anime1ProgressLabel(String status) {
-    return 'anime1：$status';
+    return 'Anime1：$status';
   }
 
   @override
-  String get anime1ProgressUnknown => 'anime1：未找到集数信息';
+  String get anime1ProgressUnknown => 'Anime1：未找到集数信息';
 
   @override
   String anime1ProgressFailed(String error) {
-    return 'anime1 查询失败：$error';
+    return 'Anime1 查询失败：$error';
   }
 
   @override
@@ -2319,19 +2319,19 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
   }
 
   @override
-  String get anime1CheckProgress => '查看 anime1 更新';
+  String get anime1CheckProgress => '查看 Anime1 更新';
 
   @override
   String anime1ProgressLabel(String status) {
-    return 'anime1：$status';
+    return 'Anime1：$status';
   }
 
   @override
-  String get anime1ProgressUnknown => 'anime1：未找到集數資訊';
+  String get anime1ProgressUnknown => 'Anime1：未找到集數資訊';
 
   @override
   String anime1ProgressFailed(String error) {
-    return 'anime1 查詢失敗：$error';
+    return 'Anime1 查詢失敗：$error';
   }
 
   @override

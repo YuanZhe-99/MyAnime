@@ -102,7 +102,7 @@ not personal data: it syncs, it is backed up, and it stays in share files. See
 
 ### Editing
 
-While automatic categories are on, the detail page shows the chips under the action row, ending in an
+While automatic categories are on, the detail page shows the chips under the info line (under the action row through 1.6.5), ending in an
 *Edit categories* icon button (a labelled chip through 1.6.2). It opens a sheet of `FilterChip`s — a dialog instead where the window can
 split ([`../adaptive-layout.md`](../adaptive-layout.md)). The editor starts from the effective ids,
 so saving writes them as the user's own list. **Saving is a user edit**: `modifiedAt` is stamped in
