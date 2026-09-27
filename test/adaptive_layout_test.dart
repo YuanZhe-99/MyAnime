@@ -390,4 +390,26 @@ void main() {
       expect(cardColumns(756), 2);
     });
   });
+
+  group('episode page columns (1.6.5)', () {
+    // The episode page is pushed outside the shell. Its right pane is the
+    // window less the left pane, the 1 dp divider and 32 of padding.
+    int episodeColumns(double screenWidth) => columnCapacity(
+      screenWidth - detailLeftPaneWidth(screenWidth) - 1 - 32,
+      minItemWidth: episodeTileMinWidth,
+    );
+
+    test('an unfolded Fold 8 in landscape keeps one column of episodes', () {
+      expect(canSplitLayout(933, 704), isTrue);
+      expect(episodeColumns(933), 1);
+    });
+
+    test('a 1400 dp desktop window gets two columns', () {
+      expect(episodeColumns(1400), 2);
+    });
+
+    test('a very wide window stops at the list maximum', () {
+      expect(episodeColumns(4000), listMaxColumns);
+    });
+  });
 }

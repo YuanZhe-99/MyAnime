@@ -173,5 +173,47 @@ need selection, and fractional episodes, OVA and SP remain separate extras.
 The mapping screen previews local episodes and provides season scope, starting number,
 individual page choices and reset to automatic. Manual choices survive refreshes. Home and
 detail use the same mapping. Native playback falls back once to the embedded episode page
-on failure. External opening is explicit. Playback never marks watched or auto-advances.
+on failure. External opening is explicit. Playback never auto-advances. Through 1.6.4 it never
+marked anything watched either; since 1.6.5 passing 95% of a numbered episode does (below).
+
+## Player controls (1.6.5)
+
+Native playback draws the app's own controls (`anime_player_controls.dart`) instead of media_kit's
+stock ones, identically on every platform. The website fallback keeps the site's own player.
+
+| Input | Effect |
+|---|---|
+| Tap | Show or hide the controls; they hide after 3 s while playing and stay while paused |
+| Double tap | Play or pause |
+| Horizontal swipe | Preview the target (`12:34 / 23:40 (+15s)`), seek once on release; a full-width swipe covers at most 90 s |
+| Long press | While held, play one step faster — current speed + 1.0, at most 3.0 (1.0 → 2.0, 1.5 → 2.5, 2.0 → 3.0); release restores it |
+| −5 s / +5 s buttons | Jump back or forward five seconds, clamped to the episode |
+| Speed menu | 0.25, 0.5, 1.0, 1.5, 2.0, 3.0; the choice carries to the next episode of the session |
+| Seek bar | Drag to scrub; seeks on release |
+| Fullscreen button | media_kit fullscreen: on phones the system bars hide and the screen turns landscape; on desktop native fullscreen. A title row with a back button replaces the app bar there |
+| Keyboard (desktop) | Space play/pause, ← / → five seconds, F fullscreen, Esc leave fullscreen |
+
+The seek bar, the jump buttons and the swipe are disabled until the media duration is known.
+
+## Playback progress (1.6.5)
+
+Native playback records where each episode stopped in `playback_progress.json`, a synced and
+backed-up data module (schema in [`../data-formats.md`](../data-formats.md), merge in
+[`../sync.md`](../sync.md#the-playback-progress-file)).
+
+- **Under 5%** of the episode nothing is written, and an existing resume point is left alone, so
+  opening an episode and leaving at once does not erase where it stopped.
+- **Between 5% and 95%** the position is written about every five seconds of media, on pause, and
+  when playback stops — leaving the player, switching episodes from its menu, or falling back to
+  the website player.
+- **Past 95%** the resume point is deleted and, for a numbered episode, the episode is marked
+  watched in the record with a fresh `modifiedAt`, once per session. Extras only lose their resume
+  point.
+- **Resuming.** When an episode with a resume point starts, the player seeks there once the duration
+  is known and shows a snackbar with **Start over**. The episode screen shows each resume point as
+  a bar and “Resume at m:ss”, and its automatic first playback continues the most recently
+  stopped unwatched episode before the first unwatched one.
+- The website player exposes no position, so it records nothing. No media address or credential is
+  ever stored.
+
 Temporary media URLs and credentials are session-only, never synced, backed up or logged.

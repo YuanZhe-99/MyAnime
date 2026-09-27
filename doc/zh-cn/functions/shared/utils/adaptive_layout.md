@@ -4,8 +4,8 @@
 阈值，以及一旦可以拆分后决定列表分成几列的 `listTileMinWidth`、`listTileGap`、`listMaxColumns`、
 `listColumnsAuto` 四个常量，外加为外壳侧边导航栏与设置详情栏而设的 `navRailMinWidth`、`navRailWidth`
 与 `settingsRightPaneMinWidth`，以及为统计页而设的 `statsSummaryPaneMinWidth`、`statsChartMinWidth`、
-`rankingFilterMinWidth`、`rankingScoreSourceWidth` 与 `rankingDirectionWidth`，以及为资料库更新审阅页而设的
-`metaUpdateCardMinWidth`。在它们之上是十二个纯函数。
+`rankingFilterMinWidth`、`rankingScoreSourceWidth` 与 `rankingDirectionWidth`，为资料库更新审阅页而设的
+`metaUpdateCardMinWidth`，以及为分集页卡片而设的 `episodeTileMinWidth`（360，1.6.5）。在它们之上是十二个纯函数。
 
 该模块刻意只依赖 `dart:core`——它不含任何 Flutter 导入，`canSplitLayout` 接收两个 double 而非一个 `Size` 正是
 出于这个原因——因此每个辅助函数都可直接进行单元测试（`test/adaptive_layout_test.dart`），而渲染结果则由

@@ -148,7 +148,7 @@ WebDAV 同步引擎、备份引擎、ZIP 传输引擎和自动同步调度器**�
 
 - **留在这里的内容：** 所有模型、`AnimeStorage`、`mergeAnimeData` 包装器、Markdown 导出，以及每个页面。
 - **移走的内容：** 传输、锁生命周期、合并流水线、`.sync_base` 快照、图像同步、备份捆绑与 blob 存储、ZIP 允许列表和同步调度。
-- **接缝：** [`functions/app/data_modules.md`](functions/app/data_modules.md) 声明了基于 `AnimeStorage` 的 `StorageAdapter`，以及依次描述 `anime_data.json` 和（自 1.6.2 起）`recommendations.json` 的 `DataModule`。它是数据文件名和备份模块键的唯一真实来源。
+- **接缝：** [`functions/app/data_modules.md`](functions/app/data_modules.md) 声明了基于 `AnimeStorage` 的 `StorageAdapter`，以及依次描述 `anime_data.json`、（自 1.6.2 起）`recommendations.json` 和（自 1.6.5 起）`playback_progress.json` 的 `DataModule`。它是数据文件名和备份模块键的唯一真实来源。
 - **门面：** `WebDAVService`、`BackupService`、`ImportExportService` 和 `AutoSyncService` 保留它们此前的公共 API 并委托给该包。它们的形态被刻意冻结，使调用点和测试继续工作；行为变更属于该包。
 
 `.gitmodules` 使用相对 URL `../MyApps-DATA.git`，因此它按克隆所跟踪的远程解析——Gitea 克隆从 Gitea 拉取，GitHub 克隆从 GitHub 拉取，而且任何主机名都不会被提交。全新克隆需要 `git clone --recurse-submodules` 或 `git submodule update --init`。
@@ -174,3 +174,5 @@ WebDAV 同步引擎、备份引擎、ZIP 传输引擎和自动同步调度器**�
 ## Anime1 播放（1.6.4）
 
 完整版观看入口共用分集对应页与播放器页。映射为纯计算并绑定来源，媒体凭据仅存于会话。Windows 媒体库本地补丁在 ARM64 上禁用 x64 二进制，改用 WebView 播放。
+
+自 1.6.5 起，原生路由在 media_kit 的视频之上绘制应用自己的控件（`anime_player_controls.dart`），并通过 `PlaybackProgressService` 把同步的续播位置记录到 `playback_progress.json`，即第三个已注册的数据模块。播放超过一集的 95% 即标记为已看。分集对应页在折叠屏和宽窗口上遵循共享的分栏规则。

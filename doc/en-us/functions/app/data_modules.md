@@ -2,9 +2,11 @@
 
 **The seam between this app and the shared `myapps_data` package**, and the single source of truth
 for MyAnime's data files. Every hardcoded `anime_data.json` list and backup-module map the app used
-to carry now reads from the registry declared here. Since 1.6.2 the registry holds two modules:
+to carry now reads from the registry declared here. Since 1.6.5 the registry holds three modules:
 `anime_data.json`, then `recommendations.json` (the recommendation trash bins and related lists;
-see [`../features/recommendations/services/recommendation_store.md`](../features/recommendations/services/recommendation_store.md)).
+see [`../features/recommendations/services/recommendation_store.md`](../features/recommendations/services/recommendation_store.md)),
+then `playback_progress.json` (resume points of in-app playback, 1.6.5; see
+[`../features/anime/services/playback_progress_store.md`](../features/anime/services/playback_progress_store.md)).
 
 ## Declarations
 
@@ -23,6 +25,9 @@ see [`../features/recommendations/services/recommendation_store.md`](../features
 | [`validateRecommendationsJson(json)`](#validaterecommendationsjson) | function | A | Throw unless the payload is a JSON object (1.6.2). |
 | [`mergeRecommendationsModule({...})`](#mergerecommendationsmodule) | function | A | Adapt the conflict-free recommendations merge to the engine (1.6.2). |
 | [`buildRecommendationsModule()`](#buildrecommendationsmodule) | function | A | Build the recommendations `DataModule` (1.6.2). |
+| `validatePlaybackProgressJson(json)` | function | B | Throw unless the payload is a JSON object (1.6.5). |
+| `mergePlaybackProgressModule({...})` | function | B | Adapt the conflict-free playback progress merge to the engine (1.6.5). |
+| `buildPlaybackProgressModule()` | function | B | Build the playback progress `DataModule`; no images, no transforms (1.6.5). |
 | [`animeModuleRegistry`](#animemoduleregistry) | field | A | The app's `ModuleRegistry`. |
 
 ## Documentation
@@ -42,7 +47,8 @@ see [`../features/recommendations/services/recommendation_store.md`](../features
   newer one must interoperate against the same WebDAV server and the same backup bundles. Never
   change them. 1.6.2 added `recommendationsFileName` (`'recommendations.json'`) and
   `recommendationsModuleId` (`'recommendations'`), under the same rule; they are named in the
-  Constants section rather than as rows.
+  Constants section rather than as rows. 1.6.5 added `playbackProgressFileName`
+  (`'playback_progress.json'`) and `playbackModuleId` (`'playback'`) under the same rule.
 
 ### `validateAnimeJson(json)` <a id="validateanimejson"></a>
 - **Throws:** Whatever `jsonDecode` or `AnimeData.fromJson` throws.
@@ -88,7 +94,8 @@ see [`../features/recommendations/services/recommendation_store.md`](../features
 ### `animeModuleRegistry` <a id="animemoduleregistry"></a>
 - **Notes:** Built once. Registry order is behaviorally significant for sync order, progress
   reporting, and backup key order. `anime_data.json` stays first, so its progress index and
-  its conflicts come before anything else; `recommendations.json` follows.
+  its conflicts come before anything else; `recommendations.json` follows, then
+  `playback_progress.json` (1.6.5). Neither later module ever reports a conflict.
 
 ## Where the contract documentation lives
 

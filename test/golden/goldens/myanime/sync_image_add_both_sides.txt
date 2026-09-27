@@ -50,17 +50,19 @@
     }
 === [7] GET /dav/files/u/MyAnime/recommendations.json -> 404
   authorization: <basic-auth>
-=== [8] MKCOL /dav/files/u/MyAnime/images/ -> 201
+=== [8] GET /dav/files/u/MyAnime/playback_progress.json -> 404
   authorization: <basic-auth>
-=== [9] PROPFIND /dav/files/u/MyAnime/images/ -> 207
+=== [9] MKCOL /dav/files/u/MyAnime/images/ -> 201
+  authorization: <basic-auth>
+=== [10] PROPFIND /dav/files/u/MyAnime/images/ -> 207
   authorization: <basic-auth>
   content-type: application/xml; charset=utf-8
   depth: 1
   body:
     <?xml version="1.0"?><d:propfind xmlns:d="DAV:"><d:prop><d:resourcetype/></d:prop></d:propfind>
-=== [10] GET /dav/files/u/MyAnime/.lock -> 200
+=== [11] GET /dav/files/u/MyAnime/.lock -> 200
   authorization: <basic-auth>
-=== [11] PUT /dav/files/u/MyAnime/.lock -> 204
+=== [12] PUT /dav/files/u/MyAnime/.lock -> 204
   authorization: <basic-auth>
   content-type: application/octet-stream
   if-match: "<etag>"
@@ -72,15 +74,15 @@
       "updatedAt": "<timestamp>",
       "ttlSeconds": 60
     }
-=== [12] PUT /dav/files/u/MyAnime/images/cover_local.jpg -> 201
+=== [13] PUT /dav/files/u/MyAnime/images/cover_local.jpg -> 201
   authorization: <basic-auth>
   content-type: application/octet-stream
   body:
     
-=== [13] GET /dav/files/u/MyAnime/images/cover_remote.jpg -> 200
+=== [14] GET /dav/files/u/MyAnime/images/cover_remote.jpg -> 200
   authorization: <basic-auth>
-=== [14] GET /dav/files/u/MyAnime/.lock -> 200
+=== [15] GET /dav/files/u/MyAnime/.lock -> 200
   authorization: <basic-auth>
-=== [15] DELETE /dav/files/u/MyAnime/.lock -> 204
+=== [16] DELETE /dav/files/u/MyAnime/.lock -> 204
   authorization: <basic-auth>
   if-match: "<etag>"

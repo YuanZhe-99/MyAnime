@@ -381,6 +381,7 @@ migrates data files, backups, and images.
 | --- | --- | --- | --- |
 | Anime records | `anime_data.json` | Yes | Per-record by `id` and `modifiedAt`; unknown fields preserved |
 | Recommendation trash bins and related lists | `recommendations.json` | Yes | Since 1.6.2: the global trash, trashed missing-sequel cards, and each record's persisted Related list with its own trash; since 1.6.3 also pins and each missing sequel's synopsis and cover thumbnail; conflict-free set merge; created only when first needed |
+| Playback progress | `playback_progress.json` | Yes | Since 1.6.5: the resume point of each episode played in the app; newer position wins per key, finished episodes stay deleted; conflict-free; created only when first needed |
 | Cover images | `images/` | Yes | Referenced-only additive sync by filename |
 | Theme mode | `storage_config.json` | No | Device-specific preference |
 | Locale | `storage_config.json` | No | Device-specific preference |
@@ -401,7 +402,7 @@ migrates data files, backups, and images.
 | Automatic categories | `storage_config.json` | No | Device-specific `autoCategoriesEnabled`; absent means off (1.6.0) |
 | Recommendations | `storage_config.json` | No | Device-specific `recommendationsEnabled`; absent means off (1.6.0) |
 | WebDAV configuration | `webdav_config.json` | No | Local secret/config only |
-| Sync base snapshots | `.sync_base/anime_data.json`, `.sync_base/recommendations.json` | No | Local merge tracking, one per module |
+| Sync base snapshots | `.sync_base/anime_data.json`, `.sync_base/recommendations.json`, `.sync_base/playback_progress.json` | No | Local merge tracking, one per module |
 | Local backups | `backups/backup_*.json` | No | Local recovery; v2 bundles reference deduplicated image blobs |
 | Backup image blobs | `backups/blobs/` | No | Content-addressed (`sha256`), shared across backups, reference-counted GC |
 | Background update queue | `metadata_updates.json` | No | Per-device attempt/backoff state plus downloaded update candidates; rebuildable cache |
@@ -430,6 +431,41 @@ characters) and a base64 JPEG cover thumbnail (112 px wide, at most 24 KB) — p
 work, deleted when the card is trashed. The thumbnail is deliberately **not** a file in `images/`,
 whose sync never deletes. It is not part of `.myanimeitem` share files.
 
+`playback_progress.json` (1.6.5) is the third registered module, so it also syncs, is backed up,
+is included in ZIP export, and has its own `.sync_base/playback_progress.json`. It holds one resume
+point per episode played in the in-app native player:
+
+```json
+{
+  "version": 1,
+  "entries": {
+    "3f2b…/7": {
+      "animeId": "3f2b…",
+      "episode": 7,
+      "pageUrl": "https://anime1.me/19159",
+      "positionMs": 754000,
+      "durationMs": 1420000,
+      "updatedAt": "2026-09-26T12:34:56.000Z"
+    },
+    "3f2b…/extra/https://anime1.me/20001": {
+      "animeId": "3f2b…",
+      "pageUrl": "https://anime1.me/20001",
+      "positionMs": 120000,
+      "durationMs": 600000,
+      "updatedAt": "2026-09-25T08:00:00.000Z"
+    }
+  }
+}
+```
+
+Keys are `<animeId>/<localEpisode>` — the same local numbering as `episodeStatuses` — and
+`<animeId>/extra/<pageUrl>` for extra pages without a local number. Entries are sorted by key and
+unknown keys survive at both levels. A position under 5% of the episode is never written, and a
+position past 95% deletes the entry (see
+[`features/watch-url-lookup.md`](features/watch-url-lookup.md#playback-progress-165)). It stores
+no media address or credential; `pageUrl` is the public episode page. It is not part of
+`.myanimeitem` share files.
+
 ### `storage_config.json`
 
 Holds every device-local preference from the table above that isn't WebDAV configuration: theme
@@ -456,8 +492,8 @@ synced itself — it's the configuration that drives sync, not data sync would t
 ### `.sync_base/`
 
 Holds `.sync_base/anime_data.json`, the last-known-merged snapshot used as the three-way merge
-base on the next sync — and since 1.6.2 `.sync_base/recommendations.json`, the same for the
-recommendations module — and `.sync_base/upload_lock.json`, which lets the next launch detect an
+base on the next sync — and since 1.6.2 `.sync_base/recommendations.json` and since 1.6.5
+`.sync_base/playback_progress.json`, the same for those modules — and `.sync_base/upload_lock.json`, which lets the next launch detect an
 upload that was interrupted mid-flight. See [`sync.md`](sync.md) for how both are used.
 
 ### `backups/`

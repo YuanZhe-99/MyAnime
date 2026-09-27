@@ -4,17 +4,17 @@
 
 这是 MyAnime 仓库中 `lib/` 手写函数解释层文档的顶层索引。每行链接到 `doc/en-us/functions/` 下镜像 `lib/` 树的逐源文件页面（`.dart` 换成 `.md`）。
 
-**总计：** 仓库的 `/// Purpose:` 注释数为 **1359**（按 `AGENTS.md` 中的函数解释层约定，排除生成的 `lib/l10n/` 代码——见 [l10n/INDEX.md](l10n/INDEX.md)）。下方各行合计 **1341** 个已记录声明。
+**总计：** 仓库的 `/// Purpose:` 注释数为 **1460**（按 `AGENTS.md` 中的函数解释层约定，排除生成的 `lib/l10n/` 代码——见 [l10n/INDEX.md](l10n/INDEX.md)）。下方各行合计 **1442** 个已记录声明。
 
 | Tier | 计数 |
 |---|---|
-| Tier A（完整条目：Purpose/Inputs/Returns/Side effects/Algorithm/Usage/Notes） | 759 |
-| Tier B（仅索引行） | 582 |
-| **总计** | **1341** |
+| Tier A（完整条目：Purpose/Inputs/Returns/Side effects/Algorithm/Usage/Notes） | 768 |
+| Tier B（仅索引行） | 674 |
+| **总计** | **1442** |
 
 **已知缺口。** 这两个数字并不相等：有 18 个声明在源码中带 `/// Purpose:` 注释但此处没有对应行，因此本索引对 `lib/` 的覆盖少了这么多。1.5.7 重新测量时发现，1.5.6 记录的 864 本身已经过时——同一条命令在 1.5.6 的源码树上量到的是 901，因此这个缺口大部分是此前几个版本累积而未被发现的，而不是本次新增的。在 1.5.6 之前这个数是 10：当时发现 `adaptive_layout.dart` 那一行仍写着 `4 | 4`——那是它在 1.5.3 时的计数，彼时该模块还没有从详情页自己的辅助函数长成全应用的策略。它的页面自 1.5.5 起就记录了十二个声明，只有这一行没有跟上。该缺口分布不均，且尚未逐文件审计。另有一个文件方向相反，比其源码的 `Purpose:` 注释数多出一行——见下方 `features/` 小节的说明。
 
-这些总计在 1.4.0 中已对照真实源码树重新计算，1.5.0 中再次重算（在四个新文件与五个改动文件中新增 93 个声明），1.5.1 中又一次重算（在五个改动文件中新增 24 个声明），1.5.2 中再次重算（在一个新文件与四个改动文件中新增 15 个声明），1.5.3 中再次重算（在三个新文件与六个改动文件中新增 22 个声明），1.5.4 中再次重算——本次在三个改动文件中新增 11 个声明，并把另外三行从 Tier B 提升到 Tier A，没有新增任何文件，1.5.5 中再次重算——本次在四个改动文件中新增 9 个声明，并把另外五行从 Tier B 提升到 Tier A，同样没有新增文件，1.5.6 中再次重算——本次在两个改动文件中新增 2 个声明，并把 `adaptive_layout.dart` 那一行长期陈旧的计数从 4 更正为 12，1.5.7 中再次重算——本次在两个新文件与八个改动文件中新增 18 个声明，并把总数从陈旧的 864 校正为实测的 919，1.6.0 中再次重算（M0，可选的假名标签）——本次在三个改动文件中新增 5 个声明，并发现 1.5.7 的源码树实测其实是 918，1.6.0 中再次重算（M1，系列关联）——本次在三个新文件与七个改动文件中新增 56 个声明（已扣除移入 `season_label.dart` 的两个 `Anime1Service` 辅助函数），并顺带为 `anime.dart` 的页面补上自 1.5.7 起缺失的 `_parseCalendarDate` 行，把 `anime_edit_page.dart` 陈旧的 Tier A 计数从 9 更正为其页面早已记录的 13；缺口仍为 18，1.6.0 中再次重算（M3，端侧 AI）——本次在四个新文件与两个改动文件（`app_settings.dart` 和 `anime_storage.dart`；`main.dart` 有改动但没有新增声明）中新增 67 个声明；缺口仍为 18，1.6.0 中再次重算（M2，关联元数据）——本次在四个改动文件（`anime.dart`、`anime_search_service.dart`、`series_service.dart` 和 `anime_detail_page.dart`；`anime_edit_page.dart` 与 `series_widgets.dart` 有改动但没有新增声明）中新增 15 个声明；缺口仍为 18，1.6.0 中再次重算（M4，自动分类）——本次在六个新文件与四个改动文件（`anime_storage.dart`、`app_settings.dart`、`anime_detail_page.dart` 和 `webdav_config_page.dart`；`anime.dart`、`management_page.dart`、`settings_page.dart`、`duplicate_service.dart`、`file_open_service.dart` 与 `main.dart` 有改动但没有新增声明）中新增 48 个声明；缺口仍为 18，1.6.0 中再次重算（M5，推荐）——本次在四个新文件与两个改动文件（`anime_storage.dart` 和 `app_settings.dart`；`router.dart`、`home_page.dart` 与 `settings_page.dart` 有改动但没有新增声明）中新增 37 个声明；缺口仍为 18，1.6.1 中再次重算——本次在六个改动文件（`anime_search_service.dart`——新增七个、移除 `_recentSeasons`——以及 `anime_storage.dart`、`series_service.dart`、`season_label.dart`、`anime_detail_page.dart` 和 `anime_edit_page.dart`；`router.dart`、`anime_search_dialog.dart`、`home_page.dart`、`management_page.dart` 与 `file_open_service.dart` 有改动但没有新增声明）中新增 14 个声明；缺口仍为 18，1.6.2 中再次重算——本次在七个新文件（`manage_grouping.dart`、`recommendation_data.dart`、`recommendation_merge.dart`、`recommendation_store.dart`、`reason_labels.dart`、`recommendation_trash_page.dart` 和 `related_card.dart`）与八个改动文件（`data_modules.dart`、`anime_storage.dart`、`management_page.dart`、`ai_reason_service.dart`、`reason_prompt.dart`、`recommendation_service.dart`、`recommendations_page.dart`——`_reasonLabel` 移到了 `reason_labels.dart`——以及 `app_settings.dart`；`router.dart`、`anime_detail_page.dart` 与 `backup_page.dart` 有改动但没有新增声明）中新增 105 个声明；缺口仍为 18，1.6.3 中再次重算——本次在一个新文件（`sequel_info_service.dart`）与六个改动文件（`anime_detail_page.dart`、`recommendation_data.dart`、`recommendation_store.dart`、`recommendation_merge.dart`、`recommendations_page.dart` 和 `related_card.dart`；`recommendation_service.dart`、`category_widgets.dart` 与 `privacy_policy_page.dart` 有改动但没有新增声明）中新增 36 个声明，并发现 `recommendation_store.dart` 与 `related_card.dart` 两行自 1.6.2 起各自比其页面所记录的多报了一个 Tier A 条目——这两个页面上新增的条目如今使旧数字成立；缺口仍为 18。1.4.0 之前的数字（682 个 `Purpose:` 注释与 685 个已记录声明）与源码以及本文件自身的逐文件行都已严重偏离——当时逐文件行合计仅为 615。若要改动这些数字，请测量而不要手工调整：
+这些总计在 1.4.0 中已对照真实源码树重新计算，1.5.0 中再次重算（在四个新文件与五个改动文件中新增 93 个声明），1.5.1 中又一次重算（在五个改动文件中新增 24 个声明），1.5.2 中再次重算（在一个新文件与四个改动文件中新增 15 个声明），1.5.3 中再次重算（在三个新文件与六个改动文件中新增 22 个声明），1.5.4 中再次重算——本次在三个改动文件中新增 11 个声明，并把另外三行从 Tier B 提升到 Tier A，没有新增任何文件，1.5.5 中再次重算——本次在四个改动文件中新增 9 个声明，并把另外五行从 Tier B 提升到 Tier A，同样没有新增文件，1.5.6 中再次重算——本次在两个改动文件中新增 2 个声明，并把 `adaptive_layout.dart` 那一行长期陈旧的计数从 4 更正为 12，1.5.7 中再次重算——本次在两个新文件与八个改动文件中新增 18 个声明，并把总数从陈旧的 864 校正为实测的 919，1.6.0 中再次重算（M0，可选的假名标签）——本次在三个改动文件中新增 5 个声明，并发现 1.5.7 的源码树实测其实是 918，1.6.0 中再次重算（M1，系列关联）——本次在三个新文件与七个改动文件中新增 56 个声明（已扣除移入 `season_label.dart` 的两个 `Anime1Service` 辅助函数），并顺带为 `anime.dart` 的页面补上自 1.5.7 起缺失的 `_parseCalendarDate` 行，把 `anime_edit_page.dart` 陈旧的 Tier A 计数从 9 更正为其页面早已记录的 13；缺口仍为 18，1.6.0 中再次重算（M3，端侧 AI）——本次在四个新文件与两个改动文件（`app_settings.dart` 和 `anime_storage.dart`；`main.dart` 有改动但没有新增声明）中新增 67 个声明；缺口仍为 18，1.6.0 中再次重算（M2，关联元数据）——本次在四个改动文件（`anime.dart`、`anime_search_service.dart`、`series_service.dart` 和 `anime_detail_page.dart`；`anime_edit_page.dart` 与 `series_widgets.dart` 有改动但没有新增声明）中新增 15 个声明；缺口仍为 18，1.6.0 中再次重算（M4，自动分类）——本次在六个新文件与四个改动文件（`anime_storage.dart`、`app_settings.dart`、`anime_detail_page.dart` 和 `webdav_config_page.dart`；`anime.dart`、`management_page.dart`、`settings_page.dart`、`duplicate_service.dart`、`file_open_service.dart` 与 `main.dart` 有改动但没有新增声明）中新增 48 个声明；缺口仍为 18，1.6.0 中再次重算（M5，推荐）——本次在四个新文件与两个改动文件（`anime_storage.dart` 和 `app_settings.dart`；`router.dart`、`home_page.dart` 与 `settings_page.dart` 有改动但没有新增声明）中新增 37 个声明；缺口仍为 18，1.6.1 中再次重算——本次在六个改动文件（`anime_search_service.dart`——新增七个、移除 `_recentSeasons`——以及 `anime_storage.dart`、`series_service.dart`、`season_label.dart`、`anime_detail_page.dart` 和 `anime_edit_page.dart`；`router.dart`、`anime_search_dialog.dart`、`home_page.dart`、`management_page.dart` 与 `file_open_service.dart` 有改动但没有新增声明）中新增 14 个声明；缺口仍为 18，1.6.2 中再次重算——本次在七个新文件（`manage_grouping.dart`、`recommendation_data.dart`、`recommendation_merge.dart`、`recommendation_store.dart`、`reason_labels.dart`、`recommendation_trash_page.dart` 和 `related_card.dart`）与八个改动文件（`data_modules.dart`、`anime_storage.dart`、`management_page.dart`、`ai_reason_service.dart`、`reason_prompt.dart`、`recommendation_service.dart`、`recommendations_page.dart`——`_reasonLabel` 移到了 `reason_labels.dart`——以及 `app_settings.dart`；`router.dart`、`anime_detail_page.dart` 与 `backup_page.dart` 有改动但没有新增声明）中新增 105 个声明；缺口仍为 18，1.6.3 中再次重算——本次在一个新文件（`sequel_info_service.dart`）与六个改动文件（`anime_detail_page.dart`、`recommendation_data.dart`、`recommendation_store.dart`、`recommendation_merge.dart`、`recommendations_page.dart` 和 `related_card.dart`；`recommendation_service.dart`、`category_widgets.dart` 与 `privacy_policy_page.dart` 有改动但没有新增声明）中新增 36 个声明，并发现 `recommendation_store.dart` 与 `related_card.dart` 两行自 1.6.2 起各自比其页面所记录的多报了一个 Tier A 条目——这两个页面上新增的条目如今使旧数字成立；缺口仍为 18，1.6.5 中再次重算——本次在六个新文件（`playback_progress.dart`、`playback_progress_merge.dart`、`playback_progress_store.dart`、`playback_progress_service.dart`、`anime_player_controls.dart` 和 `playback_time.dart`）与四个改动文件（`data_modules.dart`、`anime_episode_page.dart`、`anime_player_page.dart` 和 `anime_native_player.dart`；`adaptive_layout.dart` 与 `backup_page.dart` 有改动但没有新增声明）中新增 101 个声明；缺口仍为 18。1.4.0 之前的数字（682 个 `Purpose:` 注释与 685 个已记录声明）与源码以及本文件自身的逐文件行都已严重偏离——当时逐文件行合计仅为 615。若要改动这些数字，请测量而不要手工调整：
 
 ```bash
 find lib -name "*.dart" -not -path "lib/l10n/*" | xargs grep -h '/// Purpose:' | wc -l
@@ -33,7 +33,7 @@ find lib -name "*.dart" -not -path "lib/l10n/*" | xargs grep -h '/// Purpose:' |
 | `lib/app/app.dart` | [app/app.md](app/app.md) | 3 | 0 |
 | `lib/app/flavor.dart` | [app/flavor.md](app/flavor.md) | 1 | 0 |
 | `lib/app/router.dart` | [app/router.md](app/router.md) | 1 | 1 |
-| `lib/app/data_modules.dart` | [app/data_modules.md](app/data_modules.md) | 14 | 14 |
+| `lib/app/data_modules.dart` | [app/data_modules.md](app/data_modules.md) | 17 | 14 |
 | `lib/app/theme.dart` | [app/theme.md](app/theme.md) | 3 | 2 |
 
 `app/router.dart` 有一行，即 `kanaRouteRedirect`（1.6.0）。它的另一个顶层声明（`appRouter`，一个 `GoRouter` 配置值）不带 `/// Purpose:` 注释，落在函数解释层约定（函数/方法/构造函数/getter/setter）之外；详见该页面。
@@ -168,15 +168,15 @@ find lib -name "*.dart" -not -path "lib/l10n/*" | xargs grep -h '/// Purpose:' |
 | 区域 | 文件 | 声明数 | Tier A | Tier B |
 |---|---|---|---|---|
 | 根（`lib/`） | 1 | 1 | 1 | 0 |
-| `app/` | 5 | 22 | 17 | 5 |
+| `app/` | 5 | 25 | 17 | 8 |
 | `features/ai/` | 6 | 75 | 29 | 46 |
-| `features/anime/` | 28 | 698 | 370 | 328 |
+| `features/anime/` | 33 | 795 | 379 | 416 |
 | `features/categories/` | 2 | 18 | 11 | 7 |
 | `features/kana/` | 1 | 19 | 3 | 16 |
 | `features/recommendations/` | 11 | 153 | 63 | 90 |
 | `features/settings/` | 4 | 49 | 28 | 21 |
-| `shared/`（utils、widgets、providers、services、views） | 29 | 306 | 237 | 69 |
-| **总计** | **87** | **1341** | **759** | **582** |
+| `shared/`（utils、widgets、providers、services、views） | 30 | 307 | 237 | 70 |
+| **总计** | **93** | **1442** | **768** | **674** |
 
 
 ## Anime1 分集播放（1.6.4）
@@ -186,6 +186,17 @@ find lib -name "*.dart" -not -path "lib/l10n/*" | xargs grep -h '/// Purpose:' |
 | `lib/features/anime/models/anime_episode.dart` | [features/anime/models/anime_episode.md](features/anime/models/anime_episode.md) | 12 | 0 |
 | `lib/features/anime/services/anime_episode_service.dart` | [features/anime/services/anime_episode_service.md](features/anime/services/anime_episode_service.md) | 10 | 0 |
 | `lib/features/anime/services/anime_media_service.dart` | [features/anime/services/anime_media_service.md](features/anime/services/anime_media_service.md) | 3 | 0 |
-| `lib/features/anime/views/anime_episode_page.dart` | [features/anime/views/anime_episode_page.md](features/anime/views/anime_episode_page.md) | 12 | 0 |
-| `lib/features/anime/views/anime_player_page.dart` | [features/anime/views/anime_player_page.md](features/anime/views/anime_player_page.md) | 8 | 0 |
-| `lib/features/anime/views/anime_native_player.dart` | [features/anime/views/anime_native_player.md](features/anime/views/anime_native_player.md) | 11 | 0 |
+| `lib/features/anime/views/anime_episode_page.dart` | [features/anime/views/anime_episode_page.md](features/anime/views/anime_episode_page.md) | 19 | 0 |
+| `lib/features/anime/views/anime_player_page.dart` | [features/anime/views/anime_player_page.md](features/anime/views/anime_player_page.md) | 12 | 0 |
+| `lib/features/anime/views/anime_native_player.dart` | [features/anime/views/anime_native_player.md](features/anime/views/anime_native_player.md) | 42 | 0 |
+
+## 播放进度与播放器控件（1.6.5）
+
+| Source file | Page | Declarations | Tier A count |
+|---|---|---|---|
+| `lib/features/anime/models/playback_progress.dart` | [features/anime/models/playback_progress.md](features/anime/models/playback_progress.md) | 15 | 3 |
+| `lib/features/anime/services/playback_progress_merge.dart` | [features/anime/services/playback_progress_merge.md](features/anime/services/playback_progress_merge.md) | 3 | 1 |
+| `lib/features/anime/services/playback_progress_store.dart` | [features/anime/services/playback_progress_store.md](features/anime/services/playback_progress_store.md) | 7 | 1 |
+| `lib/features/anime/services/playback_progress_service.dart` | [features/anime/services/playback_progress_service.md](features/anime/services/playback_progress_service.md) | 5 | 2 |
+| `lib/features/anime/views/anime_player_controls.dart` | [features/anime/views/anime_player_controls.md](features/anime/views/anime_player_controls.md) | 25 | 2 |
+| `lib/shared/utils/playback_time.dart` | [shared/utils/playback_time.md](shared/utils/playback_time.md) | 1 | 0 |

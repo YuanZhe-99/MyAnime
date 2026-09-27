@@ -6,15 +6,15 @@ This is the top-level index of the hand-written Function Explanation Layer docum
 `lib/` in the MyAnime repo. Each row links to a per-source-file page under `doc/en-us/functions/`
 mirroring the `lib/` tree (with `.dart` replaced by `.md`).
 
-**Totals:** the repo's `/// Purpose:` comment count is **1359** (per the Function Explanation Layer
+**Totals:** the repo's `/// Purpose:` comment count is **1460** (per the Function Explanation Layer
 convention in `AGENTS.md`, excluding generated `lib/l10n/` code — see [l10n/INDEX.md](l10n/INDEX.md)).
-The rows below sum to **1341** documented declarations.
+The rows below sum to **1442** documented declarations.
 
 | Tier | Count |
 |---|---|
-| Tier A (full entry: Purpose/Inputs/Returns/Side effects/Algorithm/Usage/Notes) | 759 |
-| Tier B (index row only) | 582 |
-| **Total** | **1341** |
+| Tier A (full entry: Purpose/Inputs/Returns/Side effects/Algorithm/Usage/Notes) | 768 |
+| Tier B (index row only) | 674 |
+| **Total** | **1442** |
 
 **Known gap.** These two numbers do not match: 18 declarations carry a `/// Purpose:` comment in
 source but have no row here, so the index under-covers `lib/` by that much. The 1.5.7 recount found
@@ -71,7 +71,12 @@ which added 36 across one new file (`sequel_info_service.dart`) and six changed 
 `recommendation_service.dart`, `category_widgets.dart` and `privacy_policy_page.dart` changed
 without a new declaration) and found that the `recommendation_store.dart` and `related_card.dart`
 rows had each claimed one Tier A entry more than their pages documented since 1.6.2 — the new
-entries on those pages now make the old figures true; the gap stayed at 18. The
+entries on those pages now make the old figures true; the gap stayed at 18, and again in 1.6.5,
+which added 101 across six new files (`playback_progress.dart`, `playback_progress_merge.dart`,
+`playback_progress_store.dart`, `playback_progress_service.dart`, `anime_player_controls.dart` and
+`playback_time.dart`) and four changed ones (`data_modules.dart`, `anime_episode_page.dart`,
+`anime_player_page.dart` and `anime_native_player.dart`; `adaptive_layout.dart` and
+`backup_page.dart` changed without a new declaration); the gap stayed at 18. The
 pre-1.4.0 figures (682
 `Purpose:` comments and 685 documented declarations) had drifted far from both the source and this
 file's own per-file rows, which summed to 615 at the time. If you change these numbers, measure
@@ -94,7 +99,7 @@ find lib -name "*.dart" -not -path "lib/l10n/*" | xargs grep -h '/// Purpose:' |
 | `lib/app/app.dart` | [app/app.md](app/app.md) | 3 | 0 |
 | `lib/app/flavor.dart` | [app/flavor.md](app/flavor.md) | 1 | 0 |
 | `lib/app/router.dart` | [app/router.md](app/router.md) | 1 | 1 |
-| `lib/app/data_modules.dart` | [app/data_modules.md](app/data_modules.md) | 14 | 14 |
+| `lib/app/data_modules.dart` | [app/data_modules.md](app/data_modules.md) | 17 | 14 |
 | `lib/app/theme.dart` | [app/theme.md](app/theme.md) | 3 | 2 |
 
 `app/router.dart` has one row, `kanaRouteRedirect` (1.6.0). Its other top-level declaration
@@ -239,15 +244,15 @@ the 771 hand-documented declarations above).
 | Area | Files | Declarations | Tier A | Tier B |
 |---|---|---|---|---|
 | Root (`lib/`) | 1 | 1 | 1 | 0 |
-| `app/` | 5 | 22 | 17 | 5 |
+| `app/` | 5 | 25 | 17 | 8 |
 | `features/ai/` | 6 | 75 | 29 | 46 |
-| `features/anime/` | 28 | 698 | 370 | 328 |
+| `features/anime/` | 33 | 795 | 379 | 416 |
 | `features/categories/` | 2 | 18 | 11 | 7 |
 | `features/kana/` | 1 | 19 | 3 | 16 |
 | `features/recommendations/` | 11 | 153 | 63 | 90 |
 | `features/settings/` | 4 | 49 | 28 | 21 |
-| `shared/` (utils, widgets, providers, services, views) | 29 | 306 | 237 | 69 |
-| **Total** | **87** | **1341** | **759** | **582** |
+| `shared/` (utils, widgets, providers, services, views) | 30 | 307 | 237 | 70 |
+| **Total** | **93** | **1442** | **768** | **674** |
 
 
 ## Anime1 episode playback (1.6.4)
@@ -257,6 +262,17 @@ the 771 hand-documented declarations above).
 | `lib/features/anime/models/anime_episode.dart` | [features/anime/models/anime_episode.md](features/anime/models/anime_episode.md) | 12 | 0 |
 | `lib/features/anime/services/anime_episode_service.dart` | [features/anime/services/anime_episode_service.md](features/anime/services/anime_episode_service.md) | 10 | 0 |
 | `lib/features/anime/services/anime_media_service.dart` | [features/anime/services/anime_media_service.md](features/anime/services/anime_media_service.md) | 3 | 0 |
-| `lib/features/anime/views/anime_episode_page.dart` | [features/anime/views/anime_episode_page.md](features/anime/views/anime_episode_page.md) | 12 | 0 |
-| `lib/features/anime/views/anime_player_page.dart` | [features/anime/views/anime_player_page.md](features/anime/views/anime_player_page.md) | 8 | 0 |
-| `lib/features/anime/views/anime_native_player.dart` | [features/anime/views/anime_native_player.md](features/anime/views/anime_native_player.md) | 11 | 0 |
+| `lib/features/anime/views/anime_episode_page.dart` | [features/anime/views/anime_episode_page.md](features/anime/views/anime_episode_page.md) | 19 | 0 |
+| `lib/features/anime/views/anime_player_page.dart` | [features/anime/views/anime_player_page.md](features/anime/views/anime_player_page.md) | 12 | 0 |
+| `lib/features/anime/views/anime_native_player.dart` | [features/anime/views/anime_native_player.md](features/anime/views/anime_native_player.md) | 42 | 0 |
+
+## Playback progress and player controls (1.6.5)
+
+| Source file | Page | Declarations | Tier A count |
+|---|---|---|---|
+| `lib/features/anime/models/playback_progress.dart` | [features/anime/models/playback_progress.md](features/anime/models/playback_progress.md) | 15 | 3 |
+| `lib/features/anime/services/playback_progress_merge.dart` | [features/anime/services/playback_progress_merge.md](features/anime/services/playback_progress_merge.md) | 3 | 1 |
+| `lib/features/anime/services/playback_progress_store.dart` | [features/anime/services/playback_progress_store.md](features/anime/services/playback_progress_store.md) | 7 | 1 |
+| `lib/features/anime/services/playback_progress_service.dart` | [features/anime/services/playback_progress_service.md](features/anime/services/playback_progress_service.md) | 5 | 2 |
+| `lib/features/anime/views/anime_player_controls.dart` | [features/anime/views/anime_player_controls.md](features/anime/views/anime_player_controls.md) | 25 | 2 |
+| `lib/shared/utils/playback_time.dart` | [shared/utils/playback_time.md](shared/utils/playback_time.md) | 1 | 0 |

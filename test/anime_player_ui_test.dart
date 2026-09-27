@@ -4,37 +4,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:my_anime/features/anime/models/anime_episode.dart';
 import 'package:my_anime/features/anime/services/anime_media_service.dart';
-import 'package:my_anime/features/anime/views/anime_native_player.dart';
 import 'package:my_anime/features/anime/views/anime_player_page.dart';
 import 'package:my_anime/l10n/app_localizations.dart';
 
-class _Player implements AnimeNativePlayer {
-  final failures = StreamController<String>.broadcast();
-  final progress = StreamController<Duration>.broadcast();
-  int disposed = 0;
-  int opened = 0;
-  bool failOpen = false;
-  bool failDispose = false;
-  @override
-  Stream<String> get errors => failures.stream;
-  @override
-  Stream<Duration> get positions => progress.stream;
-  @override
-  Widget buildVideo() => const Text('native video');
-  @override
-  Future<void> open(AnimeMediaSource source) async {
-    opened++;
-    if (failOpen) throw StateError('decoder failure');
-  }
-
-  @override
-  Future<void> dispose() async {
-    disposed++;
-    await failures.close();
-    await progress.close();
-    if (failDispose) throw StateError('cleanup failed');
-  }
-}
+import 'support/fake_anime_player.dart';
 
 const episode = AnimeEpisodePage(
   url: 'https://anime1.me/episode',
@@ -52,7 +25,7 @@ const media = AnimeMediaSource('https://edge.v.anime1.me/test.mp4', {});
 void main() {
   Future<void> mount(
     WidgetTester tester,
-    _Player player,
+    FakeAnimePlayer player,
     Future<AnimeMediaSource?> Function(String) resolver,
   ) async {
     await tester.pumpWidget(
@@ -75,7 +48,7 @@ void main() {
   testWidgets('native success stays native and leaving stops it once', (
     tester,
   ) async {
-    final player = _Player();
+    final player = FakeAnimePlayer();
     await mount(tester, player, (_) async => media);
     expect(find.text('native video'), findsOneWidget);
     player.progress.add(const Duration(seconds: 1));
@@ -91,7 +64,7 @@ void main() {
   testWidgets('native error disposes and falls back once without retrying', (
     tester,
   ) async {
-    final player = _Player();
+    final player = FakeAnimePlayer();
     var resolves = 0;
     await mount(tester, player, (_) async {
       resolves++;
@@ -111,7 +84,7 @@ void main() {
   testWidgets('decoder cleanup failure does not block website fallback', (
     tester,
   ) async {
-    final player = _Player()..failDispose = true;
+    final player = FakeAnimePlayer()..failDispose = true;
     await mount(tester, player, (_) async => media);
     player.failures.add('decoder failure');
     await tester.pump();
@@ -125,7 +98,7 @@ void main() {
   testWidgets('native startup timeout releases a stalled decoder', (
     tester,
   ) async {
-    final player = _Player();
+    final player = FakeAnimePlayer();
     await mount(tester, player, (_) async => media);
     await tester.pump(const Duration(seconds: 21));
     await tester.pump();
@@ -137,7 +110,7 @@ void main() {
   testWidgets(
     'expired or unsupported media falls back without creating a player',
     (tester) async {
-      final player = _Player();
+      final player = FakeAnimePlayer();
       await mount(tester, player, (_) async => null);
       expect(find.text('Website player'), findsOneWidget);
       expect(player.opened, 0);
@@ -149,7 +122,7 @@ void main() {
   testWidgets('late resolution after leaving cannot start audio', (
     tester,
   ) async {
-    final player = _Player();
+    final player = FakeAnimePlayer();
     final pending = Completer<AnimeMediaSource?>();
     await mount(tester, player, (_) => pending.future);
     await tester.pumpWidget(const SizedBox());

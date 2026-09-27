@@ -2115,4 +2115,41 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get episodeRefresh => 'Refresh episode directory';
+
+  @override
+  String episodeResume(String time) {
+    return 'Resume at $time';
+  }
+
+  @override
+  String episodeResumedFrom(String time) {
+    return 'Continuing from $time';
+  }
+
+  @override
+  String get episodeStartOver => 'Start over';
+
+  @override
+  String get episodePlay => 'Play';
+
+  @override
+  String get episodePause => 'Pause';
+
+  @override
+  String get episodeSeekBack => 'Back 5 seconds';
+
+  @override
+  String get episodeSeekForward => 'Forward 5 seconds';
+
+  @override
+  String get episodeSpeed => 'Playback speed';
+
+  @override
+  String get episodeFullscreen => 'Full screen';
+
+  @override
+  String get episodeExitFullscreen => 'Exit full screen';
+
+  @override
+  String get backupModulePlayback => 'Playback progress';
 }

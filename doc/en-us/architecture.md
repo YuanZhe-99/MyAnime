@@ -185,8 +185,8 @@ what keeps their wire format, backup format, and lock semantics interoperable.
 - **What moved:** the transport, lock lifecycle, merge pipeline, `.sync_base` snapshots, image sync,
   backup bundle and blob store, ZIP allowlist, and sync scheduling.
 - **The seam:** [`functions/app/data_modules.md`](functions/app/data_modules.md) declares the
-  `StorageAdapter` over `AnimeStorage` plus the `DataModule`s describing `anime_data.json` and, since
-  1.6.2, `recommendations.json`, in that order. It is the
+  `StorageAdapter` over `AnimeStorage` plus the `DataModule`s describing `anime_data.json`, since
+  1.6.2 `recommendations.json` and since 1.6.5 `playback_progress.json`, in that order. It is the
   single source of truth for the data-file names and backup module keys.
 - **The facades:** `WebDAVService`, `BackupService`, `ImportExportService`, and `AutoSyncService`
   keep their previous public APIs and delegate to the package. Their shapes are deliberately frozen
@@ -229,3 +229,5 @@ feature area:
 ## Anime1 playback (1.6.4)
 
 Full-build watch actions use a shared episode-directory route and native-player route. Episode mapping is pure and source-bound; media credentials are session-only. The local Windows media library override disables x64 binaries on ARM64, which uses WebView playback.
+
+Since 1.6.5 the native route draws the app's own controls over media_kit's video (`anime_player_controls.dart`) and records a synced resume point through `PlaybackProgressService` into `playback_progress.json`, the third registered data module. Passing 95% of an episode marks it watched. The episode-directory route follows the shared split rule on foldables and wide windows.

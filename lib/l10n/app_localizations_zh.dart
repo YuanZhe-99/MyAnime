@@ -2024,6 +2024,43 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get episodeRefresh => '刷新分集目录';
+
+  @override
+  String episodeResume(String time) {
+    return '续播 $time';
+  }
+
+  @override
+  String episodeResumedFrom(String time) {
+    return '已从 $time 继续播放';
+  }
+
+  @override
+  String get episodeStartOver => '从头播放';
+
+  @override
+  String get episodePlay => '播放';
+
+  @override
+  String get episodePause => '暂停';
+
+  @override
+  String get episodeSeekBack => '后退 5 秒';
+
+  @override
+  String get episodeSeekForward => '前进 5 秒';
+
+  @override
+  String get episodeSpeed => '播放速度';
+
+  @override
+  String get episodeFullscreen => '全屏';
+
+  @override
+  String get episodeExitFullscreen => '退出全屏';
+
+  @override
+  String get backupModulePlayback => '播放进度';
 }
 
 /// The translations for Chinese, as used in Taiwan (`zh_TW`).
@@ -4046,4 +4083,41 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
 
   @override
   String get episodeRefresh => '重新整理分集目錄';
+
+  @override
+  String episodeResume(String time) {
+    return '續播 $time';
+  }
+
+  @override
+  String episodeResumedFrom(String time) {
+    return '已從 $time 繼續播放';
+  }
+
+  @override
+  String get episodeStartOver => '從頭播放';
+
+  @override
+  String get episodePlay => '播放';
+
+  @override
+  String get episodePause => '暫停';
+
+  @override
+  String get episodeSeekBack => '倒退 5 秒';
+
+  @override
+  String get episodeSeekForward => '快轉 5 秒';
+
+  @override
+  String get episodeSpeed => '播放速度';
+
+  @override
+  String get episodeFullscreen => '全螢幕';
+
+  @override
+  String get episodeExitFullscreen => '結束全螢幕';
+
+  @override
+  String get backupModulePlayback => '播放進度';
 }

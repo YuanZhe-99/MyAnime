@@ -27,9 +27,11 @@ points at content-addressed image blobs under `backups/blobs/<sha256><ext>`.
 - **Legacy v1 bundles** with inline base64 `_images` remain restorable — restore checks for
   `_imageRefs` (v2) first, then falls back to the legacy `_images` map (v1) if absent.
 - **What is in a bundle:** every registered data module — `anime_data.json` and, since 1.6.2,
-  `recommendations.json` (the recommendation trash bins and Related lists) when it exists — plus
+  `recommendations.json` (the recommendation trash bins and Related lists) and, since 1.6.5,
+  `playback_progress.json` (resume points of in-app playback) when they exist — plus
   `images/`. The per-module restore dialog offers each module the bundle contains, so a 1.6.1 bundle
-  offers only the anime data, and restoring it leaves the current `recommendations.json` untouched.
+  offers only the anime data, and restoring it leaves the current `recommendations.json` untouched;
+  likewise a bundle from 1.6.4 or earlier never touches `playback_progress.json`.
 - **What is not in a bundle:** only registered data modules and `images/` are backed up. The
   device-local caches — `metadata_updates.json`, `metadata_covers/` and, since 1.6.0, the on-device
   AI cache `ai_insights.json` — are not registered in `lib/app/data_modules.dart`, so they are
@@ -105,8 +107,8 @@ After a successful restore, the caller (`backup_page.dart`):
 ## ZIP export/import
 
 `import_export_service.dart` exports a ZIP containing every registered data file that exists —
-`anime_data.json` and, since 1.6.2, `recommendations.json` — and `images/`. An archive without
-`recommendations.json` (from 1.6.1 or earlier) imports without touching the local one.
+`anime_data.json` and, since 1.6.2, `recommendations.json`, and since 1.6.5 `playback_progress.json`
+— and `images/`. An archive without one of the later files imports without touching the local one.
 
 - Import enforces path-traversal protection: only **allowlisted entries** are extracted —
   the registered data files and flat files directly under `images/` — and the resolved output path must

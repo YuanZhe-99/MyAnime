@@ -300,6 +300,7 @@ enum AnimeType {
 | --- | --- | --- | --- |
 | 动画记录 | `anime_data.json` | 是 | 按 `id` 和 `modifiedAt` 逐记录；未知字段保留 |
 | 推荐垃圾箱与相关推荐列表 | `recommendations.json` | 是 | 自 1.6.2 起：全局垃圾箱、移入垃圾箱的缺失续作卡片，以及每条记录持久保存的相关推荐列表及其自己的垃圾箱；自 1.6.3 起还有钉选，以及每部缺失续作的简介和封面缩略图；无冲突的集合合并；首次需要时才创建 |
+| 播放进度 | `playback_progress.json` | 是 | 自 1.6.5 起：应用内播放过的每一集的续播位置；每个键以较新的位置为准，看完的集保持删除；无冲突；首次需要时才创建 |
 | 封面图像 | `images/` | 是 | 按文件名仅引用添加式同步 |
 | 主题模式 | `storage_config.json` | 否 | 设备特有偏好 |
 | 语言区域 | `storage_config.json` | 否 | 设备特有偏好 |
@@ -320,7 +321,7 @@ enum AnimeType {
 | 自动分类 | `storage_config.json` | 否 | 设备特有的 `autoCategoriesEnabled`；缺省表示关闭（1.6.0） |
 | 推荐 | `storage_config.json` | 否 | 设备特有的 `recommendationsEnabled`；缺省表示关闭（1.6.0） |
 | WebDAV 配置 | `webdav_config.json` | 否 | 仅本地秘密/配置 |
-| 同步基线快照 | `.sync_base/anime_data.json`, `.sync_base/recommendations.json` | 否 | 本地合并跟踪，每个模块一份 |
+| 同步基线快照 | `.sync_base/anime_data.json`, `.sync_base/recommendations.json`, `.sync_base/playback_progress.json` | 否 | 本地合并跟踪，每个模块一份 |
 | 本地备份 | `backups/backup_*.json` | 否 | 本地恢复；v2 捆绑引用去重后的图像 blob |
 | 备份图像 blob | `backups/blobs/` | 否 | 内容寻址（`sha256`）、跨备份共享、引用计数 GC |
 | 后台更新队列 | `metadata_updates.json` | 否 | 设备本地的尝试/退避状态，以及已下载的更新候选；可重建的缓存 |
@@ -344,6 +345,37 @@ enum AnimeType {
 和一张 base64 JPEG 封面缩略图（112 px 宽，至多 24 KB）——这些是关于作品的公开数据，卡片移入垃圾箱时删除。缩略图有意
 **不**作为 `images/` 中的文件，因为该目录的同步从不删除。它不属于 `.myanimeitem` 分享文件。
 
+`playback_progress.json`（1.6.5）是第三个已注册的模块，因此它同样会同步、会备份、包含在 ZIP 导出中，
+并有自己的 `.sync_base/playback_progress.json`。它为应用内原生播放器播放过的每一集保存一个续播位置：
+
+```json
+{
+  "version": 1,
+  "entries": {
+    "3f2b…/7": {
+      "animeId": "3f2b…",
+      "episode": 7,
+      "pageUrl": "https://anime1.me/19159",
+      "positionMs": 754000,
+      "durationMs": 1420000,
+      "updatedAt": "2026-09-26T12:34:56.000Z"
+    },
+    "3f2b…/extra/https://anime1.me/20001": {
+      "animeId": "3f2b…",
+      "pageUrl": "https://anime1.me/20001",
+      "positionMs": 120000,
+      "durationMs": 600000,
+      "updatedAt": "2026-09-25T08:00:00.000Z"
+    }
+  }
+}
+```
+
+键为 `<animeId>/<localEpisode>`——与 `episodeStatuses` 使用同一套本地编号——没有本地编号的特典页面则为
+`<animeId>/extra/<pageUrl>`。条目按键排序，两层的未知键都会保留。低于一集 5% 的位置从不写入，超过 95% 的位置会删除该条目（见
+[`features/watch-url-lookup.md`](features/watch-url-lookup.md#播放进度165)）。它不存储任何媒体地址或凭据；`pageUrl` 是公开的分集页面。
+它不属于 `.myanimeitem` 分享文件。
+
 ### `storage_config.json`
 
 保存上表中除 WebDAV 配置外的每个设备本地偏好：主题模式、语言区域、日历周起始/布局/时间基准/视图格式偏好、存储路径覆盖、自动备份启用 + 保留天数（`backupRetentionDays`）、提醒设置、API 服务器启用/监听地址/端口/凭据、托盘/开机自启偏好，以及后台资料更新设置（`metadataAutoUpdate`、`metadataPrefetchCovers`）、分模块的列表列数（`homeListColumns`、`manageListColumns`、`statsListColumns`），是否显示假名标签（`kanaTabEnabled`，仅在开启时写入），以及端侧 AI 开关与「使用更快的模型」偏好（`onDeviceAiEnabled`、`onDeviceAiPreferFast`，都仅在开启时写入；见 [`on-device-ai.md`](on-device-ai.md)），以及是否开启自动分类（`autoCategoriesEnabled`，仅在开启时写入），以及是否开启推荐（`recommendationsEnabled`，仅在开启时写入），以及自 1.6.2 起管理标签的视图与系列排序（`manageViewMode`、`manageSeriesSort`，都仅在不是默认值时写入）。此文件的任何内容都不被同步——它刻意设备特有，而这正是网络策略应有的归宿：接有线网的桌面与走流量套餐的手机本就该不同。
@@ -354,7 +386,7 @@ WebDAV 连接详情和同步偏好（服务器 URL、凭据、自动同步开关
 
 ### `.sync_base/`
 
-保存 `.sync_base/anime_data.json`（用作下一次同步三方合并基线的最近已知合并快照）——以及自 1.6.2 起的 `.sync_base/recommendations.json`（推荐模块的同类快照）——和 `.sync_base/upload_lock.json`（让下一次启动检测到中途被中断的上传）。两者如何被使用见 [`sync.md`](sync.md)。
+保存 `.sync_base/anime_data.json`（用作下一次同步三方合并基线的最近已知合并快照）——以及自 1.6.2 起的 `.sync_base/recommendations.json` 和自 1.6.5 起的 `.sync_base/playback_progress.json`（这些模块的同类快照）——和 `.sync_base/upload_lock.json`（让下一次启动检测到中途被中断的上传）。两者如何被使用见 [`sync.md`](sync.md)。
 
 ### `backups/`
 

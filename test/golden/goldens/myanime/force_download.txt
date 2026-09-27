@@ -2,3 +2,5 @@
   authorization: <basic-auth>
 === [1] GET /dav/files/u/MyAnime/recommendations.json -> 404
   authorization: <basic-auth>
+=== [2] GET /dav/files/u/MyAnime/playback_progress.json -> 404
+  authorization: <basic-auth>

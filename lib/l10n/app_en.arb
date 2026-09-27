@@ -720,5 +720,18 @@
     "episodeReset":  "Reset to automatic",
     "episodeLast":  "Last Anime1 episode (optional)",
     "episodeNoOverride":  "Use automatic match",
-    "episodeRefresh":  "Refresh episode directory"
+    "episodeRefresh":  "Refresh episode directory",
+    "episodeResume": "Resume at {time}",
+    "@episodeResume": { "placeholders": { "time": { "type": "String" } } },
+    "episodeResumedFrom": "Continuing from {time}",
+    "@episodeResumedFrom": { "placeholders": { "time": { "type": "String" } } },
+    "episodeStartOver": "Start over",
+    "episodePlay": "Play",
+    "episodePause": "Pause",
+    "episodeSeekBack": "Back 5 seconds",
+    "episodeSeekForward": "Forward 5 seconds",
+    "episodeSpeed": "Playback speed",
+    "episodeFullscreen": "Full screen",
+    "episodeExitFullscreen": "Exit full screen",
+    "backupModulePlayback": "Playback progress"
 }

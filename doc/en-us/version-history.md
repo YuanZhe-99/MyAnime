@@ -3,6 +3,15 @@
 Release-by-release summary of MyAnime!!!!!. Useful for understanding *why* a behavior exists before
 changing it — several entries record deliberate safety fixes that look like quirks otherwise.
 
+## 1.6.5 — Foldable episode screen, player controls and synced playback progress
+
+- **Episode screen on the shared split rule.** On a window `canSplitLayout` admits, the season-mapping form sits in a left pane and the episodes and extras fill the right pane in columns of at least 360 dp; phones and portrait foldables keep one column. The bottom safe-area inset, lost because padding was set on the list itself, is restored.
+- **App-owned player controls on every platform**, replacing media_kit's stock controls: tap shows or hides, double tap plays or pauses, a horizontal swipe previews and seeks on release (a full-width swipe covers at most 90 s), a long press plays one step faster while held (current speed + 1.0, at most 3.0) and restores on release, −5 s / +5 s buttons, a speed menu (0.25, 0.5, 1.0, 1.5, 2.0, 3.0) that carries across episodes of the session, a seek bar, fullscreen, and desktop keys (Space, ← / →, F, Esc). media_kit's wakelock and pause-in-background behavior is unchanged.
+- **Synced playback progress.** A new third data module, `playback_progress.json`, stores each episode's resume point; it syncs, is backed up, is in ZIP export and has its own `.sync_base`. Under 5% nothing is written; past 95% the point is deleted. The merge never conflicts: per key the newer position wins and a finished episode stays deleted. One extra `GET` per sync; WebDAV request goldens re-recorded.
+- **Behavior change, decided with the user on 2026-09-26: passing 95% of a numbered episode marks it watched** (fresh `modifiedAt`, like the watched toggle). Through 1.6.4 playback never changed viewing status. It still never auto-advances. The episode screen's automatic first playback now continues the most recently stopped unwatched episode.
+- The website player exposes no position and records nothing. A local Windows build needs the same MSVC coroutine define CI already sets; see [`platform-notes.md`](platform-notes.md).
+- Tests grew from 523 to 566. Version 1.6.5+66; installer/MSIX version 1.6.5.0.
+
 ## 1.6.4 — Anime1 episode mapping and playback
 
 - Confirm season boundaries before mapping episode links; preserve gaps, extras and manual corrections.

@@ -157,4 +157,4 @@ folding or unfolding mid-edit keeps a half-written title intact.
 
 ## Episode watch actions (1.6.4)
 
-Full-build Anime1 detail rows open their mapped episode; the header chooses the first unwatched, non-skipped local episode, or the selection screen after completion. The link editor and player never mutate viewing status. Confirm uncertain season boundaries in the episode-link screen.
+Full-build Anime1 detail rows open their mapped episode; the header chooses the first unwatched, non-skipped local episode, or the selection screen after completion. The link editor never mutates viewing status. Since 1.6.5 the header first continues the most recently stopped unwatched episode, and the player marks a numbered episode watched once playback passes 95% (see [watch-url-lookup.md](watch-url-lookup.md#playback-progress-165)); nothing else in playback changes viewing status. Confirm uncertain season boundaries in the episode-link screen.

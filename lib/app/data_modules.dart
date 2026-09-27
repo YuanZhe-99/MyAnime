@@ -7,8 +7,8 @@
 /// Notes: Every hardcoded `anime_data.json` list in the shared services is
 /// replaced by this registry. File names and module IDs are
 /// persisted compatibility contracts (I1/I2) and must never change. Since
-/// 1.6.2 the registry holds two modules: `anime_data.json`, then
-/// `recommendations.json`.
+/// 1.6.5 the registry holds three modules: `anime_data.json`, then
+/// `recommendations.json` (1.6.2), then `playback_progress.json` (1.6.5).
 library;
 
 import 'dart:convert';
@@ -18,7 +18,9 @@ import 'package:myapps_data/myapps_data.dart';
 import 'package:path/path.dart' as p;
 
 import '../features/anime/models/anime.dart';
+import '../features/anime/models/playback_progress.dart';
 import '../features/anime/services/anime_storage.dart';
+import '../features/anime/services/playback_progress_merge.dart';
 import '../features/recommendations/models/recommendation_data.dart';
 import '../features/recommendations/services/recommendation_merge.dart';
 import '../shared/services/sync_merge.dart';
@@ -85,6 +87,12 @@ const recommendationsFileName = 'recommendations.json';
 
 /// Backup bundle module key for that file (1.6.2; I2).
 const recommendationsModuleId = 'recommendations';
+
+/// Local and remote name of the playback progress file (1.6.5; I1/I2).
+const playbackProgressFileName = 'playback_progress.json';
+
+/// Backup bundle module key for that file (1.6.5; I2).
+const playbackModuleId = 'playback';
 
 /// Default remote WebDAV directory for MyAnime.
 const animeDefaultRemotePath = '/MyAnime';
@@ -251,14 +259,63 @@ DataModule buildRecommendationsModule() => DataModule(
       ),
 );
 
+/// Purpose: Validate a `playback_progress.json` payload before it is written.
+/// Inputs: [json] raw module content.
+/// Returns: None; throws when the payload is not a JSON object.
+/// Side effects: None.
+/// Notes: Inside the object the model is tolerant, so only a file that is
+/// not ours at all is rejected.
+void validatePlaybackProgressJson(String json) {
+  PlaybackProgressData.fromJson(jsonDecode(json));
+}
+
+/// Purpose: Merge local/remote/base playback progress JSON for the engine.
+/// Inputs: [localJson], [remoteJson], optional [baseJson].
+/// Returns: Always a complete outcome.
+/// Side effects: None.
+/// Notes: Conflict-free by design (per key, the newer position wins and a
+/// deletion against the base stays deleted), so this module never reaches
+/// the conflict dialog.
+ModuleMergeOutcome mergePlaybackProgressModule({
+  required String localJson,
+  required String remoteJson,
+  required String? baseJson,
+}) => ModuleMergeOutcome(
+  mergedJson: mergePlaybackProgressJson(localJson, remoteJson, baseJson),
+);
+
+/// Purpose: Describe `playback_progress.json` to the shared engines.
+/// Inputs: None.
+/// Returns: The playback progress [DataModule].
+/// Side effects: None.
+/// Notes: No images and no transforms. `autoResolve` is irrelevant: the
+/// merge has nothing to resolve.
+DataModule buildPlaybackProgressModule() => DataModule(
+  fileName: playbackProgressFileName,
+  moduleId: playbackModuleId,
+  validate: validatePlaybackProgressJson,
+  merge:
+      ({
+        required String localJson,
+        required String remoteJson,
+        required String? baseJson,
+        required bool autoResolve,
+      }) => mergePlaybackProgressModule(
+        localJson: localJson,
+        remoteJson: remoteJson,
+        baseJson: baseJson,
+      ),
+);
+
 /// Purpose: Provide MyAnime's ordered module registry.
 /// Inputs: None.
 /// Returns: A registry holding the anime module, then the recommendations
-/// module.
+/// module, then the playback progress module (1.6.5).
 /// Side effects: None.
 /// Notes: Built once; the shared engines treat registry order as significant
 /// (request order, progress indices), so anime stays first.
 final ModuleRegistry animeModuleRegistry = ModuleRegistry([
   buildAnimeModule(),
   buildRecommendationsModule(),
+  buildPlaybackProgressModule(),
 ]);

@@ -690,5 +690,16 @@
     "episodeReset":  "恢復自動對應",
     "episodeLast":  "本季在 Anime1 的末集（選填）",
     "episodeNoOverride":  "使用自動對應",
-    "episodeRefresh":  "重新整理分集目錄"
+    "episodeRefresh":  "重新整理分集目錄",
+    "episodeResume": "續播 {time}",
+    "episodeResumedFrom": "已從 {time} 繼續播放",
+    "episodeStartOver": "從頭播放",
+    "episodePlay": "播放",
+    "episodePause": "暫停",
+    "episodeSeekBack": "倒退 5 秒",
+    "episodeSeekForward": "快轉 5 秒",
+    "episodeSpeed": "播放速度",
+    "episodeFullscreen": "全螢幕",
+    "episodeExitFullscreen": "結束全螢幕",
+    "backupModulePlayback": "播放進度"
 }

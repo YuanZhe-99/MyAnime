@@ -229,10 +229,11 @@ void main() {
       expect(dec(outcome.mergedJson!).hidden, isEmpty);
     });
 
-    test('the registry lists anime first, then recommendations', () {
+    test('the registry lists anime, recommendations, then playback', () {
       expect(animeModuleRegistry.modules.map((m) => m.fileName), [
         animeDataFileName,
         recommendationsFileName,
+        playbackProgressFileName,
       ]);
       expect(recommendationsFileName, RecommendationStore.fileName);
     });

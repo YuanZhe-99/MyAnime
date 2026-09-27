@@ -220,6 +220,11 @@ Not copied to the other repos — no other app has these.
 | default season label | 默认季标签 | `Season 1` 或空；自 1.6.1 起只有它会按标题自动改写为 `Season N` |
 | split-cour marker | 分割放送标记 | 标题中的 `Part 2`、`Cour 2`、`第2クール`；表示同一季的后半部分，不是新的一季 |
 | partial results | 部分结果 | 检索仍在进行时已经到达的结果；自 1.6.1 起即时显示 |
+| playback progress | 播放进度 | 1.6.5 起：应用内播放器记住的每集停止位置，保存在 `playback_progress.json` 并同步；勿与 anime1 的「更新进度」或观看集数混用。zh-TW 用「播放進度」，ja 用「再生位置」 |
+| resume (playback) | 续播 | 从上次停止的位置继续播放；界面写作「续播 12:34」。zh-TW 用「續播」，ja 用「〜から再開」 |
+| playback speed | 播放速度 | 倍速菜单的标题；数值写作 `1.5x`，不翻译 |
+| full screen | 全屏 | zh-TW 用「全螢幕」，ja 用「全画面」 |
+| seek bar | 进度条 | 播放器底部可拖动的时间条；zh-TW 用「進度列」，ja 用「シークバー」 |
 
 ## 6. Review checklist (run before committing a Chinese page)
 

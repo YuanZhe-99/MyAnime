@@ -3748,6 +3748,72 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Refresh episode directory'**
   String get episodeRefresh;
+
+  /// No description provided for @episodeResume.
+  ///
+  /// In en, this message translates to:
+  /// **'Resume at {time}'**
+  String episodeResume(String time);
+
+  /// No description provided for @episodeResumedFrom.
+  ///
+  /// In en, this message translates to:
+  /// **'Continuing from {time}'**
+  String episodeResumedFrom(String time);
+
+  /// No description provided for @episodeStartOver.
+  ///
+  /// In en, this message translates to:
+  /// **'Start over'**
+  String get episodeStartOver;
+
+  /// No description provided for @episodePlay.
+  ///
+  /// In en, this message translates to:
+  /// **'Play'**
+  String get episodePlay;
+
+  /// No description provided for @episodePause.
+  ///
+  /// In en, this message translates to:
+  /// **'Pause'**
+  String get episodePause;
+
+  /// No description provided for @episodeSeekBack.
+  ///
+  /// In en, this message translates to:
+  /// **'Back 5 seconds'**
+  String get episodeSeekBack;
+
+  /// No description provided for @episodeSeekForward.
+  ///
+  /// In en, this message translates to:
+  /// **'Forward 5 seconds'**
+  String get episodeSeekForward;
+
+  /// No description provided for @episodeSpeed.
+  ///
+  /// In en, this message translates to:
+  /// **'Playback speed'**
+  String get episodeSpeed;
+
+  /// No description provided for @episodeFullscreen.
+  ///
+  /// In en, this message translates to:
+  /// **'Full screen'**
+  String get episodeFullscreen;
+
+  /// No description provided for @episodeExitFullscreen.
+  ///
+  /// In en, this message translates to:
+  /// **'Exit full screen'**
+  String get episodeExitFullscreen;
+
+  /// No description provided for @backupModulePlayback.
+  ///
+  /// In en, this message translates to:
+  /// **'Playback progress'**
+  String get backupModulePlayback;
 }
 
 class _AppLocalizationsDelegate

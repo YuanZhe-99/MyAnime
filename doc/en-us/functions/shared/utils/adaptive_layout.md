@@ -6,8 +6,8 @@ thresholds that decide whether a layout may split at all, and the `listTileMinWi
 gets once it may, plus `navRailMinWidth`, `navRailWidth` and `settingsRightPaneMinWidth`
 for the shell's navigation rail and the settings detail pane, and `statsSummaryPaneMinWidth`,
 `statsChartMinWidth`, `rankingFilterMinWidth`, `rankingScoreSourceWidth` and
-`rankingDirectionWidth` for the statistics page, and `metaUpdateCardMinWidth` for the metadata
-review page. Twelve pure helpers sit on top of them.
+`rankingDirectionWidth` for the statistics page, `metaUpdateCardMinWidth` for the metadata
+review page, and `episodeTileMinWidth` (360, 1.6.5) for the episode page's tiles. Twelve pure helpers sit on top of them.
 
 The module deliberately depends on nothing but `dart:core` — it holds no Flutter imports, and
 `canSplitLayout` takes two doubles rather than a `Size` for exactly that reason — so every helper

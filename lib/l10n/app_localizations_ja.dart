@@ -2040,4 +2040,41 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get episodeRefresh => '各話一覧を更新';
+
+  @override
+  String episodeResume(String time) {
+    return '$time から再開';
+  }
+
+  @override
+  String episodeResumedFrom(String time) {
+    return '$time から再開しました';
+  }
+
+  @override
+  String get episodeStartOver => '最初から';
+
+  @override
+  String get episodePlay => '再生';
+
+  @override
+  String get episodePause => '一時停止';
+
+  @override
+  String get episodeSeekBack => '5 秒戻る';
+
+  @override
+  String get episodeSeekForward => '5 秒進む';
+
+  @override
+  String get episodeSpeed => '再生速度';
+
+  @override
+  String get episodeFullscreen => '全画面';
+
+  @override
+  String get episodeExitFullscreen => '全画面を終了';
+
+  @override
+  String get backupModulePlayback => '再生位置';
 }

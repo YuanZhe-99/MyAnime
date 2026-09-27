@@ -694,5 +694,16 @@
     "episodeReset":  "自動対応に戻す",
     "episodeLast":  "Anime1 最終話数（任意）",
     "episodeNoOverride":  "自動対応を使用",
-    "episodeRefresh":  "各話一覧を更新"
+    "episodeRefresh":  "各話一覧を更新",
+    "episodeResume": "{time} から再開",
+    "episodeResumedFrom": "{time} から再開しました",
+    "episodeStartOver": "最初から",
+    "episodePlay": "再生",
+    "episodePause": "一時停止",
+    "episodeSeekBack": "5 秒戻る",
+    "episodeSeekForward": "5 秒進む",
+    "episodeSpeed": "再生速度",
+    "episodeFullscreen": "全画面",
+    "episodeExitFullscreen": "全画面を終了",
+    "backupModulePlayback": "再生位置"
 }

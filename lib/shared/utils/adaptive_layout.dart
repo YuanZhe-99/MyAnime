@@ -80,6 +80,14 @@ const rankingDirectionWidth = 170.0;
 /// of the row, and a value that wraps costs more than a column gains.
 const metaUpdateCardMinWidth = 360.0;
 
+/// Minimum width, in logical pixels, one episode tile on the episode page may
+/// occupy (1.6.5).
+///
+/// Each tile carries a play button, an edit button and a subtitle whose
+/// second line is the page address, plus a resume bar when playback stopped
+/// part-way. Narrower than this the address truncates to its scheme and host.
+const episodeTileMinWidth = 360.0;
+
 /// Purpose: Report whether a layout may split into panes or columns.
 /// Inputs: `width`, `height` — the viewport size in logical pixels.
 /// Returns: `bool`.

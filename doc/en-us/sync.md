@@ -147,7 +147,8 @@ next background sync cycle.
 ## Other important constraints
 
 - `anime_data.json` merges `Anime` records by `id` and `modifiedAt`; `recommendations.json` (1.6.2)
-  merges without conflicts — see [The recommendations file](#the-recommendations-file).
+  merges without conflicts — see [The recommendations file](#the-recommendations-file), and
+  `playback_progress.json` (1.6.5) likewise — see [The playback progress file](#the-playback-progress-file).
 - Unknown top-level and per-anime JSON fields must survive parsing, editing, importing, exporting,
   and sync merging (see the `extraJson` pattern in [`data-formats.md`](data-formats.md)).
 - `_syncing` prevents concurrent sync runs.
@@ -228,6 +229,26 @@ order, **anime first**, under the same `.lock`, with its own `.sync_base/recomme
   delete it; their trash stays in their own `ai_insights.json` until they update.
 - A save through `RecommendationStore` calls `AutoSyncService.notifySaved`, so trashing and restoring
   schedule the usual debounced sync.
+
+## The playback progress file
+
+Since 1.6.5 the registry holds a third module, `playback_progress.json` — the resume point of every
+episode played in the in-app player (schema in [`data-formats.md`](data-formats.md)). It goes through
+the same engine steps, after the other two, under the same `.lock`, with its own
+`.sync_base/playback_progress.json`.
+
+- **The merge never produces a conflict.** Entries are keyed by record id and local episode (or
+  extra page). On both sides the later `updatedAt` wins. An entry on one side only is kept when the
+  base lacks it and dropped when the base had it: the other device finished that episode (or it was
+  cleared), so a completion beats a later partial position. Unknown keys are unioned.
+- **Finishing an episode is two writes.** Past 95% the player deletes the entry here and marks the
+  episode watched in `anime_data.json` with a fresh `modifiedAt`, exactly like the watched toggle,
+  so that part follows the ordinary record merge and conflict rules.
+- **Missing on either side** is handled like any module; a library that never played anything in
+  the app adds one `GET` that returns 404 to each sync. Older builds do not list the module and
+  never touch it.
+- The player writes about every five seconds of media while playing, and each write calls
+  `AutoSyncService.notifySaved`, so the debounced sync runs shortly after playback stops.
 
 ## Episode corrections (1.6.4)
 
