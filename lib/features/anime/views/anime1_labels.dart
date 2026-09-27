@@ -1,6 +1,7 @@
 import '../../../l10n/app_localizations.dart';
 import '../models/anime.dart';
 import '../services/anime1_service.dart';
+import '../services/anime_episode_service.dart';
 
 /// Purpose: Localize an anime1.me episode cell for a chip or subtitle.
 /// Inputs: `l10n`, `info`.
@@ -79,4 +80,24 @@ String? watchProgressLabel(AppLocalizations l10n, AnimeWatchProgress progress) {
   return progress.ongoing
       ? l10n.anime1Ongoing(latest)
       : l10n.anime1EpisodeRange('$latest');
+}
+
+/// Purpose: Show current-season progress without conflating site and local numbers.
+/// Inputs: Localization and current anime record.
+/// Returns: Mapped progress, or the site's explicitly labeled original progress.
+/// Side effects: None.
+/// Notes: Uses only verified links; ambiguous mappings do not imply local availability.
+String? animeEpisodeProgressLabel(
+  AppLocalizations l10n,
+  Anime anime, {
+  List<Anime> library = const [],
+}) {
+  final result = AnimeEpisodeService.resolve(anime, library: library);
+  if (!result.needsConfirmation && result.links.isNotEmpty) {
+    final latest = result.links.keys.reduce((a, b) => a > b ? a : b);
+    return l10n.episodeMappedLabel(latest, result.links[latest]!.label);
+  }
+  final progress = anime.validWatchProgress;
+  final text = progress == null ? null : watchProgressLabel(l10n, progress);
+  return text == null ? null : l10n.anime1ProgressLabel(text);
 }

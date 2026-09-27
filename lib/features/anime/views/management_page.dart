@@ -1,3 +1,4 @@
+import 'anime1_labels.dart';
 import 'dart:io';
 
 import 'package:flutter/material.dart';
@@ -904,11 +905,12 @@ class _ManagementPageState extends ConsumerState<ManagementPage> {
         (anime.endEpisode ?? anime.startEpisode) - anime.startEpisode + 1;
     final progress = totalEps > 0 ? watchedCount / totalEps : 0.0;
     final dayStr = _dayLabel(anime.airDayOfWeek);
-    // The watch site's newest episode, when a valid check is stored.
-    final siteLatest = anime.validWatchProgress?.latestEpisode;
-    final siteStr = siteLatest == null
-        ? ''
-        : ' · ${l10n.anime1Short(siteLatest)}';
+    final siteProgress = animeEpisodeProgressLabel(
+      l10n,
+      anime,
+      library: _allAnime,
+    );
+    final siteStr = siteProgress == null ? '' : ' · $siteProgress';
 
     final tile = GestureDetector(
       onSecondaryTapUp: (_) => _showActions(anime),

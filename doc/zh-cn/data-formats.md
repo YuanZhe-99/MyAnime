@@ -369,3 +369,8 @@ WebDAV 连接详情和同步偏好（服务器 URL、凭据、自动同步开关
 - **版本 2**（多动画捆绑）：`{"version": 2, "items": [{"anime": {...}, "coverImage": "<base64>", "coverImageExt": ".jpg"}, ...]}` — 每个条目与 v1 有相同的可选封面字段。
 
 导出在写入前从每个 `anime` 负载中剥离个人数据（`episodeStatuses`、`episodeWeekOffsets`、`localArchive`，以及自 1.6.0 起的 `seriesLink`）。导入总是分配新 UUID，绝不覆盖既有的本地记录；它会丢弃文件携带的任何 `seriesLink`，并自 1.6.0 起带过 `externalMeta`（更早的版本导入时会丢弃它，尽管导出保留了它）；`categories` 导出时不剥离、导入时也不丢弃（1.6.0）；多动画捆绑导入运行与 [`features/duplicate-detection.md`](features/duplicate-detection.md) 相同的冲突检测来判断传入记录是否与本地记录冲突，并为每个冲突提供保留本地/使用导入/合并选项。
+
+
+## 分集目录与校正（1.6.4）
+
+可选 externalMeta.episodeCatalog 保存 sourceUrl、categoryUrl、title、catId、indexTitle、indexEpisodes、UTC checkedAt、complete 与 pages（url/title/label/group）。可选 Anime.episodeMapping 保存 sourceUrl、group、first、last 及按本地集数索引的 overrides。范围使用包含两端的站点编号；空覆盖值表示不对应此集。对应结果依据当前记录及这些输入重新计算。JSON 往返保留未知字段，已有记录无需迁移。目录刷新保留 modifiedAt，手动校正更新它。两字段沿现有同步、备份和条目导入路径传递，不序列化媒体地址、令牌或 Cookie。

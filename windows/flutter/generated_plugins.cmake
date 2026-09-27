@@ -4,8 +4,11 @@
 
 list(APPEND FLUTTER_PLUGIN_LIST
   connectivity_plus
+  flutter_inappwebview_windows
   flutter_timezone
   local_notifier
+  media_kit_libs_windows_video
+  media_kit_video
   screen_retriever_windows
   share_plus
   tray_manager

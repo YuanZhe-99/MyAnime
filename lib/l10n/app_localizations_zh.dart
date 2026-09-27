@@ -1953,6 +1953,77 @@ class AppLocalizationsZh extends AppLocalizations {
   String manageSeriesMembers(int count, int completed) {
     return '$count 部 · 已看完 $completed 部';
   }
+
+  @override
+  String get episodeMappingHelp => '请确认当前季及其真实起始集数。缺集应保留缺口。';
+
+  @override
+  String get episodeSourceChanged => '观看来源已变更，请重新打开此页面。';
+
+  @override
+  String episodeMappedLabel(Object local, Object site) {
+    return '本地第 $local 集／Anime1 第 $site 集';
+  }
+
+  @override
+  String get episodeUncertain => '需要确认本季范围或起始集数';
+
+  @override
+  String get episodeChoose => '选择分集页面';
+
+  @override
+  String get episodeBrowser => '在浏览器中打开';
+
+  @override
+  String get episodeLeaveUnmapped => '不对应此集';
+
+  @override
+  String get episodeWebPlayer => '网页播放器';
+
+  @override
+  String get episodeSpecials => '特别篇与其他页面';
+
+  @override
+  String get episodeFirst => '本季在 Anime1 的起始集数';
+
+  @override
+  String get episodePlaybackFailed => '暂时无法播放，请尝试网页播放器或在浏览器中打开本集。';
+
+  @override
+  String get episodeIncomplete => '目录不完整，请刷新重试。当前找到的最小集数不一定是本季首集。';
+
+  @override
+  String get episodeAuto => '自动识别';
+
+  @override
+  String get episodeMissing => '未找到对应分集';
+
+  @override
+  String get episodeMappingTitle => '集数对应';
+
+  @override
+  String get episodeDirectoryFailed => '分集目录刷新失败，仍可使用已保存的链接。';
+
+  @override
+  String get episodeGroup => '季／标题范围';
+
+  @override
+  String get episodeInvalidRange => '请输入正整数起始集数，末集不能小于起始集数。';
+
+  @override
+  String get episodeCollection => '打开合集';
+
+  @override
+  String get episodeReset => '恢复自动对应';
+
+  @override
+  String get episodeLast => '本季在 Anime1 的末集（可选）';
+
+  @override
+  String get episodeNoOverride => '使用自动对应';
+
+  @override
+  String get episodeRefresh => '刷新分集目录';
 }
 
 /// The translations for Chinese, as used in Taiwan (`zh_TW`).
@@ -3904,4 +3975,75 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
   String manageSeriesMembers(int count, int completed) {
     return '$count 部 · 已看完 $completed 部';
   }
+
+  @override
+  String get episodeMappingHelp => '請確認目前季度及其真實起始集數。缺集應保留空缺。';
+
+  @override
+  String get episodeSourceChanged => '觀看來源已變更，請重新開啟此頁面。';
+
+  @override
+  String episodeMappedLabel(Object local, Object site) {
+    return '本地第 $local 集／Anime1 第 $site 集';
+  }
+
+  @override
+  String get episodeUncertain => '需要確認本季範圍或起始集數';
+
+  @override
+  String get episodeChoose => '選擇分集頁面';
+
+  @override
+  String get episodeBrowser => '在瀏覽器中開啟';
+
+  @override
+  String get episodeLeaveUnmapped => '不對應此集';
+
+  @override
+  String get episodeWebPlayer => '網頁播放器';
+
+  @override
+  String get episodeSpecials => '特別篇與其他頁面';
+
+  @override
+  String get episodeFirst => '本季在 Anime1 的起始集數';
+
+  @override
+  String get episodePlaybackFailed => '暫時無法播放，請嘗試網頁播放器或在瀏覽器中開啟本集。';
+
+  @override
+  String get episodeIncomplete => '目錄不完整，請重新整理。目前找到的最小集數不一定是本季首集。';
+
+  @override
+  String get episodeAuto => '自動識別';
+
+  @override
+  String get episodeMissing => '找不到對應分集';
+
+  @override
+  String get episodeMappingTitle => '集數對應';
+
+  @override
+  String get episodeDirectoryFailed => '分集目錄更新失敗，仍可使用已儲存的連結。';
+
+  @override
+  String get episodeGroup => '季／標題範圍';
+
+  @override
+  String get episodeInvalidRange => '請輸入正整數起始集數，末集不得小於起始集數。';
+
+  @override
+  String get episodeCollection => '開啟合集';
+
+  @override
+  String get episodeReset => '恢復自動對應';
+
+  @override
+  String get episodeLast => '本季在 Anime1 的末集（選填）';
+
+  @override
+  String get episodeNoOverride => '使用自動對應';
+
+  @override
+  String get episodeRefresh => '重新整理分集目錄';
 }

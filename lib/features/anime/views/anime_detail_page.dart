@@ -31,6 +31,8 @@ import 'anime1_labels.dart';
 import 'archive_labels.dart';
 import 'category_widgets.dart';
 import 'series_widgets.dart';
+import 'anime_episode_page.dart';
+import '../services/anime_episode_service.dart';
 
 class AnimeDetailPage extends StatefulWidget {
   final String animeId;
@@ -133,6 +135,11 @@ class _AnimeDetailPageState extends State<AnimeDetailPage> {
           ? EffectiveCategories.empty
           : resolveCategories(found, insights: insights);
     });
+    if (AppFlavor.isFull &&
+        found != null &&
+        AnimeEpisodeService.isPageUrl(found.watchUrl?.trim() ?? '')) {
+      _loadEpisodeDirectory(found);
+    }
     // Online lookups are a full-build feature. A card the user trashed on
     // "What to watch next" keeps only its labels, so it is not fetched.
     if (AppFlavor.isFull &&
@@ -144,6 +151,24 @@ class _AnimeDetailPageState extends State<AnimeDetailPage> {
       if (!mounted || fetched == null || _missingSequel != missing) return;
       setState(() => _sequelInfo = fetched);
     }
+  }
+
+  /// Purpose: Refresh the source-bound episode cache when detail is opened.
+  /// Inputs: Record captured by the current load.
+  /// Returns: Completion.
+  /// Side effects: Network/cache refresh and local detail state update.
+  /// Notes: Keeps full-build gating at the caller and ignores source/route changes.
+  Future<void> _loadEpisodeDirectory(Anime anime) async {
+    await AnimeEpisodeService.ensure(anime);
+    final data = await AnimeStorage.load();
+    final current = data.animes.where((a) => a.id == anime.id).firstOrNull;
+    if (!mounted ||
+        widget.animeId != anime.id ||
+        current == null ||
+        current.watchUrl != anime.watchUrl) {
+      return;
+    }
+    setState(() => _anime = current);
   }
 
   /// Purpose: Let the user set this record's categories.
@@ -614,13 +639,23 @@ class _AnimeDetailPageState extends State<AnimeDetailPage> {
           FilledButton.tonalIcon(
             icon: const Icon(Icons.play_circle_outline, size: 18),
             label: Text(l10n.animeOpenUrl),
-            onPressed: () => launchUrl(
-              Uri.parse(anime.watchUrl!),
-              mode: LaunchMode.externalApplication,
-            ),
+            onPressed: () async {
+              await openAnimeWatch(context, anime);
+              if (mounted) await _load();
+            },
           ),
         // The stored progress is public site data and renders in every
         // flavor; only the re-check (a network call) is a full-build action.
+        if (AppFlavor.isFull &&
+            AnimeEpisodeService.isPageUrl(anime.watchUrl?.trim() ?? ''))
+          IconButton(
+            icon: const Icon(Icons.playlist_play),
+            tooltip: l10n.episodeMappingTitle,
+            onPressed: () async {
+              await openAnimeWatch(context, anime, edit: true);
+              if (mounted) await _load();
+            },
+          ),
         if (Anime1Service.isAnime1Url(anime.watchUrl))
           TextButton.icon(
             key: const ValueKey('detailAnime1Progress'),
@@ -828,6 +863,16 @@ class _AnimeDetailPageState extends State<AnimeDetailPage> {
             trailing: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
+                if (AppFlavor.isFull &&
+                    AnimeEpisodeService.isPageUrl(anime.watchUrl?.trim() ?? ''))
+                  IconButton(
+                    icon: const Icon(Icons.play_arrow),
+                    tooltip: l10n.animeOpenUrl,
+                    onPressed: () async {
+                      await openAnimeWatch(context, anime, episode: ep);
+                      if (mounted) await _load();
+                    },
+                  ),
                 SizedBox(
                   width: 32,
                   height: 32,
@@ -1071,11 +1116,8 @@ class _AnimeDetailPageState extends State<AnimeDetailPage> {
   /// "check" prompt when nothing valid is stored — including when the watch
   /// URL was edited after the last check.
   String _watchProgressChipLabel(Anime anime, AppLocalizations l10n) {
-    final progress = anime.validWatchProgress;
-    final text = progress == null ? null : watchProgressLabel(l10n, progress);
-    return text == null
-        ? l10n.anime1CheckProgress
-        : l10n.anime1ProgressLabel(text);
+    return animeEpisodeProgressLabel(l10n, anime, library: _library) ??
+        l10n.anime1CheckProgress;
   }
 
   /// Purpose: Re-read what anime1.me currently lists for this record's URL.

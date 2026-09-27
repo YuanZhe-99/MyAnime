@@ -1969,4 +1969,75 @@ class AppLocalizationsJa extends AppLocalizations {
   String manageSeriesMembers(int count, int completed) {
     return '$count 作品 · 視聴済み $completed';
   }
+
+  @override
+  String get episodeMappingHelp => '今シーズンと実際の開始話数を確認してください。欠番は詰めずに残します。';
+
+  @override
+  String get episodeSourceChanged => '視聴元が変更されました。この画面を開き直してください。';
+
+  @override
+  String episodeMappedLabel(Object local, Object site) {
+    return 'ローカル第 $local 話／Anime1 第 $site 話';
+  }
+
+  @override
+  String get episodeUncertain => 'シーズンまたは開始話数の確認が必要です';
+
+  @override
+  String get episodeChoose => '各話ページを選択';
+
+  @override
+  String get episodeBrowser => 'ブラウザーで開く';
+
+  @override
+  String get episodeLeaveUnmapped => '対応させない';
+
+  @override
+  String get episodeWebPlayer => 'Web プレイヤー';
+
+  @override
+  String get episodeSpecials => '特別編とその他のページ';
+
+  @override
+  String get episodeFirst => '今シーズンの Anime1 開始話数';
+
+  @override
+  String get episodePlaybackFailed => '再生できません。Web プレイヤーまたはブラウザーで開いてください。';
+
+  @override
+  String get episodeIncomplete => '一覧が未取得です。更新してください。取得済みの最小話数が初回とは限りません。';
+
+  @override
+  String get episodeAuto => '自動判定';
+
+  @override
+  String get episodeMissing => '対応する話が見つかりません';
+
+  @override
+  String get episodeMappingTitle => '各話の対応';
+
+  @override
+  String get episodeDirectoryFailed => '各話一覧を更新できませんでした。保存済みリンクは利用できます。';
+
+  @override
+  String get episodeGroup => 'シーズン／タイトル';
+
+  @override
+  String get episodeInvalidRange => '開始話数に正の整数を入力し、最終話数を開始話数以上にしてください。';
+
+  @override
+  String get episodeCollection => '作品一覧を開く';
+
+  @override
+  String get episodeReset => '自動対応に戻す';
+
+  @override
+  String get episodeLast => 'Anime1 最終話数（任意）';
+
+  @override
+  String get episodeNoOverride => '自動対応を使用';
+
+  @override
+  String get episodeRefresh => '各話一覧を更新';
 }

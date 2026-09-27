@@ -148,3 +148,10 @@ plainly, because the setting it drives is called "don't use cellular data":
 So the `noCellular` policy is a good heuristic, not a guarantee. A plugin failure is treated as
 "allowed" rather than blocking the feature on a platform that cannot answer. See
 [`features/metadata-auto-update.md`](features/metadata-auto-update.md).
+
+
+## Anime1 player dependencies (1.6.4)
+
+media_kit 1.2.6 / media_kit_video 2.0.1 provide native controls; flutter_inappwebview 6.2.0-beta.3 provides the fallback. Windows needs NuGet at build time and WebView2 at runtime. Upstream media_kit_libs_windows_video 1.0.11 ships x64-only libmpv/ANGLE. The vendored MIT package preserves upstream x64 checksums and builds a registration stub on ARM64; media_kit_video then uses its upstream no-library stub. ARM64 selects the website player before attempting media resolution. Other native initialization or decoding failures also fall back. Missing WebView support exposes an explicit browser button. Keep the existing MSVC coroutine compatibility define used by CI.
+
+WebView is pinned to 6.2.0-beta.3 because stable 6.1.5 uses an Android ProGuard API removed by this project's AGP 9.1.1; the [upstream release fixes AGP 9 compatibility](https://pub.dev/packages/flutter_inappwebview/versions/6.2.0-beta.3/changelog). Treat the prerelease dependency as a platform acceptance risk until device playback is verified.

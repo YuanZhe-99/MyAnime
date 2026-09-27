@@ -492,3 +492,12 @@ list read correctly whether it follows the progress bar or opens the right pane.
   public site data, not a user edit. The button's label comes from `_watchProgressChipLabel`, which
   reads `Anime.validWatchProgress`, so a URL edited after the last check shows the "check" prompt
   rather than a stale count.
+
+
+## Changes in 1.6.4
+
+`_loadEpisodeDirectory` refreshes the directory on full-build detail entry and ignores stale route/source results. `_load` calls it; `_buildHeaderActions` opens shared watch/mapping routes; `_buildEpisodeList` adds per-episode play; `_watchProgressChipLabel` shows season-aware progress.
+
+| Declaration | Kind | Tier | Purpose |
+|---|---|---|---|
+| `_loadEpisodeDirectory` | method | B | Refresh guarded episode directory. |

@@ -1,3 +1,4 @@
+import 'anime_episode.dart';
 import 'package:uuid/uuid.dart';
 
 const _animeJsonKeys = {
@@ -15,6 +16,7 @@ const _animeJsonKeys = {
   'coverImage',
   'infoUrl',
   'watchUrl',
+  'episodeMapping',
   'episodeWeekOffsets',
   'notes',
   'rating',
@@ -58,6 +60,7 @@ const _externalMetaJsonKeys = {
   'ratings',
   'refreshedAt',
   'watchProgress',
+  'episodeCatalog',
   'relations',
 };
 
@@ -1256,6 +1259,7 @@ class AnimeExternalMeta {
 
   /// What the watch site listed for `watchUrl` when last checked.
   final AnimeWatchProgress? watchProgress;
+  final AnimeEpisodeCatalog? episodeCatalog;
 
   /// Related works the databases list (prequels, sequels, spin-offs, …).
   final List<AnimeExternalRelation> relations;
@@ -1264,7 +1268,7 @@ class AnimeExternalMeta {
   final Map<String, dynamic> extraJson;
 
   /// Purpose: Create an external metadata instance.
-  /// Inputs: `synonyms`, `titleRomaji`, `titleEn`, `format`, `status`, `durationMinutes`, `genres`, `studios`, `endDate`, `ratings`, `refreshedAt`, `watchProgress`, `relations`, `extraJson`.
+  /// Inputs: `synonyms`, `titleRomaji`, `titleEn`, `format`, `status`, `durationMinutes`, `genres`, `studios`, `endDate`, `ratings`, `refreshedAt`, `watchProgress`, `episodeCatalog`, `relations`, `extraJson`.
   /// Returns: A new `AnimeExternalMeta` instance.
   /// Side effects: None.
   /// Notes: None.
@@ -1281,6 +1285,7 @@ class AnimeExternalMeta {
     this.ratings = const [],
     this.refreshedAt,
     this.watchProgress,
+    this.episodeCatalog,
     this.relations = const [],
     this.extraJson = const {},
   });
@@ -1303,6 +1308,7 @@ class AnimeExternalMeta {
       endDate != null ||
       ratings.isNotEmpty ||
       watchProgress != null ||
+      episodeCatalog != null ||
       relations.isNotEmpty ||
       extraJson.isNotEmpty;
 
@@ -1395,6 +1401,9 @@ class AnimeExternalMeta {
       ratings: mergedRatings.values.toList(),
       refreshedAt: refreshedAt ?? other.refreshedAt ?? this.refreshedAt,
       watchProgress: other.watchProgress ?? watchProgress,
+      episodeCatalog:
+          other.episodeCatalog?.preservingUnknownFrom(episodeCatalog) ??
+          episodeCatalog,
       relations: mergedRelations,
       extraJson: _mergeJsonMaps([extraJson, other.extraJson]),
     );
@@ -1419,6 +1428,7 @@ class AnimeExternalMeta {
         ratings: ratings,
         refreshedAt: refreshedAt,
         watchProgress: watchProgress,
+        episodeCatalog: episodeCatalog,
         relations: relations,
         extraJson: extraJson,
       );
@@ -1473,6 +1483,9 @@ class AnimeExternalMeta {
       json['refreshedAt'] = refreshedAt!.toUtc().toIso8601String();
     } else if (!extraJson.containsKey('refreshedAt')) {
       json.remove('refreshedAt');
+    }
+    if (episodeCatalog != null) {
+      json['episodeCatalog'] = episodeCatalog!.toJson();
     }
     if (watchProgress != null) {
       json['watchProgress'] = watchProgress!.toJson();
@@ -1549,6 +1562,20 @@ class AnimeExternalMeta {
       extraJson['refreshedAt'] = json['refreshedAt'];
     }
 
+    AnimeEpisodeCatalog? episodeCatalog;
+    final rawCatalog = json['episodeCatalog'];
+    if (rawCatalog != null) {
+      try {
+        if (rawCatalog is! Map) {
+          throw const FormatException('Invalid directory');
+        }
+        episodeCatalog = AnimeEpisodeCatalog.fromJson(
+          episodeJsonMap(rawCatalog),
+        );
+      } catch (_) {
+        extraJson['episodeCatalog'] = rawCatalog;
+      }
+    }
     AnimeWatchProgress? watchProgress;
     final rawProgress = json['watchProgress'];
     if (rawProgress is Map) {
@@ -1587,6 +1614,7 @@ class AnimeExternalMeta {
       ratings: ratings,
       refreshedAt: refreshedAt,
       watchProgress: watchProgress,
+      episodeCatalog: episodeCatalog,
       relations: relations,
       extraJson: extraJson,
     );
@@ -1636,6 +1664,7 @@ class Anime {
 
   /// Optional watch URL for quick browser launch.
   final String? watchUrl;
+  final AnimeEpisodeMapping? episodeMapping;
 
   /// Per-episode cumulative week offset adjustments.
   /// Key = episode number where an adjustment starts.
@@ -1674,7 +1703,7 @@ class Anime {
   final Map<String, dynamic> extraJson;
 
   /// Purpose: Create a anime instance.
-  /// Inputs: `id`, `title`, `titleJa`, `season`, `startEpisode`, `endEpisode`, `manualType`, `airDayOfWeek`, `airTime`, `firstAirDate`, `episodeStatuses`, `coverImage`, `infoUrl`, `watchUrl`, `episodeWeekOffsets`, `notes`, `rating`, `localArchive`, `seriesLink`, `categories`, `externalMeta`, `createdAt`, `modifiedAt`, `extraJson`.
+  /// Inputs: `id`, `title`, `titleJa`, `season`, `startEpisode`, `endEpisode`, `manualType`, `airDayOfWeek`, `airTime`, `firstAirDate`, `episodeStatuses`, `coverImage`, `infoUrl`, `watchUrl`, `episodeMapping`, `episodeWeekOffsets`, `notes`, `rating`, `localArchive`, `seriesLink`, `categories`, `externalMeta`, `createdAt`, `modifiedAt`, `extraJson`.
   /// Returns: A new `Anime` instance.
   /// Side effects: None.
   /// Notes: None.
@@ -1693,6 +1722,7 @@ class Anime {
     this.coverImage,
     this.infoUrl,
     this.watchUrl,
+    this.episodeMapping,
     this.episodeWeekOffsets = const {},
     this.notes,
     this.rating,
@@ -1994,7 +2024,7 @@ class Anime {
   }
 
   /// Purpose: Create a copy with selected fields replaced.
-  /// Inputs: `title`, `titleJa`, `season`, `startEpisode`, `endEpisode`, `clearEndEpisode`, `manualType`, `clearManualType`, `airDayOfWeek`, `clearAirDayOfWeek`, `airTime`, `clearAirTime`, `firstAirDate`, `clearFirstAirDate`, `episodeStatuses`, `coverImage`, `clearCoverImage`, `infoUrl`, `clearInfoUrl`, `watchUrl`, `clearWatchUrl`, `episodeWeekOffsets`, `notes`, `clearNotes`, `rating`, `clearRating`, `localArchive`, `clearLocalArchive`, `seriesLink`, `clearSeriesLink`, `categories`, `clearCategories`, `externalMeta`, `clearExternalMeta`, `modifiedAt`.
+  /// Inputs: `title`, `titleJa`, `season`, `startEpisode`, `endEpisode`, `clearEndEpisode`, `manualType`, `clearManualType`, `airDayOfWeek`, `clearAirDayOfWeek`, `airTime`, `clearAirTime`, `firstAirDate`, `clearFirstAirDate`, `episodeStatuses`, `coverImage`, `clearCoverImage`, `infoUrl`, `clearInfoUrl`, `watchUrl`, `clearWatchUrl`, `episodeMapping`, `clearEpisodeMapping`, `episodeWeekOffsets`, `notes`, `clearNotes`, `rating`, `clearRating`, `localArchive`, `clearLocalArchive`, `seriesLink`, `clearSeriesLink`, `categories`, `clearCategories`, `externalMeta`, `clearExternalMeta`, `modifiedAt`.
   /// Returns: `Anime`.
   /// Side effects: None.
   /// Notes: `modifiedAt` defaults to now, so a write that must not count as a
@@ -2021,6 +2051,8 @@ class Anime {
     bool clearInfoUrl = false,
     String? watchUrl,
     bool clearWatchUrl = false,
+    AnimeEpisodeMapping? episodeMapping,
+    bool clearEpisodeMapping = false,
     Map<int, int>? episodeWeekOffsets,
     String? notes,
     bool clearNotes = false,
@@ -2055,6 +2087,9 @@ class Anime {
       coverImage: clearCoverImage ? null : (coverImage ?? this.coverImage),
       infoUrl: clearInfoUrl ? null : (infoUrl ?? this.infoUrl),
       watchUrl: clearWatchUrl ? null : (watchUrl ?? this.watchUrl),
+      episodeMapping: clearEpisodeMapping
+          ? null
+          : (episodeMapping ?? this.episodeMapping),
       episodeWeekOffsets: episodeWeekOffsets ?? this.episodeWeekOffsets,
       notes: clearNotes ? null : (notes ?? this.notes),
       rating: clearRating ? null : (rating ?? this.rating),
@@ -2092,6 +2127,7 @@ class Anime {
     coverImage: coverImage,
     infoUrl: infoUrl,
     watchUrl: watchUrl,
+    episodeMapping: episodeMapping,
     episodeWeekOffsets: episodeWeekOffsets,
     notes: notes,
     rating: rating,
@@ -2149,11 +2185,46 @@ class Anime {
         if (source?.externalMeta != null) source!.externalMeta!.extraJson,
       if (externalMeta != null) externalMeta!.extraJson,
     ]);
-    final preservedExternalMeta = externalMeta != null
+    var preservedExternalMeta = externalMeta != null
         ? externalMeta!.withExtraJson(mergedExternalMetaExtraJson)
         : (mergedExternalMetaExtraJson.isNotEmpty
               ? AnimeExternalMeta(extraJson: mergedExternalMetaExtraJson)
               : null);
+
+    final mapping = episodeMapping;
+    final preservedMapping = mapping == null
+        ? null
+        : AnimeEpisodeMapping.fromJson({
+            for (final source in sources)
+              if (source?.episodeMapping?.sourceUrl == mapping.sourceUrl)
+                ...source!.episodeMapping!.extraJson,
+            ...mapping.toJson(),
+          });
+    final catalog = externalMeta?.episodeCatalog;
+    if (catalog != null) {
+      final previousCatalogs = [
+        for (final source in sources)
+          if (source?.externalMeta?.episodeCatalog?.sourceUrl ==
+              catalog.sourceUrl)
+            source!.externalMeta!.episodeCatalog!,
+      ];
+      final preservedCatalog = AnimeEpisodeCatalog.fromJson({
+        for (final previous in previousCatalogs) ...previous.extraJson,
+        ...catalog.toJson(),
+        'pages': [
+          for (final page in catalog.pages)
+            {
+              for (final previous in previousCatalogs)
+                for (final oldPage in previous.pages)
+                  if (oldPage.url == page.url) ...oldPage.extraJson,
+              ...page.toJson(),
+            },
+        ],
+      });
+      preservedExternalMeta = preservedExternalMeta!.mergedWith(
+        AnimeExternalMeta(episodeCatalog: preservedCatalog),
+      );
+    }
 
     return Anime(
       id: id,
@@ -2170,6 +2241,7 @@ class Anime {
       coverImage: coverImage,
       infoUrl: infoUrl,
       watchUrl: watchUrl,
+      episodeMapping: preservedMapping,
       episodeWeekOffsets: episodeWeekOffsets,
       notes: notes,
       rating: preservedRating,
@@ -2226,6 +2298,9 @@ class Anime {
     }
     json['season'] = season;
     json['startEpisode'] = startEpisode;
+    if (episodeMapping != null) {
+      json['episodeMapping'] = episodeMapping!.toJson();
+    }
     if (endEpisode != null) {
       json['endEpisode'] = endEpisode;
     } else {
@@ -2404,6 +2479,18 @@ class Anime {
       extraJson['categories'] = rawCategories;
     }
 
+    AnimeEpisodeMapping? episodeMapping;
+    final rawMapping = json['episodeMapping'];
+    if (rawMapping != null) {
+      try {
+        if (rawMapping is! Map) throw const FormatException('Invalid mapping');
+        episodeMapping = AnimeEpisodeMapping.fromJson(
+          episodeJsonMap(rawMapping),
+        );
+      } catch (_) {
+        extraJson['episodeMapping'] = rawMapping;
+      }
+    }
     AnimeExternalMeta? externalMeta;
     final rawExternalMetaValue = json['externalMeta'];
     if (rawExternalMetaValue is Map) {
@@ -2432,6 +2519,7 @@ class Anime {
       coverImage: json['coverImage'] as String?,
       infoUrl: json['infoUrl'] as String?,
       watchUrl: json['watchUrl'] as String?,
+      episodeMapping: episodeMapping,
       episodeWeekOffsets: weekOffsets,
       notes: json['notes'] as String?,
       rating: rating,
@@ -2463,6 +2551,7 @@ class Anime {
     String? coverImage,
     String? infoUrl,
     String? watchUrl,
+    AnimeEpisodeMapping? episodeMapping,
     String? notes,
     AnimeRating? rating,
     AnimeLocalArchive? localArchive,
@@ -2483,6 +2572,7 @@ class Anime {
       coverImage: coverImage,
       infoUrl: infoUrl,
       watchUrl: watchUrl,
+      episodeMapping: episodeMapping,
       notes: notes,
       rating: rating,
       localArchive: localArchive,

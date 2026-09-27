@@ -73,3 +73,10 @@ Mach-O 文件，只要有任何二进制以 `LC_LOAD_DYLIB` 而不是 `LC_LOAD_W
 及更早版本上启动。它需要 macOS（`otool`）；路径要加引号。见 [`on-device-ai.md`](on-device-ai.md)。
 
 生产行为优先用聚焦测试，除非用户要求，否则把工具脚本留在发布关键路径之外。
+
+
+## 播放验证（1.6.4）
+
+运行 flutter analyze 及 anime_episode、anime_episode_storage、anime_player_ui、anime1_service、anime_json、bundle_import 与详情页头部测试。显式命令 flutter test --dart-define=ANIME1_LIVE=true test/anime1_live_test.dart 验证真实目录分页及媒体字节访问，不输出凭据；它不等于画面或声音播放验证。在对应平台构建 full/store 变体，缺少宿主的验证必须明确说明。Windows ARM64 不得打包 x64 媒体 DLL。
+
+Windows ARM64 实施验证：Android full 调试 APK 与 Windows ARM64 full release 构建已通过。聚焦回归、原生播放器生命周期及 store 路由网络门控测试通过；真实公开目录／媒体字节验证单独通过。静态检查仅报告现有 info 级提示。Windows x64、iOS/macOS 构建、store 打包及设备画面／声音／全屏验收仍未验证。当前 ARM64 Flutter SDK 按 Windows 宿主架构构建，不提供跨架构目标选项；Apple 构建需要 Apple 宿主。构建通过不等于设备播放验收通过。

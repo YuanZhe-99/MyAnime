@@ -108,3 +108,10 @@
 因此 `noCellular` 策略是一个足够好的启发式，而不是保证。插件调用失败时按「允许」处理，而不是在一个
 无法回答的平台上把功能整个封死。见
 [`features/metadata-auto-update.md`](features/metadata-auto-update.md)。
+
+
+## Anime1 播放器依赖（1.6.4）
+
+media_kit 1.2.6／media_kit_video 2.0.1 提供原生控制，flutter_inappwebview 6.2.0-beta.3 提供回退。Windows 构建需要 NuGet，运行需要 WebView2。上游 media_kit_libs_windows_video 1.0.11 仅包含 x64 libmpv/ANGLE。本地 MIT 授权副本保留上游 x64 校验值，在 ARM64 构建注册占位插件；media_kit_video 使用其上游无媒体库实现。ARM64 在媒体解析前直接选择网页播放器。其他原生初始化或解码失败也回退。缺少 WebView 支持时提供用户主动点击的浏览器入口。沿用 CI 的 MSVC 协程兼容宏。
+
+WebView 固定为 6.2.0-beta.3：稳定版 6.1.5 使用了本项目 AGP 9.1.1 已删除的 Android ProGuard API；[上游版本已修复 AGP 9 兼容性](https://pub.dev/packages/flutter_inappwebview/versions/6.2.0-beta.3/changelog)。在完成设备播放验收前，预发布依赖仍属于平台验收风险。

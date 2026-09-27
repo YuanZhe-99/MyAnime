@@ -142,6 +142,11 @@ Not copied to the other repos — no other app has these.
 | metric | 指标 | a selectable series on a trend chart |
 | quarter / cour | 季度 / 一季（cour） | 动画播出档期语境下保留英文 cour |
 | episode | 集 | |
+| episode mapping | 集数对应 | Anime1 站点页面与本地各集的对应关系 |
+| episode directory | 分集目录 | 从 Anime1 合集分页解析的真实分集页面 |
+| season scope | 本季范围 | 已确认属于当前季的标题分组及编号范围 |
+| website player | 网页播放器 | App 内嵌 Anime1 的原有播放器 |
+| native playback | 原生播放 | 使用应用播放器直接播放临时媒体来源 |
 | air date / air time | 播出日期 / 播出时间 | |
 | JST (Japan Standard Time) | 日本标准时间（JST） | 番组播出时间基准时区 |
 | local archive | 本地存档 | 是否下载并保管了本地资源的记录；zh-TW 用「本機存檔」，ja 用「ローカル保存」 |

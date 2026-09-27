@@ -119,3 +119,8 @@ Markdown export is LLM-friendly: entries are **sorted by `firstAirDate`, with nu
 each entry includes titles, type, air schedule, episode range, derived viewing status,
 watched/total counts, URLs, and notes. It's meant to give an LLM enough structured context about a
 user's watch history without exposing anything beyond what the export already contains.
+
+
+## Episode playback data (1.6.4)
+
+The existing anime data module includes public episode directories and manual mappings. No new backup module or wire-format version is introduced. Native session credentials and the WebView profile are excluded.

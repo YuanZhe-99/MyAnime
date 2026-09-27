@@ -34,3 +34,8 @@
 - 导入总是为传入记录创建新 UUID，绝不覆盖既有动画；新记录由 `importedCopy`（[`../functions/shared/services/file_open_service.md`](../functions/shared/services/file_open_service.md#importedcopy)）构建。
 - 多动画捆绑导入检测与既有本地记录的冲突（复用 [`duplicate-detection.md`](duplicate-detection.md) 的分组逻辑），并为每个冲突显示提供保留本地、使用导入或合并选项的对话框。
 - 平台文件关联在 Android、iOS、macOS 和 Windows 上配置——各平台的确切注册细节见 [`../platform-notes.md`](../platform-notes.md)（尤其是 Windows 注册在 `installer.iss` 中）。
+
+
+## 分集链接数据（1.6.4）
+
+公开分集目录和绑定来源的手动对应随番剧条目分享／导入。它们仅包含公开页面链接，不包含原生媒体凭据或 WebView Cookie。导入记录保留校正，同时沿用新 id 和时间戳规则。

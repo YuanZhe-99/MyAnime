@@ -102,3 +102,10 @@ launching on iOS 18 and macOS 15 and earlier. It needs macOS (`otool`); quote th
 
 Prefer focused tests for production behavior, and keep tool scripts out of release-critical paths
 unless the user asks for them.
+
+
+## Playback verification (1.6.4)
+
+Run flutter analyze and the anime_episode, anime_episode_storage, anime_player_ui, anime1_service, anime_json, bundle_import and detail-header tests. The opt-in command flutter test --dart-define=ANIME1_LIVE=true test/anime1_live_test.dart verifies real directory pagination and media byte access without printing credentials. This is not visual or audio playback verification. Build full/store variants on their platform hosts; missing host validation must be reported explicitly. Windows ARM64 must not ship x64 media DLLs.
+
+Implementation verification on Windows ARM64: Android full debug APK and Windows ARM64 full release builds passed. The focused regression suite, native-player lifecycle tests and store-route network gate passed; live public-directory/media-byte verification passed separately. Analysis reports only existing info-level lints. Windows x64, iOS/macOS builds, store packaging and device video/audio/fullscreen acceptance remain unverified. The installed ARM64 Flutter SDK selects the Windows host architecture and exposes no cross-build target option; Apple builds require an Apple host. A successful build is not device playback acceptance.

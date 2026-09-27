@@ -2,13 +2,13 @@
 
 这是 MyAnime 仓库中 `lib/` 手写函数解释层文档的顶层索引。每行链接到 `doc/en-us/functions/` 下镜像 `lib/` 树的逐源文件页面（`.dart` 换成 `.md`）。
 
-**总计：** 仓库的 `/// Purpose:` 注释数为 **1301**（按 `AGENTS.md` 中的函数解释层约定，排除生成的 `lib/l10n/` 代码——见 [l10n/INDEX.md](l10n/INDEX.md)）。下方各行合计 **1283** 个已记录声明。
+**总计：** 仓库的 `/// Purpose:` 注释数为 **1359**（按 `AGENTS.md` 中的函数解释层约定，排除生成的 `lib/l10n/` 代码——见 [l10n/INDEX.md](l10n/INDEX.md)）。下方各行合计 **1341** 个已记录声明。
 
 | Tier | 计数 |
 |---|---|
 | Tier A（完整条目：Purpose/Inputs/Returns/Side effects/Algorithm/Usage/Notes） | 759 |
-| Tier B（仅索引行） | 524 |
-| **总计** | **1283** |
+| Tier B（仅索引行） | 582 |
+| **总计** | **1341** |
 
 **已知缺口。** 这两个数字并不相等：有 18 个声明在源码中带 `/// Purpose:` 注释但此处没有对应行，因此本索引对 `lib/` 的覆盖少了这么多。1.5.7 重新测量时发现，1.5.6 记录的 864 本身已经过时——同一条命令在 1.5.6 的源码树上量到的是 901，因此这个缺口大部分是此前几个版本累积而未被发现的，而不是本次新增的。在 1.5.6 之前这个数是 10：当时发现 `adaptive_layout.dart` 那一行仍写着 `4 | 4`——那是它在 1.5.3 时的计数，彼时该模块还没有从详情页自己的辅助函数长成全应用的策略。它的页面自 1.5.5 起就记录了十二个声明，只有这一行没有跟上。该缺口分布不均，且尚未逐文件审计。另有一个文件方向相反，比其源码的 `Purpose:` 注释数多出一行——见下方 `features/` 小节的说明。
 
@@ -64,8 +64,8 @@ find lib -name "*.dart" -not -path "lib/l10n/*" | xargs grep -h '/// Purpose:' |
 | `lib/features/anime/services/metadata_cache.dart` | [features/anime/services/metadata_cache.md](features/anime/services/metadata_cache.md) | 10 | 7 |
 | `lib/features/anime/services/metadata_update_service.dart` | [features/anime/services/metadata_update_service.md](features/anime/services/metadata_update_service.md) | 44 | 27 |
 | `lib/features/anime/services/series_service.dart` | [features/anime/services/series_service.md](features/anime/services/series_service.md) | 32 | 20 |
-| `lib/features/anime/views/anime1_labels.dart` | [features/anime/views/anime1_labels.md](features/anime/views/anime1_labels.md) | 4 | 4 |
-| `lib/features/anime/views/anime_detail_page.dart` | [features/anime/views/anime_detail_page.md](features/anime/views/anime_detail_page.md) | 37 | 16 |
+| `lib/features/anime/views/anime1_labels.dart` | [features/anime/views/anime1_labels.md](features/anime/views/anime1_labels.md) | 5 | 4 |
+| `lib/features/anime/views/anime_detail_page.dart` | [features/anime/views/anime_detail_page.md](features/anime/views/anime_detail_page.md) | 38 | 16 |
 | `lib/features/anime/views/anime_edit_page.dart` | [features/anime/views/anime_edit_page.md](features/anime/views/anime_edit_page.md) | 30 | 15 |
 | `lib/features/anime/views/anime_search_dialog.dart` | [features/anime/views/anime_search_dialog.md](features/anime/views/anime_search_dialog.md) | 34 | 17 |
 | `lib/features/anime/views/archive_labels.dart` | [features/anime/views/archive_labels.md](features/anime/views/archive_labels.md) | 3 | 3 |
@@ -168,10 +168,22 @@ find lib -name "*.dart" -not -path "lib/l10n/*" | xargs grep -h '/// Purpose:' |
 | 根（`lib/`） | 1 | 1 | 1 | 0 |
 | `app/` | 5 | 22 | 17 | 5 |
 | `features/ai/` | 6 | 75 | 29 | 46 |
-| `features/anime/` | 22 | 640 | 370 | 270 |
+| `features/anime/` | 28 | 698 | 370 | 328 |
 | `features/categories/` | 2 | 18 | 11 | 7 |
 | `features/kana/` | 1 | 19 | 3 | 16 |
 | `features/recommendations/` | 11 | 153 | 63 | 90 |
 | `features/settings/` | 4 | 49 | 28 | 21 |
 | `shared/`（utils、widgets、providers、services、views） | 29 | 306 | 237 | 69 |
-| **总计** | **81** | **1283** | **759** | **524** |
+| **总计** | **87** | **1341** | **759** | **582** |
+
+
+## Anime1 分集播放（1.6.4）
+
+| Source file | Page | Declarations | Tier A count |
+|---|---|---|---|
+| `lib/features/anime/models/anime_episode.dart` | [features/anime/models/anime_episode.md](features/anime/models/anime_episode.md) | 12 | 0 |
+| `lib/features/anime/services/anime_episode_service.dart` | [features/anime/services/anime_episode_service.md](features/anime/services/anime_episode_service.md) | 10 | 0 |
+| `lib/features/anime/services/anime_media_service.dart` | [features/anime/services/anime_media_service.md](features/anime/services/anime_media_service.md) | 3 | 0 |
+| `lib/features/anime/views/anime_episode_page.dart` | [features/anime/views/anime_episode_page.md](features/anime/views/anime_episode_page.md) | 12 | 0 |
+| `lib/features/anime/views/anime_player_page.dart` | [features/anime/views/anime_player_page.md](features/anime/views/anime_player_page.md) | 8 | 0 |
+| `lib/features/anime/views/anime_native_player.dart` | [features/anime/views/anime_native_player.md](features/anime/views/anime_native_player.md) | 11 | 0 |

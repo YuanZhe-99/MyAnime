@@ -30,3 +30,8 @@
   final text = _getText(locale);
   ```
 - **备注：** 繁体中文分支要求 `languageCode == 'zh'` **且** `countryCode == 'TW'`；country code 不同或缺省的 `zh` 语言区域（如 `zh_CN`，或无 country 的裸 `zh`）不命中第一个检查，而是落入 `switch`，匹配普通 `'zh'` case 并返回 `_zh`（简体），不是 `_zhTW`。
+
+
+## 1.6.4 变更
+
+四种语言政策均说明目录获取、视频主机请求、临时原生凭据及内嵌网站配置／第三方资源。

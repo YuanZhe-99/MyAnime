@@ -64,3 +64,8 @@ a stored `AnimeWatchProgress` into user-facing text. They exist as one shared fi
 - **Side effects:** None.
 - **Algorithm:** Re-parse the stored episode text through `Anime1Service.parseEpisodes` and hand it to [`anime1EpisodesLabel`](#anime1episodeslabel); with no text, fall back to `latestEpisode` alone.
 - **Notes:** Re-parsing the stored text is what makes a completed run and an ongoing one read differently on the detail page exactly as they did in the dialog.
+
+
+## Changes in 1.6.4
+
+animeEpisodeProgressLabel(l10n, anime) (Tier B) returns verified local/site progress, otherwise explicitly labeled raw site progress, or null. Existing search-result labels and local API site-number contracts are unchanged.

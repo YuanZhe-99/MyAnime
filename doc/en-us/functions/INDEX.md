@@ -4,15 +4,15 @@ This is the top-level index of the hand-written Function Explanation Layer docum
 `lib/` in the MyAnime repo. Each row links to a per-source-file page under `doc/en-us/functions/`
 mirroring the `lib/` tree (with `.dart` replaced by `.md`).
 
-**Totals:** the repo's `/// Purpose:` comment count is **1301** (per the Function Explanation Layer
+**Totals:** the repo's `/// Purpose:` comment count is **1359** (per the Function Explanation Layer
 convention in `AGENTS.md`, excluding generated `lib/l10n/` code — see [l10n/INDEX.md](l10n/INDEX.md)).
-The rows below sum to **1283** documented declarations.
+The rows below sum to **1341** documented declarations.
 
 | Tier | Count |
 |---|---|
 | Tier A (full entry: Purpose/Inputs/Returns/Side effects/Algorithm/Usage/Notes) | 759 |
-| Tier B (index row only) | 524 |
-| **Total** | **1283** |
+| Tier B (index row only) | 582 |
+| **Total** | **1341** |
 
 **Known gap.** These two numbers do not match: 18 declarations carry a `/// Purpose:` comment in
 source but have no row here, so the index under-covers `lib/` by that much. The 1.5.7 recount found
@@ -129,8 +129,8 @@ that carry a `/// Purpose:` comment. See [../on-device-ai.md](../on-device-ai.md
 | `lib/features/anime/services/metadata_cache.dart` | [features/anime/services/metadata_cache.md](features/anime/services/metadata_cache.md) | 10 | 7 |
 | `lib/features/anime/services/metadata_update_service.dart` | [features/anime/services/metadata_update_service.md](features/anime/services/metadata_update_service.md) | 44 | 27 |
 | `lib/features/anime/services/series_service.dart` | [features/anime/services/series_service.md](features/anime/services/series_service.md) | 32 | 20 |
-| `lib/features/anime/views/anime1_labels.dart` | [features/anime/views/anime1_labels.md](features/anime/views/anime1_labels.md) | 4 | 4 |
-| `lib/features/anime/views/anime_detail_page.dart` | [features/anime/views/anime_detail_page.md](features/anime/views/anime_detail_page.md) | 37 | 16 |
+| `lib/features/anime/views/anime1_labels.dart` | [features/anime/views/anime1_labels.md](features/anime/views/anime1_labels.md) | 5 | 4 |
+| `lib/features/anime/views/anime_detail_page.dart` | [features/anime/views/anime_detail_page.md](features/anime/views/anime_detail_page.md) | 38 | 16 |
 | `lib/features/anime/views/anime_edit_page.dart` | [features/anime/views/anime_edit_page.md](features/anime/views/anime_edit_page.md) | 30 | 15 |
 | `lib/features/anime/views/anime_search_dialog.dart` | [features/anime/views/anime_search_dialog.md](features/anime/views/anime_search_dialog.md) | 34 | 17 |
 | `lib/features/anime/views/archive_labels.dart` | [features/anime/views/archive_labels.md](features/anime/views/archive_labels.md) | 3 | 3 |
@@ -239,10 +239,22 @@ the 771 hand-documented declarations above).
 | Root (`lib/`) | 1 | 1 | 1 | 0 |
 | `app/` | 5 | 22 | 17 | 5 |
 | `features/ai/` | 6 | 75 | 29 | 46 |
-| `features/anime/` | 22 | 640 | 370 | 270 |
+| `features/anime/` | 28 | 698 | 370 | 328 |
 | `features/categories/` | 2 | 18 | 11 | 7 |
 | `features/kana/` | 1 | 19 | 3 | 16 |
 | `features/recommendations/` | 11 | 153 | 63 | 90 |
 | `features/settings/` | 4 | 49 | 28 | 21 |
 | `shared/` (utils, widgets, providers, services, views) | 29 | 306 | 237 | 69 |
-| **Total** | **81** | **1283** | **759** | **524** |
+| **Total** | **87** | **1341** | **759** | **582** |
+
+
+## Anime1 episode playback (1.6.4)
+
+| Source file | Page | Declarations | Tier A count |
+|---|---|---|---|
+| `lib/features/anime/models/anime_episode.dart` | [features/anime/models/anime_episode.md](features/anime/models/anime_episode.md) | 12 | 0 |
+| `lib/features/anime/services/anime_episode_service.dart` | [features/anime/services/anime_episode_service.md](features/anime/services/anime_episode_service.md) | 10 | 0 |
+| `lib/features/anime/services/anime_media_service.dart` | [features/anime/services/anime_media_service.md](features/anime/services/anime_media_service.md) | 3 | 0 |
+| `lib/features/anime/views/anime_episode_page.dart` | [features/anime/views/anime_episode_page.md](features/anime/views/anime_episode_page.md) | 12 | 0 |
+| `lib/features/anime/views/anime_player_page.dart` | [features/anime/views/anime_player_page.md](features/anime/views/anime_player_page.md) | 8 | 0 |
+| `lib/features/anime/views/anime_native_player.dart` | [features/anime/views/anime_native_player.md](features/anime/views/anime_native_player.md) | 11 | 0 |

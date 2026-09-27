@@ -129,3 +129,8 @@ makes long names unreadable in place. Long-pressing a row — or right-clicking 
 a bottom sheet showing every stored title in full, selectable and free to wrap, with **Edit** and
 **Delete** beneath. Delete goes through the same confirmation, and the same five-minute "don't ask
 again" window, as deleting from the detail page.
+
+
+## Mapped site progress (1.6.4)
+
+Home highlights only an actual source-bound mapped episode link. Home and detail share the same watch entry. Detail and management display local/site numbers for verified season progress; ambiguous cases retain explicitly labeled raw site progress. Statistics and personal watch status remain independent of playback.

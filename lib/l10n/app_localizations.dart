@@ -3610,6 +3610,144 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'{count} entries · {completed} completed'**
   String manageSeriesMembers(int count, int completed);
+
+  /// No description provided for @episodeMappingHelp.
+  ///
+  /// In en, this message translates to:
+  /// **'Confirm this season and its true starting episode. Missing episodes must remain gaps.'**
+  String get episodeMappingHelp;
+
+  /// No description provided for @episodeSourceChanged.
+  ///
+  /// In en, this message translates to:
+  /// **'The viewing source changed. Reopen this page.'**
+  String get episodeSourceChanged;
+
+  /// No description provided for @episodeMappedLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Local {local} / Anime1 {site}'**
+  String episodeMappedLabel(Object local, Object site);
+
+  /// No description provided for @episodeUncertain.
+  ///
+  /// In en, this message translates to:
+  /// **'Season or starting episode needs confirmation'**
+  String get episodeUncertain;
+
+  /// No description provided for @episodeChoose.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose episode page'**
+  String get episodeChoose;
+
+  /// No description provided for @episodeBrowser.
+  ///
+  /// In en, this message translates to:
+  /// **'Open in browser'**
+  String get episodeBrowser;
+
+  /// No description provided for @episodeLeaveUnmapped.
+  ///
+  /// In en, this message translates to:
+  /// **'Leave unmapped'**
+  String get episodeLeaveUnmapped;
+
+  /// No description provided for @episodeWebPlayer.
+  ///
+  /// In en, this message translates to:
+  /// **'Website player'**
+  String get episodeWebPlayer;
+
+  /// No description provided for @episodeSpecials.
+  ///
+  /// In en, this message translates to:
+  /// **'Specials and other pages'**
+  String get episodeSpecials;
+
+  /// No description provided for @episodeFirst.
+  ///
+  /// In en, this message translates to:
+  /// **'First Anime1 episode of this season'**
+  String get episodeFirst;
+
+  /// No description provided for @episodePlaybackFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Playback unavailable. Try the website player or open this episode in your browser.'**
+  String get episodePlaybackFailed;
+
+  /// No description provided for @episodeIncomplete.
+  ///
+  /// In en, this message translates to:
+  /// **'Directory incomplete. Refresh to retry; the smallest available number is not necessarily the first episode.'**
+  String get episodeIncomplete;
+
+  /// No description provided for @episodeAuto.
+  ///
+  /// In en, this message translates to:
+  /// **'Automatic'**
+  String get episodeAuto;
+
+  /// No description provided for @episodeMissing.
+  ///
+  /// In en, this message translates to:
+  /// **'No matching episode'**
+  String get episodeMissing;
+
+  /// No description provided for @episodeMappingTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Episode links'**
+  String get episodeMappingTitle;
+
+  /// No description provided for @episodeDirectoryFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not refresh the episode directory. Saved links are still available.'**
+  String get episodeDirectoryFailed;
+
+  /// No description provided for @episodeGroup.
+  ///
+  /// In en, this message translates to:
+  /// **'Season / title'**
+  String get episodeGroup;
+
+  /// No description provided for @episodeInvalidRange.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter a positive starting number and an ending number no smaller than it.'**
+  String get episodeInvalidRange;
+
+  /// No description provided for @episodeCollection.
+  ///
+  /// In en, this message translates to:
+  /// **'Open collection'**
+  String get episodeCollection;
+
+  /// No description provided for @episodeReset.
+  ///
+  /// In en, this message translates to:
+  /// **'Reset to automatic'**
+  String get episodeReset;
+
+  /// No description provided for @episodeLast.
+  ///
+  /// In en, this message translates to:
+  /// **'Last Anime1 episode (optional)'**
+  String get episodeLast;
+
+  /// No description provided for @episodeNoOverride.
+  ///
+  /// In en, this message translates to:
+  /// **'Use automatic match'**
+  String get episodeNoOverride;
+
+  /// No description provided for @episodeRefresh.
+  ///
+  /// In en, this message translates to:
+  /// **'Refresh episode directory'**
+  String get episodeRefresh;
 }
 
 class _AppLocalizationsDelegate

@@ -362,3 +362,12 @@
   ```
   （`_buildHeaderActions`，anime1.me 进度按钮——按钮本身在每个 flavor 下都渲染）
 - **备注：** 与 `_refreshExternalMeta` 一样，这绝不修改 `modifiedAt`：进度是公开站点数据的缓存，不是用户编辑。按钮文案来自 `_watchProgressChipLabel`，它读取 `Anime.validWatchProgress`，因此上次检查后被改过的 URL 会显示「查看」提示而不是过期的集数。
+
+
+## 1.6.4 变更
+
+`_loadEpisodeDirectory` 在完整版详情进入时刷新目录，并忽略旧路由／来源结果。`_load` 调用它，`_buildHeaderActions` 打开共用观看／对应页，`_buildEpisodeList` 增加分集播放，`_watchProgressChipLabel` 显示按季进度。
+
+| 声明 | 类型 | 层级 | 用途 |
+|---|---|---|---|
+| `_loadEpisodeDirectory` | 方法 | B | 刷新受保护的分集目录。|

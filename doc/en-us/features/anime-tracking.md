@@ -153,3 +153,8 @@ arithmetic covers, which degrades gracefully rather than showing an overflow str
 Both panes stay inside one `Form`, so saving still validates the title on the left and the season
 on the right together. Nothing is stored across the layout swap beyond the text you have typed, so
 folding or unfolding mid-edit keeps a half-written title intact.
+
+
+## Episode watch actions (1.6.4)
+
+Full-build Anime1 detail rows open their mapped episode; the header chooses the first unwatched, non-skipped local episode, or the selection screen after completion. The link editor and player never mutate viewing status. Confirm uncertain season boundaries in the episode-link screen.

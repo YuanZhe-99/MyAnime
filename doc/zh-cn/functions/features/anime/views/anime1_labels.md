@@ -65,3 +65,8 @@
 - **算法：** 把已存的集数文本经 `Anime1Service.parseEpisodes` 重新解析后交给
   [`anime1EpisodesLabel`](#anime1episodeslabel)；没有文本时只用 `latestEpisode` 回退。
 - **备注：** 重新解析已存文本，正是让已完结与连载中的作品在详情页上读起来与对话框里完全一致的原因。
+
+
+## 1.6.4 变更
+
+animeEpisodeProgressLabel(l10n, anime)（B 层）返回已确认的本地／站点进度，否则返回带站点标识的原始进度，或 null。搜索结果标签及本地 API 的站点编号契约保持不变。

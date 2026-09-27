@@ -321,3 +321,8 @@
 标题，并提供编辑与删除。行本身仍然截断为单行，而这正是该面板存在的原因。
 
 读取该偏好正是本页在 1.5.3 变成 `ConsumerStatefulWidget` 的原因；此前它完全不持有 Riverpod 状态。
+
+
+## 1.6.4 变更
+
+番剧行使用 animeEpisodeProgressLabel，区分本地分集进度与原始站点编号。

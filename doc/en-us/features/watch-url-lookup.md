@@ -124,8 +124,8 @@ Where it shows:
   stored); tapping it re-reads the site and writes the result through `patchExternalMeta`. The chip
   renders stored data in every flavor; only the tap is a full-build action;
 - the **home page** turns an episode row's watch button primary, with the progress as its
-  tooltip, when the site already lists that episode;
-- the **management page** appends `更新至 9` to a row's subtitle;
+  tooltip, when the directory resolves that local episode to a real page;
+- the **management page** shows verified local/site progress, or explicitly labeled raw site progress;
 - the desktop **local API** reports `watchLatestEpisode` and `watchProgressCheckedAt`.
 
 ## Background refresh
@@ -158,3 +158,20 @@ only under `AppFlavor.isFull` by `main.dart`.
 
 Keep [`../../../PRIVACY_POLICY.md`](../data-formats.md) and the in-app privacy policy in step: since
 1.5.7 the background updater also contacts anime1.me, and only the saved page address is sent.
+
+## Season-aware episode playback (1.6.4)
+
+Full builds resolve collection and episode URLs into a paginated directory of actual episode
+pages. Directory refreshes preserve modifiedAt. User-confirmed season scope, starting number
+and individual overrides are separate user data; changing the source invalidates both.
+Incomplete fetches never replace a complete directory. Titles and explicit season markers
+identify the season. A matching index range or an unambiguous episode 1 establishes its
+start; the smallest available number greater than 1 does not. Dates, series links and counts
+are context, never sufficient evidence for a boundary. Gaps remain gaps, duplicate numbers
+need selection, and fractional episodes, OVA and SP remain separate extras.
+
+The mapping screen previews local episodes and provides season scope, starting number,
+individual page choices and reset to automatic. Manual choices survive refreshes. Home and
+detail use the same mapping. Native playback falls back once to the embedded episode page
+on failure. External opening is explicit. Playback never marks watched or auto-advances.
+Temporary media URLs and credentials are session-only, never synced, backed up or logged.

@@ -161,6 +161,7 @@ class FileOpenService {
       coverImage: coverPath ?? parsed.coverImage,
       infoUrl: parsed.infoUrl,
       watchUrl: parsed.watchUrl,
+      episodeMapping: parsed.episodeMapping,
       episodeWeekOffsets: parsed.episodeWeekOffsets,
       notes: parsed.notes,
       rating: parsed.rating,

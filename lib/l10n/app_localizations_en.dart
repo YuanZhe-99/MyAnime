@@ -2037,4 +2037,82 @@ class AppLocalizationsEn extends AppLocalizations {
   String manageSeriesMembers(int count, int completed) {
     return '$count entries · $completed completed';
   }
+
+  @override
+  String get episodeMappingHelp =>
+      'Confirm this season and its true starting episode. Missing episodes must remain gaps.';
+
+  @override
+  String get episodeSourceChanged =>
+      'The viewing source changed. Reopen this page.';
+
+  @override
+  String episodeMappedLabel(Object local, Object site) {
+    return 'Local $local / Anime1 $site';
+  }
+
+  @override
+  String get episodeUncertain =>
+      'Season or starting episode needs confirmation';
+
+  @override
+  String get episodeChoose => 'Choose episode page';
+
+  @override
+  String get episodeBrowser => 'Open in browser';
+
+  @override
+  String get episodeLeaveUnmapped => 'Leave unmapped';
+
+  @override
+  String get episodeWebPlayer => 'Website player';
+
+  @override
+  String get episodeSpecials => 'Specials and other pages';
+
+  @override
+  String get episodeFirst => 'First Anime1 episode of this season';
+
+  @override
+  String get episodePlaybackFailed =>
+      'Playback unavailable. Try the website player or open this episode in your browser.';
+
+  @override
+  String get episodeIncomplete =>
+      'Directory incomplete. Refresh to retry; the smallest available number is not necessarily the first episode.';
+
+  @override
+  String get episodeAuto => 'Automatic';
+
+  @override
+  String get episodeMissing => 'No matching episode';
+
+  @override
+  String get episodeMappingTitle => 'Episode links';
+
+  @override
+  String get episodeDirectoryFailed =>
+      'Could not refresh the episode directory. Saved links are still available.';
+
+  @override
+  String get episodeGroup => 'Season / title';
+
+  @override
+  String get episodeInvalidRange =>
+      'Enter a positive starting number and an ending number no smaller than it.';
+
+  @override
+  String get episodeCollection => 'Open collection';
+
+  @override
+  String get episodeReset => 'Reset to automatic';
+
+  @override
+  String get episodeLast => 'Last Anime1 episode (optional)';
+
+  @override
+  String get episodeNoOverride => 'Use automatic match';
+
+  @override
+  String get episodeRefresh => 'Refresh episode directory';
 }

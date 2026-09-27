@@ -485,3 +485,8 @@ it carries `externalMeta` through (earlier builds dropped it on import although 
 `categories` is neither stripped on export nor dropped on import (1.6.0); multi-anime bundle imports run the same conflict detection as
 [`features/duplicate-detection.md`](features/duplicate-detection.md) to decide whether an
 incoming record collides with a local one, offering keep-local/use-imported/merge per conflict.
+
+
+## Episode directory and corrections (1.6.4)
+
+Optional externalMeta.episodeCatalog stores sourceUrl, categoryUrl, title, catId, indexTitle, indexEpisodes, UTC checkedAt, complete and pages (url/title/label/group). Optional Anime.episodeMapping stores sourceUrl, group, first, last and overrides keyed by local episode number. Bounds are inclusive site numbers; an empty override leaves an episode unmapped. Derived links are recomputed from the current record and these inputs. Unknown fields survive JSON round trips; existing records need no migration. Cache writes preserve modifiedAt; manual corrections update it. Both fields travel through existing sync, backup and item-import paths; no media URL, token or cookie is serialized.

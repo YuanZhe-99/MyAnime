@@ -730,3 +730,8 @@ notifies `AutoSyncService`/`ReminderService` after every save. See
 - **Kind:** static method of `AnimeStorage`
 - **Side effects:** Writes `storage_config.json`.
 - **Notes:** Writes `onDeviceAiPreferFast: true` when on and removes the key when off.
+
+
+## Changes in 1.6.4
+
+patchExternalMeta accepts optional expectedWatchUrls keyed by record id. Guarded patches merge into current metadata and reject changed sources, older snapshots and incomplete replacements. Other metadata updates retain an existing directory. Manual mappings remain untouched.

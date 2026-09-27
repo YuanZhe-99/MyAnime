@@ -404,3 +404,8 @@ which is exactly why the sheet exists.
 
 Reading that preference is why this page became a `ConsumerStatefulWidget` in 1.5.3; it previously
 held no Riverpod state at all.
+
+
+## Changes in 1.6.4
+
+The anime row uses animeEpisodeProgressLabel to distinguish local episode progress from raw site numbering.

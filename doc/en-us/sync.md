@@ -228,3 +228,7 @@ order, **anime first**, under the same `.lock`, with its own `.sync_base/recomme
   delete it; their trash stays in their own `ai_insights.json` until they update.
 - A save through `RecommendationStore` calls `AutoSyncService.notifySaved`, so trashing and restoring
   schedule the usual debounced sync.
+
+## Episode corrections (1.6.4)
+
+`Anime.episodeMapping` is source-bound user data and follows the existing anime-record sync and conflict flow. Saving a correction updates `modifiedAt`; refreshing `externalMeta.episodeCatalog` does not. Neither operation changes the WebDAV layout or enables automatic conflict resolution. Unknown nested directory, page and correction fields survive record preservation. Derived episode links are recomputed after sync from the current source, season information and corrections; temporary playback credentials and WebView profiles never enter the synced record.

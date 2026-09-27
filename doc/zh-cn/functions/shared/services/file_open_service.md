@@ -276,3 +276,8 @@
 - **算法：** 经正则剥离 Windows/macOS/Linux 文件系统非法的字符（`/ \ : * ? " < > |`）和 ASCII 控制字符；修剪；结果为空时回退 `'anime'`；截断到 100 字符。
 - **用法：** 从 [`exportAnimeItem`](#exportanimeitem) 和 [`exportAnimeBundle`](#exportanimebundle) 内部调用。
 - **备注：** CJK、带变音符和其他 Unicode 字母被刻意保留——只剥离文件系统非法的 ASCII 标点和控制字符。
+
+
+## 1.6.4 变更
+
+importedCopy 保留绑定来源的 episodeMapping 及公开 episodeCatalog 元数据，仍分配新的导入 id 与时间戳。

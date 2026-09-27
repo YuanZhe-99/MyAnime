@@ -767,3 +767,8 @@ Five static fields carry a plain doc comment but no `Purpose:` block, so they ha
   This exists because a search can legitimately take about half a minute: every source has its own
   10–15 second timeout and there can be two rounds. Over that stretch a bare spinner is
   indistinguishable from a hang.
+
+
+## Changes in 1.6.4
+
+userAgent is MyAnime/1.6.4 (anime tracker).

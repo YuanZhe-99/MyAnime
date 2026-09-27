@@ -290,3 +290,8 @@ caller gates explicitly:
 
 Keep [`../../../PRIVACY_POLICY.md`](../data-formats.md) and the in-app privacy policy in step with
 this feature: background network access is the one externally visible behavior change it introduces.
+
+
+## On-demand episode directories (1.6.4)
+
+Episode directories are fetched on detail/watch entry and explicit refresh rather than crawling the entire library in the background. Concurrent requests share one future. Complete caches use the existing 6-hour ongoing / 7-day completed windows; failed requests have a one-hour in-memory retry gate. A crawl stops at repeated navigation, 100 pages or the elapsed-time budget and remains incomplete. Storage guards reject changed sources, older snapshots and incomplete replacements of complete directories.

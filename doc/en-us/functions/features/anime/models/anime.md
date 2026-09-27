@@ -1196,3 +1196,8 @@ has 83 rows — the `AnimeData` default constructor has no doc comment at all in
   ```
   (`management_page.dart`, `_buildAnimeTile`)
 - **Notes:** Editing the watch URL by hand therefore hides the stale count until the next check, instead of showing episode 9 of a series the URL no longer points at. `MetadataUpdateService.isWatchProgressStale` treats a `null` here as "never read", so the next tick refreshes it.
+
+
+## Changes in 1.6.4
+
+Anime gains optional episodeMapping; AnimeExternalMeta gains optional episodeCatalog. Constructors, copyWith, JSON, import copies and metadata merges preserve them. Cache writes retain modifiedAt. See data-formats.md for field shapes.

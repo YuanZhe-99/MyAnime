@@ -382,3 +382,8 @@ registers the `.myanimeitem` file association.
   [`exportAnimeBundle`](#exportanimebundle).
 - **Notes:** CJK, accented, and other Unicode letters are deliberately preserved — only the
   filesystem-illegal ASCII punctuation and control characters are stripped.
+
+
+## Changes in 1.6.4
+
+importedCopy retains source-bound episodeMapping along with public episodeCatalog metadata. New import ids and timestamps still apply.

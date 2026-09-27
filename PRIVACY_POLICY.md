@@ -22,6 +22,8 @@ MyAnime!!!!! accesses the internet only in the following situations:
   - You can change this at any time, including turning it off entirely, in **Settings → Data → Background database updates**. A separate switch controls whether cover images are downloaded ahead of time; it is off by default.
 - **WebDAV sync**: If you enable WebDAV cloud sync, the app sends your data to a WebDAV server that you configure yourself. The app does not send data to any other server.
 
+- **Anime1 episode playback (full version, since 1.6.4): Opening an anime detail page can fetch its public episode directory. Playing an episode contacts Anime1 and its video hosts (v.anime1.me and subdomains) with the page address and temporary playback credentials. Native credentials stay in memory and are not synced or backed up. The embedded website may load its own third-party resources and keep cookies in the local WebView profile; that profile is not part of app sync or backups. Personal ratings, notes and watch history are not sent.**
+
 No other network communication takes place.
 
 ## Third-Party Services
@@ -35,7 +37,7 @@ The full-featured version of the app uses the following third-party data sources
 - anime1.me
 - filmarks.com
 
-These services have their own privacy policies, which we encourage you to review. MyAnime!!!!! only retrieves publicly available anime information and does not send any of your personal data to these services.
+These services have their own privacy policies, which we encourage you to review. Metadata requests retrieve public anime information. Episode playback also accesses media hosts and the embedded website as described above; personal library fields are not uploaded.
 
 **Note:** Versions distributed through the App Store and Google Play (store flavor) do not include the online search feature and do not connect to these third-party services.
 

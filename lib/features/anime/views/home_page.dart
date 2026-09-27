@@ -5,7 +5,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import 'package:table_calendar/table_calendar.dart';
-import 'package:url_launcher/url_launcher.dart';
 
 import '../../../l10n/app_localizations.dart';
 import '../../../shared/providers/app_settings.dart';
@@ -20,6 +19,8 @@ import '../../../shared/utils/jst_time.dart';
 import '../models/anime.dart';
 import '../services/anime_storage.dart';
 import '../services/series_service.dart';
+import '../services/anime_episode_service.dart';
+import 'anime_episode_page.dart';
 
 class HomePage extends ConsumerStatefulWidget {
   /// Purpose: Create a home page instance.
@@ -668,10 +669,12 @@ class _HomePageState extends ConsumerState<HomePage> {
   /// Returns: `bool`.
   /// Side effects: None.
   /// Notes: Internal helper used within this file only. Reads the stored
-  /// anime1.me progress; false when nothing valid is stored.
+  /// source-bound episode directory; no comparison of unrelated numbering systems.
   bool _siteHasEpisode(_AiringEpisode ep) {
-    final latest = ep.anime.validWatchProgress?.latestEpisode;
-    return latest != null && latest >= ep.episode;
+    return AnimeEpisodeService.resolve(
+      ep.anime,
+      library: _allAnime,
+    ).links.containsKey(ep.episode);
   }
 
   /// Purpose: Provide the internal build episode tile helper for this file.
@@ -765,14 +768,22 @@ class _HomePageState extends ConsumerState<HomePage> {
                         : theme.colorScheme.tertiary,
                   ),
                   tooltip: _siteHasEpisode(ep)
-                      ? l10n.anime1Ongoing(
-                          ep.anime.validWatchProgress!.latestEpisode!,
+                      ? l10n.episodeMappedLabel(
+                          ep.episode,
+                          AnimeEpisodeService.resolve(
+                            ep.anime,
+                            library: _allAnime,
+                          ).links[ep.episode]!.label,
                         )
                       : l10n.animeOpenUrl,
-                  onPressed: () => launchUrl(
-                    Uri.parse(ep.anime.watchUrl!),
-                    mode: LaunchMode.externalApplication,
-                  ),
+                  onPressed: () async {
+                    await openAnimeWatch(
+                      context,
+                      ep.anime,
+                      episode: ep.episode,
+                    );
+                    if (mounted) await _load();
+                  },
                 ),
               IconButton(
                 icon: Icon(

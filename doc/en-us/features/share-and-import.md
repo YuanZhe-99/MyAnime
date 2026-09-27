@@ -86,3 +86,8 @@ formats — see [`../data-formats.md`](../data-formats.md) for the exact JSON sh
 - Platform file association is configured on Android, iOS, macOS, and Windows — see
   [`../platform-notes.md`](../platform-notes.md) for the exact per-platform registration details
   (Windows registration in particular lives in `installer.iss`).
+
+
+## Episode link data (1.6.4)
+
+Public episode directories and source-bound manual correspondence travel with shared/imported anime records. They contain public page links, not native media credentials or WebView cookies. Imported records retain corrections while receiving the usual new id and timestamps.

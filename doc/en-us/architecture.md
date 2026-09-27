@@ -224,3 +224,8 @@ feature area:
 - **Unknown JSON fields:** preserved via the `extraJson` pattern (see
   [`data-formats.md`](data-formats.md)) so older app versions don't delete newer fields during
   normal saves, imports, or sync merges.
+
+
+## Anime1 playback (1.6.4)
+
+Full-build watch actions use a shared episode-directory route and native-player route. Episode mapping is pure and source-bound; media credentials are session-only. The local Windows media library override disables x64 binaries on ARM64, which uses WebView playback.

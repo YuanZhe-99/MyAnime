@@ -169,3 +169,8 @@ WebDAV 同步引擎、备份引擎、ZIP 传输引擎和自动同步调度器**�
 - **时间戳：** 动画模型的时间戳使用 UTC，通常为 `DateTime.now().toUtc()`。本地时间的 `modifiedAt` 值会破坏同步冲突检测，因为三方合并要跨不同时区的设备比较 `modifiedAt`。
 - **日历/播出逻辑：** 通过 `shared/utils/jst_time.dart` 感知 JST。相比之下，提醒时间比较使用本地系统时间，不是 JST——见 [`features/reminders.md`](features/reminders.md)。
 - **未知 JSON 字段：** 通过 `extraJson` 模式保留（见 [`data-formats.md`](data-formats.md)），使旧版应用在常规保存、导入或同步合并中不会删除新字段。
+
+
+## Anime1 播放（1.6.4）
+
+完整版观看入口共用分集对应页与播放器页。映射为纯计算并绑定来源，媒体凭据仅存于会话。Windows 媒体库本地补丁在 ARM64 上禁用 x64 二进制，改用 WebView 播放。

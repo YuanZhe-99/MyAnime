@@ -50,3 +50,8 @@ see [`../../../backup-restore.md`](../../../../backup-restore.md) and
   `countryCode == 'TW'`; a `zh` locale with a different or absent country code (e.g. `zh_CN`, or a
   bare `zh` with no country) does not hit that first check and instead falls through to the
   `switch`, which matches the plain `'zh'` case and returns `_zh` (Simplified), not `_zhTW`.
+
+
+## Changes in 1.6.4
+
+All four policy texts disclose directory fetching, video host requests, temporary native credentials and the embedded website profile/third-party resources.

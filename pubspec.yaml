@@ -2,7 +2,12 @@ name: my_anime
 description: "MyAnime!!!!! — Your anime tracking companion"
 publish_to: 'none'
 
-version: 1.6.3+64
+version: 1.6.4+65
+
+dependency_overrides:
+  # Upstream 1.0.11 bundles x64 only; the local patch keeps ARM64 on WebView.
+  media_kit_libs_windows_video:
+    path: packages/media_kit_libs_windows_video
 
 environment:
   sdk: ^3.11.3
@@ -50,6 +55,11 @@ dependencies:
 
   # HTTP (WebDAV sync)
   http: ^1.4.0
+  html: ^0.15.6
+  media_kit: ^1.2.6
+  media_kit_video: ^2.0.1
+  media_kit_libs_video: ^1.0.7
+  flutter_inappwebview: 6.2.0-beta.3
 
   # Pure-Dart image codec: shrinks missing-sequel covers into the small
   # synced thumbnails in recommendations.json (1.6.3). Also used by tool/.
@@ -116,7 +126,7 @@ msix_config:
   display_name: MyAnime!!!!!
   publisher_display_name: yuanzhe
   identity_name: com.yuanzhe.myanime
-  msix_version: 1.6.3.0
+  msix_version: 1.6.4.0
   logo_path: assets/icon/app_icon.png
   capabilities: internetClient
   install_certificate: false

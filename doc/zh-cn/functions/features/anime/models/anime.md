@@ -1133,3 +1133,8 @@
   ```
   （`management_page.dart`，`_buildAnimeTile`）
 - **备注：** 因此手工改了观看链接会把过期的集数隐藏到下一次检查，而不是给链接已不再指向的作品显示第 9 集。`MetadataUpdateService.isWatchProgressStale` 把这里的 `null` 当作「从未读取」，下一个 tick 就会刷新它。
+
+
+## 1.6.4 变更
+
+Anime 新增可选 episodeMapping；AnimeExternalMeta 新增可选 episodeCatalog。构造、copyWith、JSON、导入副本与元数据合并保留这些字段。缓存写入保留 modifiedAt，字段形状见 data-formats.md。

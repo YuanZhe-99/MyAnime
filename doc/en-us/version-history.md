@@ -3,6 +3,12 @@
 Release-by-release summary of MyAnime!!!!!. Useful for understanding *why* a behavior exists before
 changing it — several entries record deliberate safety fixes that look like quirks otherwise.
 
+## 1.6.4 — Anime1 episode mapping and playback
+
+- Confirm season boundaries before mapping episode links; preserve gaps, extras and manual corrections.
+- Native-first playback with embedded website fallback; Windows ARM64 uses the website player.
+- Version 1.6.4+65; installer/MSIX version 1.6.4.0.
+
 ## Repository caveat
 
 The latest release tag before the documentation guide was added was `v0.6.7`, with `origin/master`

@@ -682,3 +682,8 @@
 - **种类：** `AnimeStorage` 的静态方法
 - **副作用：** 写入 `storage_config.json`。
 - **备注：** 开启时写入 `onDeviceAiPreferFast: true`，关闭时移除该键。
+
+
+## 1.6.4 变更
+
+patchExternalMeta 接受按记录 id 索引的可选 expectedWatchUrls。受保护更新合入当前元数据，拒绝来源变化、旧快照或不完整替换。其他元数据更新保留已有目录，手动对应不受影响。

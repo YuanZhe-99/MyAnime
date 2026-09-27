@@ -234,7 +234,7 @@ class AnimeStorage {
   }
 
   /// Purpose: Refresh cached external metadata without marking records edited.
-  /// Inputs: `updates` — external metadata keyed by anime id.
+  /// Inputs: `updates` keyed by id; optional `expectedWatchUrls` guards delayed directory results.
   /// Returns: `Future<bool>` — whether anything was actually written.
   /// Side effects: Rewrites `anime_data.json` when at least one id matched.
   /// Notes: **Deliberately leaves `modifiedAt` untouched.** `mergeRecords`
@@ -254,8 +254,9 @@ class AnimeStorage {
   /// Re-reads immediately before writing so a long-running background sweep
   /// cannot write back a stale snapshot over a concurrent user edit.
   static Future<bool> patchExternalMeta(
-    Map<String, AnimeExternalMeta> updates,
-  ) async {
+    Map<String, AnimeExternalMeta> updates, {
+    Map<String, String>? expectedWatchUrls,
+  }) async {
     if (updates.isEmpty) return false;
     final data = await load();
     final list = List<Anime>.of(data.animes);
@@ -263,11 +264,28 @@ class AnimeStorage {
     for (var i = 0; i < list.length; i++) {
       final meta = updates[list[i].id];
       if (meta == null) continue;
+      final expected = expectedWatchUrls?[list[i].id];
+      if (expected != null && list[i].watchUrl?.trim() != expected) continue;
+      final existing = list[i].externalMeta ?? const AnimeExternalMeta();
+      final incoming = meta.episodeCatalog;
+      final previous = existing.episodeCatalog;
+      if (expected != null &&
+          incoming != null &&
+          previous != null &&
+          previous.sourceUrl == incoming.sourceUrl &&
+          (previous.checkedAt.isAfter(incoming.checkedAt) ||
+              (previous.complete && !incoming.complete))) {
+        continue;
+      }
       // `copyWith` defaults `modifiedAt` to now when it is omitted, so the
       // existing value has to be passed back in explicitly. Everything in the
       // Notes above depends on this line.
       list[i] = list[i].copyWith(
-        externalMeta: meta,
+        externalMeta: expected != null
+            ? existing.mergedWith(meta)
+            : (meta.episodeCatalog == null && previous != null
+                  ? meta.mergedWith(AnimeExternalMeta(episodeCatalog: previous))
+                  : meta),
         modifiedAt: list[i].modifiedAt,
       );
       touched = true;

@@ -78,6 +78,8 @@ MyAnime!!!!! accesses the internet only in the following situations:
 
 On desktop this is on by default. On Android and iOS it defaults to "don't use cellular data", so a phone only does this work on Wi-Fi or a wired connection. Note that the app can only detect the type of connection, not whether it is billed — a phone hotspot, for example, still appears as Wi-Fi. You can change this at any time, including turning it off entirely, in Settings → Data → Background database updates. A separate switch controls whether cover images are downloaded ahead of time; it is off by default.
 
+• Anime1 episode playback (full version, since 1.6.4): Opening an anime detail page can fetch its public episode directory. Playing an episode contacts Anime1 and its video hosts (v.anime1.me and subdomains) with the page address and temporary playback credentials. Native credentials stay in memory and are not synced or backed up. The embedded website may load its own third-party resources and keep cookies in the local WebView profile; that profile is not part of app sync or backups. Personal ratings, notes and watch history are not sent.
+
 • WebDAV sync: If you enable WebDAV cloud sync, the app sends your data to a WebDAV server that you configure yourself. The app does not send data to any other server.
 
 No other network communication takes place.
@@ -140,6 +142,8 @@ MyAnime!!!!! 仅在以下情况下访问互联网：
 
 桌面端默认开启。Android 与 iOS 默认为"不使用蜂窝数据"，因此手机只会在 Wi-Fi 或有线连接下进行这项工作。请注意，应用只能识别连接的类型，无法判断它是否计费——例如手机热点同样会被识别为 Wi-Fi。您可以随时在"设置 → 数据 → 后台更新资料库信息"中更改此项，包括完全关闭。另有一个独立开关控制是否提前下载封面图，该开关默认关闭。
 
+• Anime1 分集播放（完整版，1.6.4 起）：打开番剧详情时可读取公开分集目录。播放时会向 Anime1 及其视频主机（v.anime1.me 及子域名）发送页面地址和临时播放凭据。原生播放凭据仅保存在内存中，不参与同步或备份。内嵌网站可能加载其第三方资源，并在本地 WebView 配置中保存 Cookie；该配置不进入应用同步或备份。不会发送个人评分、笔记或观看记录。
+
 • WebDAV 同步：如果您启用了 WebDAV 云同步，应用会将您的数据发送到您自行配置的 WebDAV 服务器。应用不会向其他任何服务器发送数据。
 
 除此之外不进行任何网络通信。
@@ -195,6 +199,8 @@ MyAnime!!!!! 僅在以下情況下存取網際網路：
 • 搜尋番劇資訊（完整版專有）：當您主動搜尋番劇時，應用程式會向 bangumi.tv、MyAnimeList（Jikan API）、acgsecrets.hk、anime1.me 和 filmarks.com 傳送請求，以取得公開的番劇資訊，如標題、簡介、封面和集數。透過 App Store 或 Google Play 分發的版本不包含此功能。自 1.5.7 起，對於觀看連結指向 anime1.me 的番劇，應用程式也會在背景讀取該站點的公開作品列表與作品頁面，以記錄站點已更新到第幾集；傳送的只有已儲存的頁面位址。
 
 • 缺失續作的封面與簡介（完整版專有，1.6.3 起）：當資料庫列出一部您還沒有新增的續作時，應用程式會從同一資料庫（AniList、MyAnimeList 或 bangumi.tv）取得該續作的公開頁面並下載其封面，以便在「番劇庫裡還沒有」卡片上顯示小封面與簡短簡介。傳送的只有該續作的公開頁面位址。小封面與簡介儲存在您的推薦檔案中；如果您設定了 WebDAV，該檔案會同步到您自己的伺服器。將卡片標記為「不感興趣」時，它們會被刪除。
+
+• Anime1 分集播放（完整版，1.6.4 起）：開啟番劇詳情時可讀取公開分集目錄。播放時會向 Anime1 及其影片主機（v.anime1.me 及子網域）傳送頁面位址和暫時播放憑證。原生播放憑證僅保存在記憶體中，不參與同步或備份。內嵌網站可能載入其第三方資源，並在本機 WebView 設定中儲存 Cookie；該設定不進入應用程式同步或備份。不會傳送個人評分、筆記或觀看紀錄。
 
 • WebDAV 同步：如果您啟用了 WebDAV 雲端同步，應用程式會將您的資料傳送到您自行設定的 WebDAV 伺服器。應用程式不會向其他任何伺服器傳送資料。
 
@@ -257,6 +263,8 @@ MyAnime!!!!! は以下の場合にのみインターネットにアクセスし�
 • 手動での更新確認（完全版のみ、1.5.1 以降）：「利用できる更新」画面には「更新を確認」ボタンがあり、確認が必要なアニメすべてに対して上記と同じリクエストを直ちに実行します。お客様が明示的に指示した操作であるため、このボタンはバックグラウンド更新をオフにしていても動作し、Wi-Fi/モバイル通信の設定も参照しません。バックグラウンド更新がオフのとき、これが唯一の確認手段だからです。ネットワークに接続されていない場合は実行を拒否します。実行中は進捗が表示され、いつでも停止できます。見つかった内容は、お客様が確認するまで記録に書き込まれることはありません。
 
 デスクトップでは既定でオンです。Android と iOS では既定で「モバイルデータを使わない」に設定されており、スマートフォンは Wi-Fi または有線接続の場合にのみこの処理を行います。なお、アプリが判別できるのは接続の種類のみで、従量制かどうかは分かりません。たとえばスマートフォンのテザリングも Wi-Fi として認識されます。この設定は「設定 → データ → バックグラウンドでデータベース情報を更新」からいつでも変更でき、完全にオフにすることもできます。カバー画像を事前にダウンロードするかどうかは別のスイッチで制御され、既定ではオフです。
+
+• Anime1 各話再生（完全版、1.6.4 以降）：詳細画面を開くと公開各話一覧を取得する場合があります。再生時は Anime1 と動画ホスト（v.anime1.me およびサブドメイン）へページ URL と一時的な再生認証情報を送信します。ネイティブ再生の認証情報はメモリ内のみで、同期・バックアップしません。内蔵 Web サイトは第三者のリソースを読み込み、ローカル WebView に Cookie を保存する場合があります。このプロファイルは同期・バックアップ対象外です。個人の評価、メモ、視聴履歴は送信しません。
 
 • WebDAV同期：WebDAVクラウド同期を有効にした場合、アプリはお客様が設定したWebDAVサーバーにデータを送信します。それ以外のサーバーにデータを送信することはありません。
 
