@@ -5,6 +5,9 @@ publish_to: 'none'
 version: 1.6.4+65
 
 dependency_overrides:
+  # Xcode 26.6 protocol availability fix; upstream PR #2870, macOS only.
+  flutter_inappwebview_macos:
+    path: packages/flutter_inappwebview_macos
   # Upstream 1.0.11 bundles x64 only; the local patch keeps ARM64 on WebView.
   media_kit_libs_windows_video:
     path: packages/media_kit_libs_windows_video

@@ -1,5 +1,7 @@
 # MyAnime `lib/` Function Index
 
+Vendored platform repair (outside `lib/` totals): [macOS WebView](packages/flutter_inappwebview_macos.md).
+
 This is the top-level index of the hand-written Function Explanation Layer documentation for
 `lib/` in the MyAnime repo. Each row links to a per-source-file page under `doc/en-us/functions/`
 mirroring the `lib/` tree (with `.dart` replaced by `.md`).

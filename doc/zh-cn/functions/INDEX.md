@@ -1,5 +1,7 @@
 # MyAnime `lib/` 函数索引
 
+第三方平台修复（不计入 `lib/` 总数）：[macOS WebView](packages/flutter_inappwebview_macos.md)。
+
 这是 MyAnime 仓库中 `lib/` 手写函数解释层文档的顶层索引。每行链接到 `doc/en-us/functions/` 下镜像 `lib/` 树的逐源文件页面（`.dart` 换成 `.md`）。
 
 **总计：** 仓库的 `/// Purpose:` 注释数为 **1359**（按 `AGENTS.md` 中的函数解释层约定，排除生成的 `lib/l10n/` 代码——见 [l10n/INDEX.md](l10n/INDEX.md)）。下方各行合计 **1341** 个已记录声明。
