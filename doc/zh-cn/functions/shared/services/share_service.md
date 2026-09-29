@@ -397,3 +397,9 @@
 - **算法：** 直接字段赋值。
 - **用法：** 用户选择条形图图像变体时作为 `summary` 参数传给 [`generateStatisticsShareBytes`](#generatestatisticssharebytes) / [`shareStatisticsImage`](#sharestatisticsimage)。
 - **备注：** 无。
+
+## 1.6.7 变更
+
+- **释放原生图像资源。** 每个 `ui.Codec` 在 `getNextFrame` 之后立即 dispose；徽标和封面的 `ui.Image`（以及排行／统计的封面映射）在卡片函数结束时于 `finally` 中 dispose；每页的 `ui.Picture` 在 `toImage` 之后 dispose，其 `ui.Image` 在 PNG 编码之后 dispose。此前什么都不释放，长时间导出会话会一直占着每张解码后的封面直到垃圾回收。
+- **封面解码不超过卡片宽度。** 封面以 `targetWidth: cardWidth * pixelRatio` 和 `allowUpscaling: false` 解码，而不是按源图原始尺寸。
+- **PowerShell 剪贴板复制转义 `'`。** `_copyImageToClipboard` 在单引号包裹的 PowerShell 字符串里把图片路径中的单引号加倍，路径含 `'` 不再破坏命令。

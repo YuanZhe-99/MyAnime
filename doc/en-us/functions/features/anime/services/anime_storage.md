@@ -24,8 +24,13 @@ notifies `AutoSyncService`/`ReminderService` after every save. See
 | [`getStoragePath`](#getstoragepath) | static method (`AnimeStorage`) | A | Return the active storage directory path, for UI display. |
 | [`setStoragePath`](#setstoragepath) | static method (`AnimeStorage`) | A | Update the custom storage directory and migrate managed data files. |
 | [`load`](#load) | static method (`AnimeStorage`) | A | Load `anime_data.json` into an `AnimeData`. |
-| [`_atomicWrite`](#atomicwrite) | static method (`AnimeStorage`) | A | Write a file via a temp-file-then-rename step. |
-| [`save`](#save) | static method (`AnimeStorage`) | A | Persist an `AnimeData`, then notify auto-sync and reminders. |
+| `_dataQueue` | static field (`AnimeStorage`) | B | The shared `AtomicWriteQueue` that serializes every read-modify-write of `anime_data.json` (1.6.7). |
+| `_configQueue` | static field (`AnimeStorage`) | B | The shared `AtomicWriteQueue` for `storage_config.json` (1.6.7). |
+| [`_writeData`](#writedata) | static method (`AnimeStorage`) | A | The unqueued library write: unique-temp atomic write, then auto-sync and reminder notifications. |
+| `_exclusiveData` | static method (`AnimeStorage`) | B | Run a read-modify-write on the library inside `_dataQueue` and return its result. |
+| [`updateRecord`](#updaterecord) | static method (`AnimeStorage`) | A | Replace one record computed from the freshly stored copy; no write for a missing id or a `null` result. |
+| [`updateLibrary`](#updatelibrary) | static method (`AnimeStorage`) | A | Rewrite the library from a freshly re-read copy, keeping unknown top-level fields. |
+| [`save`](#save) | static method (`AnimeStorage`) | A | Persist an `AnimeData` through the write queue, then notify auto-sync and reminders. |
 | [`patchExternalMeta`](#patchexternalmeta) | static method (`AnimeStorage`) | A | Refresh cached external metadata **without** marking records edited. |
 | [`patchSeasonLabels`](#patchseasonlabels) | static method (`AnimeStorage`) | A | Replace default season labels with title-derived ones **without** marking records edited. |
 | [`loadFixingSeasonLabels`](#loadfixingseasonlabels) | static method (`AnimeStorage`) | A | Load the library after correcting default season labels. |
@@ -33,7 +38,9 @@ notifies `AutoSyncService`/`ReminderService` after every save. See
 | [`addOrUpdateAll`](#addorupdateall) | static method (`AnimeStorage`) | A | Insert or replace several anime records in one load and one save. |
 | [`deleteAnime`](#deleteanime) | static method (`AnimeStorage`) | A | Remove one anime record by `id` and save. |
 | [`readConfig`](#readconfig) | static method (`AnimeStorage`) | A | Read `storage_config.json` as a raw JSON map. |
-| [`writeConfig`](#writeconfig) | static method (`AnimeStorage`) | A | Write `storage_config.json` atomically. |
+| `_writeConfig` | static method (`AnimeStorage`) | B | The unqueued config write (unique-temp atomic write) used inside `_configQueue`. |
+| [`writeConfig`](#writeconfig) | static method (`AnimeStorage`) | A | Replace `storage_config.json` through the config queue. |
+| [`updateConfig`](#updateconfig) | static method (`AnimeStorage`) | A | Queued read-modify-write of a few config keys; every setter uses it. |
 | [`getThemeMode`](#getthememode) | static method (`AnimeStorage`) | A | Read the persisted theme mode string. |
 | [`setThemeMode`](#setthememode) | static method (`AnimeStorage`) | A | Persist (or clear) the theme mode string. |
 | [`getLocaleTag`](#getlocaletag) | static method (`AnimeStorage`) | A | Read the persisted locale tag. |
@@ -274,7 +281,7 @@ notifies `AutoSyncService`/`ReminderService` after every save. See
 - **Side effects:** Updates `_customPath`; reads/writes `storage_config.json`; may copy-then-delete `anime_data.json` from the old directory to the new one.
 - **Algorithm:**
   1. Capture `oldDir` via `getAppDir()` (using the path in effect *before* this call).
-  2. Set `_customPath = newPath`; update `storagePath` in the config map (set it, or `remove` it when `newPath` is `null`) and write the config back via [`writeConfig`](#writeconfig).
+  2. Set `_customPath = newPath`; update `storagePath` in the config map (set it, or `remove` it when `newPath` is `null`) and write the config back through [`updateConfig`](#updateconfig).
   3. Resolve `newDir` via `getAppDir()` again (now reflecting the new path); if it's the same path as `oldDir`, return `true` immediately (no migration needed).
   4. For each managed data file name in `_dataFileNames` (currently just `anime_data.json`): if the destination file already exists, leave it alone (destination wins); otherwise, if the source file exists, copy it to the destination and delete the source.
   5. Any exception anywhere in this sequence is caught and turned into a `false` return.
@@ -303,27 +310,6 @@ notifies `AutoSyncService`/`ReminderService` after every save. See
   (`lib/features/anime/views/home_page.dart`)
 - **Notes:** A malformed (non-empty but invalid) JSON file propagates the `jsonDecode`/`FormatException` to the caller rather than being caught here — every UI call site that calls `load()` directly does so inside its own `initState`/async-load flow without a surrounding try/catch specific to this failure mode.
 
-### `static Future<void> _atomicWrite(File file, String content)` <a id="atomicwrite"></a>
-- **Kind:** static method of `AnimeStorage`
-- **Source:** `lib/features/anime/services/anime_storage.dart` (line 169)
-- **Purpose:** Write text to a file without ever leaving a truncated/corrupt file behind if the app is killed mid-write.
-- **Inputs:** `file`, `content`.
-- **Returns:** None.
-- **Side effects:** Writes `<file>.tmp` then renames it over `file`.
-- **Algorithm:** `tmp.writeAsString(content, flush: true)` to a sibling `.tmp` path, then `tmp.rename(file.path)` (atomic on the same filesystem).
-- **Usage:**
-  ```dart
-  static Future<void> save(AnimeData data) async {
-    final file = await _getFile(_dataFileName);
-    final jsonStr = const JsonEncoder.withIndent('  ').convert(data.toJson());
-    await _atomicWrite(file, jsonStr);
-  ```
-  (`AnimeStorage.save`, same file)
-- **Notes:** Same tmp-then-rename shape as `WebDAVService._atomicWrite` (see
-  [`../../../shared/services/webdav_service.md`](../../../shared/services/webdav_service.md#atomicwrite)),
-  but this one does not uniquify the tmp file name — acceptable here since the app only ever has one
-  process writing to a given data/config path at a time.
-
 ### `static Future<void> save(AnimeData data)` <a id="save"></a>
 - **Kind:** static method of `AnimeStorage`
 - **Source:** `lib/features/anime/services/anime_storage.dart` (line 182)
@@ -331,7 +317,7 @@ notifies `AutoSyncService`/`ReminderService` after every save. See
 - **Inputs:** `data`.
 - **Returns:** None.
 - **Side effects:** Atomically overwrites `anime_data.json`; calls `AutoSyncService.instance.notifySaved()` (see [`../../../../sync.md`](../../../../sync.md)) and `ReminderService.notifyDataChanged()` so scheduled notification bodies stay current.
-- **Algorithm:** Resolves the data file, serializes `data.toJson()` with `JsonEncoder.withIndent('  ')` (see [`../../../../data-formats.md`](../../../../data-formats.md) on why indentation is load-bearing for sync's unchanged-file fast path), writes it via [`_atomicWrite`](#atomicwrite), then fires both notifications.
+- **Algorithm:** Enqueues [`_writeData`](#writedata) on `_dataQueue`. `_writeData` resolves the data file, serializes `data.toJson()` with `JsonEncoder.withIndent('  ')` (see [`../../../../data-formats.md`](../../../../data-formats.md) on why indentation is load-bearing for sync's unchanged-file fast path), writes it with `atomicWriteString` from `myapps_data` (a uniquely named temp file, then rename), then fires both notifications.
 - **Usage:**
   ```dart
   await AnimeStorage.save(AnimeData(animes: list));
@@ -412,7 +398,7 @@ notifies `AutoSyncService`/`ReminderService` after every save. See
 - **Inputs:** `config` — the complete map to write (every getter/setter pair in this file reads the whole map, mutates one key, and writes it all back).
 - **Returns:** None.
 - **Side effects:** Atomically overwrites `storage_config.json`.
-- **Algorithm:** Serializes `config` with `JsonEncoder.withIndent('  ')` and writes it via [`_atomicWrite`](#atomicwrite).
+- **Algorithm:** Enqueues `_writeConfig` on `_configQueue`; that serializes `config` with `JsonEncoder.withIndent('  ')` and writes it with `atomicWriteString`.
 - **Usage:**
   ```dart
   final config = await AnimeStorage.readConfig();
@@ -420,7 +406,7 @@ notifies `AutoSyncService`/`ReminderService` after every save. See
   await AnimeStorage.writeConfig(config);
   ```
   (pattern used by every `setXxx` method below, and directly by `lib/shared/services/tray_service.dart`)
-- **Notes:** Because every setter does a full read-modify-write of the same file, two concurrent config writes from different code paths could race and drop one's change — not a practical issue in this single-process desktop/mobile app.
+- **Notes:** Overwrites every key it is not given. Since 1.6.7 a change to a few keys goes through [`updateConfig`](#updateconfig), which re-reads inside the queue; the settings page fires several writes at once, and the earlier unserialized read-modify-write let a later write restore an earlier stale value.
 
 ### `static Future<String?> getThemeMode()` <a id="getthememode"></a>
 - **Kind:** static method of `AnimeStorage`
@@ -735,3 +721,43 @@ notifies `AutoSyncService`/`ReminderService` after every save. See
 ## Changes in 1.6.4
 
 patchExternalMeta accepts optional expectedWatchUrls keyed by record id. Guarded patches merge into current metadata and reject changed sources, older snapshots and incomplete replacements. Other metadata updates retain an existing directory. Manual mappings remain untouched.
+
+### `static Future<void> _writeData(AnimeData data)` <a id="writedata"></a>
+- **Kind:** static method of `AnimeStorage`
+- **Source:** `lib/features/anime/services/anime_storage.dart`
+- **Purpose:** Write the library to `anime_data.json` and notify auto-sync and the reminder service, without touching the queue.
+- **Inputs:** `data`.
+- **Returns:** None.
+- **Side effects:** Atomically rewrites `anime_data.json`; calls `AutoSyncService.instance.notifySaved()` and `ReminderService.notifyDataChanged()`.
+- **Notes:** Code already running inside `_dataQueue` must call this, never the public `save`, which enqueues behind the running operation and deadlocks. Replaces the old `_atomicWrite` helper (fixed `.tmp` name).
+
+### `static Future<bool> updateRecord(String id, Anime? Function(Anime current) update)` <a id="updaterecord"></a>
+- **Kind:** static method of `AnimeStorage`
+- **Source:** `lib/features/anime/services/anime_storage.dart`
+- **Purpose:** Replace one record with a value computed from the record as currently stored.
+- **Inputs:** `id`; `update` — receives the stored record and returns the replacement, or `null` to write nothing.
+- **Returns:** `Future<bool>` — whether a record was written.
+- **Side effects:** One queued load and, when written, one `_writeData`.
+- **Notes:** Because the read happens inside the queue, a page that applies only the fields the user changed (the edit form, the detail page's episode toggles, `PlaybackProgressService.markWatched`) cannot overwrite episode statuses or external metadata changed since it opened. A missing id writes nothing; `extraJson` is carried through.
+
+### `static Future<bool> updateLibrary(List<Anime>? Function(List<Anime> current) update)` <a id="updatelibrary"></a>
+- **Kind:** static method of `AnimeStorage`
+- **Source:** `lib/features/anime/services/anime_storage.dart`
+- **Purpose:** Rewrite the whole library from a freshly re-read copy, inside the write queue.
+- **Inputs:** `update` — receives a mutable copy of the stored records and returns the new list, or `null` to write nothing.
+- **Returns:** `Future<bool>` — whether the library was written.
+- **Side effects:** One queued load and, when written, one `_writeData`.
+- **Notes:** Carries `AnimeData.extraJson` through. `addOrUpdate`, `addOrUpdateAll`, `patchExternalMeta`, `patchSeasonLabels`, `deleteAnime` and `FileOpenService.applyBundle` / `replaceAnime` / `deleteAnimeByIds` are built on it, so none of them can drop a record saved meanwhile or the unknown top-level fields a newer build wrote (the bundle operations used to write `AnimeData(animes: list)` without them). `loadFixingSeasonLabels` stays outside the queue and calls `patchSeasonLabels`.
+
+### `static Future<void> updateConfig(void Function(Map<String, dynamic> config) change)` <a id="updateconfig"></a>
+- **Kind:** static method of `AnimeStorage`
+- **Source:** `lib/features/anime/services/anime_storage.dart`
+- **Purpose:** Change some `storage_config.json` keys without losing concurrent changes.
+- **Inputs:** `change` — a synchronous callback that mutates the freshly read config map in place.
+- **Returns:** None.
+- **Side effects:** Queued read-modify-write of `storage_config.json`.
+- **Notes:** Every setter in this file, `setStoragePath`, the settings page's API and reminder writes, `TrayService` and `ReminderService` use it. Call `_writeConfig`, never `writeConfig`, from inside it.
+
+## Changes in 1.6.7
+
+`anime_data.json` and `storage_config.json` writes are serialized by two static `AtomicWriteQueue`s, and the temporary file name is now unique (`atomicWriteString`), so two overlapping writers no longer share `<file>.tmp`. `test/anime_storage_test.dart` covers 20 parallel `addOrUpdate` calls, parallel setters, `extraJson` through bundle operations, `updateRecord` with a missing id, and no leftover temp file.

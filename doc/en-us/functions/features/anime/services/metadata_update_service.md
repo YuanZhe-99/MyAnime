@@ -320,3 +320,7 @@ Applying a *proposal* is the opposite case and does bump it — that is a user e
   3. `null` → retry-after one hour; otherwise clear it, merge the record into the pending metadata (`mergedWith(AnimeExternalMeta(watchProgress: …))`), and count toward the flush.
   4. Flush when the batch threshold is reached; notify listeners when anything changed.
 - **Notes:** Internal helper used within this file only. `?cat=` URLs cost no request, so a library of any size is one download per tick. The in-memory retry is kept separate from the entry backoff on purpose — a flaky watch-site read must never delay that record's metadata refresh. Writes go through `_pendingMeta`, so `modifiedAt` is preserved exactly as for a metadata refresh. `_runOnce` runs it between the refresh and discovery steps, and `startManualScan` runs it first, outside the counted queue.
+
+## Changes in 1.6.7
+
+`_flushPendingMeta` no longer loses the batch when `AnimeStorage.patchExternalMeta` throws: it puts the entries back into `_pendingMeta` with `putIfAbsent` (anything buffered for the same record meanwhile is newer and wins) and rethrows, so the next flush retries. It previously cleared the buffer before the write.

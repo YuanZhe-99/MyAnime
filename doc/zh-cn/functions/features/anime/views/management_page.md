@@ -326,3 +326,7 @@
 ## 1.6.4 变更
 
 番剧行使用 animeEpisodeProgressLabel，区分本地分集进度与原始站点编号。
+
+## 1.6.7 变更
+
+`_showAddOptions` 在每次 await 之后检查 `context.mounted`（它的 `context` 参数遮蔽了 State 的 context），消除了四条 `use_build_context_synchronously` 提示；列表缩略图传入 `cacheHeight`，不再为 40 x 56 的图块解码整张封面。

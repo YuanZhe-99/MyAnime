@@ -986,3 +986,7 @@ held no Riverpod state at all.
   carried into the stacked shape, where the score source keeps its own line above the sort field:
   there is nothing to align to there, and putting the score source below the dropdown it controls
   would mean reading "sort by X" before learning what X is drawn from.
+
+## Changes in 1.6.7
+
+The ranking row's cover thumbnail (`_buildCoverThumbnail`) passes `cacheHeight` (62 logical pixels times the device pixel ratio) so a full-size cover is not decoded for a 44 x 62 thumbnail.

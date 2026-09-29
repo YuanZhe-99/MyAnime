@@ -95,25 +95,21 @@ class TrayService with TrayListener, WindowListener {
   /// Purpose: Update minimize to tray with the provided value.
   /// Inputs: `value`.
   /// Returns: None.
-  /// Side effects: None.
+  /// Side effects: Queued config write through `AnimeStorage.updateConfig`.
   /// Notes: None.
   Future<void> setMinimizeToTray(bool value) async {
     _minimizeToTray = value;
-    final config = await AnimeStorage.readConfig();
-    config['minimizeToTray'] = value;
-    await AnimeStorage.writeConfig(config);
+    await AnimeStorage.updateConfig((config) => config['minimizeToTray'] = value);
   }
 
   /// Purpose: Update close to tray with the provided value.
   /// Inputs: `value`.
   /// Returns: None.
-  /// Side effects: None.
+  /// Side effects: Queued config write through `AnimeStorage.updateConfig`; toggles window close prevention.
   /// Notes: None.
   Future<void> setCloseToTray(bool value) async {
     _closeToTray = value;
-    final config = await AnimeStorage.readConfig();
-    config['closeToTray'] = value;
-    await AnimeStorage.writeConfig(config);
+    await AnimeStorage.updateConfig((config) => config['closeToTray'] = value);
     await windowManager.setPreventClose(value);
   }
 

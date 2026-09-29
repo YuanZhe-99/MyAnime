@@ -153,7 +153,9 @@ class GoldenTranscript {
     final buffer = StringBuffer();
     for (var i = 0; i < exchanges.length; i++) {
       final e = exchanges[i];
-      buffer.writeln('=== [$i] ${e.method} ${_normalize(e.path)} -> ${e.statusCode}');
+      buffer.writeln(
+        '=== [$i] ${e.method} ${_normalize(e.path)} -> ${e.statusCode}',
+      );
       final sortedHeaderKeys = e.requestHeaders.keys.toList()..sort();
       for (final name in sortedHeaderKeys) {
         buffer.writeln('  $name: ${_normalize(e.requestHeaders[name]!)}');
@@ -173,17 +175,18 @@ class GoldenTranscript {
   /// Notes: Order matters: normalize the longest/most-specific patterns first.
   static String _normalize(String input) {
     var out = input;
+    out = out.replaceAllMapped(RegExp(r'"etag-\d+"'), (m) => '"<etag>"');
     out = out.replaceAllMapped(
-      RegExp(r'"etag-\d+"'),
-      (m) => '"<etag>"',
-    );
-    out = out.replaceAllMapped(
-      RegExp(r'[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}',
-          caseSensitive: false),
+      RegExp(
+        r'[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}',
+        caseSensitive: false,
+      ),
       (m) => '<uuid>',
     );
     out = out.replaceAllMapped(
-      RegExp(r'\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d+)?(Z|[+-]\d{2}:?\d{2})?'),
+      RegExp(
+        r'\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d+)?(Z|[+-]\d{2}:?\d{2})?',
+      ),
       (m) => '<timestamp>',
     );
     out = out.replaceAllMapped(

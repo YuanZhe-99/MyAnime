@@ -44,6 +44,15 @@ class _HomePageState extends ConsumerState<HomePage> {
   DateTime? _selectedDay;
   List<Anime> _allAnime = [];
 
+  /// Day-to-episodes map for [_indexedAnime] under [_indexedBasis].
+  Map<DateTime, List<AiringEpisode>> _airingIndex = const {};
+
+  /// The library list [_airingIndex] was built from (compared by identity).
+  List<Anime>? _indexedAnime;
+
+  /// The time basis [_airingIndex] was built for.
+  HomeCalendarTimeBasis? _indexedBasis;
+
   /// Purpose: Initialize listeners, controllers, and first-load work for this state object.
   /// Inputs: None.
   /// Returns: None.
@@ -81,25 +90,23 @@ class _HomePageState extends ConsumerState<HomePage> {
 
   /// Purpose: Collect airing episodes scheduled for the requested calendar day.
   /// Inputs: `day`, `timeBasis`.
-  /// Returns: `List<_AiringEpisode>`.
-  /// Side effects: None.
-  /// Notes: Internal helper used within this file only.
-  List<_AiringEpisode> _getEventsForDay(
+  /// Returns: `List<AiringEpisode>` — a fresh list the caller may sort.
+  /// Side effects: Rebuilds the cached airing index when the library list or
+  /// the time basis changed since the last call.
+  /// Notes: Internal helper used within this file only. The calendar asks for
+  /// every visible day on every build, so the day-to-episodes map is built once
+  /// per (library list identity, time basis) instead of scanning every
+  /// episode of every record per day.
+  List<AiringEpisode> _getEventsForDay(
     DateTime day,
     HomeCalendarTimeBasis timeBasis,
   ) {
-    final events = <_AiringEpisode>[];
-    final dayOnly = DateTime(day.year, day.month, day.day);
-    for (final anime in _allAnime) {
-      final lastEp = anime.endEpisode ?? anime.startEpisode;
-      for (var ep = anime.startEpisode; ep <= lastEp; ep++) {
-        final calDate = _getEpisodeCalendarDate(anime, ep, timeBasis);
-        if (calDate != null && calDate == dayOnly) {
-          events.add(_AiringEpisode(anime: anime, episode: ep));
-        }
-      }
+    if (!identical(_indexedAnime, _allAnime) || _indexedBasis != timeBasis) {
+      _airingIndex = buildAiringIndex(_allAnime, timeBasis);
+      _indexedAnime = _allAnime;
+      _indexedBasis = timeBasis;
     }
-    return events;
+    return List.of(_airingIndex[DateTime(day.year, day.month, day.day)] ?? []);
   }
 
   /// Purpose: Return the current date for the selected home calendar time basis.
@@ -112,30 +119,6 @@ class _HomePageState extends ConsumerState<HomePage> {
       HomeCalendarTimeBasis.jst => JstTime.today(),
       HomeCalendarTimeBasis.local => JstTime.localToday(),
     };
-  }
-
-  /// Purpose: Return the calendar date for an episode under the selected home calendar time basis.
-  /// Inputs: `anime`, `episode`, `timeBasis`.
-  /// Returns: `DateTime?`.
-  /// Side effects: None.
-  /// Notes: Local mode converts episode air timestamps to the device timezone; all-at-once releases keep their release date.
-  DateTime? _getEpisodeCalendarDate(
-    Anime anime,
-    int episode,
-    HomeCalendarTimeBasis timeBasis,
-  ) {
-    if (timeBasis == HomeCalendarTimeBasis.jst) {
-      return anime.getEpisodeCalendarDate(episode);
-    }
-
-    if (anime.effectiveType == AnimeType.allAtOnce) {
-      return anime.getEpisodeCalendarDate(episode);
-    }
-
-    final airDate = anime.getEpisodeAirDate(episode);
-    if (airDate == null) return anime.getEpisodeCalendarDate(episode);
-    final local = JstTime.toLocal(airDate);
-    return DateTime(local.year, local.month, local.day);
   }
 
   /// Purpose: Return the display air date for an episode under the selected home calendar time basis.
@@ -161,11 +144,11 @@ class _HomePageState extends ConsumerState<HomePage> {
 
   /// Purpose: Build the earliest unwatched aired episode for each anime and sort them by air date.
   /// Inputs: None.
-  /// Returns: `List<_AiringEpisode>`.
+  /// Returns: `List<AiringEpisode>`.
   /// Side effects: None.
   /// Notes: Keeps the visible list focused on the next episode to watch per anime.
-  List<_AiringEpisode> _getUnwatchedEpisodes() {
-    final episodes = <_AiringEpisode>[];
+  List<AiringEpisode> _getUnwatchedEpisodes() {
+    final episodes = <AiringEpisode>[];
     for (final anime in _allAnime) {
       final lastEp = anime.endEpisode ?? anime.startEpisode;
       for (var ep = anime.startEpisode; ep <= lastEp; ep++) {
@@ -173,7 +156,7 @@ class _HomePageState extends ConsumerState<HomePage> {
         if (status == EpisodeStatus.unwatched) {
           final airDate = anime.getEpisodeAirDate(ep);
           if (airDate != null && !airDate.isAfter(JstTime.now())) {
-            episodes.add(_AiringEpisode(anime: anime, episode: ep));
+            episodes.add(AiringEpisode(anime: anime, episode: ep));
           }
           break; // only the earliest unwatched episode per anime
         }
@@ -218,7 +201,7 @@ class _HomePageState extends ConsumerState<HomePage> {
   /// Returns: None.
   /// Side effects: None.
   /// Notes: Internal helper used within this file only.
-  Future<void> _toggleWatched(_AiringEpisode ep) async {
+  Future<void> _toggleWatched(AiringEpisode ep) async {
     final current =
         ep.anime.episodeStatuses[ep.episode] ?? EpisodeStatus.unwatched;
     final newStatus = current == EpisodeStatus.watched
@@ -468,7 +451,7 @@ class _HomePageState extends ConsumerState<HomePage> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            TableCalendar<_AiringEpisode>(
+            TableCalendar<AiringEpisode>(
               firstDay: DateTime(2020),
               lastDay: DateTime(2030),
               focusedDay: focusedDay,
@@ -670,7 +653,7 @@ class _HomePageState extends ConsumerState<HomePage> {
   /// Side effects: None.
   /// Notes: Internal helper used within this file only. Reads the stored
   /// source-bound episode directory; no comparison of unrelated numbering systems.
-  bool _siteHasEpisode(_AiringEpisode ep) {
+  bool _siteHasEpisode(AiringEpisode ep) {
     return AnimeEpisodeService.resolve(
       ep.anime,
       library: _allAnime,
@@ -683,7 +666,7 @@ class _HomePageState extends ConsumerState<HomePage> {
   /// Side effects: None.
   /// Notes: Internal helper used within this file only.
   Widget _buildEpisodeTile(
-    _AiringEpisode ep,
+    AiringEpisode ep,
     ThemeData theme,
     AppLocalizations l10n,
     AppSettings settings,
@@ -717,6 +700,7 @@ class _HomePageState extends ConsumerState<HomePage> {
                           snap.data!,
                           width: 40,
                           height: 56,
+                          cacheHeight: (56 * MediaQuery.devicePixelRatioOf(context)).ceil(),
                           fit: BoxFit.cover,
                         ),
                       );
@@ -813,14 +797,65 @@ class _HomePageState extends ConsumerState<HomePage> {
   }
 }
 
-class _AiringEpisode {
+/// Purpose: Return the calendar date an episode airs on under a time basis.
+/// Inputs: `anime`, `episode`, `timeBasis`.
+/// Returns: `DateTime?` — date-only, or null when the schedule is incomplete.
+/// Side effects: None.
+/// Notes: Local mode converts the episode air timestamp to the device time
+/// zone; all-at-once releases keep their release date.
+DateTime? airingCalendarDate(
+  Anime anime,
+  int episode,
+  HomeCalendarTimeBasis timeBasis,
+) {
+  if (timeBasis == HomeCalendarTimeBasis.jst) {
+    return anime.getEpisodeCalendarDate(episode);
+  }
+
+  if (anime.effectiveType == AnimeType.allAtOnce) {
+    return anime.getEpisodeCalendarDate(episode);
+  }
+
+  final airDate = anime.getEpisodeAirDate(episode);
+  if (airDate == null) return anime.getEpisodeCalendarDate(episode);
+  final local = JstTime.toLocal(airDate);
+  return DateTime(local.year, local.month, local.day);
+}
+
+/// Purpose: Group every airing episode by its calendar date.
+/// Inputs: `animes`, `timeBasis`.
+/// Returns: `Map<DateTime, List<AiringEpisode>>` keyed by date-only values;
+/// each list keeps library order, then episode order.
+/// Side effects: None.
+/// Notes: Equivalent to scanning every record for each day, computed once.
+/// An open-ended record (no end episode) contributes only its first episode,
+/// matching the per-day scan it replaces. Visible for testing.
+@visibleForTesting
+Map<DateTime, List<AiringEpisode>> buildAiringIndex(
+  List<Anime> animes,
+  HomeCalendarTimeBasis timeBasis,
+) {
+  final index = <DateTime, List<AiringEpisode>>{};
+  for (final anime in animes) {
+    final lastEp = anime.endEpisode ?? anime.startEpisode;
+    for (var ep = anime.startEpisode; ep <= lastEp; ep++) {
+      final date = airingCalendarDate(anime, ep, timeBasis);
+      if (date == null) continue;
+      (index[date] ??= []).add(AiringEpisode(anime: anime, episode: ep));
+    }
+  }
+  return index;
+}
+
+/// One episode scheduled to air, shown on the home calendar and list.
+class AiringEpisode {
   final Anime anime;
   final int episode;
 
   /// Purpose: Create a airing episode instance.
   /// Inputs: `anime`, `episode`.
-  /// Returns: A new `_AiringEpisode` instance.
+  /// Returns: A new `AiringEpisode` instance.
   /// Side effects: None.
-  /// Notes: Internal helper used within this file only.
-  const _AiringEpisode({required this.anime, required this.episode});
+  /// Notes: Public so `buildAiringIndex` can be tested.
+  const AiringEpisode({required this.anime, required this.episode});
 }

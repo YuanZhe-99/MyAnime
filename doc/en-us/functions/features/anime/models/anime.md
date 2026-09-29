@@ -91,6 +91,7 @@ every view under `lib/features/anime/views/`.
 | [`weekOffsetFor`](#weekoffsetfor) | method (`Anime`) | A | Sum cumulative `episodeWeekOffsets` entries up to an episode number. |
 | [`getEpisodeAirDate`](#getepisodeairdate) | method (`Anime`) | A | JST air timestamp for an episode, with late-night (`25:00`-style) rollover. |
 | [`getEpisodeCalendarDate`](#getepisodecalendardate) | method (`Anime`) | A | JST calendar date for an episode, without rollover. |
+| `_plusDays` | top-level function | B | Add whole calendar days to a date, keeping wall-clock time and the local/UTC mode (1.6.7). |
 | [`nextUnwatchedEpisode`](#nextunwatchedepisode) | getter (`Anime`) | A | First episode number still unwatched. |
 | [`validWatchProgress`](#validwatchprogress) | getter (`Anime`) | A | The stored watch-site progress, only while it was read for the current `watchUrl`. |
 | [`isCompleted`](#iscompleted) | getter (`Anime`) | A | Whether every episode up to `endEpisode` is watched. |
@@ -1201,3 +1202,7 @@ has 83 rows — the `AnimeData` default constructor has no doc comment at all in
 ## Changes in 1.6.4
 
 Anime gains optional episodeMapping; AnimeExternalMeta gains optional episodeCatalog. Constructors, copyWith, JSON, import copies and metadata merges preserve them. Cache writes retain modifiedAt. See data-formats.md for field shapes.
+
+## Changes in 1.6.7
+
+`getEpisodeAirDate` and `getEpisodeCalendarDate` add weeks through `_plusDays` (calendar-field arithmetic, `DateTime(y, m, d + n, …)` or `DateTime.utc(…)`) instead of `firstAirDate.add(Duration(days: n))`. A 24-hour step drifts by an hour across a daylight-saving change, and an air time near midnight then landed on the next day and skipped a whole week. The estimated end date in `airsInQuarter` keeps its `Duration` because it only needs a rough span. Covered by `test/audit_fixes_test.dart` (the DST test only proves itself in a DST time zone; CI on Linux or macOS with `TZ=America/New_York` is the real check).

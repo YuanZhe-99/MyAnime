@@ -54,6 +54,8 @@
 | `AnimeDetailPage.new` | 构造函数（`AnimeDetailPage`） | B | 为给定动画 ID 创建 `AnimeDetailPage` 实例。 |
 | `AnimeDetailPage.createState` | 方法（`AnimeDetailPage`） | B | 为此组件创建可变状态对象。 |
 | `_AnimeDetailPageState.initState` | 方法（`_AnimeDetailPageState`） | B | 触发首次数据加载。 |
+| `_AnimeDetailPageState.dispose` | 方法（`_AnimeDetailPageState`） | B | 移除本地数据变更监听（1.6.7）。 |
+| `_AnimeDetailPageState._reloadRecord` | 方法（`_AnimeDetailPageState`） | B | 同步改变本地数据后，从存储重新读取记录和资料库（1.6.7）。 |
 | [`_load`](#_load) | 方法（`_AnimeDetailPageState`） | A | 加载此动画并构建系列分组，找到它所属的系列。 |
 | [`didUpdateWidget`](#didupdatewidget) | 方法（`_AnimeDetailPageState`） | A | 页面为另一条记录重建时重新加载。 |
 | [`_editCategories`](#_editcategories) | 方法（`_AnimeDetailPageState`） | A | 让用户设置本记录的分类。 |
@@ -386,3 +388,8 @@
 | 声明 | 类型 | 层级 | 用途 |
 |---|---|---|---|
 | `_loadEpisodeDirectory` | 方法 | B | 刷新受保护的分集目录。|
+
+## 1.6.7 变更
+
+- **编辑基于已存记录计算。** `_editCategories`、`_toggleEpisode`、`_shiftFromEpisode`、`_resetSchedule`、`_toggleAllWatched`、`_abandonAnime` 和 `_resumeAnime` 过去复制页面自己的 `_anime` 快照再 `addOrUpdate`，会写回过期的集数状态或元数据。现在它们在 `AnimeStorage.updateRecord` 内、依据刚读出的存储记录计算改动（批量操作在记录没有结束集数时返回 `null`），然后重新加载。
+- **页面跟随同步。** `initState` 向 `AutoSyncService.addOnLocalDataChanged` 注册 `_reloadRecord`，`dispose` 移除它，因此页面打开期间到达的合并会被显示出来（只读存储；不做季标签修复，不联网），而不是被下一次编辑覆盖。

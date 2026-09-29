@@ -209,3 +209,8 @@ this page focuses on what each function actually does.
   itself displays those notifications at their scheduled time.
 - **Notes:** `_showCounter` increments per call so each ad-hoc mobile notification gets a distinct
   id, separate from the `100..106` ids used by scheduled per-day notifications.
+
+## Changes in 1.6.7
+
+- `checkAndNotify` records `lastReminderDate` through `AnimeStorage.updateConfig` (only that key) instead of writing back the config map it read before the notification was shown, which could restore a setting changed in between.
+- `_scheduleMobileNotification` builds each fire time with `TZDateTime(tz.local, year, month, day + offset, hour, minute)` rather than `now.add(Duration(days: offset))`, so a daylight-saving change inside the 7-day window no longer shifts a notification to the wrong date.

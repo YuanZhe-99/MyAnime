@@ -21,9 +21,12 @@ registers the `.myanimeitem` file association.
 | [`handleFile`](#handlefile) | method (`FileOpenService`) | A | Import a `.myanimeitem` file (v1 or v2) directly into storage. |
 | [`_importOne`](#_importone) | method (`FileOpenService`) | A | Decode a parsed record's bundled cover, then build the new record through `importedCopy`. |
 | [`importedCopy`](#importedcopy) | method (`FileOpenService`), `@visibleForTesting` | A | Build the record an import writes: new id and timestamps, `seriesLink` dropped, `externalMeta` and `categories` carried. |
+| `safeCoverExt` | method (`FileOpenService`), `@visibleForTesting` | B | Validate a share file's `coverImageExt` (`^\.[A-Za-z0-9]{1,5}$`, else `.jpg`) so it cannot alter the cover's path (1.6.7). |
+| `isSafeCoverPath` | method (`FileOpenService`), `@visibleForTesting` | B | Whether a record's `coverImage` is a plain `images/<name>`; anything else is dropped on import (1.6.7). |
 | [`parseBundle`](#parsebundle) | method (`FileOpenService`) | A | Parse a `.myanimeitem` file into an `ImportBundle` without writing storage. |
 | [`pickAndParseBundle`](#pickandparsebundle) | method (`FileOpenService`) | A | Let the user pick a `.myanimeitem` file and parse it into a bundle. |
 | [`applyBundle`](#applybundle) | method (`FileOpenService`) | A | Persist the chosen subset of a parsed bundle to storage. |
+| `discardUnusedCovers` | method (`FileOpenService`) | B | Delete the cover files a parsed bundle wrote for records that were not kept (1.6.7). |
 | [`replaceAnime`](#replaceanime) | method (`FileOpenService`) | A | Replace (or add) a local anime record by id. |
 | [`deleteAnimeByIds`](#deleteanimebyids) | method (`FileOpenService`) | A | Delete anime records by id from storage. |
 | [`importFromPicker`](#importfrompicker) | method (`FileOpenService`) | A | Let the user pick and directly import a `.myanimeitem` file. |
@@ -84,7 +87,7 @@ registers the `.myanimeitem` file association.
 - **Inputs:** `path` — absolute path to the file.
 - **Returns:** `Future<String?>` — the imported anime's id (v1) or the *last* imported anime's id
   (v2), or `null` on any failure (missing file, bad JSON, unrecognized version).
-- **Side effects:** Writes to `AnimeStorage` (one `addOrUpdate` per imported record); may write
+- **Side effects:** Writes to `AnimeStorage` (one `addOrUpdate` for a v1 file, one `addOrUpdateAll` for a v2 file); may write
   decoded cover images to `<app dir>/images/` via [`_importOne`](#_importone).
 - **Algorithm:**
   1. Return `null` if the file doesn't exist.
@@ -116,7 +119,7 @@ registers the `.myanimeitem` file association.
   `<app dir>/images/<uuid><ext>` (creating the directory if needed).
 - **Algorithm:**
   1. If `itemJson['coverImage']` exists, decode it and write it under a fresh UUID filename (using
-     `coverImageExt` or `.jpg` as the extension).
+     `safeCoverExt(coverImageExt)`, which falls back to `.jpg`).
   2. Return [`importedCopy`](#importedcopy)`(parsed, id: <fresh UUID>, now: <UTC now>, coverPath:
      <the just-written path, if any>)`.
 - **Usage:** Called internally from [`handleFile`](#handlefile) and [`parseBundle`](#parsebundle).
@@ -206,10 +209,8 @@ registers the `.myanimeitem` file association.
 - **Inputs:** `bundle` — a previously-parsed `ImportBundle`; `skipIndices` — bundle indices to
   leave out (e.g. conflicts the user chose to keep local, or that will be merged separately).
 - **Returns:** `Future<int>` — the number of records actually added.
-- **Side effects:** Appends records to `AnimeStorage` (one bulk `save`, not per-record
-  `addOrUpdate`).
-- **Algorithm:** Load current data, append every `bundle.animes[i]` not in `skipIndices` to the
-  list, save the combined list once, return the count added.
+- **Side effects:** Appends records to `AnimeStorage` (one queued `updateLibrary`).
+- **Algorithm:** Collect every `bundle.animes[i]` not in `skipIndices`; inside `AnimeStorage.updateLibrary` append them to the freshly re-read list; return the count added (0 writes nothing).
 - **Usage:**
   ```dart
   final added = await FileOpenService.applyBundle(
@@ -231,8 +232,7 @@ registers the `.myanimeitem` file association.
 - **Inputs:** `localId` — the existing record's id to replace; `replacement` — the new record.
 - **Returns:** `Future<void>`.
 - **Side effects:** Updates (or appends to) `AnimeStorage`.
-- **Algorithm:** Load current data; find `localId`'s index; if found, overwrite it in place,
-  otherwise append `replacement`; save.
+- **Algorithm:** Inside `AnimeStorage.updateLibrary`, find `localId`'s index in the freshly re-read list; if found, overwrite it in place, otherwise append `replacement`.
 - **Usage:**
   ```dart
   final merged = DuplicateService.merge(local, [imported]);
@@ -250,8 +250,7 @@ registers the `.myanimeitem` file association.
 - **Inputs:** `ids` — the ids to remove.
 - **Returns:** `Future<void>`.
 - **Side effects:** Rewrites `AnimeStorage` with the matching records removed.
-- **Algorithm:** Load current data, filter out any anime whose `id` is in the given set, save the
-  filtered list.
+- **Algorithm:** Inside `AnimeStorage.updateLibrary`, filter out any anime whose `id` is in the given set.
 - **Usage:**
   ```dart
   await FileOpenService.deleteAnimeByIds(others.map((a) => a.id));
@@ -387,3 +386,10 @@ registers the `.myanimeitem` file association.
 ## Changes in 1.6.4
 
 importedCopy retains source-bound episodeMapping along with public episodeCatalog metadata. New import ids and timestamps still apply.
+
+## Changes in 1.6.7
+
+- **Cover path traversal closed.** `coverImageExt` came straight from the file and was appended to the image name, so `/../../x` could write outside `images/`. `safeCoverExt` accepts only a dot plus one to five ASCII letters or digits; `importedCopy` keeps a record's own `coverImage` only when `isSafeCoverPath` says it is `images/<plain name>` (no `..`, no other directory).
+- **Nothing is dropped on import.** `applyBundle`, `replaceAnime` and `deleteAnimeByIds` run inside `AnimeStorage.updateLibrary`; they used to save `AnimeData(animes: list)` and lose the library's unknown top-level fields (`extraJson`) and any record saved during the operation. `handleFile` saves a v2 file with one `addOrUpdateAll`.
+- **No orphan covers.** `parseBundle` still writes each embedded cover while parsing and now records the files it created in `ImportBundle.writtenCovers`; after the user resolves conflicts `showImportBundleFlow` calls `discardUnusedCovers`, which deletes the covers of skipped records (never one a merged record uses, never a file the import did not create).
+- Tests: `test/bundle_import_test.dart` (path-safety tables, `discardUnusedCovers`) and `test/anime_storage_test.dart` (`extraJson` through the bundle operations).

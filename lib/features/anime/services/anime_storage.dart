@@ -22,6 +22,25 @@ class AnimeStorage {
   /// Whether config has been loaded from disk.
   static bool _configLoaded = false;
 
+  /// Purpose: Serialize every read-modify-write of `anime_data.json`.
+  /// Inputs: None.
+  /// Returns: The shared write queue for the library file.
+  /// Side effects: None.
+  /// Notes: Static on purpose: all callers in the process share one queue, so
+  /// two overlapping load-modify-save sequences can no longer drop each
+  /// other's change. Code already running inside this queue must call
+  /// [_writeData], never the public [save], which would enqueue behind itself
+  /// and deadlock.
+  static final AtomicWriteQueue _dataQueue = AtomicWriteQueue();
+
+  /// Purpose: Serialize every read-modify-write of `storage_config.json`.
+  /// Inputs: None.
+  /// Returns: The shared write queue for the config file.
+  /// Side effects: None.
+  /// Notes: Independent of [_dataQueue] because the two files never depend on
+  /// each other. Code already inside this queue must call [_writeConfig].
+  static final AtomicWriteQueue _configQueue = AtomicWriteQueue();
+
   /// Purpose: Provide the internal get default app dir helper for this file.
   /// Inputs: None.
   /// Returns: `Future<Directory>`.
@@ -130,13 +149,13 @@ class AnimeStorage {
       final oldDir = await getAppDir();
 
       _customPath = newPath;
-      final config = await readConfig();
-      if (newPath != null) {
-        config['storagePath'] = newPath;
-      } else {
-        config.remove('storagePath');
-      }
-      await writeConfig(config);
+      await updateConfig((config) {
+        if (newPath != null) {
+          config['storagePath'] = newPath;
+        } else {
+          config.remove('storagePath');
+        }
+      });
 
       final newDir = await getAppDir();
       if (oldDir.path == newDir.path) return true;
@@ -167,32 +186,87 @@ class AnimeStorage {
     return AnimeData.fromJson(json);
   }
 
-  /// Purpose: Write a file atomically through a temporary file and rename step.
-  /// Inputs: `file`, `content`.
-  /// Returns: None.
-  /// Side effects: Writes a temp file and renames it over the target path.
-  /// Notes: Internal helper used within this file only; protects the data
-  /// file against corruption when the app is killed mid-write.
-  static Future<void> _atomicWrite(File file, String content) async {
-    final tmp = File('${file.path}.tmp');
-    await tmp.writeAsString(content, flush: true);
-    await tmp.rename(file.path);
-  }
-
-  /// Purpose: Implement the save behavior for this file.
+  /// Purpose: Persist the library and notify auto-sync and reminders.
   /// Inputs: `data`.
   /// Returns: None.
-  /// Side effects: May read or mutate application state, storage, or service resources.
-  /// Notes: Writes atomically (tmp-then-rename), then notifies auto-sync and
-  /// refreshes mobile reminder schedules so scheduled notification bodies
-  /// track the latest data.
-  static Future<void> save(AnimeData data) async {
+  /// Side effects: Atomically rewrites `anime_data.json` through a uniquely
+  /// named temporary file, then notifies auto-sync and the reminder service.
+  /// Notes: Internal helper used within this file only. It is the write that
+  /// code already running inside [_dataQueue] must use; it never enqueues.
+  static Future<void> _writeData(AnimeData data) async {
     final file = await _getFile(_dataFileName);
     final jsonStr = const JsonEncoder.withIndent('  ').convert(data.toJson());
-    await _atomicWrite(file, jsonStr);
+    await atomicWriteString(file, jsonStr);
     AutoSyncService.instance.notifySaved();
     ReminderService.notifyDataChanged();
   }
+
+  /// Purpose: Run a read-modify-write operation on the library exclusively.
+  /// Inputs: `operation` — runs inside [_dataQueue]; it must call
+  /// [_writeData], never [save].
+  /// Returns: `Future<T>` — whatever `operation` returned.
+  /// Side effects: Whatever `operation` does; queued behind earlier writes.
+  /// Notes: Internal helper used within this file only.
+  static Future<T> _exclusiveData<T>(Future<T> Function() operation) async {
+    late T result;
+    await _dataQueue.enqueue(() async {
+      result = await operation();
+    });
+    return result;
+  }
+
+  /// Purpose: Persist the whole library.
+  /// Inputs: `data`.
+  /// Returns: None.
+  /// Side effects: Queued behind every other library write, then atomically
+  /// rewrites `anime_data.json`, notifies auto-sync and refreshes mobile
+  /// reminder schedules so scheduled notification bodies track the latest data.
+  /// Notes: Prefer [updateRecord] / [updateLibrary] when the new value depends
+  /// on what is stored: `save` writes exactly the snapshot it is given.
+  static Future<void> save(AnimeData data) =>
+      _dataQueue.enqueue(() => _writeData(data));
+
+  /// Purpose: Replace one record computed from the freshly stored copy.
+  /// Inputs: `id`; `update` receives the stored record and returns the
+  /// replacement, or `null` to leave the file untouched.
+  /// Returns: `Future<bool>` — whether a record was written.
+  /// Side effects: One queued load and, when written, one save of
+  /// `anime_data.json`.
+  /// Notes: Re-reads inside the queue, so a form applying only the fields the
+  /// user edited cannot overwrite a background change (episode statuses,
+  /// external metadata) made since the form opened. A missing id writes
+  /// nothing. `AnimeData.extraJson` is carried through.
+  static Future<bool> updateRecord(
+    String id,
+    Anime? Function(Anime current) update,
+  ) => _exclusiveData(() async {
+    final data = await load();
+    final idx = data.animes.indexWhere((a) => a.id == id);
+    if (idx < 0) return false;
+    final replaced = update(data.animes[idx]);
+    if (replaced == null) return false;
+    final list = List<Anime>.of(data.animes);
+    list[idx] = replaced;
+    await _writeData(AnimeData(animes: list, extraJson: data.extraJson));
+    return true;
+  });
+
+  /// Purpose: Rewrite the library from a freshly re-read copy.
+  /// Inputs: `update` receives the stored records and returns the new list, or
+  /// `null` to leave the file untouched.
+  /// Returns: `Future<bool>` — whether the library was written.
+  /// Side effects: One queued load and, when written, one save.
+  /// Notes: Carries `AnimeData.extraJson` through, so unknown top-level fields
+  /// written by a newer build survive bundle import, replace and delete flows.
+  static Future<bool> updateLibrary(
+    List<Anime>? Function(List<Anime> current) update,
+  ) => _exclusiveData(() async {
+    final data = await load();
+    final next = update(List<Anime>.of(data.animes));
+    if (next == null) return false;
+    await _writeData(AnimeData(animes: next, extraJson: data.extraJson));
+    return true;
+  });
 
   // ── CRUD operations ──
 
@@ -202,17 +276,15 @@ class AnimeStorage {
   /// Side effects: May read or mutate application state, storage, or service resources.
   /// Notes: Carries `AnimeData.extraJson` through, so unknown top-level fields
   /// written by a newer build survive an edit made by an older one.
-  static Future<void> addOrUpdate(Anime anime) async {
-    final data = await load();
-    final list = List<Anime>.of(data.animes);
+  static Future<void> addOrUpdate(Anime anime) => updateLibrary((list) {
     final idx = list.indexWhere((a) => a.id == anime.id);
     if (idx >= 0) {
       list[idx] = anime;
     } else {
       list.add(anime);
     }
-    await save(AnimeData(animes: list, extraJson: data.extraJson));
-  }
+    return list;
+  });
 
   /// Purpose: Add or replace several anime records in one write.
   /// Inputs: `animes` — records keyed by `id`; a later duplicate id wins.
@@ -223,14 +295,15 @@ class AnimeStorage {
   /// series at once. Callers stamp `modifiedAt` themselves; this method writes
   /// the records exactly as given.
   static Future<void> addOrUpdateAll(Iterable<Anime> animes) async {
-    final updates = {for (final a in animes) a.id: a};
-    if (updates.isEmpty) return;
-    final data = await load();
-    final list = [
-      for (final a in data.animes) updates.remove(a.id) ?? a,
-      ...updates.values,
-    ];
-    await save(AnimeData(animes: list, extraJson: data.extraJson));
+    final incoming = {for (final a in animes) a.id: a};
+    if (incoming.isEmpty) return;
+    await updateLibrary((current) {
+      final updates = Map<String, Anime>.of(incoming);
+      return [
+        for (final a in current) updates.remove(a.id) ?? a,
+        ...updates.values,
+      ];
+    });
   }
 
   /// Purpose: Refresh cached external metadata without marking records edited.
@@ -258,41 +331,41 @@ class AnimeStorage {
     Map<String, String>? expectedWatchUrls,
   }) async {
     if (updates.isEmpty) return false;
-    final data = await load();
-    final list = List<Anime>.of(data.animes);
-    var touched = false;
-    for (var i = 0; i < list.length; i++) {
-      final meta = updates[list[i].id];
-      if (meta == null) continue;
-      final expected = expectedWatchUrls?[list[i].id];
-      if (expected != null && list[i].watchUrl?.trim() != expected) continue;
-      final existing = list[i].externalMeta ?? const AnimeExternalMeta();
-      final incoming = meta.episodeCatalog;
-      final previous = existing.episodeCatalog;
-      if (expected != null &&
-          incoming != null &&
-          previous != null &&
-          previous.sourceUrl == incoming.sourceUrl &&
-          (previous.checkedAt.isAfter(incoming.checkedAt) ||
-              (previous.complete && !incoming.complete))) {
-        continue;
+    return updateLibrary((list) {
+      var touched = false;
+      for (var i = 0; i < list.length; i++) {
+        final meta = updates[list[i].id];
+        if (meta == null) continue;
+        final expected = expectedWatchUrls?[list[i].id];
+        if (expected != null && list[i].watchUrl?.trim() != expected) continue;
+        final existing = list[i].externalMeta ?? const AnimeExternalMeta();
+        final incoming = meta.episodeCatalog;
+        final previous = existing.episodeCatalog;
+        if (expected != null &&
+            incoming != null &&
+            previous != null &&
+            previous.sourceUrl == incoming.sourceUrl &&
+            (previous.checkedAt.isAfter(incoming.checkedAt) ||
+                (previous.complete && !incoming.complete))) {
+          continue;
+        }
+        // `copyWith` defaults `modifiedAt` to now when it is omitted, so the
+        // existing value has to be passed back in explicitly. Everything in the
+        // Notes above depends on this line.
+        list[i] = list[i].copyWith(
+          externalMeta: expected != null
+              ? existing.mergedWith(meta)
+              : (meta.episodeCatalog == null && previous != null
+                    ? meta.mergedWith(
+                        AnimeExternalMeta(episodeCatalog: previous),
+                      )
+                    : meta),
+          modifiedAt: list[i].modifiedAt,
+        );
+        touched = true;
       }
-      // `copyWith` defaults `modifiedAt` to now when it is omitted, so the
-      // existing value has to be passed back in explicitly. Everything in the
-      // Notes above depends on this line.
-      list[i] = list[i].copyWith(
-        externalMeta: expected != null
-            ? existing.mergedWith(meta)
-            : (meta.episodeCatalog == null && previous != null
-                  ? meta.mergedWith(AnimeExternalMeta(episodeCatalog: previous))
-                  : meta),
-        modifiedAt: list[i].modifiedAt,
-      );
-      touched = true;
-    }
-    if (!touched) return false;
-    await save(AnimeData(animes: list, extraJson: data.extraJson));
-    return true;
+      return touched ? list : null;
+    });
   }
 
   /// Purpose: Replace default season labels with ones derived from titles,
@@ -309,18 +382,19 @@ class AnimeStorage {
   /// longer the default, so a label the user just typed is never overwritten.
   static Future<bool> patchSeasonLabels(Map<String, String> labels) async {
     if (labels.isEmpty) return false;
-    final data = await load();
-    final list = List<Anime>.of(data.animes);
-    var touched = false;
-    for (var i = 0; i < list.length; i++) {
-      final label = labels[list[i].id];
-      if (label == null || !isDefaultSeasonLabel(list[i].season)) continue;
-      list[i] = list[i].copyWith(season: label, modifiedAt: list[i].modifiedAt);
-      touched = true;
-    }
-    if (!touched) return false;
-    await save(AnimeData(animes: list, extraJson: data.extraJson));
-    return true;
+    return updateLibrary((list) {
+      var touched = false;
+      for (var i = 0; i < list.length; i++) {
+        final label = labels[list[i].id];
+        if (label == null || !isDefaultSeasonLabel(list[i].season)) continue;
+        list[i] = list[i].copyWith(
+          season: label,
+          modifiedAt: list[i].modifiedAt,
+        );
+        touched = true;
+      }
+      return touched ? list : null;
+    });
   }
 
   /// Purpose: Load the library after correcting default season labels.
@@ -347,11 +421,8 @@ class AnimeStorage {
   /// Side effects: May read or mutate application state, storage, or service resources.
   /// Notes: Carries `AnimeData.extraJson` through for the same reason
   /// [addOrUpdate] does.
-  static Future<void> deleteAnime(String id) async {
-    final data = await load();
-    final list = data.animes.where((a) => a.id != id).toList();
-    await save(AnimeData(animes: list, extraJson: data.extraJson));
-  }
+  static Future<void> deleteAnime(String id) =>
+      updateLibrary((list) => list.where((a) => a.id != id).toList());
 
   // ── Config persistence ──
 
@@ -368,18 +439,45 @@ class AnimeStorage {
     return jsonDecode(raw) as Map<String, dynamic>;
   }
 
-  /// Purpose: Implement the write config behavior for this file.
+  /// Purpose: Write the config file atomically.
   /// Inputs: `config`.
   /// Returns: None.
-  /// Side effects: Writes the config file atomically (tmp-then-rename).
-  /// Notes: None.
-  static Future<void> writeConfig(Map<String, dynamic> config) async {
+  /// Side effects: Atomically rewrites `storage_config.json` through a
+  /// uniquely named temporary file.
+  /// Notes: Internal helper used within this file only; the write that code
+  /// already inside [_configQueue] must use.
+  static Future<void> _writeConfig(Map<String, dynamic> config) async {
     final file = await _getConfigFile();
-    await _atomicWrite(
+    await atomicWriteString(
       file,
       const JsonEncoder.withIndent('  ').convert(config),
     );
   }
+
+  /// Purpose: Replace the whole config file.
+  /// Inputs: `config`.
+  /// Returns: None.
+  /// Side effects: Queued behind other config writes, then atomically rewrites
+  /// `storage_config.json`.
+  /// Notes: Prefer [updateConfig] for a change to a few keys; this overwrites
+  /// every key it is not given.
+  static Future<void> writeConfig(Map<String, dynamic> config) =>
+      _configQueue.enqueue(() => _writeConfig(config));
+
+  /// Purpose: Change some config keys without losing concurrent changes.
+  /// Inputs: `change` mutates the freshly read config map in place.
+  /// Returns: None.
+  /// Side effects: Queued read-modify-write of `storage_config.json`.
+  /// Notes: Every setter goes through here, so two settings saved at once (the
+  /// settings page fires several) both persist instead of the later write
+  /// restoring the earlier stale value. `change` must be synchronous.
+  static Future<void> updateConfig(
+    void Function(Map<String, dynamic> config) change,
+  ) => _configQueue.enqueue(() async {
+    final config = await readConfig();
+    change(config);
+    await _writeConfig(config);
+  });
 
   /// Purpose: Return the current theme mode value.
   /// Inputs: None.
@@ -397,13 +495,13 @@ class AnimeStorage {
   /// Side effects: None.
   /// Notes: None.
   static Future<void> setThemeMode(String? mode) async {
-    final config = await readConfig();
-    if (mode == null) {
-      config.remove('themeMode');
-    } else {
-      config['themeMode'] = mode;
-    }
-    await writeConfig(config);
+    await updateConfig((config) {
+      if (mode == null) {
+        config.remove('themeMode');
+      } else {
+        config['themeMode'] = mode;
+      }
+    });
   }
 
   /// Purpose: Return the current locale tag value.
@@ -422,13 +520,13 @@ class AnimeStorage {
   /// Side effects: None.
   /// Notes: None.
   static Future<void> setLocaleTag(String? tag) async {
-    final config = await readConfig();
-    if (tag == null) {
-      config.remove('locale');
-    } else {
-      config['locale'] = tag;
-    }
-    await writeConfig(config);
+    await updateConfig((config) {
+      if (tag == null) {
+        config.remove('locale');
+      } else {
+        config['locale'] = tag;
+      }
+    });
   }
 
   /// Purpose: Return the persisted global calendar week start day.
@@ -448,13 +546,13 @@ class AnimeStorage {
   /// Notes: The default Sunday value is removed from config instead of stored.
   static Future<void> setWeekStartDay(int weekday) async {
     final normalized = normalizeWeekStartDay(weekday);
-    final config = await readConfig();
-    if (normalized == defaultWeekStartDay) {
-      config.remove('weekStartDay');
-    } else {
-      config['weekStartDay'] = normalized;
-    }
-    await writeConfig(config);
+    await updateConfig((config) {
+      if (normalized == defaultWeekStartDay) {
+        config.remove('weekStartDay');
+      } else {
+        config['weekStartDay'] = normalized;
+      }
+    });
   }
 
   /// Purpose: Return the persisted home calendar layout value.
@@ -473,13 +571,13 @@ class AnimeStorage {
   /// Side effects: Writes `storage_config.json`.
   /// Notes: Passing `null` removes the value and restores the default local layout.
   static Future<void> setHomeCalendarLayout(String? layout) async {
-    final config = await readConfig();
-    if (layout == null) {
-      config.remove('homeCalendarLayout');
-    } else {
-      config['homeCalendarLayout'] = layout;
-    }
-    await writeConfig(config);
+    await updateConfig((config) {
+      if (layout == null) {
+        config.remove('homeCalendarLayout');
+      } else {
+        config['homeCalendarLayout'] = layout;
+      }
+    });
   }
 
   /// Purpose: Return the persisted home calendar time basis value.
@@ -498,13 +596,13 @@ class AnimeStorage {
   /// Side effects: Writes `storage_config.json`.
   /// Notes: Passing `null` removes the value and restores the default JST basis.
   static Future<void> setHomeCalendarTimeBasis(String? basis) async {
-    final config = await readConfig();
-    if (basis == null) {
-      config.remove('homeCalendarTimeBasis');
-    } else {
-      config['homeCalendarTimeBasis'] = basis;
-    }
-    await writeConfig(config);
+    await updateConfig((config) {
+      if (basis == null) {
+        config.remove('homeCalendarTimeBasis');
+      } else {
+        config['homeCalendarTimeBasis'] = basis;
+      }
+    });
   }
 
   /// Purpose: Return the persisted home calendar view format value.
@@ -523,13 +621,13 @@ class AnimeStorage {
   /// Side effects: Writes `storage_config.json`.
   /// Notes: Passing `null` removes the value and restores the default full-month view.
   static Future<void> setHomeCalendarFormat(String? format) async {
-    final config = await readConfig();
-    if (format == null) {
-      config.remove('homeCalendarFormat');
-    } else {
-      config['homeCalendarFormat'] = format;
-    }
-    await writeConfig(config);
+    await updateConfig((config) {
+      if (format == null) {
+        config.remove('homeCalendarFormat');
+      } else {
+        config['homeCalendarFormat'] = format;
+      }
+    });
   }
 
   /// Purpose: Return the persisted Manage view mode (1.6.2).
@@ -549,13 +647,13 @@ class AnimeStorage {
   /// Side effects: Writes `storage_config.json`.
   /// Notes: Passing `null` removes the key, so only a non-default is stored.
   static Future<void> setManageViewMode(String? mode) async {
-    final config = await readConfig();
-    if (mode == null) {
-      config.remove('manageViewMode');
-    } else {
-      config['manageViewMode'] = mode;
-    }
-    await writeConfig(config);
+    await updateConfig((config) {
+      if (mode == null) {
+        config.remove('manageViewMode');
+      } else {
+        config['manageViewMode'] = mode;
+      }
+    });
   }
 
   /// Purpose: Return the persisted Manage series-view sort (1.6.2).
@@ -575,13 +673,13 @@ class AnimeStorage {
   /// Side effects: Writes `storage_config.json`.
   /// Notes: Passing `null` removes the key, so only a non-default is stored.
   static Future<void> setManageSeriesSort(String? sort) async {
-    final config = await readConfig();
-    if (sort == null) {
-      config.remove('manageSeriesSort');
-    } else {
-      config['manageSeriesSort'] = sort;
-    }
-    await writeConfig(config);
+    await updateConfig((config) {
+      if (sort == null) {
+        config.remove('manageSeriesSort');
+      } else {
+        config['manageSeriesSort'] = sort;
+      }
+    });
   }
 
   /// Purpose: Return the persisted background metadata-update policy name.
@@ -601,13 +699,13 @@ class AnimeStorage {
   /// Side effects: Writes `storage_config.json`.
   /// Notes: Passing `null` removes the value and restores the platform default.
   static Future<void> setMetadataUpdatePolicy(String? policy) async {
-    final config = await readConfig();
-    if (policy == null) {
-      config.remove('metadataAutoUpdate');
-    } else {
-      config['metadataAutoUpdate'] = policy;
-    }
-    await writeConfig(config);
+    await updateConfig((config) {
+      if (policy == null) {
+        config.remove('metadataAutoUpdate');
+      } else {
+        config['metadataAutoUpdate'] = policy;
+      }
+    });
   }
 
   /// Purpose: Return whether candidate covers are prefetched in the background.
@@ -628,13 +726,13 @@ class AnimeStorage {
   /// Notes: The default `false` is removed from config rather than stored,
   /// matching how `setWeekStartDay` handles its default.
   static Future<void> setMetadataPrefetchCovers(bool enabled) async {
-    final config = await readConfig();
-    if (enabled) {
-      config['metadataPrefetchCovers'] = true;
-    } else {
-      config.remove('metadataPrefetchCovers');
-    }
-    await writeConfig(config);
+    await updateConfig((config) {
+      if (enabled) {
+        config['metadataPrefetchCovers'] = true;
+      } else {
+        config.remove('metadataPrefetchCovers');
+      }
+    });
   }
 
   /// Purpose: Return whether the Kana quick-reference tab is shown.
@@ -654,13 +752,13 @@ class AnimeStorage {
   /// Side effects: Writes `storage_config.json`.
   /// Notes: The default `false` is removed from config rather than stored.
   static Future<void> setKanaTabEnabled(bool enabled) async {
-    final config = await readConfig();
-    if (enabled) {
-      config['kanaTabEnabled'] = true;
-    } else {
-      config.remove('kanaTabEnabled');
-    }
-    await writeConfig(config);
+    await updateConfig((config) {
+      if (enabled) {
+        config['kanaTabEnabled'] = true;
+      } else {
+        config.remove('kanaTabEnabled');
+      }
+    });
   }
 
   /// Purpose: Return whether on-device AI is turned on.
@@ -680,13 +778,13 @@ class AnimeStorage {
   /// Side effects: Writes `storage_config.json`.
   /// Notes: The default `false` is removed from config rather than stored.
   static Future<void> setOnDeviceAiEnabled(bool enabled) async {
-    final config = await readConfig();
-    if (enabled) {
-      config['onDeviceAiEnabled'] = true;
-    } else {
-      config.remove('onDeviceAiEnabled');
-    }
-    await writeConfig(config);
+    await updateConfig((config) {
+      if (enabled) {
+        config['onDeviceAiEnabled'] = true;
+      } else {
+        config.remove('onDeviceAiEnabled');
+      }
+    });
   }
 
   /// Purpose: Return whether automatic categories are turned on.
@@ -705,13 +803,13 @@ class AnimeStorage {
   /// Side effects: Writes `storage_config.json`.
   /// Notes: The default `false` is removed from config rather than stored.
   static Future<void> setAutoCategoriesEnabled(bool enabled) async {
-    final config = await readConfig();
-    if (enabled) {
-      config['autoCategoriesEnabled'] = true;
-    } else {
-      config.remove('autoCategoriesEnabled');
-    }
-    await writeConfig(config);
+    await updateConfig((config) {
+      if (enabled) {
+        config['autoCategoriesEnabled'] = true;
+      } else {
+        config.remove('autoCategoriesEnabled');
+      }
+    });
   }
 
   /// Purpose: Return whether recommendations are turned on.
@@ -730,13 +828,13 @@ class AnimeStorage {
   /// Side effects: Writes `storage_config.json`.
   /// Notes: The default `false` is removed from config rather than stored.
   static Future<void> setRecommendationsEnabled(bool enabled) async {
-    final config = await readConfig();
-    if (enabled) {
-      config['recommendationsEnabled'] = true;
-    } else {
-      config.remove('recommendationsEnabled');
-    }
-    await writeConfig(config);
+    await updateConfig((config) {
+      if (enabled) {
+        config['recommendationsEnabled'] = true;
+      } else {
+        config.remove('recommendationsEnabled');
+      }
+    });
   }
 
   /// Purpose: Return whether the faster on-device model is preferred.
@@ -755,13 +853,13 @@ class AnimeStorage {
   /// Side effects: Writes `storage_config.json`.
   /// Notes: The default `false` is removed from config rather than stored.
   static Future<void> setOnDeviceAiPreferFast(bool enabled) async {
-    final config = await readConfig();
-    if (enabled) {
-      config['onDeviceAiPreferFast'] = true;
-    } else {
-      config.remove('onDeviceAiPreferFast');
-    }
-    await writeConfig(config);
+    await updateConfig((config) {
+      if (enabled) {
+        config['onDeviceAiPreferFast'] = true;
+      } else {
+        config.remove('onDeviceAiPreferFast');
+      }
+    });
   }
 
   /// Purpose: Read a stored list column preference.
@@ -786,13 +884,13 @@ class AnimeStorage {
   /// Notes: The default `listColumnsAuto` is removed from config rather than
   /// stored, matching how `setWeekStartDay` handles its default.
   static Future<void> _setListColumns(String key, int columns) async {
-    final config = await readConfig();
-    if (columns >= 1 && columns <= listMaxColumns) {
-      config[key] = columns;
-    } else {
-      config.remove(key);
-    }
-    await writeConfig(config);
+    await updateConfig((config) {
+      if (columns >= 1 && columns <= listMaxColumns) {
+        config[key] = columns;
+      } else {
+        config.remove(key);
+      }
+    });
   }
 
   /// Purpose: Read the home module's list column preference.

@@ -109,6 +109,8 @@ list read correctly whether it follows the progress bar or opens the right pane.
 | `AnimeDetailPage.new` | constructor (`AnimeDetailPage`) | B | Create an `AnimeDetailPage` instance for a given anime ID. |
 | `AnimeDetailPage.createState` | method (`AnimeDetailPage`) | B | Create the mutable state object for this widget. |
 | `_AnimeDetailPageState.initState` | method (`_AnimeDetailPageState`) | B | Trigger the first data load. |
+| `_AnimeDetailPageState.dispose` | method (`_AnimeDetailPageState`) | B | Remove the local-data-changed listener (1.6.7). |
+| `_AnimeDetailPageState._reloadRecord` | method (`_AnimeDetailPageState`) | B | Re-read the record and library from storage after a sync changed local data (1.6.7). |
 | [`_load`](#_load) | method (`_AnimeDetailPageState`) | A | Load this anime and build the series index to find the series it belongs to. |
 | [`didUpdateWidget`](#didupdatewidget) | method (`_AnimeDetailPageState`) | A | Reload when the page is rebuilt for a different record. |
 | [`_editCategories`](#_editcategories) | method (`_AnimeDetailPageState`) | A | Let the user set this record's categories. |
@@ -518,3 +520,8 @@ list read correctly whether it follows the progress bar or opens the right pane.
 | Declaration | Kind | Tier | Purpose |
 |---|---|---|---|
 | `_loadEpisodeDirectory` | method | B | Refresh guarded episode directory. |
+
+## Changes in 1.6.7
+
+- **Edits compute from the stored record.** `_editCategories`, `_toggleEpisode`, `_shiftFromEpisode`, `_resetSchedule`, `_toggleAllWatched`, `_abandonAnime` and `_resumeAnime` used to copy the page's own `_anime` snapshot and `addOrUpdate` it, which wrote back stale episode statuses or metadata. They now compute the change inside `AnimeStorage.updateRecord` from the freshly stored record (the bulk ones return `null` when the record has no end episode) and then reload.
+- **The page follows sync.** `initState` registers `_reloadRecord` with `AutoSyncService.addOnLocalDataChanged` and `dispose` removes it, so a merge that lands while the page is open is shown (storage read only; no season-label fix, no network) instead of being overwritten by the next edit.

@@ -178,3 +178,6 @@ and `launch_at_startup`.
 - **Usage:** Invoked by `window_manager` on a minimize event; not called directly.
 - **Notes:** None.
 
+## Changes in 1.6.7
+
+`setMinimizeToTray` and `setCloseToTray` persist their key through `AnimeStorage.updateConfig` (queued read-modify-write) so they cannot race other settings writes.

@@ -152,7 +152,7 @@ next background sync cycle.
 - Unknown top-level and per-anime JSON fields must survive parsing, editing, importing, exporting,
   and sync merging (see the `extraJson` pattern in [`data-formats.md`](data-formats.md)).
 - `_syncing` prevents concurrent sync runs.
-- `_atomicWrite()` uses tmp-then-rename so a crash mid-write can never corrupt local files.
+- `_atomicWrite()` uses tmp-then-rename so a crash mid-write can never corrupt local files. The temporary file has a unique name, so two overlapping writers never share one (the app's own `anime_data.json`, `storage_config.json`, `metadata_updates.json` and `playback_progress.json` writes use the same helper since 1.6.7).
 - Local files are re-read after network I/O specifically to detect concurrent user edits made
   during sync (step 7 above).
 - Sync errors and image transfer warnings are shown in dialogs, not only snackbars, since they

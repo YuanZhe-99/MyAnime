@@ -638,12 +638,13 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
         : addrCtrl.text.trim();
     final newUser = userCtrl.text.trim();
     final newPass = passCtrl.text.trim();
-    final config = await AnimeStorage.readConfig();
-    config['apiPort'] = newPort;
-    config['apiListenAddress'] = newAddr;
-    config['apiUsername'] = newUser.isEmpty ? null : newUser;
-    config['apiPassword'] = newPass.isEmpty ? null : newPass;
-    await AnimeStorage.writeConfig(config);
+    await AnimeStorage.updateConfig((config) {
+      config['apiPort'] = newPort;
+      config['apiListenAddress'] = newAddr;
+      config['apiUsername'] = newUser.isEmpty ? null : newUser;
+      config['apiPassword'] = newPass.isEmpty ? null : newPass;
+    });
+    if (!mounted) return;
     setState(() {
       _apiPort = newPort;
       _apiListenAddress = newAddr;
@@ -661,20 +662,18 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
   /// Purpose: Provide the internal set reminder enabled helper for this file.
   /// Inputs: `v`.
   /// Returns: None.
-  /// Side effects: None.
+  /// Side effects: Queued config write through `AnimeStorage.updateConfig`; restarts the reminder check.
   /// Notes: Internal helper used within this file only.
   Future<void> _setReminderEnabled(bool v) async {
     setState(() => _reminderEnabled = v);
-    final config = await AnimeStorage.readConfig();
-    config['reminderEnabled'] = v;
-    await AnimeStorage.writeConfig(config);
+    await AnimeStorage.updateConfig((config) => config['reminderEnabled'] = v);
     ReminderService.startPeriodicCheck();
   }
 
   /// Purpose: Provide the internal pick reminder time helper for this file.
   /// Inputs: None.
   /// Returns: None.
-  /// Side effects: None.
+  /// Side effects: Queued config write through `AnimeStorage.updateConfig` (also clears `lastReminderDate`); restarts the reminder check.
   /// Notes: Internal helper used within this file only.
   Future<void> _pickReminderTime() async {
     final picked = await showTimePicker(
@@ -683,12 +682,12 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
     );
     if (picked == null || !mounted) return;
     setState(() => _reminderTime = picked);
-    final config = await AnimeStorage.readConfig();
-    config['reminderTime'] =
-        '${picked.hour.toString().padLeft(2, '0')}:${picked.minute.toString().padLeft(2, '0')}';
-    // Reset lastReminderDate so the new time takes effect today.
-    config.remove('lastReminderDate');
-    await AnimeStorage.writeConfig(config);
+    await AnimeStorage.updateConfig((config) {
+      config['reminderTime'] =
+          '${picked.hour.toString().padLeft(2, '0')}:${picked.minute.toString().padLeft(2, '0')}';
+      // Reset lastReminderDate so the new time takes effect today.
+      config.remove('lastReminderDate');
+    });
     if (_reminderEnabled) ReminderService.startPeriodicCheck();
   }
 
@@ -1168,6 +1167,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
                 } else {
                   await launchAtStartup.disable();
                 }
+                if (!mounted) return;
                 setState(() => _autoStart = v);
               },
             ),
@@ -1191,9 +1191,10 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
               ),
               value: _apiEnabled,
               onChanged: (v) async {
-                final config = await AnimeStorage.readConfig();
-                config['apiEnabled'] = v;
-                await AnimeStorage.writeConfig(config);
+                await AnimeStorage.updateConfig(
+                  (config) => config['apiEnabled'] = v,
+                );
+                if (!mounted) return;
                 setState(() => _apiEnabled = v);
                 if (v) {
                   await LocalApiServer.start();

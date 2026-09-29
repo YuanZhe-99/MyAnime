@@ -6,7 +6,7 @@
 /// Side effects: Mutates an in-memory file map; records nothing itself (pair with
 /// `RequestRecorder`). Fault-injection hooks simulate 404/5xx/timeouts/stale locks.
 /// Notes: Byte-faithful to the spec captured from the apps' `webdav_service.dart`
-/// (see MyApps-DATA docs/feature-matrix.md §A-§D). Not a network server; intercepts
+/// (see MyApps-DATA doc/en-us/feature-matrix.md §A-§D). Not a network server; intercepts
 /// `package:http` calls through the zone-scoped client factory.
 library;
 
@@ -67,6 +67,9 @@ class FakeWebDAVServer extends http.BaseClient {
   /// In-memory remote file store: full request path -> object.
   final Map<String, FakeRemoteObject> files = {};
 
+  /// Collections created through MKCOL, normalized with a trailing slash.
+  final Set<String> collections = {};
+
   /// Registered fault rules, checked before normal handling.
   final List<({FaultMatcher matches, FaultResponder respond})> _faults = [];
 
@@ -108,8 +111,9 @@ class FakeWebDAVServer extends http.BaseClient {
   /// Side effects: Writes to [files].
   /// Notes: Convenience for scenario setup (e.g. pre-existing remote data).
   void seed(String path, Object content) {
-    final bytes =
-        content is String ? utf8.encode(content) : (content as List<int>);
+    final bytes = content is String
+        ? utf8.encode(content)
+        : (content as List<int>);
     files[path] = FakeRemoteObject(bytes, _nextEtag());
   }
 
@@ -167,7 +171,9 @@ class FakeWebDAVServer extends http.BaseClient {
   ) async {
     final depth = request.headers['Depth'] ?? '0';
     final collection = path.endsWith('/') ? path : '$path/';
-    final isKnownCollection = files.keys.any((k) => k.startsWith(collection));
+    final isKnownCollection =
+        collections.contains(collection) ||
+        files.keys.any((k) => k.startsWith(collection));
 
     if (depth == '0') {
       // testConnection accepts 207 or 404. Return 207 if the collection (or any
@@ -194,8 +200,12 @@ class FakeWebDAVServer extends http.BaseClient {
       if (seen.contains(childName)) continue;
       seen.add(childName);
       final isDir = firstSlash != -1;
-      entries.add(_hrefEntry('$collection$childName${isDir ? '/' : ''}',
-          isCollection: isDir));
+      entries.add(
+        _hrefEntry(
+          '$collection$childName${isDir ? '/' : ''}',
+          isCollection: isDir,
+        ),
+      );
     }
     return _multistatus(entries);
   }
@@ -203,9 +213,10 @@ class FakeWebDAVServer extends http.BaseClient {
   /// Purpose: Handle MKCOL by recording the collection implicitly (no-op object).
   /// Inputs: [path].
   /// Returns: 201 Created (tolerated statuses are ignored by the apps anyway).
-  /// Side effects: None (collections are implicit).
+  /// Side effects: Records the collection for later empty-directory PROPFIND.
   /// Notes: The apps swallow MKCOL errors entirely.
   http.StreamedResponse _handleMkcol(String path) {
+    collections.add(path.endsWith('/') ? path : '$path/');
     return _textResponse(201, 'Created');
   }
 
@@ -326,7 +337,8 @@ class Faults {
   /// Returns: Fault responder.
   /// Side effects: None.
   /// Notes: Triggers the apps' `shouldRetry: statusCode >= 500` path.
-  static FaultResponder serverError() => () => http.StreamedResponse(
+  static FaultResponder serverError() =>
+      () => http.StreamedResponse(
         Stream.value(utf8.encode('Internal Server Error')),
         500,
       );
@@ -336,16 +348,17 @@ class Faults {
   /// Returns: Fault responder.
   /// Side effects: None.
   /// Notes: Models a missing resource independent of the store.
-  static FaultResponder notFound() => () => http.StreamedResponse(
-        Stream.value(utf8.encode('Not Found')),
-        404,
-      );
+  static FaultResponder notFound() =>
+      () => http.StreamedResponse(Stream.value(utf8.encode('Not Found')), 404);
 
   /// Purpose: A responder that throws a timeout (transient, retryable).
   /// Inputs: None.
   /// Returns: Fault responder.
   /// Side effects: Throws.
   /// Notes: Matches the apps' retryable `TimeoutException` path.
-  static FaultResponder timeout() => () =>
-      throw TimeoutException('simulated timeout', const Duration(seconds: 5));
+  static FaultResponder timeout() =>
+      () => throw TimeoutException(
+        'simulated timeout',
+        const Duration(seconds: 5),
+      );
 }

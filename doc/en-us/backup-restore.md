@@ -41,8 +41,9 @@ points at content-addressed image blobs under `backups/blobs/<sha256><ext>`.
 
 ## Atomic writes
 
-Bundle writes are atomic (tmp-then-rename, `_atomicWriteString`/`_atomicWriteBytes`), so a crash
-mid-write can't leave a half-written bundle or restored file behind.
+Bundle writes are atomic (tmp-then-rename through a uniquely named temporary file,
+`_atomicWriteString`/`_atomicWriteBytes`), so a crash mid-write can't leave a half-written bundle or
+restored file behind, and two overlapping writes never share one temporary file.
 
 ## Corrupt-bundle handling
 

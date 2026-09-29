@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:io';
 import 'dart:math';
 
+import 'package:flutter/foundation.dart' show visibleForTesting;
 import 'package:shelf/shelf.dart';
 import 'package:shelf/shelf_io.dart' as shelf_io;
 import 'package:shelf_router/shelf_router.dart';
@@ -114,7 +115,7 @@ class LocalApiServer {
   /// Inputs: None.
   /// Returns: None.
   /// Side effects: May read or mutate application state, storage, or service resources.
-  /// Notes: None.
+  /// Notes: The handler comes from `buildHandler`, whose first middleware rejects foreign browser origins.
   static Future<void> start() async {
     await loadConfig();
     await stop();
@@ -135,20 +136,7 @@ class LocalApiServer {
       return;
     }
 
-    final router = Router();
-    router.get('/ping', _handlePing);
-    router.post('/anime/search', _handleSearch);
-    router.post('/anime/add', _handleAdd);
-    router.get('/anime/list', _handleList);
-    router.get('/anime/unwatched', _handleUnwatched);
-    router.get('/anime/history', _handleHistory);
-    router.get('/anime/ranking', _handleRanking);
-
-    final handler = const Pipeline()
-        .addMiddleware(_corsMiddleware())
-        .addMiddleware(_authMiddleware())
-        .addMiddleware(_errorMiddleware())
-        .addHandler(router.call);
+    final handler = buildHandler();
 
     try {
       final InternetAddress bindAddress;
@@ -171,6 +159,30 @@ class LocalApiServer {
       // ignore: avoid_print
       print('[LocalApiServer] failed to start: $e');
     }
+  }
+
+  /// Purpose: Build the request handler: routes wrapped by the middleware.
+  /// Inputs: None.
+  /// Returns: `Handler` — origin check first, then auth, then error mapping.
+  /// Side effects: None.
+  /// Notes: Split out of [start] so tests can drive the whole pipeline without
+  /// binding a socket. Reads the credentials loaded by [loadConfig].
+  @visibleForTesting
+  static Handler buildHandler() {
+    final router = Router();
+    router.get('/ping', _handlePing);
+    router.post('/anime/search', _handleSearch);
+    router.post('/anime/add', _handleAdd);
+    router.get('/anime/list', _handleList);
+    router.get('/anime/unwatched', _handleUnwatched);
+    router.get('/anime/history', _handleHistory);
+    router.get('/anime/ranking', _handleRanking);
+
+    return const Pipeline()
+        .addMiddleware(_originMiddleware())
+        .addMiddleware(_authMiddleware())
+        .addMiddleware(_errorMiddleware())
+        .addHandler(router.call);
   }
 
   /// Purpose: Implement the stop behavior for this file.
@@ -992,28 +1004,62 @@ class LocalApiServer {
 
   // ── Middleware ──
 
-  /// Purpose: Provide the internal cors middleware helper for this file.
-  /// Inputs: None.
-  /// Returns: `Middleware`.
+  /// Purpose: Decide whether a browser `Origin` header may use the API.
+  /// Inputs: `origin` — the raw header value, or `null` when absent.
+  /// Returns: `bool` — true for no origin, or an `http`/`https` origin whose
+  /// host is `localhost` or a loopback IP address.
   /// Side effects: None.
-  /// Notes: Internal helper used within this file only.
-  static Middleware _corsMiddleware() {
+  /// Notes: A request without `Origin` is a non-browser client (curl, scripts,
+  /// the companion tools) and is allowed. Rejected: `null` (sandboxed frames,
+  /// `file:` pages), browser-extension schemes, LAN addresses, and look-alikes
+  /// such as `localhost.evil.com`. The host is compared exactly after URI
+  /// parsing, never by prefix. Visible for testing.
+  @visibleForTesting
+  static bool isAllowedOrigin(String? origin) {
+    if (origin == null) return true;
+    final uri = Uri.tryParse(origin.trim());
+    if (uri == null || !uri.hasAuthority) return false;
+    if (uri.scheme != 'http' && uri.scheme != 'https') return false;
+    if (uri.userInfo.isNotEmpty) return false;
+    final host = uri.host.toLowerCase();
+    if (host == 'localhost') return true;
+    return InternetAddress.tryParse(host)?.isLoopback ?? false;
+  }
+
+  /// Purpose: Keep other web pages from using the API through a browser.
+  /// Inputs: None.
+  /// Returns: `Middleware`, placed first in the pipeline.
+  /// Side effects: None.
+  /// Notes: Internal helper used within this file only. A disallowed `Origin`
+  /// gets `403 {"error":"origin not allowed"}` with no CORS headers for every
+  /// method, so a hostile page can neither read a response nor fire a
+  /// state-changing "simple" POST at the loopback API. An allowed OPTIONS
+  /// preflight is answered here (before authentication, which preflights
+  /// cannot carry); other allowed requests continue and get the CORS headers
+  /// echoing their own origin. A request with no `Origin` gets no CORS headers.
+  /// Replaces the earlier wildcard `Access-Control-Allow-Origin`.
+  static Middleware _originMiddleware() {
     return (Handler innerHandler) {
       return (Request request) async {
+        final origin = request.headers['origin'];
+        if (!isAllowedOrigin(origin)) {
+          return _error(403, 'origin not allowed');
+        }
+        if (origin == null) return innerHandler(request);
+        final headers = {
+          'Access-Control-Allow-Origin': origin,
+          'Vary': 'Origin',
+          'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+          'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+        };
         if (request.method == 'OPTIONS') {
-          return Response.ok('', headers: _corsHeaders);
+          return Response.ok('', headers: headers);
         }
         final response = await innerHandler(request);
-        return response.change(headers: _corsHeaders);
+        return response.change(headers: headers);
       };
     };
   }
-
-  static const _corsHeaders = {
-    'Access-Control-Allow-Origin': '*',
-    'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
-    'Access-Control-Allow-Headers': 'Content-Type, Authorization',
-  };
 
   /// Purpose: Provide the internal auth middleware helper for this file.
   /// Inputs: None.
@@ -1021,8 +1067,8 @@ class LocalApiServer {
   /// Side effects: None.
   /// Notes: Internal helper used within this file only. When credentials are
   /// configured, Basic Auth is required for every request including loopback,
-  /// because permissive CORS would otherwise let any local web page read the
-  /// API. Without credentials only loopback requests are allowed.
+  /// so a page on an allowed local origin still cannot read the API without
+  /// them. Without credentials only loopback requests are allowed.
   static Middleware _authMiddleware() {
     return (Handler innerHandler) {
       return (Request request) async {

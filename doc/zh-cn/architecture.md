@@ -127,7 +127,10 @@ lib/
 - `test/duplicate_service_test.dart` — 重复检测（同 id、同 URL、同标题-季度）、传递性分组和合并语义。
 - `test/bundle_import_test.dart` — `.myanimeitem` v1 向后兼容、v2 多动画捆绑格式，以及导出个人数据剥离。
 - `test/local_archive_ui_test.dart` — 本地存档小节的渲染、archived 开关、片源下拉框，以及存档枚举标签辅助函数。
-- `test/widget_test.dart` — 基础组件冒烟覆盖。
+- `test/anime_storage_test.dart` — 串行化的写入队列：并行 `addOrUpdate` 与配置 setter、依据新读出的记录的 `updateRecord`、包操作中的 `extraJson`、没有遗留临时文件（1.6.7）。
+- `test/local_api_server_test.dart` — 本地 API 的浏览器来源策略（1.6.7）。
+- `test/home_events_test.dart` — 首页日历的播出索引与逐日扫描的对照（1.6.7）。
+- `test/golden/webdav_golden_test.dart` — 五个请求序列／磁盘格式黄金文件（首次同步、冲突收尾、强制上传、备份 v2 布局、ZIP 条目列表）；共享引擎的完整场景矩阵在 `myapps_data` 中。
 - `test/on_device_ai_test.dart` 和 `test/ai_settings_tiles_ui_test.dart` — 用假后端测试端侧 AI 的门、状态映射、
   队列、节奏控制和输出解析，并按平台测试设置中的各行（1.6.0）。
 - `test/categories_test.dart` — 分类表与 ARB 完整性、类型标签映射、解析顺序、黄金提示词字符串、指纹、AI 缓存的加载/保存/修剪、

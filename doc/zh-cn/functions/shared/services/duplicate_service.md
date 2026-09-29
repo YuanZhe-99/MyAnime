@@ -191,3 +191,7 @@
   ```
   （来自 `lib/shared/widgets/import_bundle_dialog.dart`，解决用户选择合并的导入冲突；`lib/shared/widgets/duplicate_check_page.dart` 的 `_resolveGroup` 的"检查重复"合并操作也使用）
 - **备注：** 这是**本地、一次性**的合并，区别于 WebDAV 同步的逐记录三方合并——两者有何不同（合并两条不同记录的 ID vs 跨设备调和一条记录的 ID）见 [`../../../features/duplicate-detection.md`](../../../features/duplicate-detection.md)。
+
+## 1.6.7 变更
+
+`ImportBundle` 新增可选字段 `writtenCovers`（捆绑索引到 `FileOpenService.parseBundle` 为该记录创建的 `images/<名称>` 文件；默认为空）。构造函数保持源码兼容。`FileOpenService.discardUnusedCovers` 只删除列在这里的文件。

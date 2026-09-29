@@ -140,3 +140,7 @@
 - **算法：** `_minimizeToTray` 时调用 `windowManager.hide()` 然后 `_setDockIconVisible(false)`；否则什么都不做（正常操作系统最小化继续）。
 - **用法：** 最小化事件时由 `window_manager` 调用；不直接调用。
 - **备注：** 无。
+
+## 1.6.7 变更
+
+`setMinimizeToTray` 和 `setCloseToTray` 经 `AnimeStorage.updateConfig`（排队的读-改-写）持久化各自的键，不会与其他设置写入竞争。

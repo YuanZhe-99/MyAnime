@@ -18,7 +18,7 @@
 
 ## 原子写入
 
-捆绑写入是原子的（tmp-重命名，`_atomicWriteString`/`_atomicWriteBytes`），因此写入中途崩溃不会留下写了一半的捆绑或恢复文件。
+捆绑写入是原子的（经唯一命名的临时文件再重命名，`_atomicWriteString`/`_atomicWriteBytes`），因此写入中途崩溃不会留下写了一半的捆绑或恢复文件，两个重叠的写入也不会共用一个临时文件。
 
 ## 损坏捆绑处理
 

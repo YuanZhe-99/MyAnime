@@ -59,7 +59,8 @@ class FileOpenService {
   /// Purpose: Implement the handle file behavior for this file.
   /// Inputs: `path`.
   /// Returns: `Future<String?>`.
-  /// Side effects: None.
+  /// Side effects: Writes cover images and the imported records (a multi-anime
+  /// file is saved with one `addOrUpdateAll`, hence one auto-sync notification).
   /// Notes: Backward-compatible single-anime import. Always creates a new UUID
   /// and never overwrites an existing anime. For multi-anime bundles use
   /// [parseBundle] and [applyBundle] instead.
@@ -82,16 +83,16 @@ class FileOpenService {
       // cold start). Each record gets a fresh UUID so existing data is never
       // overwritten.
       if (json['version'] == 2 && json['items'] is List) {
-        String? lastId;
+        final imported = <Anime>[];
         for (final item in json['items'] as List<dynamic>) {
           if (item is! Map<String, dynamic>) continue;
           final animeJson = item['anime'] as Map<String, dynamic>?;
           if (animeJson == null) continue;
-          final anime = await _importOne(Anime.fromJson(animeJson), item);
-          await AnimeStorage.addOrUpdate(anime);
-          lastId = anime.id;
+          imported.add(await _importOne(Anime.fromJson(animeJson), item));
         }
-        return lastId;
+        if (imported.isEmpty) return null;
+        await AnimeStorage.addOrUpdateAll(imported);
+        return imported.last.id;
       }
       return null;
     } catch (_) {
@@ -106,13 +107,14 @@ class FileOpenService {
   /// Notes: Internal helper used within this file only. Always assigns a new
   /// UUID and current UTC timestamps so imports never overwrite existing data;
   /// the record itself comes from [importedCopy].
+  /// The cover extension goes through `safeCoverExt` before it reaches the file name.
   static Future<Anime> _importOne(
     Anime parsed,
     Map<String, dynamic> itemJson,
   ) async {
     String? coverPath;
     if (itemJson['coverImage'] != null) {
-      final ext = itemJson['coverImageExt'] as String? ?? '.jpg';
+      final ext = safeCoverExt(itemJson['coverImageExt']);
       final bytes = base64Decode(itemJson['coverImage'] as String);
       final appDir = await AnimeStorage.getAppDir();
       final imgDir = Directory(p.join(appDir.path, 'images'));
@@ -130,6 +132,36 @@ class FileOpenService {
     );
   }
 
+  /// Purpose: Validate the cover extension a share file asks the importer to use.
+  /// Inputs: `raw` — the file's `coverImageExt` value, any JSON type.
+  /// Returns: `String` — `raw` when it is a dot plus one to five ASCII
+  /// letters or digits, otherwise `.jpg`.
+  /// Side effects: None.
+  /// Notes: The extension is appended to a fresh UUID to form a path inside
+  /// `images/`, so a hostile value such as `/../../x` must never reach
+  /// `p.join`. Visible for testing.
+  @visibleForTesting
+  static String safeCoverExt(Object? raw) {
+    if (raw is String && RegExp(r'^\.[A-Za-z0-9]{1,5}$').hasMatch(raw)) {
+      return raw;
+    }
+    return '.jpg';
+  }
+
+  /// Purpose: Decide whether a record's `coverImage` may be trusted as a path.
+  /// Inputs: `path` — a `coverImage` value from an imported record.
+  /// Returns: `bool` — true only for `images/<name>` with a plain file name.
+  /// Side effects: None.
+  /// Notes: Anything else (absolute paths, `..` segments, other directories)
+  /// could make the app read or later delete files outside its `images/`
+  /// folder. Visible for testing.
+  @visibleForTesting
+  static bool isSafeCoverPath(String? path) {
+    if (path == null) return false;
+    if (path.contains('..')) return false;
+    return RegExp(r'^images/[A-Za-z0-9._-]+$').hasMatch(path);
+  }
+
   /// Purpose: Build the record an import writes from a parsed share-file record.
   /// Inputs: `parsed`; `id` — the fresh UUID; `now` — the UTC import time;
   /// `coverPath` — where the bundled cover was written, if any.
@@ -139,6 +171,8 @@ class FileOpenService {
   /// when a hand-written file carries one (a foreign `seriesId` means nothing
   /// here and would pin the record out of automatic grouping). Public
   /// `externalMeta` has been carried since 1.6.0; earlier builds dropped it.
+  /// A `coverImage` that is not a plain `images/<name>` path is dropped
+  /// ([isSafeCoverPath]); a freshly written `coverPath` always wins.
   @visibleForTesting
   static Anime importedCopy(
     Anime parsed, {
@@ -158,7 +192,9 @@ class FileOpenService {
       airTime: parsed.airTime,
       firstAirDate: parsed.firstAirDate,
       episodeStatuses: parsed.episodeStatuses,
-      coverImage: coverPath ?? parsed.coverImage,
+      coverImage:
+          coverPath ??
+          (isSafeCoverPath(parsed.coverImage) ? parsed.coverImage : null),
       infoUrl: parsed.infoUrl,
       watchUrl: parsed.watchUrl,
       episodeMapping: parsed.episodeMapping,
@@ -183,7 +219,10 @@ class FileOpenService {
   /// Side effects: Writes embedded cover images to the app images directory.
   /// Notes: Returns null on parse failure. Assigns fresh UUIDs to every
   /// incoming record so applying them never overwrites existing data. Call
-  /// [applyBundle] afterwards to persist the chosen records.
+  /// [applyBundle] afterwards to persist the chosen records, then
+  /// [discardUnusedCovers] so covers of records the user skipped do not
+  /// accumulate as orphans. `ImportBundle.writtenCovers` names exactly the
+  /// files this call created.
   static Future<ImportBundle?> parseBundle(String path) async {
     try {
       final file = File(path);
@@ -205,10 +244,15 @@ class FileOpenService {
         return null;
       }
 
+      final writtenCovers = <int, String>{};
       for (final itemJson in itemJsons) {
         final animeJson = itemJson['anime'] as Map<String, dynamic>?;
         if (animeJson == null) continue;
-        parsed.add(await _importOne(Anime.fromJson(animeJson), itemJson));
+        final anime = await _importOne(Anime.fromJson(animeJson), itemJson);
+        if (itemJson['coverImage'] != null && anime.coverImage != null) {
+          writtenCovers[parsed.length] = anime.coverImage!;
+        }
+        parsed.add(anime);
       }
       if (parsed.isEmpty) return null;
 
@@ -229,6 +273,7 @@ class FileOpenService {
         animes: parsed,
         conflictIndices: conflictIndices,
         localVersions: localVersions,
+        writtenCovers: writtenCovers,
       );
     } catch (_) {
       return null;
@@ -251,54 +296,89 @@ class FileOpenService {
   /// Purpose: Persist the chosen subset of a parsed bundle to storage.
   /// Inputs: `bundle`, `skipIndices`.
   /// Returns: `Future<int>`.
-  /// Side effects: Writes anime records to storage.
+  /// Side effects: Writes anime records to storage (one queued write).
   /// Notes: `skipIndices` are bundle indices to skip (e.g. conflicts the user
   /// chose to keep local for). Returns the number of records actually saved.
+  /// Re-reads the library inside the storage queue and keeps its unknown
+  /// top-level fields, so an import cannot drop a record saved meanwhile.
   static Future<int> applyBundle(
     ImportBundle bundle, {
     Set<int> skipIndices = const {},
   }) async {
-    final data = await AnimeStorage.load();
-    final list = List<Anime>.of(data.animes);
-    var added = 0;
-    for (var i = 0; i < bundle.animes.length; i++) {
-      if (skipIndices.contains(i)) continue;
-      list.add(bundle.animes[i]);
-      added++;
+    final chosen = <Anime>[
+      for (var i = 0; i < bundle.animes.length; i++)
+        if (!skipIndices.contains(i)) bundle.animes[i],
+    ];
+    if (chosen.isEmpty) return 0;
+    await AnimeStorage.updateLibrary((list) => [...list, ...chosen]);
+    return chosen.length;
+  }
+
+  /// Purpose: Delete cover files a parsed bundle wrote for records not kept.
+  /// Inputs: `bundle`; `keptIndices` — bundle indices whose record was added
+  /// as new; `mergedRecords` — records written by the merge path, whose covers
+  /// must survive.
+  /// Returns: `Future<int>` — number of files deleted.
+  /// Side effects: Deletes files under `images/` in the storage directory.
+  /// Notes: Only paths in `bundle.writtenCovers` (files this import created)
+  /// that pass [isSafeCoverPath] are ever deleted, so a local cover a record
+  /// merely references is never touched. Failures are ignored: an orphan file
+  /// is harmless.
+  static Future<int> discardUnusedCovers(
+    ImportBundle bundle,
+    Set<int> keptIndices,
+    Iterable<Anime> mergedRecords,
+  ) async {
+    final inUse = <String>{
+      for (final a in mergedRecords)
+        if (a.coverImage != null) a.coverImage!,
+    };
+    var deleted = 0;
+    final appDir = await AnimeStorage.getAppDir();
+    for (final entry in bundle.writtenCovers.entries) {
+      final path = entry.value;
+      if (keptIndices.contains(entry.key) || inUse.contains(path)) continue;
+      if (!isSafeCoverPath(path)) continue;
+      try {
+        final file = File(p.join(appDir.path, path));
+        if (await file.exists()) {
+          await file.delete();
+          deleted++;
+        }
+      } catch (_) {}
     }
-    await AnimeStorage.save(AnimeData(animes: list));
-    return added;
+    return deleted;
   }
 
   /// Purpose: Replace a local anime with a merged or imported version.
   /// Inputs: `localId`, `replacement`.
   /// Returns: `Future<void>`.
-  /// Side effects: Updates storage in place.
+  /// Side effects: Updates storage in place (one queued write).
   /// Notes: Used by the import conflict flow when the user chooses to merge or
-  /// use the imported version for an existing record.
-  static Future<void> replaceAnime(String localId, Anime replacement) async {
-    final data = await AnimeStorage.load();
-    final list = List<Anime>.of(data.animes);
-    final idx = list.indexWhere((a) => a.id == localId);
-    if (idx >= 0) {
-      list[idx] = replacement;
-    } else {
-      list.add(replacement);
-    }
-    await AnimeStorage.save(AnimeData(animes: list));
-  }
+  /// use the imported version for an existing record. Appends the record when
+  /// `localId` no longer exists.
+  static Future<void> replaceAnime(String localId, Anime replacement) =>
+      AnimeStorage.updateLibrary((list) {
+        final idx = list.indexWhere((a) => a.id == localId);
+        if (idx >= 0) {
+          list[idx] = replacement;
+        } else {
+          list.add(replacement);
+        }
+        return list;
+      });
 
   /// Purpose: Delete anime records by id from storage.
   /// Inputs: `ids`.
   /// Returns: `Future<void>`.
-  /// Side effects: Removes records from storage.
+  /// Side effects: Removes records from storage (one queued write).
   /// Notes: Used by the duplicate-resolution flow when the user merges records
-  /// and the redundant copies must be removed.
-  static Future<void> deleteAnimeByIds(Iterable<String> ids) async {
+  /// and the redundant copies must be removed. Keeps unknown top-level fields.
+  static Future<void> deleteAnimeByIds(Iterable<String> ids) {
     final idSet = ids.toSet();
-    final data = await AnimeStorage.load();
-    final list = data.animes.where((a) => !idSet.contains(a.id)).toList();
-    await AnimeStorage.save(AnimeData(animes: list));
+    return AnimeStorage.updateLibrary(
+      (list) => list.where((a) => !idSet.contains(a.id)).toList(),
+    );
   }
 
   /// Purpose: Open a file picker for the user to select a .myanimeitem file,.

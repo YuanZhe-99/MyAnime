@@ -77,8 +77,12 @@ class ImportBundle {
   /// Local record keyed by bundle index for each conflict.
   final Map<int, Anime> localVersions;
 
+  /// Cover file (`images/<name>`) written while parsing, keyed by bundle index.
+  /// Only these files may be deleted when the record is not kept.
+  final Map<int, String> writtenCovers;
+
   /// Purpose: Create an import bundle instance.
-  /// Inputs: `animes`, `conflictIndices`, `localVersions`.
+  /// Inputs: `animes`, `conflictIndices`, `localVersions`, `writtenCovers`.
   /// Returns: A new `ImportBundle` instance.
   /// Side effects: None.
   /// Notes: None.
@@ -86,6 +90,7 @@ class ImportBundle {
     required this.animes,
     required this.conflictIndices,
     required this.localVersions,
+    this.writtenCovers = const {},
   });
 
   /// Purpose: Return whether the bundle has any conflicts.

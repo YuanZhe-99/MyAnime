@@ -34,6 +34,7 @@ class PlaybackProgressService {
   /// numbered episode may also write `anime_data.json`.
   /// Notes: `ignore` leaves an existing resume point untouched, so briefly
   /// reopening an episode near its start does not erase where it stopped.
+  /// A failing resume-point write (for example an unreadable `playback_progress.json`) is swallowed so a finished episode is still marked watched.
   static Future<PlaybackProgressRule> report({
     required String animeId,
     required int? episode,
@@ -48,22 +49,37 @@ class PlaybackProgressService {
       case PlaybackProgressRule.ignore:
         break;
       case PlaybackProgressRule.save:
-        await PlaybackProgressStore.put(
-          PlaybackProgressEntry(
-            key: key,
-            animeId: animeId,
-            episode: episode,
-            pageUrl: pageUrl,
-            positionMs: position.inMilliseconds,
-            durationMs: duration.inMilliseconds,
-            updatedAt: now ?? DateTime.now().toUtc(),
+        await _tryStore(
+          () => PlaybackProgressStore.put(
+            PlaybackProgressEntry(
+              key: key,
+              animeId: animeId,
+              episode: episode,
+              pageUrl: pageUrl,
+              positionMs: position.inMilliseconds,
+              durationMs: duration.inMilliseconds,
+              updatedAt: now ?? DateTime.now().toUtc(),
+            ),
           ),
         );
       case PlaybackProgressRule.complete:
-        await PlaybackProgressStore.remove(key);
+        await _tryStore(() => PlaybackProgressStore.remove(key));
         if (episode != null) await markWatched(animeId, episode);
     }
     return rule;
+  }
+
+  /// Purpose: Run a resume-point write without letting its failure escape.
+  /// Inputs: `write`.
+  /// Returns: None.
+  /// Side effects: Whatever `write` does; a failure is swallowed.
+  /// Notes: Internal helper used within this file only. An unreadable
+  /// `playback_progress.json` makes the store refuse to write; that must not
+  /// stop a finished episode from being marked watched, nor crash the player.
+  static Future<void> _tryStore(Future<Object?> Function() write) async {
+    try {
+      await write();
+    } catch (_) {}
   }
 
   /// Purpose: Mark one local episode watched.
@@ -72,21 +88,19 @@ class PlaybackProgressService {
   /// Side effects: Rewrites `anime_data.json` with a fresh `modifiedAt`.
   /// Notes: A visible status change, so `modifiedAt` is bumped exactly like
   /// the home page's watched toggle. No-op when already watched or the
-  /// record is gone.
-  static Future<bool> markWatched(String animeId, int episode) async {
-    final data = await AnimeStorage.load();
-    final anime = data.animes.where((a) => a.id == animeId).firstOrNull;
-    if (anime == null) return false;
-    if (anime.episodeStatuses[episode] == EpisodeStatus.watched) return false;
-    await AnimeStorage.addOrUpdate(
-      anime.copyWith(
-        episodeStatuses: Map.of(anime.episodeStatuses)
-          ..[episode] = EpisodeStatus.watched,
-        modifiedAt: DateTime.now().toUtc(),
-      ),
-    );
-    return true;
-  }
+  /// record is gone. Decides from the freshly stored record inside the storage
+  /// queue, so a concurrent edit cannot be overwritten.
+  static Future<bool> markWatched(String animeId, int episode) =>
+      AnimeStorage.updateRecord(animeId, (fresh) {
+        if (fresh.episodeStatuses[episode] == EpisodeStatus.watched) {
+          return null;
+        }
+        return fresh.copyWith(
+          episodeStatuses: Map.of(fresh.episodeStatuses)
+            ..[episode] = EpisodeStatus.watched,
+          modifiedAt: DateTime.now().toUtc(),
+        );
+      });
 
   /// Purpose: Return the stored resume point for a key.
   /// Inputs: `key`.

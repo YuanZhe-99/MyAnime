@@ -12,9 +12,12 @@
 | [`handleFile`](#handlefile) | 方法（`FileOpenService`） | A | 直接把 `.myanimeitem` 文件（v1 或 v2）导入存储。 |
 | [`_importOne`](#_importone) | 方法（`FileOpenService`） | A | 解码解析记录附带的封面，再经 `importedCopy` 构建新记录。 |
 | [`importedCopy`](#importedcopy) | 方法（`FileOpenService`），`@visibleForTesting` | A | 构建导入要写入的记录：新 id 与时间戳，丢弃 `seriesLink`，带过 `externalMeta` 和 `categories`。 |
+| `safeCoverExt` | 方法（`FileOpenService`），`@visibleForTesting` | B | 校验分享文件的 `coverImageExt`（`^\.[A-Za-z0-9]{1,5}$`，否则 `.jpg`），使其无法改变封面路径（1.6.7）。 |
+| `isSafeCoverPath` | 方法（`FileOpenService`），`@visibleForTesting` | B | 记录的 `coverImage` 是否为普通的 `images/<名称>`；其他值导入时丢弃（1.6.7）。 |
 | [`parseBundle`](#parsebundle) | 方法（`FileOpenService`） | A | 把 `.myanimeitem` 文件解析为 `ImportBundle`，不写存储。 |
 | [`pickAndParseBundle`](#pickandparsebundle) | 方法（`FileOpenService`） | A | 让用户选择 `.myanimeitem` 文件并解析为捆绑。 |
 | [`applyBundle`](#applybundle) | 方法（`FileOpenService`） | A | 把已解析捆绑的所选子集持久化到存储。 |
+| `discardUnusedCovers` | 方法（`FileOpenService`） | B | 删除已解析捆绑为未保留记录写入的封面文件（1.6.7）。 |
 | [`replaceAnime`](#replaceanime) | 方法（`FileOpenService`） | A | 按 id 替换（或新增）本地动画记录。 |
 | [`deleteAnimeByIds`](#deleteanimebyids) | 方法（`FileOpenService`） | A | 按 id 从存储删除动画记录。 |
 | [`importFromPicker`](#importfrompicker) | 方法（`FileOpenService`） | A | 让用户选择并直接导入 `.myanimeitem` 文件。 |
@@ -281,3 +284,10 @@
 ## 1.6.4 变更
 
 importedCopy 保留绑定来源的 episodeMapping 及公开 episodeCatalog 元数据，仍分配新的导入 id 与时间戳。
+
+## 1.6.7 变更
+
+- **封面路径穿越已堵上。** `coverImageExt` 直接来自文件并被拼到图片名后，`/../../x` 可以写到 `images/` 之外。`safeCoverExt` 只接受一个点加一到五个 ASCII 字母或数字；`importedCopy` 只有在 `isSafeCoverPath` 判定记录自带的 `coverImage` 是 `images/<普通名称>`（不含 `..`，不在其他目录）时才保留它。
+- **导入不再丢东西。** `applyBundle`、`replaceAnime` 和 `deleteAnimeByIds` 在 `AnimeStorage.updateLibrary` 内运行；它们此前保存 `AnimeData(animes: list)`，会丢掉资料库未知的顶层字段（`extraJson`）以及操作期间保存的记录。`handleFile` 用一次 `addOrUpdateAll` 保存 v2 文件。
+- **不留孤立封面。** `parseBundle` 仍在解析时写入每个内嵌封面，现在把创建的文件记入 `ImportBundle.writtenCovers`；用户解决冲突后 `showImportBundleFlow` 调用 `discardUnusedCovers`，删除被跳过记录的封面（绝不删合并记录用到的，也绝不删本次导入没有创建的文件）。
+- 测试：`test/bundle_import_test.dart`（路径安全表、`discardUnusedCovers`）与 `test/anime_storage_test.dart`（包操作中的 `extraJson`）。

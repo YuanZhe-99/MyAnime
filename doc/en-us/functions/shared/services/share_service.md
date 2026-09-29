@@ -577,3 +577,9 @@ reading the source (noted below).
   [`shareStatisticsImage`](#sharestatisticsimage) when the user opts into the bar-chart image
   variant.
 - **Notes:** None.
+
+## Changes in 1.6.7
+
+- **Native image resources are released.** Every `ui.Codec` is disposed right after `getNextFrame`; the logo and cover `ui.Image`s (and the ranking / statistics cover map) are disposed in a `finally` when the card function ends; each page's `ui.Picture` is disposed after `toImage`, and its `ui.Image` after PNG encoding. Nothing was disposed before, so a long export session held every decoded cover until garbage collection.
+- **Covers decode no wider than the card.** The covers are decoded with `targetWidth: cardWidth * pixelRatio` and `allowUpscaling: false` instead of at full source size.
+- **PowerShell clipboard copy escapes `'`.** `_copyImageToClipboard` doubles single quotes in the image path inside the single-quoted PowerShell string, so a path containing `'` no longer breaks the command.

@@ -20,6 +20,7 @@
 | [`_pickFirstAirDate`](#_pickfirstairdate) | 方法（`_AnimeEditPageState`） | A | 显示日期选择器并暂存所选 `firstAirDate`。 |
 | [`_saveNew`](#_savenew) | 方法（`_AnimeEditPageState`） | A | 写入新建的记录；页面由"添加下一季"打开时把它关联进系列。 |
 | [`_save`](#_save) | 方法（`_AnimeEditPageState`） | A | 校验表单并创建或更新动画记录。 |
+| `resolveEndEpisode` | 顶层函数，`@visibleForTesting` | B | 决定保存写入的结束集数：编辑时留空表示未知，新记录为 12；起始集数超过结束集数时会平移它（1.6.7）。 |
 | [`_buildRating`](#_buildrating) | 方法（`_AnimeEditPageState`） | A | 从评分文本字段组装 `AnimeRating`，为空则 `null`。 |
 | [`_buildLocalArchive`](#_buildlocalarchive) | 方法（`_AnimeEditPageState`） | A | 从存档控件组装 `AnimeLocalArchive`，未填写则 `null`。 |
 | `_parseScore` | 方法（`_AnimeEditPageState`） | B | 把评分控制器的文本解析为 `double?`。 |
@@ -358,3 +359,8 @@
   字段顺序不可能在两种布局之间走样。`test/local_archive_ui_test.dart` 滚动的正是这个 `ListView`；自 1.5.5 起它
   必须经由 `find.byType(ListView)` 来指认它，而不能再当作页面上的第一个 `Scrollable`，因为左栏的滚动视图现在
   排在前面。
+
+## 1.6.7 变更
+
+- **未知的结束集数保持未知（数据损坏修复）。** 打开 `endEpisode` 为 `null` 的记录会往字段里填入文本 `null`，它解析不出数字，保存时变成 12。现在字段加载为空，`resolveEndEpisode` 在编辑时对空字段返回 `null`（新记录仍默认 12）；`_save` 传入 `clearEndEpisode`，所以清空字段真的会清除它。
+- **保存不再覆盖较新的数据。** 编辑表单保存整份快照（`_existing.copyWith(...)` 经 `addOrUpdate`），页面打开后变化的集数状态或外部元数据会被写回旧值。现在 `_save` 经 `AnimeStorage.updateRecord` 只把表单的字段套用到刚读出的存储记录上；只有表单改动了 `externalMeta`（`_externalMetaEdited`，由观看链接搜索和应用元数据设置）才替换它。期间记录若已被删除，则像以前那样用 `addOrUpdate` 写入这次编辑。

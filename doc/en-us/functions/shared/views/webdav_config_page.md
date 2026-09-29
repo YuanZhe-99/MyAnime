@@ -445,3 +445,7 @@ state/conflict-resolution logic" expected of this file.
   device — would look like two identical versions. See
   [`../../../sync.md`](../../../sync.md) and
   [`../../../features/series-linking.md`](../../../features/series-linking.md).
+
+## Changes in 1.6.7
+
+`_saveConfig` and `_disconnect` return when the page is no longer mounted after their awaited work, before touching `setState`, the text controllers or the `ScaffoldMessenger`.

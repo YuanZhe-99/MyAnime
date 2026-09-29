@@ -2349,6 +2349,7 @@ class _StatisticsPageState extends ConsumerState<StatisticsPage> {
               snap.data!,
               width: 44,
               height: 62,
+              cacheHeight: (62 * MediaQuery.devicePixelRatioOf(context)).ceil(),
               fit: BoxFit.cover,
             ),
           );

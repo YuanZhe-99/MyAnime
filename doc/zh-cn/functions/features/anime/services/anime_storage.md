@@ -15,8 +15,13 @@
 | [`getStoragePath`](#getstoragepath) | 静态方法（`AnimeStorage`） | A | 返回活动存储目录路径，供 UI 显示。 |
 | [`setStoragePath`](#setstoragepath) | 静态方法（`AnimeStorage`） | A | 更新自定义存储目录并迁移受管数据文件。 |
 | [`load`](#load) | 静态方法（`AnimeStorage`） | A | 把 `anime_data.json` 加载进 `AnimeData`。 |
-| [`_atomicWrite`](#atomicwrite) | 静态方法（`AnimeStorage`） | A | 通过临时文件-重命名步骤写入文件。 |
-| [`save`](#save) | 静态方法（`AnimeStorage`） | A | 持久化 `AnimeData`，然后通知自动同步和提醒。 |
+| `_dataQueue` | 静态字段（`AnimeStorage`） | B | 串行化 `anime_data.json` 每次读-改-写的共享 `AtomicWriteQueue`（1.6.7）。 |
+| `_configQueue` | 静态字段（`AnimeStorage`） | B | `storage_config.json` 的共享 `AtomicWriteQueue`（1.6.7）。 |
+| [`_writeData`](#writedata) | 静态方法（`AnimeStorage`） | A | 不入队的资料库写入：唯一临时文件原子写入，然后通知自动同步和提醒。 |
+| `_exclusiveData` | 静态方法（`AnimeStorage`） | B | 在 `_dataQueue` 内执行一次资料库读-改-写并返回其结果。 |
+| [`updateRecord`](#updaterecord) | 静态方法（`AnimeStorage`） | A | 以刚读出的存储副本计算并替换一条记录；id 不存在或结果为 `null` 时不写入。 |
+| [`updateLibrary`](#updatelibrary) | 静态方法（`AnimeStorage`） | A | 以刚重新读出的副本重写资料库，并保留未知的顶层字段。 |
+| [`save`](#save) | 静态方法（`AnimeStorage`） | A | 经写入队列持久化 `AnimeData`，然后通知自动同步和提醒。 |
 | [`patchExternalMeta`](#patchexternalmeta) | 静态方法（`AnimeStorage`） | A | 刷新缓存的外部元数据，**不**把记录标记为已编辑。 |
 | [`patchSeasonLabels`](#patchseasonlabels) | 静态方法（`AnimeStorage`） | A | 用从标题推导出的季标签替换默认季标签，**不**把记录标记为已编辑。 |
 | [`loadFixingSeasonLabels`](#loadfixingseasonlabels) | 静态方法（`AnimeStorage`） | A | 修正默认季标签后加载片库。 |
@@ -24,7 +29,9 @@
 | [`addOrUpdateAll`](#addorupdateall) | 静态方法（`AnimeStorage`） | A | 用一次加载和一次保存插入或替换多条动画记录。 |
 | [`deleteAnime`](#deleteanime) | 静态方法（`AnimeStorage`） | A | 按 `id` 移除一条动画记录并保存。 |
 | [`readConfig`](#readconfig) | 静态方法（`AnimeStorage`） | A | 把 `storage_config.json` 作为原始 JSON 映射读取。 |
-| [`writeConfig`](#writeconfig) | 静态方法（`AnimeStorage`） | A | 原子写入 `storage_config.json`。 |
+| `_writeConfig` | 静态方法（`AnimeStorage`） | B | 不入队的配置写入（唯一临时文件原子写入），在 `_configQueue` 内使用。 |
+| [`writeConfig`](#writeconfig) | 静态方法（`AnimeStorage`） | A | 经配置队列替换 `storage_config.json`。 |
+| [`updateConfig`](#updateconfig) | 静态方法（`AnimeStorage`） | A | 排队的少数配置键读-改-写；所有 setter 都用它。 |
 | [`getThemeMode`](#getthememode) | 静态方法（`AnimeStorage`） | A | 读取持久化的主题模式字符串。 |
 | [`setThemeMode`](#setthememode) | 静态方法（`AnimeStorage`） | A | 持久化（或清除）主题模式字符串。 |
 | [`getLocaleTag`](#getlocaletag) | 静态方法（`AnimeStorage`） | A | 读取持久化的语言区域标签。 |
@@ -251,7 +258,7 @@
 - **副作用：** 更新 `_customPath`；读写 `storage_config.json`；可能从旧目录复制-删除 `anime_data.json` 到新目录。
 - **算法：**
   1. 经 `getAppDir()` 捕获 `oldDir`（用本次调用*之前*生效的路径）。
-  2. 设置 `_customPath = newPath`；在配置映射中更新 `storagePath`（设置它，`newPath` 为 `null` 时 `remove` 它）并经 [`writeConfig`](#writeconfig) 写回配置。
+  2. 设置 `_customPath = newPath`；在配置映射中更新 `storagePath`（设置它，`newPath` 为 `null` 时 `remove` 它）并经 [`updateConfig`](#updateconfig) 写回配置。
   3. 再经 `getAppDir()` 解析 `newDir`（现在反映新路径）；与 `oldDir` 相同路径时立即返回 `true`（无需迁移）。
   4. 对 `_dataFileNames` 中的每个受管数据文件名（目前只有 `anime_data.json`）：目标文件已存在则不动它（目标胜出）；否则源文件存在则复制到目标并删除源。
   5. 此序列中任何位置的任何异常都被捕获并转为 `false` 返回。
@@ -280,24 +287,6 @@
   （`lib/features/anime/views/home_page.dart`）
 - **备注：** 格式错误（非空但无效）的 JSON 文件把 `jsonDecode`/`FormatException` 传播给调用方，而不是在这里被捕获——每个直接调用 `load()` 的 UI 调用点都在自己的 `initState`/异步加载流程内，没有针对此失败模式的专门 try/catch。
 
-### `static Future<void> _atomicWrite(File file, String content)` <a id="atomicwrite"></a>
-- **种类：** `AnimeStorage` 的静态方法
-- **来源：** `lib/features/anime/services/anime_storage.dart`（第 169 行）
-- **用途：** 写入文本到文件，绝不在应用写入中途被杀时留下截断/损坏文件。
-- **输入：** `file`、`content`。
-- **返回：** 无。
-- **副作用：** 写入 `<file>.tmp` 然后重命名覆盖 `file`。
-- **算法：** 对同级 `.tmp` 路径 `tmp.writeAsString(content, flush: true)`，然后 `tmp.rename(file.path)`（同一文件系统上原子）。
-- **用法：**
-  ```dart
-  static Future<void> save(AnimeData data) async {
-    final file = await _getFile(_dataFileName);
-    final jsonStr = const JsonEncoder.withIndent('  ').convert(data.toJson());
-    await _atomicWrite(file, jsonStr);
-  ```
-  （`AnimeStorage.save`，同一文件）
-- **备注：** 与 `WebDAVService._atomicWrite`（见 [`../../../shared/services/webdav_service.md`](../../../shared/services/webdav_service.md#atomicwrite)）相同的 tmp-重命名形态，但这个不使 tmp 文件名唯一——这里可接受，因为应用同一时刻只有一个进程写入给定的数据/配置路径。
-
 ### `static Future<void> save(AnimeData data)` <a id="save"></a>
 - **种类：** `AnimeStorage` 的静态方法
 - **来源：** `lib/features/anime/services/anime_storage.dart`（第 182 行）
@@ -305,7 +294,7 @@
 - **输入：** `data`。
 - **返回：** 无。
 - **副作用：** 原子覆盖 `anime_data.json`；调用 `AutoSyncService.instance.notifySaved()`（见 [`../../../../sync.md`](../../../../sync.md)）和 `ReminderService.notifyDataChanged()`，使计划通知正文保持最新。
-- **算法：** 解析数据文件，用 `JsonEncoder.withIndent('  ')` 序列化 `data.toJson()`（缩进为什么对同步的未变化文件快速路径承载负载见 [`../../../../data-formats.md`](../../../../data-formats.md)），经 [`_atomicWrite`](#atomicwrite) 写入，然后触发两个通知。
+- **算法：** 解析数据文件，用 `JsonEncoder.withIndent('  ')` 序列化 `data.toJson()`（缩进为什么对同步的未变化文件快速路径承载负载见 [`../../../../data-formats.md`](../../../../data-formats.md)），把 [`_writeData`](#writedata) 排入 `_dataQueue`；`_writeData` 用 `myapps_data` 的 `atomicWriteString`（唯一命名的临时文件再重命名）写入，然后触发两个通知。
 - **用法：**
   ```dart
   await AnimeStorage.save(AnimeData(animes: list));
@@ -380,7 +369,7 @@
 - **输入：** `config` — 要写入的完整映射（本文件每个 getter/setter 对都读取整个映射、改动一个键并全部写回）。
 - **返回：** 无。
 - **副作用：** 原子覆盖 `storage_config.json`。
-- **算法：** 用 `JsonEncoder.withIndent('  ')` 序列化 `config`，经 [`_atomicWrite`](#atomicwrite) 写入。
+- **算法：** 把 `_writeConfig` 排入 `_configQueue`；它用 `JsonEncoder.withIndent('  ')` 序列化 `config`，并用 `atomicWriteString` 写入。
 - **用法：**
   ```dart
   final config = await AnimeStorage.readConfig();
@@ -388,7 +377,7 @@
   await AnimeStorage.writeConfig(config);
   ```
   （下方每个 `setXxx` 方法使用的模式，`lib/shared/services/tray_service.dart` 也直接用）
-- **备注：** 因为每个 setter 都对同一文件做完整读-改-写，来自不同代码路径的两次并发配置写入可能竞争并丢一次变更——在单进程的桌面/移动应用中不是实际问题。
+- **备注：** 会覆盖它未给出的每个键。自 1.6.7 起，只改少数键应走 [`updateConfig`](#updateconfig)，它在队列内重新读取；设置页会同时触发多次写入，此前未串行化的读-改-写会让后一次写入把先前的旧值写回来。
 
 ### `static Future<String?> getThemeMode()` <a id="getthememode"></a>
 - **种类：** `AnimeStorage` 的静态方法
@@ -687,3 +676,43 @@
 ## 1.6.4 变更
 
 patchExternalMeta 接受按记录 id 索引的可选 expectedWatchUrls。受保护更新合入当前元数据，拒绝来源变化、旧快照或不完整替换。其他元数据更新保留已有目录，手动对应不受影响。
+
+### `static Future<void> _writeData(AnimeData data)` <a id="writedata"></a>
+- **种类：** `AnimeStorage` 的静态方法
+- **来源：** `lib/features/anime/services/anime_storage.dart`
+- **用途：** 把资料库写入 `anime_data.json` 并通知自动同步和提醒服务，不经过队列。
+- **输入：** `data`。
+- **返回：** 无。
+- **副作用：** 原子重写 `anime_data.json`；调用 `AutoSyncService.instance.notifySaved()` 与 `ReminderService.notifyDataChanged()`。
+- **备注：** 已在 `_dataQueue` 内运行的代码必须调用它，绝不能调用公开的 `save`（它会排在正在运行的操作之后而死锁）。取代旧的 `_atomicWrite`（固定 `.tmp` 名）。
+
+### `static Future<bool> updateRecord(String id, Anime? Function(Anime current) update)` <a id="updaterecord"></a>
+- **种类：** `AnimeStorage` 的静态方法
+- **来源：** `lib/features/anime/services/anime_storage.dart`
+- **用途：** 用按当前已存记录算出的值替换一条记录。
+- **输入：** `id`；`update` 接收已存记录并返回替换值，返回 `null` 表示不写入。
+- **返回：** `Future<bool>` — 是否写入了记录。
+- **副作用：** 一次排队读取，写入时再一次 `_writeData`。
+- **备注：** 读取发生在队列内，所以只套用用户改动字段的页面（编辑表单、详情页的集数切换、`PlaybackProgressService.markWatched`）不会覆盖页面打开后变化的集数状态或外部元数据。id 不存在则不写入；`extraJson` 原样保留。
+
+### `static Future<bool> updateLibrary(List<Anime>? Function(List<Anime> current) update)` <a id="updatelibrary"></a>
+- **种类：** `AnimeStorage` 的静态方法
+- **来源：** `lib/features/anime/services/anime_storage.dart`
+- **用途：** 在写入队列内，用刚重新读出的副本重写整个资料库。
+- **输入：** `update` 接收已存记录的可变副本，返回新列表，或返回 `null` 表示不写入。
+- **返回：** `Future<bool>` — 是否写入了资料库。
+- **副作用：** 一次排队读取，写入时再一次 `_writeData`。
+- **备注：** 保留 `AnimeData.extraJson`。`addOrUpdate`、`addOrUpdateAll`、`patchExternalMeta`、`patchSeasonLabels`、`deleteAnime` 以及 `FileOpenService.applyBundle` / `replaceAnime` / `deleteAnimeByIds` 都建立在它之上，因此都不会丢掉期间保存的记录，也不会丢掉更新版本写入的未知顶层字段（此前的包操作写 `AnimeData(animes: list)`，不带这些字段）。`loadFixingSeasonLabels` 留在队列之外，调用 `patchSeasonLabels`。
+
+### `static Future<void> updateConfig(void Function(Map<String, dynamic> config) change)` <a id="updateconfig"></a>
+- **种类：** `AnimeStorage` 的静态方法
+- **来源：** `lib/features/anime/services/anime_storage.dart`
+- **用途：** 修改 `storage_config.json` 的若干键而不丢失并发修改。
+- **输入：** `change` — 同步回调，就地修改刚读出的配置映射。
+- **返回：** 无。
+- **副作用：** 排队的 `storage_config.json` 读-改-写。
+- **备注：** 本文件所有 setter、`setStoragePath`、设置页的 API 与提醒写入、`TrayService` 和 `ReminderService` 都使用它。在其内部要调用 `_writeConfig`，不能调用 `writeConfig`。
+
+## 1.6.7 变更
+
+`anime_data.json` 与 `storage_config.json` 的写入由两个静态 `AtomicWriteQueue` 串行化，临时文件名也改为唯一（`atomicWriteString`），两个重叠的写入者不再共用 `<file>.tmp`。`test/anime_storage_test.dart` 覆盖 20 个并行 `addOrUpdate`、并行 setter、包操作中的 `extraJson`、id 不存在的 `updateRecord`，以及没有遗留临时文件。

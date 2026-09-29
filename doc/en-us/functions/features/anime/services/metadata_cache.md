@@ -23,7 +23,6 @@ exclusion list, no special case. It still lives under `AnimeStorage.getAppDir()`
 |---|---|---|---|
 | `MetadataCache._` | constructor | B | Prevent instantiation. |
 | `_file` | method | B | Resolve the cache file inside the active storage directory. |
-| [`_atomicWrite`](#_atomicwrite) | method | A | Write via tmp-then-rename. |
 | [`load`](#load) | method | A | Load the cache, degrading to empty on any failure. |
 | [`save`](#save) | method | A | Persist the cache. |
 | `_coverDir` | method | B | Resolve the prefetch directory, creating it on demand. |
@@ -32,14 +31,6 @@ exclusion list, no special case. It still lives under `AnimeStorage.getAppDir()`
 | [`pruneCovers`](#prunecovers) | method | A | Delete prefetched covers nothing references. |
 
 ## Documentation
-
-### `static Future<void> _atomicWrite(File, String)` <a id="_atomicwrite"></a>
-- **Kind:** static method of `MetadataCache`
-- **Purpose:** Write a file through a temporary file and a rename.
-- **Side effects:** Writes `<path>.tmp`, then renames it over the target.
-- **Notes:** Mirrors `AnimeStorage._atomicWrite`. The cache is rebuildable, so corruption is not a
-  data-loss risk — but a truncated file would still cost a full re-scan of the library over the
-  network, which is worth one rename to avoid.
 
 ### `static Future<MetadataUpdateStore> load()` <a id="load"></a>
 - **Kind:** static method of `MetadataCache`
@@ -74,3 +65,7 @@ exclusion list, no special case. It still lives under `AnimeStorage.getAppDir()`
 - **Side effects:** Deletes every file in `metadata_covers/` that no entry references.
 - **Notes:** Paired with `MetadataUpdateStore.prunedTo` so covers belonging to deleted anime go too.
   Opportunistic — any failure is swallowed and retried on the next prune.
+
+## Changes in 1.6.7
+
+The private `_atomicWrite` (fixed `<file>.tmp` name) is gone; `save` writes with `atomicWriteString` from `myapps_data`, which uses a uniquely named temporary file, so two overlapping saves cannot collide on one temp file.

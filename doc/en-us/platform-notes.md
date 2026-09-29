@@ -94,10 +94,12 @@ controlled from Settings.
 - Users may set `0.0.0.0` for LAN access.
 - Non-loopback listening requires API credentials; an unsafe non-localhost startup without
   credentials is refused outright.
-- CORS is permissive.
+- Browser requests must come from a local origin (1.6.7): an `Origin` header other than `http`/`https`
+  on `localhost` or a loopback IP gets `403` for every method and no CORS headers. Requests without an
+  `Origin` header (curl, scripts) are unaffected; an allowed origin is echoed back rather than `*`.
 - When credentials **are** configured, HTTP Basic Auth is required for every non-`OPTIONS`
-  request, **including loopback** — because permissive CORS would otherwise let any local web page
-  read the API. Without credentials configured, loopback requests are allowed and non-loopback
+  request, **including loopback** — so a page on an allowed local origin still cannot read the API
+  without them. Without credentials configured, loopback requests are allowed and non-loopback
   requests are rejected.
 
 ### Endpoints

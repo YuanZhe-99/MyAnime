@@ -7,6 +7,7 @@ import 'package:url_launcher/url_launcher.dart';
 
 import '../../../app/flavor.dart';
 import '../../../l10n/app_localizations.dart';
+import '../../../shared/services/auto_sync_service.dart';
 import '../../../shared/services/image_service.dart';
 import '../../../shared/services/share_service.dart';
 import '../../../shared/utils/detail_layout.dart';
@@ -75,6 +76,36 @@ class _AnimeDetailPageState extends State<AnimeDetailPage> {
   void initState() {
     super.initState();
     _load();
+    AutoSyncService.instance.addOnLocalDataChanged(_reloadRecord);
+  }
+
+  /// Purpose: Release the local-data listener registered in [initState].
+  /// Inputs: None.
+  /// Returns: None.
+  /// Side effects: Removes the auto-sync listener.
+  /// Notes: Flutter lifecycle override.
+  @override
+  void dispose() {
+    AutoSyncService.instance.removeOnLocalDataChanged(_reloadRecord);
+    super.dispose();
+  }
+
+  /// Purpose: Refresh the shown record after a sync changed local data.
+  /// Inputs: None.
+  /// Returns: None.
+  /// Side effects: Reads `anime_data.json`; sets state.
+  /// Notes: Re-reads storage only (no season-label fixups, no network), so a
+  /// merge that arrived while this page was open is visible instead of being
+  /// overwritten by the next edit. Does nothing once the page is gone; a record
+  /// deleted by the sync keeps the last shown copy until the page is left.
+  Future<void> _reloadRecord() async {
+    final data = await AnimeStorage.load();
+    final found = data.animes.where((a) => a.id == widget.animeId).firstOrNull;
+    if (!mounted || found == null) return;
+    setState(() {
+      _anime = found;
+      _library = data.animes;
+    });
   }
 
   /// Purpose: Reload when the page is rebuilt for a different record.
@@ -179,6 +210,7 @@ class _AnimeDetailPageState extends State<AnimeDetailPage> {
   /// Notes: Internal helper used within this file only. Saving writes the
   /// user's list, even an empty one, and keeps any ids this build does not
   /// know; "Reset to automatic" removes the field.
+  /// Computes the change inside `AnimeStorage.updateRecord` from the freshly stored record, so a stale page snapshot cannot overwrite newer data.
   Future<void> _editCategories() async {
     final anime = _anime;
     if (anime == null) return;
@@ -189,21 +221,21 @@ class _AnimeDetailPageState extends State<AnimeDetailPage> {
     );
     if (result == null) return;
     final now = DateTime.now().toUtc();
-    final Anime updated;
-    switch (result) {
-      case CategoriesChosen(:final ids):
-        final unknown = [
-          for (final id in anime.categories ?? const <String>[])
-            if (!animeCategoryIds.contains(id)) id,
-        ];
-        updated = anime.copyWith(
-          categories: [...ids, ...unknown],
-          modifiedAt: now,
-        );
-      case CategoriesReset():
-        updated = anime.copyWith(clearCategories: true, modifiedAt: now);
-    }
-    await AnimeStorage.addOrUpdate(updated);
+    await AnimeStorage.updateRecord(anime.id, (fresh) {
+      switch (result) {
+        case CategoriesChosen(:final ids):
+          final unknown = [
+            for (final id in fresh.categories ?? const <String>[])
+              if (!animeCategoryIds.contains(id)) id,
+          ];
+          return fresh.copyWith(
+            categories: [...ids, ...unknown],
+            modifiedAt: now,
+          );
+        case CategoriesReset():
+          return fresh.copyWith(clearCategories: true, modifiedAt: now);
+      }
+    });
     await _load();
   }
 
@@ -261,54 +293,59 @@ class _AnimeDetailPageState extends State<AnimeDetailPage> {
   /// Purpose: Provide the internal toggle episode helper for this file.
   /// Inputs: `ep`.
   /// Returns: None.
-  /// Side effects: None.
+  /// Side effects: Queued write of `anime_data.json` through `updateRecord`; reloads.
   /// Notes: Internal helper used within this file only.
+  /// Computes the change inside `AnimeStorage.updateRecord` from the freshly stored record, so a stale page snapshot cannot overwrite newer data.
   Future<void> _toggleEpisode(int ep) async {
     if (_anime == null) return;
-    final current = _anime!.episodeStatuses[ep] ?? EpisodeStatus.unwatched;
-    EpisodeStatus next;
-    switch (current) {
-      case EpisodeStatus.unwatched:
-        next = EpisodeStatus.watched;
-        break;
-      case EpisodeStatus.watched:
-        next = EpisodeStatus.skippedThisWeek;
-        break;
-      case EpisodeStatus.skippedThisWeek:
-        next = EpisodeStatus.unwatched;
-        break;
-    }
-    final updated = _anime!.copyWith(
-      episodeStatuses: Map.of(_anime!.episodeStatuses)..[ep] = next,
-      modifiedAt: DateTime.now().toUtc(),
-    );
-    await AnimeStorage.addOrUpdate(updated);
+    await AnimeStorage.updateRecord(_anime!.id, (fresh) {
+      final current = fresh.episodeStatuses[ep] ?? EpisodeStatus.unwatched;
+      final EpisodeStatus next;
+      switch (current) {
+        case EpisodeStatus.unwatched:
+          next = EpisodeStatus.watched;
+          break;
+        case EpisodeStatus.watched:
+          next = EpisodeStatus.skippedThisWeek;
+          break;
+        case EpisodeStatus.skippedThisWeek:
+          next = EpisodeStatus.unwatched;
+          break;
+      }
+      return fresh.copyWith(
+        episodeStatuses: Map.of(fresh.episodeStatuses)..[ep] = next,
+        modifiedAt: DateTime.now().toUtc(),
+      );
+    });
     await _load();
   }
 
   /// Purpose: Shift episode [ep] and all subsequent episodes by [delta] weeks.
   /// Inputs: `ep`, `delta`.
   /// Returns: None.
-  /// Side effects: None.
+  /// Side effects: Queued write of `anime_data.json` through `updateRecord`; reloads.
   /// Notes: Internal helper used within this file only. Shift episode [ep] and all subsequent episodes by [delta] weeks. delta > 0 = delay (push back), delta < 0 = advance (pull forward).
+  /// Computes the change inside `AnimeStorage.updateRecord` from the freshly stored record, so a stale page snapshot cannot overwrite newer data.
   Future<void> _shiftFromEpisode(int ep, int delta) async {
     if (_anime == null) return;
-    final offsets = Map<int, int>.of(_anime!.episodeWeekOffsets);
-    offsets[ep] = (offsets[ep] ?? 0) + delta;
-    if (offsets[ep] == 0) offsets.remove(ep);
-    final updated = _anime!.copyWith(
-      episodeWeekOffsets: offsets,
-      modifiedAt: DateTime.now().toUtc(),
-    );
-    await AnimeStorage.addOrUpdate(updated);
+    await AnimeStorage.updateRecord(_anime!.id, (fresh) {
+      final offsets = Map<int, int>.of(fresh.episodeWeekOffsets);
+      offsets[ep] = (offsets[ep] ?? 0) + delta;
+      if (offsets[ep] == 0) offsets.remove(ep);
+      return fresh.copyWith(
+        episodeWeekOffsets: offsets,
+        modifiedAt: DateTime.now().toUtc(),
+      );
+    });
     await _load();
   }
 
   /// Purpose: Reset all episode week offsets to original schedule based on firstAirDate.
   /// Inputs: None.
   /// Returns: None.
-  /// Side effects: None.
+  /// Side effects: Queued write of `anime_data.json` through `updateRecord`; reloads.
   /// Notes: Internal helper used within this file only. Reset all episode week offsets to original schedule based on firstAirDate.
+  /// Computes the change inside `AnimeStorage.updateRecord` from the freshly stored record, so a stale page snapshot cannot overwrite newer data.
   Future<void> _resetSchedule() async {
     if (_anime == null) return;
     final l10n = AppLocalizations.of(context)!;
@@ -329,12 +366,14 @@ class _AnimeDetailPageState extends State<AnimeDetailPage> {
         ],
       ),
     );
-    if (confirmed != true) return;
-    final updated = _anime!.copyWith(
-      episodeWeekOffsets: {},
-      modifiedAt: DateTime.now().toUtc(),
+    if (confirmed != true || _anime == null) return;
+    await AnimeStorage.updateRecord(
+      _anime!.id,
+      (fresh) => fresh.copyWith(
+        episodeWeekOffsets: {},
+        modifiedAt: DateTime.now().toUtc(),
+      ),
     );
-    await AnimeStorage.addOrUpdate(updated);
     await _load();
   }
 
@@ -958,22 +997,26 @@ class _AnimeDetailPageState extends State<AnimeDetailPage> {
   /// Purpose: Provide the internal toggle all watched helper for this file.
   /// Inputs: None.
   /// Returns: None.
-  /// Side effects: None.
+  /// Side effects: Queued write of `anime_data.json` through `updateRecord`; reloads.
   /// Notes: Internal helper used within this file only.
+  /// Computes the change inside `AnimeStorage.updateRecord` from the freshly stored record, so a stale page snapshot cannot overwrite newer data. Writes nothing when the record has no end episode.
   Future<void> _toggleAllWatched() async {
     if (_anime == null || _anime!.endEpisode == null) return;
-    final allWatched = _anime!.isCompleted;
-    final newStatuses = <int, EpisodeStatus>{};
-    for (var ep = _anime!.startEpisode; ep <= _anime!.endEpisode!; ep++) {
-      newStatuses[ep] = allWatched
-          ? EpisodeStatus.unwatched
-          : EpisodeStatus.watched;
-    }
-    final updated = _anime!.copyWith(
-      episodeStatuses: newStatuses,
-      modifiedAt: DateTime.now().toUtc(),
-    );
-    await AnimeStorage.addOrUpdate(updated);
+    await AnimeStorage.updateRecord(_anime!.id, (fresh) {
+      final end = fresh.endEpisode;
+      if (end == null) return null;
+      final allWatched = fresh.isCompleted;
+      final newStatuses = <int, EpisodeStatus>{};
+      for (var ep = fresh.startEpisode; ep <= end; ep++) {
+        newStatuses[ep] = allWatched
+            ? EpisodeStatus.unwatched
+            : EpisodeStatus.watched;
+      }
+      return fresh.copyWith(
+        episodeStatuses: newStatuses,
+        modifiedAt: DateTime.now().toUtc(),
+      );
+    });
     await _load();
   }
 
@@ -1433,43 +1476,51 @@ class _AnimeDetailPageState extends State<AnimeDetailPage> {
   /// Purpose: Provide the internal abandon anime helper for this file.
   /// Inputs: None.
   /// Returns: None.
-  /// Side effects: None.
+  /// Side effects: Queued write of `anime_data.json` through `updateRecord`; reloads.
   /// Notes: Internal helper used within this file only.
+  /// Computes the change inside `AnimeStorage.updateRecord` from the freshly stored record, so a stale page snapshot cannot overwrite newer data. Writes nothing when the record has no end episode.
   Future<void> _abandonAnime() async {
     if (_anime == null || _anime!.endEpisode == null) return;
-    final newStatuses = Map<int, EpisodeStatus>.of(_anime!.episodeStatuses);
-    for (var ep = _anime!.startEpisode; ep <= _anime!.endEpisode!; ep++) {
-      if ((newStatuses[ep] ?? EpisodeStatus.unwatched) ==
-          EpisodeStatus.unwatched) {
-        newStatuses[ep] = EpisodeStatus.skippedThisWeek;
+    await AnimeStorage.updateRecord(_anime!.id, (fresh) {
+      final end = fresh.endEpisode;
+      if (end == null) return null;
+      final newStatuses = Map<int, EpisodeStatus>.of(fresh.episodeStatuses);
+      for (var ep = fresh.startEpisode; ep <= end; ep++) {
+        if ((newStatuses[ep] ?? EpisodeStatus.unwatched) ==
+            EpisodeStatus.unwatched) {
+          newStatuses[ep] = EpisodeStatus.skippedThisWeek;
+        }
       }
-    }
-    final updated = _anime!.copyWith(
-      episodeStatuses: newStatuses,
-      modifiedAt: DateTime.now().toUtc(),
-    );
-    await AnimeStorage.addOrUpdate(updated);
+      return fresh.copyWith(
+        episodeStatuses: newStatuses,
+        modifiedAt: DateTime.now().toUtc(),
+      );
+    });
     await _load();
   }
 
   /// Purpose: Provide the internal resume anime helper for this file.
   /// Inputs: None.
   /// Returns: None.
-  /// Side effects: None.
+  /// Side effects: Queued write of `anime_data.json` through `updateRecord`; reloads.
   /// Notes: Internal helper used within this file only.
+  /// Computes the change inside `AnimeStorage.updateRecord` from the freshly stored record, so a stale page snapshot cannot overwrite newer data. Writes nothing when the record has no end episode.
   Future<void> _resumeAnime() async {
     if (_anime == null || _anime!.endEpisode == null) return;
-    final newStatuses = Map<int, EpisodeStatus>.of(_anime!.episodeStatuses);
-    for (var ep = _anime!.startEpisode; ep <= _anime!.endEpisode!; ep++) {
-      if (newStatuses[ep] == EpisodeStatus.skippedThisWeek) {
-        newStatuses[ep] = EpisodeStatus.unwatched;
+    await AnimeStorage.updateRecord(_anime!.id, (fresh) {
+      final end = fresh.endEpisode;
+      if (end == null) return null;
+      final newStatuses = Map<int, EpisodeStatus>.of(fresh.episodeStatuses);
+      for (var ep = fresh.startEpisode; ep <= end; ep++) {
+        if (newStatuses[ep] == EpisodeStatus.skippedThisWeek) {
+          newStatuses[ep] = EpisodeStatus.unwatched;
+        }
       }
-    }
-    final updated = _anime!.copyWith(
-      episodeStatuses: newStatuses,
-      modifiedAt: DateTime.now().toUtc(),
-    );
-    await AnimeStorage.addOrUpdate(updated);
+      return fresh.copyWith(
+        episodeStatuses: newStatuses,
+        modifiedAt: DateTime.now().toUtc(),
+      );
+    });
     await _load();
   }
 

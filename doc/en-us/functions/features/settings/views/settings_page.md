@@ -577,3 +577,7 @@ lead to (`../../../shared/views/webdav_config_page.md`, `backup_page.md` in this
 - **Notes:** If `AnimeStorage.setStoragePath` returns `false` (e.g. the new path is invalid or the
   move failed), this method shows no failure feedback at all — the dialog simply closes with the
   displayed path unchanged.
+
+## Changes in 1.6.7
+
+The API dialog save, the reminder switch and time picker, and the API-enabled switch write through `AnimeStorage.updateConfig`, so several settings changed in quick succession all persist (each used to read the whole config, change a key and write it back). The API dialog save, the auto-start switch and the API-enabled switch check `mounted` after their awaited work before calling `setState`.

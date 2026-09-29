@@ -140,3 +140,8 @@
 - **算法：** 桌面上构建并 `.show()` 一个 `LocalNotification`。移动端调用带高重要性 Android 详情的 `_plugin.show(_showCounter++, title, body, ...)`；既非桌面也非移动（如 web）时空操作。
 - **用法：** 只从 [`checkAndNotify`](#checkandnotify) 内部调用——`_scheduleMobileNotification` 中的移动 `zonedSchedule` 路径完全绕过 `_show`，因为操作系统本身会在调度时间显示那些通知。
 - **备注：** `_showCounter` 每次调用递增，使每条临时移动通知得到不同的 id，与调度按日通知使用的 `100..106` id 分开。
+
+## 1.6.7 变更
+
+- `checkAndNotify` 经 `AnimeStorage.updateConfig` 只记录 `lastReminderDate` 这一个键，而不是把显示通知之前读出的配置映射写回去（那样可能恢复期间已改动的设置）。
+- `_scheduleMobileNotification` 用 `TZDateTime(tz.local, year, month, day + offset, hour, minute)` 构造每个触发时间，不再用 `now.add(Duration(days: offset))`，因此 7 天窗口内出现夏令时切换也不会把通知挪到错误的日期。

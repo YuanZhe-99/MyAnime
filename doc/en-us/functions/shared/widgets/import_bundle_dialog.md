@@ -86,3 +86,7 @@ separate row.
 - **Notes:** `count` is not necessarily `importedIds.length` in every conceivable caller — in this
   file they're always kept in sync (`totalImported = added + mergedCount` and `importedIds` is
   built from the same non-skipped set), but the class itself does not enforce that invariant.
+
+## Changes in 1.6.7
+
+`showImportBundleFlow` collects the merged records and, after applying the bundle and the merges, calls `FileOpenService.discardUnusedCovers` with the indices that were added as new. Covers written while parsing for records the user skipped (kept local or cancelled) are deleted instead of accumulating in `images/`.

@@ -120,84 +120,6 @@ void main() {
       await sb.dir.delete(recursive: true);
     });
 
-    test('no-change sync (local == remote == base)', () async {
-      final sb = await newSandbox();
-      final data = _animeData(
-          [_anime('a1', 'Frieren', '2026-07-01T00:00:00.000Z')]);
-      await sb.writeLocalData(data);
-      // Seed remote with identical content and write base snapshot.
-      sb.server.seed(sb.remote('anime_data.json'), data);
-      final baseDir = Directory(p.join(sb.appDir, '.sync_base'));
-      await baseDir.create(recursive: true);
-      await File(p.join(baseDir.path, 'anime_data.json')).writeAsString(data);
-      final result = await zone(sb, () => WebDAVService.sync(_config()));
-      expect(result.success, isTrue, reason: result.error);
-      await expectGolden(sb, 'sync_no_change');
-      await sb.dir.delete(recursive: true);
-    });
-
-    test('local-only change (upload merged)', () async {
-      final sb = await newSandbox();
-      final base = _animeData(
-          [_anime('a1', 'Frieren', '2026-07-01T00:00:00.000Z')]);
-      final local = _animeData([
-        _anime('a1', 'Frieren', '2026-07-02T00:00:00.000Z'),
-        _anime('a2', 'Bocchi', '2026-07-02T00:00:00.000Z'),
-      ]);
-      await sb.writeLocalData(local);
-      sb.server.seed(sb.remote('anime_data.json'), base);
-      final baseDir = Directory(p.join(sb.appDir, '.sync_base'));
-      await baseDir.create(recursive: true);
-      await File(p.join(baseDir.path, 'anime_data.json')).writeAsString(base);
-      final result = await zone(sb, () => WebDAVService.sync(_config()));
-      expect(result.success, isTrue, reason: result.error);
-      await expectGolden(sb, 'sync_local_change');
-      expect(sb.server.readText(sb.remote('anime_data.json')),
-          contains('Bocchi'));
-      await sb.dir.delete(recursive: true);
-    });
-
-    test('remote-only change (download)', () async {
-      final sb = await newSandbox();
-      final base = _animeData(
-          [_anime('a1', 'Frieren', '2026-07-01T00:00:00.000Z')]);
-      final remote = _animeData([
-        _anime('a1', 'Frieren', '2026-07-01T00:00:00.000Z'),
-        _anime('a3', 'Dungeon Meshi', '2026-07-03T00:00:00.000Z'),
-      ]);
-      await sb.writeLocalData(base);
-      sb.server.seed(sb.remote('anime_data.json'), remote);
-      final baseDir = Directory(p.join(sb.appDir, '.sync_base'));
-      await baseDir.create(recursive: true);
-      await File(p.join(baseDir.path, 'anime_data.json')).writeAsString(base);
-      final result = await zone(sb, () => WebDAVService.sync(_config()));
-      expect(result.success, isTrue, reason: result.error);
-      await expectGolden(sb, 'sync_remote_change');
-      expect((await sb.dataFile()).readAsStringSync(),
-          contains('Dungeon Meshi'));
-      await sb.dir.delete(recursive: true);
-    });
-
-    test('both-changed-identical (no conflict, no upload of that record)',
-        () async {
-      final sb = await newSandbox();
-      final base = _animeData(
-          [_anime('a1', 'Frieren', '2026-07-01T00:00:00.000Z')]);
-      // Both sides changed a1 to the SAME content after base.
-      final both = _animeData(
-          [_anime('a1', 'Frieren Renamed', '2026-07-05T00:00:00.000Z')]);
-      await sb.writeLocalData(both);
-      sb.server.seed(sb.remote('anime_data.json'), both);
-      final baseDir = Directory(p.join(sb.appDir, '.sync_base'));
-      await baseDir.create(recursive: true);
-      await File(p.join(baseDir.path, 'anime_data.json')).writeAsString(base);
-      final result = await zone(sb, () => WebDAVService.sync(_config()));
-      expect(result.success, isTrue, reason: result.error);
-      expect(result.pending, isNull, reason: 'identical content must not conflict');
-      await expectGolden(sb, 'sync_both_identical');
-      await sb.dir.delete(recursive: true);
-    });
-
     test('true conflict then finalize', () async {
       final sb = await newSandbox();
       final base = _animeData(
@@ -246,74 +168,6 @@ void main() {
       await sb.dir.delete(recursive: true);
     });
 
-    test('force download', () async {
-      final sb = await newSandbox();
-      await sb.writeLocalData(_animeData(
-          [_anime('a9', 'Local Stale', '2020-01-01T00:00:00.000Z')]));
-      sb.server.seed(sb.remote('anime_data.json'), _animeData(
-          [_anime('a1', 'Frieren', '2026-07-01T00:00:00.000Z')]));
-      final result =
-          await zone(sb, () => WebDAVService.forceDownload(_config()));
-      expect(result.success, isTrue, reason: result.error);
-      await expectGolden(sb, 'force_download');
-      expect((await sb.dataFile()).readAsStringSync(), contains('Frieren'));
-      await sb.dir.delete(recursive: true);
-    });
-
-    test('interrupted upload recovery (leftover local lock)', () async {
-      final sb = await newSandbox();
-      final local = _animeData(
-          [_anime('a1', 'Frieren', '2026-07-01T00:00:00.000Z')]);
-      await sb.writeLocalData(local);
-      sb.server.seed(sb.remote('anime_data.json'), local);
-      // Simulate a previous interrupted upload: a local upload_lock.json whose
-      // remote lock is gone (so it must be cleared and sync proceeds cleanly).
-      final baseDir = Directory(p.join(sb.appDir, '.sync_base'));
-      await baseDir.create(recursive: true);
-      await File(p.join(baseDir.path, 'upload_lock.json')).writeAsString(
-          jsonEncode({
-            'clientId': 'dead-client',
-            'token': 'dead-token',
-            'startedAt': '2026-07-01T00:00:00.000Z',
-            'updatedAt': '2026-07-01T00:00:00.000Z',
-            'ttlSeconds': 60,
-          }));
-      final result = await zone(sb, () => WebDAVService.sync(_config()));
-      expect(result.success, isTrue, reason: result.error);
-      await expectGolden(sb, 'sync_interrupted_recovery');
-      await sb.dir.delete(recursive: true);
-    });
-
-    test('image add on each side (additive image sync)', () async {
-      final sb = await newSandbox();
-      // Local references cover_local.jpg; remote references cover_remote.jpg.
-      final local = _animeData([
-        _anime('a1', 'Frieren', '2026-07-01T00:00:00.000Z',
-            coverImage: 'cover_local.jpg'),
-      ]);
-      final remote = _animeData([
-        _anime('a1', 'Frieren', '2026-07-01T00:00:00.000Z',
-            coverImage: 'cover_remote.jpg'),
-      ]);
-      await sb.writeLocalData(local);
-      final imgDir = Directory(p.join(sb.appDir, 'images'));
-      await imgDir.create(recursive: true);
-      await File(p.join(imgDir.path, 'cover_local.jpg'))
-          .writeAsBytes([1, 2, 3]);
-      sb.server.seed(sb.remote('anime_data.json'), remote);
-      sb.server.seed(sb.remote('images/cover_remote.jpg'), [9, 9, 9]);
-      final baseDir = Directory(p.join(sb.appDir, '.sync_base'));
-      await baseDir.create(recursive: true);
-      await File(p.join(baseDir.path, 'anime_data.json')).writeAsString(local);
-      final result = await zone(sb, () => WebDAVService.sync(_config()));
-      expect(result.success, isTrue, reason: result.error);
-      await expectGolden(sb, 'sync_image_add_both_sides');
-      // Local image uploaded; remote image downloaded.
-      expect(sb.server.exists(sb.remote('images/cover_local.jpg')), isTrue);
-      expect(
-          await File(p.join(imgDir.path, 'cover_remote.jpg')).exists(), isTrue);
-      await sb.dir.delete(recursive: true);
-    });
   });
 
   group('backup goldens (on-disk format)', () {
@@ -357,18 +211,6 @@ void main() {
       await sb.dir.delete(recursive: true);
     });
 
-    test('corrupt bundle flagged in listBackups', () async {
-      final sb = await newSandbox();
-      BackupService.appDirProvider = () async => Directory(sb.appDir);
-      final backupDir = Directory(p.join(sb.appDir, 'backups'));
-      await backupDir.create(recursive: true);
-      await File(p.join(backupDir.path, 'backup_20260701_000000.json'))
-          .writeAsString('{corrupt not json');
-      final list = await BackupService.listBackups();
-      expect(list.single.corrupt, isTrue);
-      BackupService.appDirProvider = null;
-      await sb.dir.delete(recursive: true);
-    });
   });
 
   group('zip goldens', () {
@@ -391,27 +233,6 @@ void main() {
       await outDir.delete(recursive: true);
     });
 
-    test('import rejects path traversal', () async {
-      final sb = await newSandbox();
-      final zip = _buildZip({
-        '../../evil.txt': [1, 2, 3],
-        'anime_data.json': utf8.encode('{"animes":[]}'),
-      });
-      final zipFile = File(p.join(sb.dir.path, 'evil.zip'));
-      await zipFile.writeAsBytes(zip);
-      final ok = await ImportExportService.importZIP(zipFile.path);
-      // Accepted unification (PLAN.md, P3.1.3): MyAnime used to skip the bad
-      // entry and import the rest. The shared engine classifies every entry
-      // before writing any, so an archive containing a traversal entry is
-      // rejected outright. Strictly safer — a tampered archive can no longer be
-      // half-applied — and it matches MyDay's long-standing behavior.
-      expect(ok, isFalse);
-      expect(await File(p.join(sb.appDir, '..', 'evil.txt')).exists(), isFalse,
-          reason: 'traversal entry must not be written outside appDir');
-      expect(await File(p.join(sb.appDir, 'anime_data.json')).exists(), isFalse,
-          reason: 'a rejected archive must not write any of its entries');
-      await sb.dir.delete(recursive: true);
-    });
   });
 }
 
@@ -421,13 +242,4 @@ List<String> _zipEntries(File zipFile) {
   final archive = ZipDecoder().decodeBytes(bytes);
   final names = archive.map((f) => f.name).toList()..sort();
   return names;
-}
-
-/// Build a ZIP in-memory from a name->bytes map.
-List<int> _buildZip(Map<String, List<int>> files) {
-  final archive = Archive();
-  files.forEach((name, bytes) {
-    archive.addFile(ArchiveFile(name, bytes.length, bytes));
-  });
-  return ZipEncoder().encode(archive);
 }

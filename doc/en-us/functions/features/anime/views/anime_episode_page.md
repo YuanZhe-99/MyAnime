@@ -31,3 +31,7 @@ Since 1.6.5 the page follows the app-wide split rule: where `useDetailTwoPane` a
 ## Contract
 
 See [watch-URL behavior](../../../../features/watch-url-lookup.md) and the structured source comments for inputs, results and side effects. Network parsing uses injectable clients; mappings are deterministic. Player objects and temporary credentials are never serialized.
+
+## Changes in 1.6.7
+
+`_play` now also re-reads the stored record and library after the player closes (the player may have marked an episode watched), so the next play resolves against the current record instead of the copy loaded before playback.

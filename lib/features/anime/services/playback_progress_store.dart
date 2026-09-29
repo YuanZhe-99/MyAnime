@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:myapps_data/myapps_data.dart' show atomicWriteString;
 import 'package:path/path.dart' as p;
 
 import '../../../shared/services/auto_sync_service.dart';
@@ -61,10 +62,12 @@ class PlaybackProgressStore {
   /// Purpose: Apply one change to the store and save it.
   /// Inputs: `mutate` — edits the loaded data in place.
   /// Returns: `Future<PlaybackProgressData>` — the data after the change.
-  /// Side effects: Writes the file atomically (tmp then rename) and notifies
+  /// Side effects: Writes the file atomically (unique tmp then rename) and notifies
   /// auto-sync, but only when the bytes changed; never creates the file for
   /// an empty store.
   /// Notes: Calls are queued, so concurrent updates apply one after another.
+  /// Throws a [FormatException] and leaves the file untouched when it exists
+  /// but cannot be parsed; a blank file counts as empty.
   static Future<PlaybackProgressData> update(
     void Function(PlaybackProgressData data) mutate,
   ) {
@@ -91,12 +94,17 @@ class PlaybackProgressStore {
     final exists = await file.exists();
     final before = exists ? await file.readAsString() : null;
     PlaybackProgressData data;
-    try {
-      data = before == null
-          ? PlaybackProgressData()
-          : PlaybackProgressData.fromJson(jsonDecode(before));
-    } catch (_) {
+    if (before == null || before.trim().isEmpty) {
       data = PlaybackProgressData();
+    } else {
+      try {
+        data = PlaybackProgressData.fromJson(jsonDecode(before));
+      } catch (e) {
+        // Do not treat an unreadable file as empty: saving over it would
+        // erase every resume point and, once synced, delete them on every
+        // device. The bytes stay on disk untouched.
+        throw FormatException('playback_progress.json is unreadable: $e');
+      }
     }
     mutate(data);
     final after = encodePlaybackProgress(data);
@@ -105,9 +113,7 @@ class PlaybackProgressStore {
         after == encodePlaybackProgress(PlaybackProgressData())) {
       return data;
     }
-    final tmp = File('${file.path}.tmp');
-    await tmp.writeAsString(after, flush: true);
-    await tmp.rename(file.path);
+    await atomicWriteString(file, after);
     AutoSyncService.instance.notifySaved();
     return data;
   }

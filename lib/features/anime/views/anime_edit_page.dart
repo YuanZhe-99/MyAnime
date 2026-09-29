@@ -15,6 +15,30 @@ import '../services/series_service.dart';
 import 'anime_search_dialog.dart';
 import 'archive_labels.dart';
 
+/// Purpose: Decide the end episode a save writes from the form's text field.
+/// Inputs: `text` — the end-episode field; `startEp` — the parsed start
+/// episode; `isEdit` — whether an existing record is being edited;
+/// `existingEnd` — that record's stored end episode.
+/// Returns: `int?` — the end episode, or `null` for "unknown".
+/// Side effects: None.
+/// Notes: An empty field means "unknown" (`null`) when editing, so a record
+/// with no known end never gains an invented 12; a new record defaults to 12.
+/// When the start moves past a typed end, the end shifts to preserve the
+/// episode count. Visible for testing.
+@visibleForTesting
+int? resolveEndEpisode({
+  required String text,
+  required int startEp,
+  required bool isEdit,
+  int? existingEnd,
+}) {
+  final typed = int.tryParse(text.trim());
+  if (typed == null) return isEdit ? null : 12;
+  if (startEp <= typed) return typed;
+  final originalEnd = isEdit ? (existingEnd ?? typed) : typed;
+  return originalEnd - 1 + startEp;
+}
+
 class AnimeEditPage extends StatefulWidget {
   final String? animeId;
 
@@ -93,6 +117,11 @@ class _AnimeEditPageState extends State<AnimeEditPage> {
   /// search result, never typed by hand, so it has no form controller.
   AnimeExternalMeta? _externalMeta;
 
+  /// Whether this form changed [_externalMeta] (search match or applied
+  /// metadata). Only then does saving overwrite the stored value; otherwise a
+  /// background refresh that landed since the form opened is kept.
+  bool _externalMetaEdited = false;
+
   /// Purpose: Initialize listeners, controllers, and first-load work for this state object.
   /// Inputs: None.
   /// Returns: None.
@@ -158,6 +187,7 @@ class _AnimeEditPageState extends State<AnimeEditPage> {
   /// Returns: None.
   /// Side effects: May read or mutate application state, storage, or service resources.
   /// Notes: Internal helper used within this file only.
+  /// An unknown end episode (`null`) loads as an empty field, not the text `null`.
   Future<void> _loadExisting() async {
     final data = await AnimeStorage.load();
     final found = data.animeList
@@ -171,7 +201,7 @@ class _AnimeEditPageState extends State<AnimeEditPage> {
         _titleJaController.text = found.titleJa ?? '';
         _seasonController.text = found.season;
         _startEpController.text = found.startEpisode.toString();
-        _endEpController.text = found.endEpisode.toString();
+        _endEpController.text = found.endEpisode?.toString() ?? '';
         _airTimeController.text = found.airTime ?? '';
         _notesController.text = found.notes ?? '';
         _watchUrlController.text = found.watchUrl ?? '';
@@ -285,6 +315,7 @@ class _AnimeEditPageState extends State<AnimeEditPage> {
       final progress = selected.toProgress(DateTime.now());
       setState(() {
         _watchUrlController.text = selected.url;
+        _externalMetaEdited = true;
         _externalMeta = (_externalMeta ?? const AnimeExternalMeta()).mergedWith(
           AnimeExternalMeta(watchProgress: progress),
         );
@@ -355,6 +386,7 @@ class _AnimeEditPageState extends State<AnimeEditPage> {
           _infoUrlController.text = result['infoUrl'] as String;
         }
         if (result.containsKey('externalMeta')) {
+          _externalMetaEdited = true;
           _externalMeta = result['externalMeta'] as AnimeExternalMeta;
         }
         // The applied metadata may name the season in a title the form has
@@ -412,6 +444,7 @@ class _AnimeEditPageState extends State<AnimeEditPage> {
   /// Returns: None.
   /// Side effects: May read or mutate application state, storage, or service resources.
   /// Notes: Internal helper used within this file only.
+  /// Edit mode applies only the form's fields to the freshly stored record through `AnimeStorage.updateRecord` (falling back to `addOrUpdate` when the record was deleted meanwhile); `externalMeta` is replaced only when the form changed it. The end episode comes from `resolveEndEpisode`.
   Future<void> _save() async {
     if (!_formKey.currentState!.validate()) return;
 
@@ -443,20 +476,19 @@ class _AnimeEditPageState extends State<AnimeEditPage> {
     }
 
     final startEp = int.tryParse(_startEpController.text) ?? 1;
-    var endEp = int.tryParse(_endEpController.text) ?? 12;
+    final endEp = resolveEndEpisode(
+      text: _endEpController.text,
+      startEp: startEp,
+      isEdit: _isEdit && _existing != null,
+      existingEnd: _existing?.endEpisode,
+    );
     final rating = _buildRating();
     final localArchive = _buildLocalArchive();
 
-    // If startEpisode > endEpisode, adjust endEpisode to preserve episode count.
-    if (startEp > endEp) {
-      final originalEnd = _isEdit && _existing != null
-          ? (_existing!.endEpisode ?? endEp)
-          : endEp;
-      endEp = originalEnd - 1 + startEp;
-    }
-
     if (_isEdit && _existing != null) {
-      final updated = _existing!.copyWith(
+      // Applies only what the form owns onto the freshly stored record, so
+      // episode statuses and metadata refreshed since the form opened survive.
+      Anime apply(Anime base) => base.copyWith(
         title: _titleController.text.trim(),
         titleJa: _titleJaController.text.trim().isEmpty
             ? null
@@ -464,6 +496,7 @@ class _AnimeEditPageState extends State<AnimeEditPage> {
         season: _seasonController.text.trim(),
         startEpisode: startEp,
         endEpisode: endEp,
+        clearEndEpisode: endEp == null,
         manualType: _manualType,
         airDayOfWeek: _airDayOfWeek,
         airTime: _airTimeController.text.trim().isEmpty
@@ -484,11 +517,13 @@ class _AnimeEditPageState extends State<AnimeEditPage> {
         clearRating: rating == null,
         localArchive: localArchive,
         clearLocalArchive: localArchive == null,
-        externalMeta: _externalMeta,
-        clearExternalMeta: _externalMeta == null,
+        externalMeta: _externalMetaEdited ? _externalMeta : base.externalMeta,
+        clearExternalMeta: _externalMetaEdited && _externalMeta == null,
         modifiedAt: DateTime.now().toUtc(),
       );
-      await AnimeStorage.addOrUpdate(updated);
+      final written = await AnimeStorage.updateRecord(_existing!.id, apply);
+      // Deleted elsewhere while the form was open: keep the user's edit.
+      if (!written) await AnimeStorage.addOrUpdate(apply(_existing!));
     } else {
       // Auto-fill title from titleJa if title is empty
       final title = _titleController.text.trim().isNotEmpty

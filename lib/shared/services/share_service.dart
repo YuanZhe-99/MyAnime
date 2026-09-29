@@ -282,7 +282,12 @@ class ShareService {
       );
       return;
     }
-    await _shareImageBytesMulti(context, pages, l10n, fileNameBase: fileNameBase);
+    await _shareImageBytesMulti(
+      context,
+      pages,
+      l10n,
+      fileNameBase: fileNameBase,
+    );
   }
 
   /// Purpose: Generate the statistics share image bytes (no share UI).
@@ -398,8 +403,7 @@ class ShareService {
     final tempDir = await getTemporaryDirectory();
     final files = <File>[];
     for (var i = 0; i < pages.length; i++) {
-      final name =
-          '$fileNameBase${pages.length > 1 ? '_${i + 1}' : ''}.png';
+      final name = '$fileNameBase${pages.length > 1 ? '_${i + 1}' : ''}.png';
       final file = File(p.join(tempDir.path, name));
       await file.writeAsBytes(pages[i]);
       files.add(file);
@@ -483,6 +487,7 @@ class ShareService {
   /// Returns: `Future<Uint8List>`.
   /// Side effects: May read or mutate application state, storage, or service resources.
   /// Notes: Internal helper used within this file only.
+  /// Disposes its codecs, logo and cover images, picture and image; covers decode at no more than the card width.
   static Future<Uint8List> _generateShareImage(
     Anime anime,
     AppLocalizations l10n, {
@@ -497,6 +502,7 @@ class ShareService {
         logoData.buffer.asUint8List(),
       );
       final logoFrame = await logoCodec.getNextFrame();
+      logoCodec.dispose();
       logoImage = logoFrame.image;
     } catch (_) {
       // Proceed without logo
@@ -509,8 +515,13 @@ class ShareService {
         final file = await ImageService.resolve(anime.coverImage!);
         if (file.existsSync()) {
           final bytes = await file.readAsBytes();
-          final codec = await ui.instantiateImageCodec(bytes);
+          final codec = await ui.instantiateImageCodec(
+            bytes,
+            targetWidth: (_cardWidth * _pixelRatio).toInt(),
+            allowUpscaling: false,
+          );
           final frame = await codec.getNextFrame();
+          codec.dispose();
           coverImage = frame.image;
         }
       } catch (_) {
@@ -518,323 +529,341 @@ class ShareService {
       }
     }
 
-    final contentWidth = _cardWidth - _padding * 2;
-    final hasCover = coverImage != null;
-    // Build list of URLs to show on the card
-    final shareUrls = <({String url, String label})>[];
-    if (includeInfoUrl && anime.infoUrl != null && anime.infoUrl!.isNotEmpty) {
-      shareUrls.add((url: anime.infoUrl!, label: anime.infoUrl!));
-    }
-    if (includeWatchUrl &&
-        anime.watchUrl != null &&
-        anime.watchUrl!.isNotEmpty) {
-      shareUrls.add((url: anime.watchUrl!, label: anime.watchUrl!));
-    }
-    final hasQr = shareUrls.isNotEmpty;
-    final hasNotes = anime.notes != null && anime.notes!.isNotEmpty;
+    try {
+      final contentWidth = _cardWidth - _padding * 2;
+      final hasCover = coverImage != null;
+      // Build list of URLs to show on the card
+      final shareUrls = <({String url, String label})>[];
+      if (includeInfoUrl &&
+          anime.infoUrl != null &&
+          anime.infoUrl!.isNotEmpty) {
+        shareUrls.add((url: anime.infoUrl!, label: anime.infoUrl!));
+      }
+      if (includeWatchUrl &&
+          anime.watchUrl != null &&
+          anime.watchUrl!.isNotEmpty) {
+        shareUrls.add((url: anime.watchUrl!, label: anime.watchUrl!));
+      }
+      final hasQr = shareUrls.isNotEmpty;
+      final hasNotes = anime.notes != null && anime.notes!.isNotEmpty;
 
-    // Info text width (beside cover or full width)
-    final infoWidth = hasCover
-        ? contentWidth - _coverWidth - _gap
-        : contentWidth;
+      // Info text width (beside cover or full width)
+      final infoWidth = hasCover
+          ? contentWidth - _coverWidth - _gap
+          : contentWidth;
 
-    // ── Layout calculation ──
-    double y = _padding + _headerHeight + _gap;
-    final topY = y;
+      // ── Layout calculation ──
+      double y = _padding + _headerHeight + _gap;
+      final topY = y;
 
-    // Title
-    final titlePainter = _layoutText(
-      anime.displayTitle,
-      const TextStyle(
-        color: _textColor,
-        fontSize: 20,
-        fontWeight: FontWeight.bold,
-      ),
-      infoWidth,
-    );
-    final titleY = y;
-    y += titlePainter.height;
-
-    // Japanese title (show only when both titles exist and differ)
-    TextPainter? titleJaPainter;
-    double titleJaY = y;
-    final showJa =
-        anime.titleJa != null &&
-        anime.titleJa!.isNotEmpty &&
-        anime.title != null &&
-        anime.title!.isNotEmpty &&
-        anime.titleJa != anime.title;
-    if (showJa) {
-      y += 4;
-      titleJaY = y;
-      titleJaPainter = _layoutText(
-        anime.titleJa!,
-        const TextStyle(color: _subtitleColor, fontSize: 14),
+      // Title
+      final titlePainter = _layoutText(
+        anime.displayTitle,
+        const TextStyle(
+          color: _textColor,
+          fontSize: 20,
+          fontWeight: FontWeight.bold,
+        ),
         infoWidth,
       );
-      y += titleJaPainter.height;
-    }
+      final titleY = y;
+      y += titlePainter.height;
 
-    // Info lines
-    y += 12;
-    final infoLines = <String>[];
+      // Japanese title (show only when both titles exist and differ)
+      TextPainter? titleJaPainter;
+      double titleJaY = y;
+      final showJa =
+          anime.titleJa != null &&
+          anime.titleJa!.isNotEmpty &&
+          anime.title != null &&
+          anime.title!.isNotEmpty &&
+          anime.titleJa != anime.title;
+      if (showJa) {
+        y += 4;
+        titleJaY = y;
+        titleJaPainter = _layoutText(
+          anime.titleJa!,
+          const TextStyle(color: _subtitleColor, fontSize: 14),
+          infoWidth,
+        );
+        y += titleJaPainter.height;
+      }
 
-    // Season + Type
-    infoLines.add('${anime.season} · ${_typeLabel(anime.effectiveType, l10n)}');
+      // Info lines
+      y += 12;
+      final infoLines = <String>[];
 
-    // Schedule
-    if (anime.airDayOfWeek != null) {
-      final day = _dayName(anime.airDayOfWeek!, l10n);
-      final time = anime.airTime ?? '';
-      infoLines.add(time.isNotEmpty ? '$day $time JST' : '$day JST');
-    }
-
-    // First air date
-    if (anime.firstAirDate != null) {
-      final d = anime.firstAirDate!;
+      // Season + Type
       infoLines.add(
-        '${d.year}-${d.month.toString().padLeft(2, '0')}-${d.day.toString().padLeft(2, '0')}',
+        '${anime.season} · ${_typeLabel(anime.effectiveType, l10n)}',
       );
-    }
 
-    final infoPainters = <TextPainter>[];
-    final infoYs = <double>[];
-    for (final line in infoLines) {
-      infoYs.add(y);
-      final tp = _layoutText(
-        line,
+      // Schedule
+      if (anime.airDayOfWeek != null) {
+        final day = _dayName(anime.airDayOfWeek!, l10n);
+        final time = anime.airTime ?? '';
+        infoLines.add(time.isNotEmpty ? '$day $time JST' : '$day JST');
+      }
+
+      // First air date
+      if (anime.firstAirDate != null) {
+        final d = anime.firstAirDate!;
+        infoLines.add(
+          '${d.year}-${d.month.toString().padLeft(2, '0')}-${d.day.toString().padLeft(2, '0')}',
+        );
+      }
+
+      final infoPainters = <TextPainter>[];
+      final infoYs = <double>[];
+      for (final line in infoLines) {
+        infoYs.add(y);
+        final tp = _layoutText(
+          line,
+          const TextStyle(color: _textColor, fontSize: 14),
+          infoWidth,
+        );
+        infoPainters.add(tp);
+        y += tp.height + 4;
+      }
+
+      // Progress: aired episodes based on JST today
+      y += 4;
+      final totalEps = anime.totalEpisodes ?? 0;
+      final airedCount = _countAiredEpisodes(anime);
+      final progressY = y;
+      final progressText = anime.endEpisode != null
+          ? '$airedCount / $totalEps ${l10n.animeEpisodes}'
+          : '$airedCount ${l10n.animeEpisodes}';
+      final progressPainter = _layoutText(
+        progressText,
         const TextStyle(color: _textColor, fontSize: 14),
         infoWidth,
       );
-      infoPainters.add(tp);
-      y += tp.height + 4;
-    }
+      y += progressPainter.height + 8;
 
-    // Progress: aired episodes based on JST today
-    y += 4;
-    final totalEps = anime.totalEpisodes ?? 0;
-    final airedCount = _countAiredEpisodes(anime);
-    final progressY = y;
-    final progressText = anime.endEpisode != null
-        ? '$airedCount / $totalEps ${l10n.animeEpisodes}'
-        : '$airedCount ${l10n.animeEpisodes}';
-    final progressPainter = _layoutText(
-      progressText,
-      const TextStyle(color: _textColor, fontSize: 14),
-      infoWidth,
-    );
-    y += progressPainter.height + 8;
+      // Progress bar
+      final progressBarY = y;
+      y += 6;
 
-    // Progress bar
-    final progressBarY = y;
-    y += 6;
+      // Top section height (max of cover and info column)
+      final infoHeight = y - topY;
+      final topSectionHeight = hasCover
+          ? max<double>(infoHeight, _coverHeight)
+          : infoHeight;
+      y = topY + topSectionHeight;
 
-    // Top section height (max of cover and info column)
-    final infoHeight = y - topY;
-    final topSectionHeight = hasCover
-        ? max<double>(infoHeight, _coverHeight)
-        : infoHeight;
-    y = topY + topSectionHeight;
-
-    // Notes section
-    TextPainter? notesPainter;
-    TextPainter? notesEllipsisPainter;
-    double notesY = y;
-    double notesEllipsisY = y;
-    bool notesTruncated = false;
-    if (hasNotes) {
-      y += _gap;
-      notesY = y;
-      var notesText = anime.notes!;
-      if (notesText.length > 300) {
-        notesText = notesText.substring(0, 297);
-        notesTruncated = true;
-      }
-      notesPainter = _layoutText(
-        notesText,
-        const TextStyle(color: _textColor, fontSize: 13),
-        contentWidth,
-        maxLines: 6,
-      );
-      // Check if TextPainter itself truncated (didExceedMaxLines)
-      if (notesPainter.didExceedMaxLines) {
-        notesTruncated = true;
-      }
-      y += notesPainter.height;
-      if (notesTruncated) {
-        y += 4;
-        notesEllipsisY = y;
-        notesEllipsisPainter = _layoutText(
-          '...',
-          const TextStyle(
-            color: _accentColor,
-            fontSize: 12,
-            fontWeight: FontWeight.bold,
-          ),
-          contentWidth,
-        );
-        y += notesEllipsisPainter.height;
-      }
-    }
-
-    // QR + URL section(s)
-    // For each URL: QR code on the left, URL text on the right
-    final qrEntries = <({double y, String url, TextPainter painter})>[];
-    if (hasQr) {
-      for (final entry in shareUrls) {
+      // Notes section
+      TextPainter? notesPainter;
+      TextPainter? notesEllipsisPainter;
+      double notesY = y;
+      double notesEllipsisY = y;
+      bool notesTruncated = false;
+      if (hasNotes) {
         y += _gap;
-        final entryY = y;
-        final urlPainter = _layoutText(
-          entry.label,
-          const TextStyle(color: _subtitleColor, fontSize: 11),
-          contentWidth - _qrSize - _gap,
-          maxLines: 3,
+        notesY = y;
+        var notesText = anime.notes!;
+        if (notesText.length > 300) {
+          notesText = notesText.substring(0, 297);
+          notesTruncated = true;
+        }
+        notesPainter = _layoutText(
+          notesText,
+          const TextStyle(color: _textColor, fontSize: 13),
+          contentWidth,
+          maxLines: 6,
         );
-        qrEntries.add((y: entryY, url: entry.url, painter: urlPainter));
-        y += max<double>(_qrSize, urlPainter.height);
+        // Check if TextPainter itself truncated (didExceedMaxLines)
+        if (notesPainter.didExceedMaxLines) {
+          notesTruncated = true;
+        }
+        y += notesPainter.height;
+        if (notesTruncated) {
+          y += 4;
+          notesEllipsisY = y;
+          notesEllipsisPainter = _layoutText(
+            '...',
+            const TextStyle(
+              color: _accentColor,
+              fontSize: 12,
+              fontWeight: FontWeight.bold,
+            ),
+            contentWidth,
+          );
+          y += notesEllipsisPainter.height;
+        }
       }
-    }
 
-    // Watermark: [logo] [MyAnime!!!!!]
-    y += _gap;
-    final watermarkPainter = _layoutText(
-      'MyAnime!!!!!',
-      const TextStyle(
-        color: _accentColor,
-        fontSize: 13,
-        fontWeight: FontWeight.bold,
-      ),
-      contentWidth,
-    );
-    final watermarkY = y;
-    // Row height = max(logo, text)
-    final watermarkRowHeight = logoImage != null
-        ? max<double>(_logoSize, watermarkPainter.height)
-        : watermarkPainter.height;
-    y += watermarkRowHeight;
-    y += _padding;
+      // QR + URL section(s)
+      // For each URL: QR code on the left, URL text on the right
+      final qrEntries = <({double y, String url, TextPainter painter})>[];
+      if (hasQr) {
+        for (final entry in shareUrls) {
+          y += _gap;
+          final entryY = y;
+          final urlPainter = _layoutText(
+            entry.label,
+            const TextStyle(color: _subtitleColor, fontSize: 11),
+            contentWidth - _qrSize - _gap,
+            maxLines: 3,
+          );
+          qrEntries.add((y: entryY, url: entry.url, painter: urlPainter));
+          y += max<double>(_qrSize, urlPainter.height);
+        }
+      }
 
-    final cardHeight = y;
-
-    // ── Drawing ──
-    final recorder = ui.PictureRecorder();
-    final canvas = Canvas(recorder);
-    canvas.scale(_pixelRatio, _pixelRatio);
-
-    // Background
-    canvas.drawRect(
-      Rect.fromLTWH(0, 0, _cardWidth, cardHeight),
-      Paint()..color = _bgColor,
-    );
-
-    // Border
-    canvas.drawRect(
-      Rect.fromLTWH(0, 0, _cardWidth, cardHeight),
-      Paint()
-        ..color = _borderColor
-        ..style = PaintingStyle.stroke
-        ..strokeWidth = 1,
-    );
-
-    // Header accent bar
-    canvas.drawRect(
-      Rect.fromLTWH(0, 0, _cardWidth, _headerHeight),
-      Paint()..color = _accentColor,
-    );
-
-    // Cover image with BoxFit.cover + rounded corners
-    final infoX = hasCover ? _padding + _coverWidth + _gap : _padding;
-    if (hasCover) {
-      _drawCoverImage(
-        canvas,
-        coverImage,
-        Rect.fromLTWH(_padding, topY, _coverWidth, _coverHeight),
-        radius: 8,
-      );
-    }
-
-    // Title
-    titlePainter.paint(canvas, Offset(infoX, titleY));
-
-    // Japanese title
-    titleJaPainter?.paint(canvas, Offset(infoX, titleJaY));
-
-    // Info lines
-    for (int i = 0; i < infoPainters.length; i++) {
-      infoPainters[i].paint(canvas, Offset(infoX, infoYs[i]));
-    }
-
-    // Progress text
-    progressPainter.paint(canvas, Offset(infoX, progressY));
-
-    // Progress bar
-    canvas.drawRRect(
-      RRect.fromRectAndRadius(
-        Rect.fromLTWH(infoX, progressBarY, infoWidth, 6),
-        const Radius.circular(3),
-      ),
-      Paint()..color = _trackColor,
-    );
-    if (totalEps > 0) {
-      final fillWidth = infoWidth * airedCount / totalEps;
-      canvas.drawRRect(
-        RRect.fromRectAndRadius(
-          Rect.fromLTWH(infoX, progressBarY, fillWidth, 6),
-          const Radius.circular(3),
+      // Watermark: [logo] [MyAnime!!!!!]
+      y += _gap;
+      final watermarkPainter = _layoutText(
+        'MyAnime!!!!!',
+        const TextStyle(
+          color: _accentColor,
+          fontSize: 13,
+          fontWeight: FontWeight.bold,
         ),
+        contentWidth,
+      );
+      final watermarkY = y;
+      // Row height = max(logo, text)
+      final watermarkRowHeight = logoImage != null
+          ? max<double>(_logoSize, watermarkPainter.height)
+          : watermarkPainter.height;
+      y += watermarkRowHeight;
+      y += _padding;
+
+      final cardHeight = y;
+
+      // ── Drawing ──
+      final recorder = ui.PictureRecorder();
+      final canvas = Canvas(recorder);
+      canvas.scale(_pixelRatio, _pixelRatio);
+
+      // Background
+      canvas.drawRect(
+        Rect.fromLTWH(0, 0, _cardWidth, cardHeight),
+        Paint()..color = _bgColor,
+      );
+
+      // Border
+      canvas.drawRect(
+        Rect.fromLTWH(0, 0, _cardWidth, cardHeight),
+        Paint()
+          ..color = _borderColor
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = 1,
+      );
+
+      // Header accent bar
+      canvas.drawRect(
+        Rect.fromLTWH(0, 0, _cardWidth, _headerHeight),
         Paint()..color = _accentColor,
       );
-    }
 
-    // Notes
-    notesPainter?.paint(canvas, Offset(_padding, notesY));
+      // Cover image with BoxFit.cover + rounded corners
+      final infoX = hasCover ? _padding + _coverWidth + _gap : _padding;
+      if (hasCover) {
+        _drawCoverImage(
+          canvas,
+          coverImage,
+          Rect.fromLTWH(_padding, topY, _coverWidth, _coverHeight),
+          radius: 8,
+        );
+      }
 
-    // Notes truncation indicator
-    if (notesEllipsisPainter != null) {
-      notesEllipsisPainter.paint(
-        canvas,
-        Offset(
-          _padding + (contentWidth - notesEllipsisPainter.width) / 2,
-          notesEllipsisY,
+      // Title
+      titlePainter.paint(canvas, Offset(infoX, titleY));
+
+      // Japanese title
+      titleJaPainter?.paint(canvas, Offset(infoX, titleJaY));
+
+      // Info lines
+      for (int i = 0; i < infoPainters.length; i++) {
+        infoPainters[i].paint(canvas, Offset(infoX, infoYs[i]));
+      }
+
+      // Progress text
+      progressPainter.paint(canvas, Offset(infoX, progressY));
+
+      // Progress bar
+      canvas.drawRRect(
+        RRect.fromRectAndRadius(
+          Rect.fromLTWH(infoX, progressBarY, infoWidth, 6),
+          const Radius.circular(3),
         ),
+        Paint()..color = _trackColor,
       );
-    }
+      if (totalEps > 0) {
+        final fillWidth = infoWidth * airedCount / totalEps;
+        canvas.drawRRect(
+          RRect.fromRectAndRadius(
+            Rect.fromLTWH(infoX, progressBarY, fillWidth, 6),
+            const Radius.circular(3),
+          ),
+          Paint()..color = _accentColor,
+        );
+      }
 
-    // QR code + URL entries
-    for (final entry in qrEntries) {
-      final qrPainter = QrPainter(data: entry.url, version: QrVersions.auto);
-      canvas.save();
-      canvas.translate(_padding, entry.y);
-      qrPainter.paint(canvas, Size(_qrSize, _qrSize));
-      canvas.restore();
+      // Notes
+      notesPainter?.paint(canvas, Offset(_padding, notesY));
 
-      entry.painter.paint(
+      // Notes truncation indicator
+      if (notesEllipsisPainter != null) {
+        notesEllipsisPainter.paint(
+          canvas,
+          Offset(
+            _padding + (contentWidth - notesEllipsisPainter.width) / 2,
+            notesEllipsisY,
+          ),
+        );
+      }
+
+      // QR code + URL entries
+      for (final entry in qrEntries) {
+        final qrPainter = QrPainter(data: entry.url, version: QrVersions.auto);
+        canvas.save();
+        canvas.translate(_padding, entry.y);
+        qrPainter.paint(canvas, Size(_qrSize, _qrSize));
+        canvas.restore();
+
+        entry.painter.paint(
+          canvas,
+          Offset(
+            _padding + _qrSize + _gap,
+            entry.y + (_qrSize - entry.painter.height) / 2,
+          ),
+        );
+      }
+
+      // Watermark row (right-aligned): [logo] [gap] [MyAnime!!!!!]
+      _drawWatermark(
         canvas,
-        Offset(
-          _padding + _qrSize + _gap,
-          entry.y + (_qrSize - entry.painter.height) / 2,
-        ),
+        logoImage,
+        watermarkPainter,
+        watermarkY,
+        watermarkRowHeight,
+        _cardWidth,
       );
+
+      // Encode to PNG
+      final picture = recorder.endRecording();
+      final ui.Image image;
+      try {
+        image = await picture.toImage(
+          (_cardWidth * _pixelRatio).toInt(),
+          (cardHeight * _pixelRatio).toInt(),
+        );
+      } finally {
+        picture.dispose();
+      }
+      try {
+        final byteData = await image.toByteData(format: ui.ImageByteFormat.png);
+        return byteData!.buffer.asUint8List();
+      } finally {
+        image.dispose();
+      }
+    } finally {
+      logoImage?.dispose();
+      coverImage?.dispose();
     }
-
-    // Watermark row (right-aligned): [logo] [gap] [MyAnime!!!!!]
-    _drawWatermark(
-      canvas,
-      logoImage,
-      watermarkPainter,
-      watermarkY,
-      watermarkRowHeight,
-      _cardWidth,
-    );
-
-    // Encode to PNG
-    final picture = recorder.endRecording();
-    final image = await picture.toImage(
-      (_cardWidth * _pixelRatio).toInt(),
-      (cardHeight * _pixelRatio).toInt(),
-    );
-    final byteData = await image.toByteData(format: ui.ImageByteFormat.png);
-    return byteData!.buffer.asUint8List();
   }
 
   /// Purpose: Provide the internal layout text helper for this file.
@@ -868,6 +897,7 @@ class ShareService {
   /// multiple pages so each page stays within the platform texture limit. The
   /// header (title/subtitle/meta) repeats on every page; the watermark appears
   /// only on the final page.
+  /// Disposes its logo and cover images when finished, and each page's picture and image.
   static Future<List<Uint8List>> _generateRankingShareImage({
     required List<RankingShareEntry> entries,
     required String title,
@@ -884,6 +914,7 @@ class ShareService {
         logoData.buffer.asUint8List(),
       );
       final logoFrame = await logoCodec.getNextFrame();
+      logoCodec.dispose();
       logoImage = logoFrame.image;
     } catch (_) {
       // Proceed without logo.
@@ -894,132 +925,150 @@ class ShareService {
       progress,
     );
 
-    final contentWidth = _rankingCardWidth - _padding * 2;
-    double y = _padding + _headerHeight + _gap;
+    try {
+      final contentWidth = _rankingCardWidth - _padding * 2;
+      double y = _padding + _headerHeight + _gap;
 
-    final titlePainter = _layoutText(
-      title,
-      const TextStyle(
-        color: _textColor,
-        fontSize: 24,
-        fontWeight: FontWeight.bold,
-      ),
-      contentWidth,
-    );
-    final titleY = y;
-    y += titlePainter.height + 6;
-
-    final subtitlePainter = _layoutText(
-      subtitle,
-      const TextStyle(color: _subtitleColor, fontSize: 14),
-      contentWidth,
-      maxLines: 2,
-    );
-    final subtitleY = y;
-    y += subtitlePainter.height + 8;
-
-    final metaPainter = _layoutText(
-      '${l10n.statsRankingSortBy}: $sortLabel · $orderLabel · ${l10n.statsRankingCount(entries.length)}',
-      const TextStyle(color: _textColor, fontSize: 13),
-      contentWidth,
-      maxLines: 2,
-    );
-    final metaY = y;
-    y += metaPainter.height + _gap;
-
-    final preRowsY = y;
-
-    final watermarkPainter = _layoutText(
-      'MyAnime!!!!!',
-      const TextStyle(
-        color: _accentColor,
-        fontSize: 13,
-        fontWeight: FontWeight.bold,
-      ),
-      contentWidth,
-    );
-    final watermarkRowHeight = logoImage != null
-        ? max<double>(_logoSize, watermarkPainter.height)
-        : watermarkPainter.height;
-    final watermarkBlockHeight = _gap + watermarkRowHeight + _padding;
-
-    final totalCardHeight =
-        preRowsY + entries.length * _rankingRowHeight + watermarkBlockHeight;
-
-    Future<Uint8List> renderPage(int start, int end, bool isLast) async {
-      final rowsOnPage = end - start;
-      final pageHeight = preRowsY +
-          rowsOnPage * _rankingRowHeight +
-          (isLast ? watermarkBlockHeight : _padding);
-      final recorder = ui.PictureRecorder();
-      final canvas = Canvas(recorder);
-      canvas.scale(_pixelRatio, _pixelRatio);
-
-      canvas.drawRect(
-        Rect.fromLTWH(0, 0, _rankingCardWidth, pageHeight),
-        Paint()..color = _bgColor,
+      final titlePainter = _layoutText(
+        title,
+        const TextStyle(
+          color: _textColor,
+          fontSize: 24,
+          fontWeight: FontWeight.bold,
+        ),
+        contentWidth,
       );
-      canvas.drawRect(
-        Rect.fromLTWH(0, 0, _rankingCardWidth, pageHeight),
-        Paint()
-          ..color = _borderColor
-          ..style = PaintingStyle.stroke
-          ..strokeWidth = 1,
+      final titleY = y;
+      y += titlePainter.height + 6;
+
+      final subtitlePainter = _layoutText(
+        subtitle,
+        const TextStyle(color: _subtitleColor, fontSize: 14),
+        contentWidth,
+        maxLines: 2,
       );
-      canvas.drawRect(
-        Rect.fromLTWH(0, 0, _rankingCardWidth, _headerHeight),
-        Paint()..color = _accentColor,
+      final subtitleY = y;
+      y += subtitlePainter.height + 8;
+
+      final metaPainter = _layoutText(
+        '${l10n.statsRankingSortBy}: $sortLabel · $orderLabel · ${l10n.statsRankingCount(entries.length)}',
+        const TextStyle(color: _textColor, fontSize: 13),
+        contentWidth,
+        maxLines: 2,
       );
+      final metaY = y;
+      y += metaPainter.height + _gap;
 
-      titlePainter.paint(canvas, Offset(_padding, titleY));
-      subtitlePainter.paint(canvas, Offset(_padding, subtitleY));
-      metaPainter.paint(canvas, Offset(_padding, metaY));
+      final preRowsY = y;
 
-      for (var i = start; i < end; i++) {
-        final rowY = preRowsY + (i - start) * _rankingRowHeight;
-        _drawRankingRow(canvas, entries[i], rowY, coverImages, l10n);
-      }
+      final watermarkPainter = _layoutText(
+        'MyAnime!!!!!',
+        const TextStyle(
+          color: _accentColor,
+          fontSize: 13,
+          fontWeight: FontWeight.bold,
+        ),
+        contentWidth,
+      );
+      final watermarkRowHeight = logoImage != null
+          ? max<double>(_logoSize, watermarkPainter.height)
+          : watermarkPainter.height;
+      final watermarkBlockHeight = _gap + watermarkRowHeight + _padding;
 
-      if (isLast) {
-        final watermarkY = preRowsY + rowsOnPage * _rankingRowHeight + _gap;
-        _drawWatermark(
-          canvas,
-          logoImage,
-          watermarkPainter,
-          watermarkY,
-          watermarkRowHeight,
-          _rankingCardWidth,
+      final totalCardHeight =
+          preRowsY + entries.length * _rankingRowHeight + watermarkBlockHeight;
+
+      Future<Uint8List> renderPage(int start, int end, bool isLast) async {
+        final rowsOnPage = end - start;
+        final pageHeight =
+            preRowsY +
+            rowsOnPage * _rankingRowHeight +
+            (isLast ? watermarkBlockHeight : _padding);
+        final recorder = ui.PictureRecorder();
+        final canvas = Canvas(recorder);
+        canvas.scale(_pixelRatio, _pixelRatio);
+
+        canvas.drawRect(
+          Rect.fromLTWH(0, 0, _rankingCardWidth, pageHeight),
+          Paint()..color = _bgColor,
         );
+        canvas.drawRect(
+          Rect.fromLTWH(0, 0, _rankingCardWidth, pageHeight),
+          Paint()
+            ..color = _borderColor
+            ..style = PaintingStyle.stroke
+            ..strokeWidth = 1,
+        );
+        canvas.drawRect(
+          Rect.fromLTWH(0, 0, _rankingCardWidth, _headerHeight),
+          Paint()..color = _accentColor,
+        );
+
+        titlePainter.paint(canvas, Offset(_padding, titleY));
+        subtitlePainter.paint(canvas, Offset(_padding, subtitleY));
+        metaPainter.paint(canvas, Offset(_padding, metaY));
+
+        for (var i = start; i < end; i++) {
+          final rowY = preRowsY + (i - start) * _rankingRowHeight;
+          _drawRankingRow(canvas, entries[i], rowY, coverImages, l10n);
+        }
+
+        if (isLast) {
+          final watermarkY = preRowsY + rowsOnPage * _rankingRowHeight + _gap;
+          _drawWatermark(
+            canvas,
+            logoImage,
+            watermarkPainter,
+            watermarkY,
+            watermarkRowHeight,
+            _rankingCardWidth,
+          );
+        }
+
+        final picture = recorder.endRecording();
+        final ui.Image image;
+        try {
+          image = await picture.toImage(
+            (_rankingCardWidth * _pixelRatio).toInt(),
+            (pageHeight * _pixelRatio).toInt(),
+          );
+        } finally {
+          picture.dispose();
+        }
+        try {
+          final byteData = await image.toByteData(
+            format: ui.ImageByteFormat.png,
+          );
+          return byteData!.buffer.asUint8List();
+        } finally {
+          image.dispose();
+        }
       }
 
-      final picture = recorder.endRecording();
-      final image = await picture.toImage(
-        (_rankingCardWidth * _pixelRatio).toInt(),
-        (pageHeight * _pixelRatio).toInt(),
+      final totalPixelHeight = totalCardHeight * _pixelRatio;
+      if (totalPixelHeight <= _maxImageDimension) {
+        return [await renderPage(0, entries.length, true)];
+      }
+
+      final maxCardHeight = _maxImageDimension / _pixelRatio;
+      final availableForRows = maxCardHeight - preRowsY - watermarkBlockHeight;
+      final rowsPerPage = max(
+        1,
+        (availableForRows / _rankingRowHeight).floor(),
       );
-      final byteData = await image.toByteData(format: ui.ImageByteFormat.png);
-      return byteData!.buffer.asUint8List();
-    }
 
-    final totalPixelHeight = totalCardHeight * _pixelRatio;
-    if (totalPixelHeight <= _maxImageDimension) {
-      return [await renderPage(0, entries.length, true)];
+      final pages = <Uint8List>[];
+      for (int start = 0; start < entries.length; start += rowsPerPage) {
+        final end = min(start + rowsPerPage, entries.length);
+        pages.add(await renderPage(start, end, end == entries.length));
+      }
+      return pages;
+    } finally {
+      logoImage?.dispose();
+      for (final image in coverImages.values) {
+        image.dispose();
+      }
     }
-
-    final maxCardHeight = _maxImageDimension / _pixelRatio;
-    final availableForRows =
-        maxCardHeight - preRowsY - watermarkBlockHeight;
-    final rowsPerPage = max(
-      1,
-      (availableForRows / _rankingRowHeight).floor(),
-    );
-
-    final pages = <Uint8List>[];
-    for (int start = 0; start < entries.length; start += rowsPerPage) {
-      final end = min(start + rowsPerPage, entries.length);
-      pages.add(await renderPage(start, end, end == entries.length));
-    }
-    return pages;
   }
 
   /// Purpose: Provide the internal draw ranking row helper for this file.
@@ -1479,13 +1528,14 @@ class ShareService {
   /// Returns: None.
   /// Side effects: None.
   /// Notes: Internal helper used within this file only.
+  /// A single quote in the path is doubled inside the PowerShell string.
   static Future<void> _copyImageToClipboard(String imagePath) async {
     if (Platform.isWindows) {
       await Process.run('powershell', [
         '-command',
         "Add-Type -AssemblyName System.Drawing; "
             "Add-Type -AssemblyName System.Windows.Forms; "
-            "\$img = [System.Drawing.Image]::FromFile('$imagePath'); "
+            "\$img = [System.Drawing.Image]::FromFile('${imagePath.replaceAll("'", "''")}'); "
             "[System.Windows.Forms.Clipboard]::SetImage(\$img); "
             "\$img.Dispose()",
       ]);
@@ -1682,6 +1732,7 @@ class ShareService {
   /// summary bar chart only appears on the first page; the header
   /// (title/subtitle) repeats on every page; the watermark appears only on the
   /// final page.
+  /// Disposes its logo and cover images when finished, and each page's picture and image.
   static Future<List<Uint8List>> _generateStatisticsShareImage({
     required List<StatisticsShareEntry> entries,
     required String title,
@@ -1697,6 +1748,7 @@ class ShareService {
         logoData.buffer.asUint8List(),
       );
       final logoFrame = await logoCodec.getNextFrame();
+      logoCodec.dispose();
       logoImage = logoFrame.image;
     } catch (_) {
       // Proceed without logo.
@@ -1707,173 +1759,196 @@ class ShareService {
       progress,
     );
 
-    final contentWidth = _rankingCardWidth - _padding * 2;
-    double y = _padding + _headerHeight + _gap;
+    try {
+      final contentWidth = _rankingCardWidth - _padding * 2;
+      double y = _padding + _headerHeight + _gap;
 
-    final titlePainter = _layoutText(
-      title,
-      const TextStyle(
-        color: _textColor,
-        fontSize: 24,
-        fontWeight: FontWeight.bold,
-      ),
-      contentWidth,
-    );
-    final titleY = y;
-    y += titlePainter.height + 6;
-
-    final subtitlePainter = _layoutText(
-      subtitle,
-      const TextStyle(color: _subtitleColor, fontSize: 14),
-      contentWidth,
-      maxLines: 2,
-    );
-    final subtitleY = y;
-    y += subtitlePainter.height + _gap;
-
-    // Optional summary bar chart section (first page only).
-    final headerBottomY = y;
-    double? chartY;
-    double? chartHeight;
-    const barLabelH = 20.0;
-    const barH = 22.0;
-    const barGap = 8.0;
-    if (summary != null) {
-      chartY = y;
-      final barCount = 3; // tracked, completed, dropped
-      chartHeight = barCount * (barH + barGap) + barLabelH * barCount;
-      y += chartHeight + _gap;
-    }
-
-    final firstPagePreRowsY = y;
-    final subsequentPreRowsY = headerBottomY;
-
-    final watermarkPainter = _layoutText(
-      'MyAnime!!!!!',
-      const TextStyle(
-        color: _accentColor,
-        fontSize: 13,
-        fontWeight: FontWeight.bold,
-      ),
-      contentWidth,
-    );
-    final watermarkRowHeight = logoImage != null
-        ? max<double>(_logoSize, watermarkPainter.height)
-        : watermarkPainter.height;
-    final watermarkBlockHeight = _gap + watermarkRowHeight + _padding;
-
-    final totalCardHeight = firstPagePreRowsY +
-        entries.length * _rankingRowHeight +
-        watermarkBlockHeight;
-
-    Future<Uint8List> renderPage(
-      int start,
-      int end,
-      bool isFirst,
-      bool isLast,
-    ) async {
-      final preRowsY = isFirst ? firstPagePreRowsY : subsequentPreRowsY;
-      final rowsOnPage = end - start;
-      final pageHeight = preRowsY +
-          rowsOnPage * _rankingRowHeight +
-          (isLast ? watermarkBlockHeight : _padding);
-      final recorder = ui.PictureRecorder();
-      final canvas = Canvas(recorder);
-      canvas.scale(_pixelRatio, _pixelRatio);
-
-      canvas.drawRect(
-        Rect.fromLTWH(0, 0, _rankingCardWidth, pageHeight),
-        Paint()..color = _bgColor,
+      final titlePainter = _layoutText(
+        title,
+        const TextStyle(
+          color: _textColor,
+          fontSize: 24,
+          fontWeight: FontWeight.bold,
+        ),
+        contentWidth,
       );
-      canvas.drawRect(
-        Rect.fromLTWH(0, 0, _rankingCardWidth, pageHeight),
-        Paint()
-          ..color = _borderColor
-          ..style = PaintingStyle.stroke
-          ..strokeWidth = 1,
-      );
-      canvas.drawRect(
-        Rect.fromLTWH(0, 0, _rankingCardWidth, _headerHeight),
-        Paint()..color = _accentColor,
-      );
+      final titleY = y;
+      y += titlePainter.height + 6;
 
-      titlePainter.paint(canvas, Offset(_padding, titleY));
-      subtitlePainter.paint(canvas, Offset(_padding, subtitleY));
+      final subtitlePainter = _layoutText(
+        subtitle,
+        const TextStyle(color: _subtitleColor, fontSize: 14),
+        contentWidth,
+        maxLines: 2,
+      );
+      final subtitleY = y;
+      y += subtitlePainter.height + _gap;
 
-      // Draw summary bar chart on the first page only.
-      if (isFirst && summary != null && chartY != null && chartHeight != null) {
-        _drawSummaryBars(
-          canvas,
-          chartY,
-          contentWidth,
-          summary,
-          l10n,
-          barH: barH,
-          barGap: barGap,
+      // Optional summary bar chart section (first page only).
+      final headerBottomY = y;
+      double? chartY;
+      double? chartHeight;
+      const barLabelH = 20.0;
+      const barH = 22.0;
+      const barGap = 8.0;
+      if (summary != null) {
+        chartY = y;
+        final barCount = 3; // tracked, completed, dropped
+        chartHeight = barCount * (barH + barGap) + barLabelH * barCount;
+        y += chartHeight + _gap;
+      }
+
+      final firstPagePreRowsY = y;
+      final subsequentPreRowsY = headerBottomY;
+
+      final watermarkPainter = _layoutText(
+        'MyAnime!!!!!',
+        const TextStyle(
+          color: _accentColor,
+          fontSize: 13,
+          fontWeight: FontWeight.bold,
+        ),
+        contentWidth,
+      );
+      final watermarkRowHeight = logoImage != null
+          ? max<double>(_logoSize, watermarkPainter.height)
+          : watermarkPainter.height;
+      final watermarkBlockHeight = _gap + watermarkRowHeight + _padding;
+
+      final totalCardHeight =
+          firstPagePreRowsY +
+          entries.length * _rankingRowHeight +
+          watermarkBlockHeight;
+
+      Future<Uint8List> renderPage(
+        int start,
+        int end,
+        bool isFirst,
+        bool isLast,
+      ) async {
+        final preRowsY = isFirst ? firstPagePreRowsY : subsequentPreRowsY;
+        final rowsOnPage = end - start;
+        final pageHeight =
+            preRowsY +
+            rowsOnPage * _rankingRowHeight +
+            (isLast ? watermarkBlockHeight : _padding);
+        final recorder = ui.PictureRecorder();
+        final canvas = Canvas(recorder);
+        canvas.scale(_pixelRatio, _pixelRatio);
+
+        canvas.drawRect(
+          Rect.fromLTWH(0, 0, _rankingCardWidth, pageHeight),
+          Paint()..color = _bgColor,
         );
-      }
-
-      // Draw anime rows for this page.
-      for (var i = start; i < end; i++) {
-        final rowY = preRowsY + (i - start) * _rankingRowHeight;
-        _drawStatisticsRow(canvas, entries[i], rowY, coverImages, l10n);
-      }
-
-      if (isLast) {
-        final watermarkY = preRowsY + rowsOnPage * _rankingRowHeight + _gap;
-        _drawWatermark(
-          canvas,
-          logoImage,
-          watermarkPainter,
-          watermarkY,
-          watermarkRowHeight,
-          _rankingCardWidth,
+        canvas.drawRect(
+          Rect.fromLTWH(0, 0, _rankingCardWidth, pageHeight),
+          Paint()
+            ..color = _borderColor
+            ..style = PaintingStyle.stroke
+            ..strokeWidth = 1,
         );
+        canvas.drawRect(
+          Rect.fromLTWH(0, 0, _rankingCardWidth, _headerHeight),
+          Paint()..color = _accentColor,
+        );
+
+        titlePainter.paint(canvas, Offset(_padding, titleY));
+        subtitlePainter.paint(canvas, Offset(_padding, subtitleY));
+
+        // Draw summary bar chart on the first page only.
+        if (isFirst &&
+            summary != null &&
+            chartY != null &&
+            chartHeight != null) {
+          _drawSummaryBars(
+            canvas,
+            chartY,
+            contentWidth,
+            summary,
+            l10n,
+            barH: barH,
+            barGap: barGap,
+          );
+        }
+
+        // Draw anime rows for this page.
+        for (var i = start; i < end; i++) {
+          final rowY = preRowsY + (i - start) * _rankingRowHeight;
+          _drawStatisticsRow(canvas, entries[i], rowY, coverImages, l10n);
+        }
+
+        if (isLast) {
+          final watermarkY = preRowsY + rowsOnPage * _rankingRowHeight + _gap;
+          _drawWatermark(
+            canvas,
+            logoImage,
+            watermarkPainter,
+            watermarkY,
+            watermarkRowHeight,
+            _rankingCardWidth,
+          );
+        }
+
+        final picture = recorder.endRecording();
+        final ui.Image image;
+        try {
+          image = await picture.toImage(
+            (_rankingCardWidth * _pixelRatio).toInt(),
+            (pageHeight * _pixelRatio).toInt(),
+          );
+        } finally {
+          picture.dispose();
+        }
+        try {
+          final byteData = await image.toByteData(
+            format: ui.ImageByteFormat.png,
+          );
+          return byteData!.buffer.asUint8List();
+        } finally {
+          image.dispose();
+        }
       }
 
-      final picture = recorder.endRecording();
-      final image = await picture.toImage(
-        (_rankingCardWidth * _pixelRatio).toInt(),
-        (pageHeight * _pixelRatio).toInt(),
+      final totalPixelHeight = totalCardHeight * _pixelRatio;
+      if (totalPixelHeight <= _maxImageDimension) {
+        return [await renderPage(0, entries.length, true, true)];
+      }
+
+      // Split: page 1 uses the chart-inclusive preRowsY; later pages use the
+      // header-only preRowsY which is smaller and fits more rows.
+      final maxCardHeight = _maxImageDimension / _pixelRatio;
+      final firstPageRows = max(
+        1,
+        ((maxCardHeight - firstPagePreRowsY - watermarkBlockHeight) /
+                _rankingRowHeight)
+            .floor(),
       );
-      final byteData = await image.toByteData(format: ui.ImageByteFormat.png);
-      return byteData!.buffer.asUint8List();
-    }
+      final laterRows = max(
+        1,
+        ((maxCardHeight - subsequentPreRowsY - watermarkBlockHeight) /
+                _rankingRowHeight)
+            .floor(),
+      );
 
-    final totalPixelHeight = totalCardHeight * _pixelRatio;
-    if (totalPixelHeight <= _maxImageDimension) {
-      return [await renderPage(0, entries.length, true, true)];
+      final pages = <Uint8List>[];
+      int start = 0;
+      int pageIdx = 0;
+      while (start < entries.length) {
+        final isFirst = pageIdx == 0;
+        final capacity = isFirst ? firstPageRows : laterRows;
+        final end = min(start + capacity, entries.length);
+        final isLast = end == entries.length;
+        pages.add(await renderPage(start, end, isFirst, isLast));
+        start = end;
+        pageIdx++;
+      }
+      return pages;
+    } finally {
+      logoImage?.dispose();
+      for (final image in coverImages.values) {
+        image.dispose();
+      }
     }
-
-    // Split: page 1 uses the chart-inclusive preRowsY; later pages use the
-    // header-only preRowsY which is smaller and fits more rows.
-    final maxCardHeight = _maxImageDimension / _pixelRatio;
-    final firstPageRows = max(
-      1,
-      ((maxCardHeight - firstPagePreRowsY - watermarkBlockHeight) /
-              _rankingRowHeight)
-          .floor(),
-    );
-    final laterRows = max(
-      1,
-      ((maxCardHeight - subsequentPreRowsY - watermarkBlockHeight) /
-              _rankingRowHeight)
-          .floor(),
-    );
-
-    final pages = <Uint8List>[];
-    int start = 0;
-    int pageIdx = 0;
-    while (start < entries.length) {
-      final isFirst = pageIdx == 0;
-      final capacity = isFirst ? firstPageRows : laterRows;
-      final end = min(start + capacity, entries.length);
-      final isLast = end == entries.length;
-      pages.add(await renderPage(start, end, isFirst, isLast));
-      start = end;
-      pageIdx++;
-    }
-    return pages;
   }
 
   /// Purpose: Provide the internal draw summary bars helper for this file.
@@ -1962,8 +2037,13 @@ class ShareService {
         final file = await ImageService.resolve(cover);
         if (!file.existsSync()) continue;
         final bytes = await file.readAsBytes();
-        final codec = await ui.instantiateImageCodec(bytes);
+        final codec = await ui.instantiateImageCodec(
+          bytes,
+          targetWidth: (_cardWidth * _pixelRatio).toInt(),
+          allowUpscaling: false,
+        );
         final frame = await codec.getNextFrame();
+        codec.dispose();
         coverImages[cover] = frame.image;
       } catch (_) {
         // Keep exporting even if one cover is missing or invalid.

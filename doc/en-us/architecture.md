@@ -152,7 +152,13 @@ Primary tests (mirroring the structure above where relevant):
   format, and export personal-data stripping.
 - `test/local_archive_ui_test.dart` — Local Archive section rendering, the archived switch, the
   source dropdown, and the archive enum label helpers.
-- `test/widget_test.dart` — basic widget smoke coverage.
+- `test/anime_storage_test.dart` — the serialized write queues: parallel `addOrUpdate` and config setters,
+  `updateRecord` from the fresh record, `extraJson` through bundle operations, no leftover temp file (1.6.7).
+- `test/local_api_server_test.dart` — the local API's browser-origin policy (1.6.7).
+- `test/home_events_test.dart` — the home calendar's airing index against the per-day scan (1.6.7).
+- `test/golden/webdav_golden_test.dart` — five request-sequence / on-disk-format goldens (first sync, conflict
+  finalize, force upload, backup v2 layout, ZIP entry list); the shared engines' full scenario matrix lives in
+  `myapps_data`.
 - `test/on_device_ai_test.dart` and `test/ai_settings_tiles_ui_test.dart` — the on-device AI gate,
   status mapping, queue, pacing and output parsing against a fake backend, and the Settings rows per
   platform (1.6.0).

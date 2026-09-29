@@ -11,13 +11,12 @@ enum _ConflictResolution { keepLocal, useImported, merge }
 /// Purpose: Run the full import-bundle flow with conflict resolution.
 /// Inputs: `context`.
 /// Returns: `Future<ImportBundleResult?>`.
-/// Side effects: Shows file picker, dialogs, and writes to storage.
+/// Side effects: Shows file picker, dialogs, and writes to storage; deletes the
+/// cover files written while parsing for records the user did not keep.
 /// Notes: Returns null when the user cancels the file picker. Otherwise
 /// returns the list of imported anime IDs (may be empty when all conflicts
 /// were kept local).
-Future<ImportBundleResult?> showImportBundleFlow(
-  BuildContext context,
-) async {
+Future<ImportBundleResult?> showImportBundleFlow(BuildContext context) async {
   final l10n = AppLocalizations.of(context)!;
   final bundle = await FileOpenService.pickAndParseBundle();
   if (bundle == null) return null;
@@ -35,10 +34,8 @@ Future<ImportBundleResult?> showImportBundleFlow(
       final resolution = await showDialog<_ConflictResolution>(
         context: context,
         barrierDismissible: false,
-        builder: (ctx) => _ImportConflictDialog(
-          local: local,
-          imported: imported,
-        ),
+        builder: (ctx) =>
+            _ImportConflictDialog(local: local, imported: imported),
       );
 
       if (resolution == null) {
@@ -53,9 +50,9 @@ Future<ImportBundleResult?> showImportBundleFlow(
       }
     }
   } else {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(l10n.importBundleNoConflicts)),
-    );
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text(l10n.importBundleNoConflicts)));
   }
 
   // Apply non-conflict records.
@@ -66,13 +63,21 @@ Future<ImportBundleResult?> showImportBundleFlow(
 
   // Apply merged records.
   var mergedCount = 0;
+  final mergedRecords = <Anime>[];
   for (final idx in mergeIndices) {
     final imported = bundle.animes[idx];
     final local = bundle.localVersions[idx]!;
     final merged = DuplicateService.merge(local, [imported]);
     await FileOpenService.replaceAnime(local.id, merged);
+    mergedRecords.add(merged);
     mergedCount++;
   }
+
+  // Covers written while parsing for records that were not kept are orphans.
+  await FileOpenService.discardUnusedCovers(bundle, {
+    for (var i = 0; i < bundle.animes.length; i++)
+      if (!skipIndices.contains(i) && !mergeIndices.contains(i)) i,
+  }, mergedRecords);
 
   final totalImported = added + mergedCount;
   if (context.mounted && totalImported > 0) {
@@ -93,10 +98,7 @@ Future<ImportBundleResult?> showImportBundleFlow(
     }
   }
 
-  return ImportBundleResult(
-    importedIds: importedIds,
-    count: totalImported,
-  );
+  return ImportBundleResult(importedIds: importedIds, count: totalImported);
 }
 
 /// Result of an import bundle flow.
@@ -166,7 +168,8 @@ class _ImportConflictDialog extends StatelessWidget {
       ),
       actions: [
         TextButton(
-          onPressed: () => Navigator.of(context).pop(_ConflictResolution.keepLocal),
+          onPressed: () =>
+              Navigator.of(context).pop(_ConflictResolution.keepLocal),
           child: Text(l10n.importBundleKeepLocal),
         ),
         TextButton(
@@ -174,7 +177,8 @@ class _ImportConflictDialog extends StatelessWidget {
           child: Text(l10n.importBundleMerge),
         ),
         FilledButton(
-          onPressed: () => Navigator.of(context).pop(_ConflictResolution.useImported),
+          onPressed: () =>
+              Navigator.of(context).pop(_ConflictResolution.useImported),
           child: Text(l10n.importBundleKeepImport),
         ),
       ],

@@ -20,6 +20,8 @@ server the app runs for other local/LAN tools to call, e.g. the desktop web dash
 | [`start`](#start) | static method | A | Bind and serve the API server per current config. |
 | [`stop`](#stop) | static method | A | Force-close the running server, if any. |
 | [`restart`](#restart) | static method | A | Reload config and restart the server. |
+| `buildHandler` | static method, `@visibleForTesting` | B | Build the routes wrapped by the origin, auth and error middleware (split out of `start`, 1.6.7). |
+| `isAllowedOrigin` | static method, `@visibleForTesting` | B | Whether a browser `Origin` header may use the API: absent, or `http`/`https` on `localhost` or a loopback IP (1.6.7). |
 | `_handlePing` | static method (route handler) | B | `GET /ping` liveness check. |
 | [`_handleSearch`](#handlesearch) | static method (route handler) | A | `POST /anime/search`: proxy a query to `AnimeSearchService`. |
 | [`_handleAdd`](#handleadd) | static method (route handler) | A | `POST /anime/add`: create and persist a new anime. |
@@ -51,7 +53,7 @@ server the app runs for other local/LAN tools to call, e.g. the desktop web dash
 | [`_jstToUtcString`](#jsttoutcstring) | static method | A | Convert a JST-naive `DateTime` to a UTC ISO string. |
 | `_error` | static method | B | Build a JSON error `Response` for a given status. |
 | [`_parseBody`](#parsebody) | static method | A | Parse the request body as JSON, tolerating malformed input. |
-| [`_corsMiddleware`](#corsmiddleware) | static method | A | Permissive CORS middleware for every response. |
+| [`_originMiddleware`](#originmiddleware) | static method | A | Reject foreign browser origins with 403; answer allowed preflights; echo the allowed origin (replaces the wildcard CORS middleware). |
 | [`_authMiddleware`](#authmiddleware) | static method | A | Enforce Basic Auth / loopback-only access rules. |
 | [`_validateBasicAuth`](#validatebasicauth) | static method | A | Validate an `Authorization: Basic` header against configured credentials. |
 | [`_errorMiddleware`](#errormiddleware) | static method | A | Catch unhandled handler exceptions as a `500` JSON error. |
@@ -111,10 +113,10 @@ server the app runs for other local/LAN tools to call, e.g. the desktop web dash
      start — this is the safety rule described in
      [../../platform-notes.md](../../../platform-notes.md): unsafe non-localhost startup without
      credentials is refused outright.
-  4. Build a `shelf_router.Router` with routes `GET /ping`, `POST /anime/search`,
+  4. `buildHandler()` builds a `shelf_router.Router` with routes `GET /ping`, `POST /anime/search`,
      `POST /anime/add`, `GET /anime/list`, `GET /anime/unwatched`, `GET /anime/history`,
      `GET /anime/ranking`.
-  5. Wrap the router in a `Pipeline` with, in order, `_corsMiddleware()`, `_authMiddleware()`,
+  5. It wraps the router in a `Pipeline` with, in order, `_originMiddleware()`, `_authMiddleware()`,
      `_errorMiddleware()`.
   6. Resolve the bind address (`InternetAddress.anyIPv4` for `0.0.0.0`,
      `InternetAddress.loopbackIPv4` for `localhost`/`127.0.0.1`, otherwise a literal
@@ -122,8 +124,7 @@ server the app runs for other local/LAN tools to call, e.g. the desktop web dash
   7. On any bind failure, capture `e.toString()` into `_lastError` instead of throwing.
 - **Usage:** Called from the desktop settings UI when the user enables the API server or changes
   its configuration, and during app startup if the server was left enabled.
-- **Notes:** Middleware order matters: CORS headers must apply even to auth-rejected responses, so
-  `_corsMiddleware` wraps outside `_authMiddleware`.
+- **Notes:** Middleware order matters: the origin check runs first so a foreign page is refused before authentication, and the allowed-origin headers also reach auth-rejected responses (`_originMiddleware` wraps outside `_authMiddleware`).
 
 ### `static Future<void> stop()` <a id="stop"></a>
 - **Kind:** static method of `LocalApiServer`.
@@ -645,22 +646,6 @@ server the app runs for other local/LAN tools to call, e.g. the desktop web dash
 - **Notes:** This is why malformed JSON produces a clean `400` instead of surfacing as a generic
   `500` from `_errorMiddleware`.
 
-### `static Middleware _corsMiddleware()` <a id="corsmiddleware"></a>
-- **Kind:** static method of `LocalApiServer`.
-- **Source:** `lib/shared/services/local_api_server.dart` (line 919).
-- **Purpose:** Attach permissive CORS headers to every response so browser-based local tools can
-  call the API cross-origin.
-- **Inputs:** None.
-- **Returns:** `Middleware` (a `shelf` middleware factory).
-- **Side effects:** None beyond wrapping the handler.
-- **Algorithm:** Returns a middleware that adds permissive CORS response headers (allow-origin
-  `*` and related headers) around every response the inner handler produces.
-- **Usage:** First middleware applied in `start()`'s `Pipeline`, so CORS headers are present even
-  on responses `_authMiddleware` rejects.
-- **Notes:** "CORS is permissive" is an explicit, documented tradeoff in this repo's `AGENTS.md` —
-  it is why `_authMiddleware`'s Basic Auth enforcement (even on loopback, once credentials are
-  configured) exists: permissive CORS alone would let any local web page read the API.
-
 ### `static Middleware _authMiddleware()` <a id="authmiddleware"></a>
 - **Kind:** static method of `LocalApiServer`.
 - **Source:** `lib/shared/services/local_api_server.dart` (line 945).
@@ -681,10 +666,10 @@ server the app runs for other local/LAN tools to call, e.g. the desktop web dash
      `WWW-Authenticate: Basic realm="MyAnime API"` header.
   4. Otherwise (loopback, no credentials configured), pass through to the inner handler.
 - **Usage:** Second middleware in `start()`'s `Pipeline`, applied to every route.
-- **Notes:** The doc comment is explicit about the reasoning, quoted here because it is the
-  security-critical invariant of the whole server: "When credentials are configured, Basic Auth
-  is required for every request including loopback, because permissive CORS would otherwise let
-  any local web page read the API. Without credentials only loopback requests are allowed."
+- **Notes:** The security-critical invariant of the whole server: when credentials are configured,
+  Basic Auth is required for every request including loopback, so even a page on an allowed local
+  origin cannot read the API without them (since 1.6.7 foreign origins are already refused by
+  `_originMiddleware`). Without credentials only loopback requests are allowed.
 
 ### `static bool _validateBasicAuth(String header)` <a id="validatebasicauth"></a>
 - **Kind:** static method of `LocalApiServer`.
@@ -716,3 +701,17 @@ server the app runs for other local/LAN tools to call, e.g. the desktop web dash
 - **Notes:** This is the last line of defense — routes are expected to return their own `400`/
   `401`/`403` responses for expected failure modes; this middleware only catches truly unexpected
   exceptions.
+
+### `static Middleware _originMiddleware()` <a id="originmiddleware"></a>
+- **Kind:** static method of `LocalApiServer`.
+- **Source:** `lib/shared/services/local_api_server.dart`.
+- **Purpose:** Keep other web pages from using the loopback API through a browser (replaces `_corsMiddleware`, 1.6.7).
+- **Inputs:** None.
+- **Returns:** `Middleware`, first in the pipeline.
+- **Side effects:** None beyond wrapping the handler.
+- **Algorithm:** Read the `Origin` header. If `isAllowedOrigin` rejects it, answer `403 {"error":"origin not allowed"}` with no CORS headers, for every method. With no `Origin` header (curl, scripts, companion tools) pass through and add no CORS headers. With an allowed origin: `OPTIONS` is answered `200` here, before authentication, with `Access-Control-Allow-Origin` echoing that origin, `Vary: Origin`, `Access-Control-Allow-Methods: GET, POST, OPTIONS` and `Access-Control-Allow-Headers: Content-Type, Authorization`; other methods continue down the pipeline and get the same headers on the way out.
+- **Notes:** The old middleware sent `Access-Control-Allow-Origin: *` and the API had no authentication by default on loopback, so any web page the user opened could read the library and add records with a "simple" cross-origin POST. Rejecting the origin closes both, while non-browser clients are unaffected. `isAllowedOrigin` compares the parsed host exactly (`localhost`, or a loopback IP such as `127.0.0.1` / `[::1]`), so `localhost.evil.com`, LAN addresses, `null`, `file:` pages and browser-extension origins are refused. A DNS-rebinding / `Host` header check is deliberately not part of this change. Covered by `test/local_api_server_test.dart`.
+
+## Changes in 1.6.7
+
+Behavior change approved on 2026-09-28: the local API rejects browser requests from non-local origins (see [`_originMiddleware`](#originmiddleware)). Clients that send no `Origin` header are unchanged.

@@ -6,15 +6,15 @@ This is the top-level index of the hand-written Function Explanation Layer docum
 `lib/` in the MyAnime repo. Each row links to a per-source-file page under `doc/en-us/functions/`
 mirroring the `lib/` tree (with `.dart` replaced by `.md`).
 
-**Totals:** the repo's `/// Purpose:` comment count is **1460** (per the Function Explanation Layer
+**Totals:** the repo's `/// Purpose:` comment count is **1477** (per the Function Explanation Layer
 convention in `AGENTS.md`, excluding generated `lib/l10n/` code — see [l10n/INDEX.md](l10n/INDEX.md)).
-The rows below sum to **1442** documented declarations.
+The rows below sum to **1459** documented declarations.
 
 | Tier | Count |
 |---|---|
-| Tier A (full entry: Purpose/Inputs/Returns/Side effects/Algorithm/Usage/Notes) | 768 |
-| Tier B (index row only) | 674 |
-| **Total** | **1442** |
+| Tier A (full entry: Purpose/Inputs/Returns/Side effects/Algorithm/Usage/Notes) | 770 |
+| Tier B (index row only) | 689 |
+| **Total** | **1459** |
 
 **Known gap.** These two numbers do not match: 18 declarations carry a `/// Purpose:` comment in
 source but have no row here, so the index under-covers `lib/` by that much. The 1.5.7 recount found
@@ -91,6 +91,8 @@ them rather than adjusting them by hand:
 find lib -name "*.dart" -not -path "lib/l10n/*" | xargs grep -h '/// Purpose:' | wc -l
 ```
 
+**1.6.7 recount.** The measured `/// Purpose:` count is 1477 (1460 before) and the rows sum to 1459, so the gap stays 18. The release added 17 declarations across nine changed files: `anime_storage.dart` +7 (two write queues, `_writeData`, `_exclusiveData`, `updateRecord`, `updateLibrary`, `_writeConfig`, `updateConfig`; `_atomicWrite` removed), `file_open_service.dart` +3 (`safeCoverExt`, `isSafeCoverPath`, `discardUnusedCovers`), `local_api_server.dart` +2 (`buildHandler`, `isAllowedOrigin`; `_corsMiddleware` became `_originMiddleware`), `anime_detail_page.dart` +2 (`dispose`, `_reloadRecord`), and one each in `anime.dart` (`_plusDays`), `home_page.dart` (`buildAiringIndex`; `_getEpisodeCalendarDate` became the top-level `airingCalendarDate`), `anime_edit_page.dart` (`resolveEndEpisode`) and `playback_progress_service.dart` (`_tryStore`), while `metadata_cache.dart` lost `_atomicWrite`. Fifteen of the new declarations are Tier B rows; Tier A gained `_writeData`, `updateRecord`, `updateLibrary` and `updateConfig` and lost the two `_atomicWrite` entries (`AnimeStorage`, `MetadataCache`), a net two.
+
 ## Root (`lib/`)
 
 | Source file | Page | Declarations | Tier A count |
@@ -131,23 +133,23 @@ that carry a `/// Purpose:` comment. See [../on-device-ai.md](../on-device-ai.md
 
 | Source file | Page | Declarations | Tier A count |
 |---|---|---|---|
-| `lib/features/anime/models/anime.dart` | [features/anime/models/anime.md](features/anime/models/anime.md) | 83 | 68 |
+| `lib/features/anime/models/anime.dart` | [features/anime/models/anime.md](features/anime/models/anime.md) | 84 | 68 |
 | `lib/features/anime/models/anime_category.dart` | [features/anime/models/anime_category.md](features/anime/models/anime_category.md) | 2 | 1 |
 | `lib/features/anime/models/metadata_update.dart` | [features/anime/models/metadata_update.md](features/anime/models/metadata_update.md) | 22 | 9 |
-| `lib/features/anime/services/anime_storage.dart` | [features/anime/services/anime_storage.md](features/anime/services/anime_storage.md) | 57 | 45 |
+| `lib/features/anime/services/anime_storage.dart` | [features/anime/services/anime_storage.md](features/anime/services/anime_storage.md) | 64 | 48 |
 | `lib/features/anime/services/manage_grouping.dart` | [features/anime/services/manage_grouping.md](features/anime/services/manage_grouping.md) | 5 | 1 |
 | `lib/features/anime/services/anime1_service.dart` | [features/anime/services/anime1_service.md](features/anime/services/anime1_service.md) | 31 | 17 |
 | `lib/features/anime/services/anime_search_service.dart` | [features/anime/services/anime_search_service.md](features/anime/services/anime_search_service.md) | 71 | 48 |
-| `lib/features/anime/services/metadata_cache.dart` | [features/anime/services/metadata_cache.md](features/anime/services/metadata_cache.md) | 10 | 7 |
+| `lib/features/anime/services/metadata_cache.dart` | [features/anime/services/metadata_cache.md](features/anime/services/metadata_cache.md) | 9 | 6 |
 | `lib/features/anime/services/metadata_update_service.dart` | [features/anime/services/metadata_update_service.md](features/anime/services/metadata_update_service.md) | 44 | 27 |
 | `lib/features/anime/services/series_service.dart` | [features/anime/services/series_service.md](features/anime/services/series_service.md) | 32 | 20 |
 | `lib/features/anime/views/anime1_labels.dart` | [features/anime/views/anime1_labels.md](features/anime/views/anime1_labels.md) | 5 | 4 |
-| `lib/features/anime/views/anime_detail_page.dart` | [features/anime/views/anime_detail_page.md](features/anime/views/anime_detail_page.md) | 38 | 16 |
-| `lib/features/anime/views/anime_edit_page.dart` | [features/anime/views/anime_edit_page.md](features/anime/views/anime_edit_page.md) | 30 | 15 |
+| `lib/features/anime/views/anime_detail_page.dart` | [features/anime/views/anime_detail_page.md](features/anime/views/anime_detail_page.md) | 40 | 16 |
+| `lib/features/anime/views/anime_edit_page.dart` | [features/anime/views/anime_edit_page.md](features/anime/views/anime_edit_page.md) | 31 | 15 |
 | `lib/features/anime/views/anime_search_dialog.dart` | [features/anime/views/anime_search_dialog.md](features/anime/views/anime_search_dialog.md) | 34 | 17 |
 | `lib/features/anime/views/archive_labels.dart` | [features/anime/views/archive_labels.md](features/anime/views/archive_labels.md) | 3 | 3 |
 | `lib/features/anime/views/category_widgets.dart` | [features/anime/views/category_widgets.md](features/anime/views/category_widgets.md) | 9 | 4 |
-| `lib/features/anime/views/home_page.dart` | [features/anime/views/home_page.md](features/anime/views/home_page.md) | 24 | 9 |
+| `lib/features/anime/views/home_page.dart` | [features/anime/views/home_page.md](features/anime/views/home_page.md) | 25 | 9 |
 | `lib/features/anime/views/management_page.dart` | [features/anime/views/management_page.md](features/anime/views/management_page.md) | 31 | 15 |
 | `lib/features/anime/views/metadata_updates_page.dart` | [features/anime/views/metadata_updates_page.md](features/anime/views/metadata_updates_page.md) | 23 | 9 |
 | `lib/features/anime/views/quarter_picker_dialog.dart` | [features/anime/views/quarter_picker_dialog.md](features/anime/views/quarter_picker_dialog.md) | 5 | 1 |
@@ -236,12 +238,12 @@ the 771 hand-documented declarations above).
 | `lib/shared/services/backup_service.dart` | [shared/services/backup_service.md](shared/services/backup_service.md) | 12 | 12 |
 | `lib/shared/services/share_service.dart` | [shared/services/share_service.md](shared/services/share_service.md) | 33 | 25 |
 | `lib/shared/services/duplicate_service.dart` | [shared/services/duplicate_service.md](shared/services/duplicate_service.md) | 17 | 12 |
-| `lib/shared/services/file_open_service.dart` | [shared/services/file_open_service.md](shared/services/file_open_service.md) | 18 | 17 |
+| `lib/shared/services/file_open_service.dart` | [shared/services/file_open_service.md](shared/services/file_open_service.md) | 21 | 17 |
 | `lib/shared/services/reminder_service.dart` | [shared/services/reminder_service.md](shared/services/reminder_service.md) | 9 | 8 |
 | `lib/shared/services/import_export_service.dart` | [shared/services/import_export_service.md](shared/services/import_export_service.md) | 6 | 4 |
 | `lib/shared/services/tray_service.dart` | [shared/services/tray_service.md](shared/services/tray_service.md) | 16 | 8 |
 | `lib/shared/services/image_service.dart` | [shared/services/image_service.md](shared/services/image_service.md) | 6 | 6 |
-| `lib/shared/services/local_api_server.dart` | [shared/services/local_api_server.md](shared/services/local_api_server.md) | 45 | 36 |
+| `lib/shared/services/local_api_server.dart` | [shared/services/local_api_server.md](shared/services/local_api_server.md) | 47 | 36 |
 | `lib/shared/views/webdav_config_page.dart` | [shared/views/webdav_config_page.md](shared/views/webdav_config_page.md) | 24 | 14 |
 
 ## Area totals
@@ -251,13 +253,13 @@ the 771 hand-documented declarations above).
 | Root (`lib/`) | 1 | 1 | 1 | 0 |
 | `app/` | 5 | 25 | 17 | 8 |
 | `features/ai/` | 6 | 75 | 29 | 46 |
-| `features/anime/` | 33 | 795 | 379 | 416 |
+| `features/anime/` | 33 | 807 | 381 | 426 |
 | `features/categories/` | 2 | 18 | 11 | 7 |
 | `features/kana/` | 1 | 19 | 3 | 16 |
 | `features/recommendations/` | 11 | 153 | 63 | 90 |
 | `features/settings/` | 4 | 49 | 28 | 21 |
-| `shared/` (utils, widgets, providers, services, views) | 30 | 307 | 237 | 70 |
-| **Total** | **93** | **1442** | **768** | **674** |
+| `shared/` (utils, widgets, providers, services, views) | 30 | 312 | 237 | 75 |
+| **Total** | **93** | **1459** | **770** | **689** |
 
 
 ## Anime1 episode playback (1.6.4)
@@ -278,6 +280,6 @@ the 771 hand-documented declarations above).
 | `lib/features/anime/models/playback_progress.dart` | [features/anime/models/playback_progress.md](features/anime/models/playback_progress.md) | 15 | 3 |
 | `lib/features/anime/services/playback_progress_merge.dart` | [features/anime/services/playback_progress_merge.md](features/anime/services/playback_progress_merge.md) | 3 | 1 |
 | `lib/features/anime/services/playback_progress_store.dart` | [features/anime/services/playback_progress_store.md](features/anime/services/playback_progress_store.md) | 7 | 1 |
-| `lib/features/anime/services/playback_progress_service.dart` | [features/anime/services/playback_progress_service.md](features/anime/services/playback_progress_service.md) | 5 | 2 |
+| `lib/features/anime/services/playback_progress_service.dart` | [features/anime/services/playback_progress_service.md](features/anime/services/playback_progress_service.md) | 6 | 2 |
 | `lib/features/anime/views/anime_player_controls.dart` | [features/anime/views/anime_player_controls.md](features/anime/views/anime_player_controls.md) | 25 | 2 |
 | `lib/shared/utils/playback_time.dart` | [shared/utils/playback_time.md](shared/utils/playback_time.md) | 1 | 0 |

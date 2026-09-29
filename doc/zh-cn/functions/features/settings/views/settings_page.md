@@ -465,3 +465,7 @@
     ),
   ```
 - **备注：** `AnimeStorage.setStoragePath` 返回 `false` 时（如新路径无效或移动失败），此方法完全不显示失败反馈——对话框只是关闭，显示的路径不变。
+
+## 1.6.7 变更
+
+API 对话框保存、提醒开关与时间选择器、API 启用开关都经 `AnimeStorage.updateConfig` 写入，因此短时间内连续更改的多个设置都会保存下来（此前每个都读取整个配置、改一个键再写回）。API 对话框保存、开机自启开关和 API 启用开关在 await 之后、调用 `setState` 之前检查 `mounted`。

@@ -21,7 +21,6 @@
 |---|---|---|---|
 | `MetadataCache._` | 构造器 | B | 阻止实例化。 |
 | `_file` | 方法 | B | 在当前存储目录中解析缓存文件路径。 |
-| [`_atomicWrite`](#_atomicwrite) | 方法 | A | 通过 tmp-重命名写入。 |
 | [`load`](#load) | 方法 | A | 加载缓存，任何失败都降级为空。 |
 | [`save`](#save) | 方法 | A | 持久化缓存。 |
 | `_coverDir` | 方法 | B | 解析预取目录，按需创建。 |
@@ -30,13 +29,6 @@
 | [`pruneCovers`](#prunecovers) | 方法 | A | 删除无人引用的预取封面。 |
 
 ## 文档
-
-### `static Future<void> _atomicWrite(File, String)` <a id="_atomicwrite"></a>
-- **种类：** `MetadataCache` 的静态方法
-- **用途：** 通过临时文件加重命名写入文件。
-- **副作用：** 写入 `<path>.tmp`，然后重命名覆盖目标。
-- **备注：** 与 `AnimeStorage._atomicWrite` 同构。缓存是可重建的，因此损坏并不构成数据丢失风险 —— 但一个
-  被截断的文件仍然意味着要通过网络把整个资料库重新扫描一遍，为此付出一次重命名是划算的。
 
 ### `static Future<MetadataUpdateStore> load()` <a id="load"></a>
 - **种类：** `MetadataCache` 的静态方法
@@ -67,3 +59,7 @@
 - **副作用：** 删除 `metadata_covers/` 中所有没有条目引用的文件。
 - **备注：** 与 `MetadataUpdateStore.prunedTo` 配对，使属于已删除番剧的封面也一并清除。它是机会式的 ——
   任何失败都被吞掉，留待下一次清理重试。
+
+## 1.6.7 变更
+
+私有的 `_atomicWrite`（固定 `<file>.tmp` 名）已移除；`save` 改用 `myapps_data` 的 `atomicWriteString`，它使用唯一命名的临时文件，两次重叠的保存不会再撞同一个临时文件。

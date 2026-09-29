@@ -28,7 +28,8 @@ underlying episode air-date logic this page consumes.
 | [`_load`](#_load) | method (`_HomePageState`) | A | Reload all anime from storage. |
 | [`_getEventsForDay`](#_geteventsforday) | method (`_HomePageState`) | A | Collect every episode airing on a given calendar day. |
 | [`_today`](#_today) | method (`_HomePageState`) | A | Return "today" under the selected home calendar time basis. |
-| [`_getEpisodeCalendarDate`](#_getepisodecalendardate) | method (`_HomePageState`) | A | Resolve an episode's calendar date under the selected time basis. |
+| [`airingCalendarDate`](#airingcalendardate) | top-level function | A | Resolve an episode's calendar date under the selected time basis. |
+| `buildAiringIndex` | top-level function, `@visibleForTesting` | B | Group every airing episode by calendar date so the calendar looks days up instead of rescanning the library (1.6.7). |
 | [`_getEpisodeDisplayAirDate`](#_getepisodedisplayairdate) | method (`_HomePageState`) | A | Resolve an episode's display air date/time under the selected time basis. |
 | [`_getUnwatchedEpisodes`](#_getunwatchedepisodes) | method (`_HomePageState`) | A | Build the sorted list of aired-but-unwatched episodes, one per anime. |
 | [`_countUnwatchedAiredEpisodes`](#_countunwatchedairedepisodes) | method (`_HomePageState`) | A | Count all aired unwatched episodes across every anime. |
@@ -44,7 +45,7 @@ underlying episode air-date logic this page consumes.
 | `_showActions` | method (`_HomePageState`) | B | Show the long-press action sheet for one anime and reload. |
 | `_siteHasEpisode` | method (`_HomePageState`) | B | Whether the current source has a verified mapped page for this local episode. |
 | `_buildEpisodeTile` | method (widget helper) | B | Render one episode row (cover, title, air date, watch button — primary when the watch site already lists the episode — watch toggle, long-press actions). |
-| `_AiringEpisode.new` | constructor (`_AiringEpisode`) | B | Pair an anime with one of its episode numbers. |
+| `AiringEpisode.new` | constructor (`AiringEpisode`) | B | Pair an anime with one of its episode numbers. |
 
 ## Documentation
 
@@ -75,19 +76,19 @@ underlying episode air-date logic this page consumes.
   in `initState` and unregistered in `dispose`, so the calendar refreshes automatically after a
   background sync or backup restore replaces local data.
 
-### `List<_AiringEpisode> _getEventsForDay(DateTime day, HomeCalendarTimeBasis timeBasis)` <a id="_geteventsforday"></a>
+### `List<AiringEpisode> _getEventsForDay(DateTime day, HomeCalendarTimeBasis timeBasis)` <a id="_geteventsforday"></a>
 - **Kind:** method of `_HomePageState`
 - **Source:** `lib/features/anime/views/home_page.dart` (approx. line 82)
 - **Purpose:** Collect every episode, across every tracked anime, whose calendar date (under the
   given time basis) matches `day`.
 - **Inputs:** `day`; `timeBasis` — `HomeCalendarTimeBasis.jst` or `.local`.
-- **Returns:** `List<_AiringEpisode>`.
+- **Returns:** `List<AiringEpisode>`.
 - **Side effects:** None.
 - **Algorithm:**
   1. Normalize `day` to a date-only `DateTime`.
   2. For each anime, loop every episode from `startEpisode` to `endEpisode ?? startEpisode`.
-  3. For each episode, compute its calendar date via [`_getEpisodeCalendarDate`](#_getepisodecalendardate);
-     if it equals `dayOnly`, add an `_AiringEpisode(anime: anime, episode: ep)`.
+  3. For each episode, compute its calendar date via [`airingCalendarDate`](#airingcalendardate);
+     if it equals `dayOnly`, add an `AiringEpisode(anime: anime, episode: ep)`.
 - **Usage:**
   ```dart
   eventLoader: (day) =>
@@ -119,8 +120,8 @@ underlying episode air-date logic this page consumes.
   but can be switched to the device's local timezone" behavior described in
   [`../../../../features/home-management-statistics.md`](../../../../features/home-management-statistics.md).
 
-### `DateTime? _getEpisodeCalendarDate(Anime anime, int episode, HomeCalendarTimeBasis timeBasis)` <a id="_getepisodecalendardate"></a>
-- **Kind:** method of `_HomePageState`
+### `DateTime? airingCalendarDate(Anime anime, int episode, HomeCalendarTimeBasis timeBasis)` <a id="airingcalendardate"></a>
+- **Kind:** top-level function (was a `_HomePageState` method until 1.6.7)
 - **Source:** `lib/features/anime/views/home_page.dart` (approx. line 117)
 - **Purpose:** Resolve which calendar day an episode belongs on for calendar-grid placement,
   respecting the local-time toggle while keeping all-at-once releases pinned to their JST release
@@ -138,9 +139,9 @@ underlying episode air-date logic this page consumes.
      date-only part.
 - **Usage:**
   ```dart
-  final calDate = _getEpisodeCalendarDate(anime, ep, timeBasis);
+  final calDate = airingCalendarDate(anime, ep, timeBasis);
   if (calDate != null && calDate == dayOnly) {
-    events.add(_AiringEpisode(anime: anime, episode: ep));
+    events.add(AiringEpisode(anime: anime, episode: ep));
   }
   ```
   (`_getEventsForDay`, same file)
@@ -153,7 +154,7 @@ underlying episode air-date logic this page consumes.
 - **Kind:** method of `_HomePageState`
 - **Source:** `lib/features/anime/views/home_page.dart` (approx. line 141)
 - **Purpose:** Resolve the air date/time shown as text on an episode tile, following the same
-  local/JST and all-at-once rules as [`_getEpisodeCalendarDate`](#_getepisodecalendardate) but
+  local/JST and all-at-once rules as [`airingCalendarDate`](#airingcalendardate) but
   returning the full air instant (not date-only) when relevant.
 - **Inputs:** `anime`; `episode`; `timeBasis`.
 - **Returns:** `DateTime?`.
@@ -172,16 +173,16 @@ underlying episode air-date logic this page consumes.
   );
   ```
   (`_buildEpisodeTile`, same file, to format the displayed air-date string)
-- **Notes:** Unlike [`_getEpisodeCalendarDate`](#_getepisodecalendardate), this keeps the full
+- **Notes:** Unlike [`airingCalendarDate`](#airingcalendardate), this keeps the full
   time-of-day (not just the date), since it feeds display text rather than calendar-grid placement.
 
-### `List<_AiringEpisode> _getUnwatchedEpisodes()` <a id="_getunwatchedepisodes"></a>
+### `List<AiringEpisode> _getUnwatchedEpisodes()` <a id="_getunwatchedepisodes"></a>
 - **Kind:** method of `_HomePageState`
 - **Source:** `lib/features/anime/views/home_page.dart` (approx. line 162)
 - **Purpose:** Build the "aired but not yet watched" list shown below the calendar — the single
   earliest unwatched, already-aired episode per anime, sorted by air date.
 - **Inputs:** None.
-- **Returns:** `List<_AiringEpisode>`.
+- **Returns:** `List<AiringEpisode>`.
 - **Side effects:** None.
 - **Algorithm:**
   1. For each anime, scan episodes from `startEpisode` upward; find the first episode whose status
@@ -221,12 +222,12 @@ underlying episode air-date logic this page consumes.
   — the visible list is capped at one row per anime, while this count reflects every backlogged
   episode.
 
-### `Future<void> _toggleWatched(_AiringEpisode ep)` <a id="_togglewatched"></a>
+### `Future<void> _toggleWatched(AiringEpisode ep)` <a id="_togglewatched"></a>
 - **Kind:** method of `_HomePageState`
 - **Source:** `lib/features/anime/views/home_page.dart` (approx. line 216)
 - **Purpose:** Toggle one episode between `watched` and `unwatched` from the home page's episode
   tiles.
-- **Inputs:** `ep` — the `_AiringEpisode` (anime + episode number) being toggled.
+- **Inputs:** `ep` — the `AiringEpisode` (anime + episode number) being toggled.
 - **Returns:** `Future<void>`.
 - **Side effects:** Calls `AnimeStorage.addOrUpdate`; reloads via `_load()`.
 - **Algorithm:** Flip the episode's status: anything other than `watched` becomes `watched`;
@@ -312,3 +313,9 @@ and [`../../../../features/categories-and-recommendations.md`](../../../../featu
 ## Changes in 1.6.4
 
 _siteHasEpisode now checks resolved links rather than comparing site and local numbers. _buildEpisodeTile opens that local episode through openAnimeWatch and reloads after returning.
+
+## Changes in 1.6.7
+
+- **Airing index.** The calendar's `eventLoader` and the selected-day list called `_getEventsForDay` for every visible day on every build, and each call scanned every episode of every record. `buildAiringIndex(list, basis)` now groups the episodes by calendar date once; `_getEventsForDay` rebuilds it only when the library list (compared by identity) or the time basis changes, and returns a fresh mutable list per call (the caller sorts it). `test/home_events_test.dart` checks the index against the old per-day scan for both time bases.
+- `_AiringEpisode` is now the public `AiringEpisode` and `_getEpisodeCalendarDate` the top-level `airingCalendarDate`, so the index can be tested; behavior is unchanged.
+- The list thumbnail passes `cacheHeight` (56 logical pixels times the device pixel ratio) so a full-size cover is not decoded for a 40 x 56 tile.

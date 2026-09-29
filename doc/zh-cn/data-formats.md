@@ -399,6 +399,7 @@ WebDAV 连接详情和同步偏好（服务器 URL、凭据、自动同步开关
 
 - **版本 1**（单个动画）：`{"version": 1, "anime": {...}, "coverImage": "<base64>", "coverImageExt": ".jpg"}` — `coverImage`/`coverImageExt` 可选。
 - **版本 2**（多动画捆绑）：`{"version": 2, "items": [{"anime": {...}, "coverImage": "<base64>", "coverImageExt": ".jpg"}, ...]}` — 每个条目与 v1 有相同的可选封面字段。
+- 导入时，`coverImageExt` 只有在是一个点加一到五个 ASCII 字母或数字时才会使用（否则用 `.jpg`），记录自带的 `coverImage` 只有是 `images/<普通名称>` 时才保留（1.6.7）；封面总是以新的 UUID 名写入 `images/` 内。
 
 导出在写入前从每个 `anime` 负载中剥离个人数据（`episodeStatuses`、`episodeWeekOffsets`、`localArchive`，以及自 1.6.0 起的 `seriesLink`）。导入总是分配新 UUID，绝不覆盖既有的本地记录；它会丢弃文件携带的任何 `seriesLink`，并自 1.6.0 起带过 `externalMeta`（更早的版本导入时会丢弃它，尽管导出保留了它）；`categories` 导出时不剥离、导入时也不丢弃（1.6.0）；多动画捆绑导入运行与 [`features/duplicate-detection.md`](features/duplicate-detection.md) 相同的冲突检测来判断传入记录是否与本地记录冲突，并为每个冲突提供保留本地/使用导入/合并选项。
 

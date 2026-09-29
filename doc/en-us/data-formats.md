@@ -513,6 +513,9 @@ JSON file used for exporting/importing individual or multiple anime (see
 - **Version 2** (multi-anime bundle): `{"version": 2, "items": [{"anime": {...}, "coverImage":
   "<base64>", "coverImageExt": ".jpg"}, ...]}` — each item has the same optional cover fields as
   v1.
+- On import, `coverImageExt` is used only when it is a dot plus one to five ASCII letters or digits
+  (otherwise `.jpg`), and a record's own `coverImage` is kept only when it is `images/<plain name>`
+  (1.6.7); the cover is always written under a fresh UUID name inside `images/`.
 
 Export strips personal data (`episodeStatuses`, `episodeWeekOffsets`, `localArchive`, and since
 1.6.0 `seriesLink`) from each `anime` payload before writing. Import always assigns a new UUID and

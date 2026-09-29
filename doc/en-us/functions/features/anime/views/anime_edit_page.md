@@ -40,6 +40,7 @@ pre-filled and no search, even when the relation data arrived through sync.
 | [`_pickFirstAirDate`](#_pickfirstairdate) | method (`_AnimeEditPageState`) | A | Show a date picker and stage the chosen `firstAirDate`. |
 | [`_saveNew`](#_savenew) | method (`_AnimeEditPageState`) | A | Write a newly created record, linking it into a series when opened by "Add next season". |
 | [`_save`](#_save) | method (`_AnimeEditPageState`) | A | Validate the form and create or update the anime record. |
+| `resolveEndEpisode` | top-level function, `@visibleForTesting` | B | Decide the end episode a save writes: empty means unknown when editing, 12 for a new record; a start past the end shifts it (1.6.7). |
 | [`_buildRating`](#_buildrating) | method (`_AnimeEditPageState`) | A | Assemble an `AnimeRating` from the rating text fields, or `null` if empty. |
 | [`_buildLocalArchive`](#_buildlocalarchive) | method (`_AnimeEditPageState`) | A | Assemble an `AnimeLocalArchive` from the archive controls, or `null` if untouched. |
 | `_parseScore` | method (`_AnimeEditPageState`) | B | Parse a rating controller's text into a `double?`. |
@@ -472,3 +473,8 @@ pre-filled and no search, even when the relation data arrived through sync.
   layouts. This is the `ListView` `test/local_archive_ui_test.dart` scrolls; since 1.5.5 it must
   address it through `find.byType(ListView)` rather than as the first `Scrollable` on the page,
   because the left pane's scroll view now comes first.
+
+## Changes in 1.6.7
+
+- **An unknown end episode stays unknown (data-corruption fix).** Opening a record whose `endEpisode` was `null` filled the field with the text `null`, which parsed to nothing and was saved as 12. The field now loads empty, and `resolveEndEpisode` returns `null` for an empty field when editing (a new record still defaults to 12); `_save` passes `clearEndEpisode` so a cleared field really clears it.
+- **Saving no longer overwrites newer data.** The edit form saved its whole snapshot (`_existing.copyWith(...)` through `addOrUpdate`), so episode statuses or external metadata changed since the page opened were put back. `_save` now applies only the form's fields to the freshly stored record through `AnimeStorage.updateRecord`; `externalMeta` is replaced only when the form changed it (`_externalMetaEdited`, set by the watch-URL search and by applied metadata). If the record was deleted meanwhile, the edit is written as before with `addOrUpdate`.

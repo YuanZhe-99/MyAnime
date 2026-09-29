@@ -84,7 +84,7 @@ WebDAV 页面上的前台同步操作——手动同步、冲突最终化上传�
   的合并不会产生冲突——见[推荐文件](#推荐文件)；`playback_progress.json`（1.6.5）同样如此——见[播放进度文件](#播放进度文件)。
 - 未知的顶层和逐动画 JSON 字段必须在解析、编辑、导入、导出和同步合并中存活（见 [`data-formats.md`](data-formats.md) 中的 `extraJson` 模式）。
 - `_syncing` 防止并发同步运行。
-- `_atomicWrite()` 使用 tmp-重命名，使写入中途崩溃绝不会损坏本地文件。
+- `_atomicWrite()` 使用 tmp-重命名，使写入中途崩溃绝不会损坏本地文件。临时文件名唯一，两个重叠的写入者不会共用一个（自 1.6.7 起，应用自己对 `anime_data.json`、`storage_config.json`、`metadata_updates.json` 和 `playback_progress.json` 的写入也使用同一个辅助函数）。
 - 网络 I/O 后重新读取本地文件，专门用于检测同步期间发生的并发用户编辑（上面第 7 步）。
 - 同步错误和图像传输警告显示在对话框中，而不只是 snackbar，因为它们需要保持可见。
 

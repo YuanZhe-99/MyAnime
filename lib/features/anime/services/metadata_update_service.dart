@@ -881,7 +881,8 @@ class MetadataUpdateService {
   /// Purpose: Write buffered external metadata to the anime data file.
   /// Inputs: None.
   /// Returns: None.
-  /// Side effects: Rewrites `anime_data.json` when the buffer is non-empty.
+  /// Side effects: Rewrites `anime_data.json` when the buffer is non-empty. On a
+  /// failed write the batch is restored to the buffer and the error rethrown.
   /// Notes: Internal helper used within this file only. Batched so a long
   /// sweep does not rewrite the file every few seconds, which would also keep
   /// resetting auto-sync's save debounce.
@@ -890,7 +891,16 @@ class MetadataUpdateService {
     final batch = Map<String, AnimeExternalMeta>.of(_pendingMeta);
     _pendingMeta.clear();
     _sinceFlush = 0;
-    await AnimeStorage.patchExternalMeta(batch);
+    try {
+      await AnimeStorage.patchExternalMeta(batch);
+    } catch (_) {
+      // Keep the batch for the next flush. `putIfAbsent` so anything buffered
+      // for the same record while the write ran (newer) is not replaced.
+      for (final entry in batch.entries) {
+        _pendingMeta.putIfAbsent(entry.key, () => entry.value);
+      }
+      rethrow;
+    }
   }
 
   // ── Review UI entry points ──

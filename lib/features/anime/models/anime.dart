@@ -1620,6 +1620,36 @@ class AnimeExternalMeta {
     );
   }
 }
+/// Purpose: Add whole calendar days to a date, keeping its wall-clock time.
+/// Inputs: `date`; `days` — may be negative.
+/// Returns: `DateTime` — same time of day, `days` later, in the same
+/// local/UTC mode as `date`.
+/// Side effects: None.
+/// Notes: `date.add(Duration(days: n))` adds `n * 24` hours, which lands an
+/// hour off (possibly on the neighbouring date) when a daylight-saving change
+/// falls in between. Constructing from the calendar fields instead keeps the
+/// broadcast date stable in every time zone.
+DateTime _plusDays(DateTime date, int days) => date.isUtc
+    ? DateTime.utc(
+        date.year,
+        date.month,
+        date.day + days,
+        date.hour,
+        date.minute,
+        date.second,
+        date.millisecond,
+        date.microsecond,
+      )
+    : DateTime(
+        date.year,
+        date.month,
+        date.day + days,
+        date.hour,
+        date.minute,
+        date.second,
+        date.millisecond,
+        date.microsecond,
+      );
 
 class Anime {
   final String id;
@@ -1874,6 +1904,7 @@ class Anime {
   /// Returns: `DateTime?`.
   /// Side effects: None.
   /// Notes: Returns `null` when the anime lacks enough timing data to calculate the episode air time.
+  /// Adds weeks with `_plusDays` (calendar-field arithmetic), so a daylight-saving change cannot shift the date.
   DateTime? getEpisodeAirDate(int episodeNumber) {
     if (firstAirDate == null) return null;
     if (effectiveType == AnimeType.allAtOnce) return firstAirDate;
@@ -1884,14 +1915,14 @@ class Anime {
     if (episodeOffset < 0) return null;
 
     final totalWeeks = episodeOffset + weekOffsetFor(episodeNumber);
-    final baseDate = firstAirDate!.add(Duration(days: totalWeeks * 7));
+    final baseDate = _plusDays(firstAirDate!, totalWeeks * 7);
 
     // Adjust to the correct day of week, snapping forward so episode 1 never
     // lands before firstAirDate when airDayOfWeek disagrees with its weekday.
     final currentDow = baseDate.weekday; // 1=Mon..7=Sun
     var diff = airDayOfWeek! - currentDow;
     if (diff < 0) diff += 7;
-    var airDate = baseDate.add(Duration(days: diff));
+    var airDate = _plusDays(baseDate, diff);
 
     // Apply air time
     if (airTime != null) {
@@ -1920,6 +1951,7 @@ class Anime {
   /// Returns: `DateTime?`.
   /// Side effects: None.
   /// Notes: Unlike `getEpisodeAirDate`, this stays on the scheduled broadcast date even for `24:00` or `25:00` times.
+  /// Adds weeks with `_plusDays`, like `getEpisodeAirDate`.
   DateTime? getEpisodeCalendarDate(int episodeNumber) {
     if (firstAirDate == null) return null;
     if (effectiveType == AnimeType.allAtOnce) {
@@ -1935,14 +1967,14 @@ class Anime {
     if (episodeOffset < 0) return null;
 
     final totalWeeks = episodeOffset + weekOffsetFor(episodeNumber);
-    final baseDate = firstAirDate!.add(Duration(days: totalWeeks * 7));
+    final baseDate = _plusDays(firstAirDate!, totalWeeks * 7);
 
     // Snap forward (matching getEpisodeAirDate) so calendar placement never
     // precedes firstAirDate.
     final currentDow = baseDate.weekday;
     var diff = airDayOfWeek! - currentDow;
     if (diff < 0) diff += 7;
-    final dayDate = baseDate.add(Duration(days: diff));
+    final dayDate = _plusDays(baseDate, diff);
     return DateTime(dayDate.year, dayDate.month, dayDate.day);
   }
 

@@ -349,12 +349,12 @@ class _ManagementPageState extends ConsumerState<ManagementPage> {
         ],
       ),
     );
-    if (choice == null || !mounted) return;
+    if (choice == null || !context.mounted) return;
 
     if (choice == 'create') {
       final newId = await context.push<String>('/anime/edit');
       await _load();
-      if (newId != null && mounted) {
+      if (newId != null && context.mounted) {
         await context.push('/anime/detail/$newId');
         await _load();
         _jumpToAnimeQuarter(newId);
@@ -362,7 +362,9 @@ class _ManagementPageState extends ConsumerState<ManagementPage> {
     } else {
       final result = await showImportBundleFlow(context);
       await _load();
-      if (result != null && result.importedIds.isNotEmpty && mounted) {
+      if (result != null &&
+          result.importedIds.isNotEmpty &&
+          context.mounted) {
         await context.push('/anime/detail/${result.importedIds.first}');
         await _load();
         _jumpToAnimeQuarter(result.importedIds.first);
@@ -926,6 +928,7 @@ class _ManagementPageState extends ConsumerState<ManagementPage> {
                         snap.data!,
                         width: 40,
                         height: 56,
+                        cacheHeight: (56 * MediaQuery.devicePixelRatioOf(context)).ceil(),
                         fit: BoxFit.cover,
                       ),
                     );

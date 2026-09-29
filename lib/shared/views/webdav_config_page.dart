@@ -110,22 +110,20 @@ class _WebDAVConfigPageState extends State<WebDAVConfigPage> {
   /// Returns: None.
   /// Side effects: May read or mutate application state, storage, or service resources.
   /// Notes: Internal helper used within this file only.
+  /// Returns without touching state when the page is unmounted after the awaited save.
   Future<void> _saveConfig() async {
     final config = _currentConfig;
     await WebDAVService.saveConfig(config);
     if (config.isConfigured && config.autoSync) {
       AutoSyncService.instance.requestSyncNow();
     }
+    if (!mounted) return;
     setState(() => _isConfigured = config.isConfigured);
-    if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            AppLocalizations.of(context)!.settingsWebDAVConfigSaved,
-          ),
-        ),
-      );
-    }
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(AppLocalizations.of(context)!.settingsWebDAVConfigSaved),
+      ),
+    );
   }
 
   /// Purpose: Provide the internal test connection helper for this file.
@@ -443,10 +441,12 @@ class _WebDAVConfigPageState extends State<WebDAVConfigPage> {
   /// Purpose: Provide the internal disconnect helper for this file.
   /// Inputs: None.
   /// Returns: None.
-  /// Side effects: None.
+  /// Side effects: Deletes the WebDAV config and clears the form.
   /// Notes: Internal helper used within this file only.
+  /// Returns without touching the controllers when the page is unmounted after the awaited delete.
   Future<void> _disconnect() async {
     await WebDAVService.deleteConfig();
+    if (!mounted) return;
     _urlController.clear();
     _userController.clear();
     _passController.clear();

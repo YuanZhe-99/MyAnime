@@ -176,12 +176,13 @@ class ReminderService {
 
     final now = tz.TZDateTime.now(tz.local);
     for (var offset = 0; offset < _scheduledDays; offset++) {
-      final day = now.add(Duration(days: offset));
+      // Calendar-day arithmetic (day + offset), not `add(Duration(days:))`:
+      // a 24-hour step lands on the wrong date across a DST change.
       final fireAt = tz.TZDateTime(
         tz.local,
-        day.year,
-        day.month,
-        day.day,
+        now.year,
+        now.month,
+        now.day + offset,
         rHour,
         rMinute,
       );
@@ -308,6 +309,7 @@ class ReminderService {
   /// Notes: Desktop-only in-process path; mobile is covered by OS-scheduled
   /// notifications so this never double-notifies there. Counts both anime titles
   /// and episode totals for today's airing and aired unwatched work.
+  /// Records `lastReminderDate` through `AnimeStorage.updateConfig` (that key only), not by writing back the config map read earlier.
   static Future<void> checkAndNotify() async {
     if (!_isDesktop) return;
     try {
@@ -347,8 +349,9 @@ class ReminderService {
       await _show('MyAnime!!!!!', body);
 
       // Record today's date.
-      config['lastReminderDate'] = todayStr;
-      await AnimeStorage.writeConfig(config);
+      await AnimeStorage.updateConfig(
+        (fresh) => fresh['lastReminderDate'] = todayStr,
+      );
     } catch (e) {
       debugPrint('ReminderService error: $e');
     }

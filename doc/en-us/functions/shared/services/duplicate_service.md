@@ -268,3 +268,7 @@ grouping/merge algorithm write-up and how it differs from WebDAV sync's per-reco
   merge — see [`../../../features/duplicate-detection.md`](../../../features/duplicate-detection.md)
   for how the two differ (combining two different records' IDs vs. reconciling one record's ID
   across devices).
+
+## Changes in 1.6.7
+
+`ImportBundle` gained an optional `writtenCovers` field (bundle index to the `images/<name>` file `FileOpenService.parseBundle` created for that record; default empty). The constructor stays source-compatible. `FileOpenService.discardUnusedCovers` deletes only files listed here.

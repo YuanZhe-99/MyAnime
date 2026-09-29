@@ -1,8 +1,24 @@
 import 'dart:convert';
+import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:my_anime/features/anime/models/anime.dart';
+import 'package:my_anime/shared/services/duplicate_service.dart';
 import 'package:my_anime/shared/services/file_open_service.dart';
+import 'package:path/path.dart' as p;
+import 'package:path_provider_platform_interface/path_provider_platform_interface.dart';
+
+/// Purpose: Point `getApplicationDocumentsDirectory` at a temporary folder.
+/// Inputs: `documentsPath`.
+/// Returns: None.
+/// Side effects: None.
+/// Notes: Test double used only by this file.
+class _FakePathProvider extends PathProviderPlatform {
+  _FakePathProvider(this.documentsPath);
+  final String documentsPath;
+  @override
+  Future<String?> getApplicationDocumentsPath() async => documentsPath;
+}
 
 /// Purpose: Test .myanimeitem multi-anime bundle export/import format.
 /// Inputs: None.
@@ -184,6 +200,161 @@ void main() {
       expect(decoded['version'], 2);
       final decodedItems = decoded['items'] as List<dynamic>;
       expect(decodedItems, hasLength(2));
+    });
+  });
+  group('import path safety', () {
+    test('safeCoverExt accepts a short alphanumeric extension only', () {
+      const cases = <Object?, String>{
+        '.png': '.png',
+        '.JPEG': '.JPEG',
+        '.webp': '.webp',
+        '.jpg': '.jpg',
+        null: '.jpg',
+        42: '.jpg',
+        '': '.jpg',
+        'png': '.jpg',
+        '.': '.jpg',
+        '.toolong': '.jpg',
+        '/../../evil': '.jpg',
+        '.p/ng': '.jpg',
+        r'.p\ng': '.jpg',
+        '.a b': '.jpg',
+        '.png\n': '.jpg',
+      };
+      cases.forEach((input, expected) {
+        expect(FileOpenService.safeCoverExt(input), expected, reason: '$input');
+      });
+    });
+
+    test('isSafeCoverPath allows only images/<plain name>', () {
+      const cases = <String?, bool>{
+        'images/abc-123.jpg': true,
+        'images/a_b.c.png': true,
+        null: false,
+        '': false,
+        'images/': false,
+        '/images/a.jpg': false,
+        'images/../a.jpg': false,
+        'images/..': false,
+        'images/sub/a.jpg': false,
+        'other/a.jpg': false,
+        r'images\a.jpg': false,
+        'C:/x/a.jpg': false,
+        'images/a b.jpg': false,
+      };
+      cases.forEach((input, expected) {
+        expect(
+          FileOpenService.isSafeCoverPath(input),
+          expected,
+          reason: '$input',
+        );
+      });
+    });
+
+    test('importedCopy drops an unsafe cover but keeps a fresh cover path', () {
+      final now = DateTime.utc(2026, 9, 28);
+      final hostile = Anime.fromJson({
+        ...makeAnime(title: 'Hostile').toJson(),
+        'coverImage': '../../secret.png',
+      });
+      expect(
+        FileOpenService.importedCopy(hostile, id: 'x', now: now).coverImage,
+        isNull,
+      );
+      expect(
+        FileOpenService.importedCopy(
+          hostile,
+          id: 'x',
+          now: now,
+          coverPath: 'images/new.png',
+        ).coverImage,
+        'images/new.png',
+      );
+      final plain = Anime.fromJson({
+        ...makeAnime(title: 'Plain').toJson(),
+        'coverImage': 'images/old.png',
+      });
+      expect(
+        FileOpenService.importedCopy(plain, id: 'x', now: now).coverImage,
+        'images/old.png',
+      );
+    });
+
+    group('discardUnusedCovers', () {
+      late Directory tempDir;
+      late Directory imagesDir;
+
+      setUp(() async {
+        tempDir = await Directory.systemTemp.createTemp('myanime_covers');
+        final docs = Directory(p.join(tempDir.path, 'docs'))
+          ..createSync(recursive: true);
+        imagesDir = Directory(p.join(docs.path, 'MyAnime', 'images'))
+          ..createSync(recursive: true);
+        PathProviderPlatform.instance = _FakePathProvider(docs.path);
+      });
+
+      tearDown(() {
+        if (tempDir.existsSync()) tempDir.deleteSync(recursive: true);
+      });
+
+      test(
+        'deletes only covers written for records that were not kept',
+        () async {
+          for (final name in [
+            'kept.png',
+            'skipped.png',
+            'merged.png',
+            'local.png',
+          ]) {
+            File(p.join(imagesDir.path, name)).writeAsStringSync('x');
+          }
+          final bundle = ImportBundle(
+            animes: [
+              Anime.fromJson({
+                ...makeAnime(id: 'k').toJson(),
+                'coverImage': 'images/kept.png',
+              }),
+              Anime.fromJson({
+                ...makeAnime(id: 's').toJson(),
+                'coverImage': 'images/skipped.png',
+              }),
+              Anime.fromJson({
+                ...makeAnime(id: 'm').toJson(),
+                'coverImage': 'images/merged.png',
+              }),
+              // Merely references an existing local cover; nothing was written.
+              Anime.fromJson({
+                ...makeAnime(id: 'r').toJson(),
+                'coverImage': 'images/local.png',
+              }),
+            ],
+            conflictIndices: const [],
+            localVersions: const {},
+            writtenCovers: const {
+              0: 'images/kept.png',
+              1: 'images/skipped.png',
+              2: 'images/merged.png',
+            },
+          );
+          final merged = Anime.fromJson({
+            ...makeAnime(id: 'local-m').toJson(),
+            'coverImage': 'images/merged.png',
+          });
+
+          final deleted = await FileOpenService.discardUnusedCovers(
+            bundle,
+            {0},
+            [merged],
+          );
+
+          expect(deleted, 1);
+          bool exists(String n) => File(p.join(imagesDir.path, n)).existsSync();
+          expect(exists('kept.png'), isTrue);
+          expect(exists('skipped.png'), isFalse);
+          expect(exists('merged.png'), isTrue);
+          expect(exists('local.png'), isTrue);
+        },
+      );
     });
   });
 }

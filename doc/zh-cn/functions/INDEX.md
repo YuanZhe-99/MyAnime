@@ -4,13 +4,13 @@
 
 这是 MyAnime 仓库中 `lib/` 手写函数解释层文档的顶层索引。每行链接到 `doc/en-us/functions/` 下镜像 `lib/` 树的逐源文件页面（`.dart` 换成 `.md`）。
 
-**总计：** 仓库的 `/// Purpose:` 注释数为 **1460**（按 `AGENTS.md` 中的函数解释层约定，排除生成的 `lib/l10n/` 代码——见 [l10n/INDEX.md](l10n/INDEX.md)）。下方各行合计 **1442** 个已记录声明。
+**总计：** 仓库的 `/// Purpose:` 注释数为 **1477**（按 `AGENTS.md` 中的函数解释层约定，排除生成的 `lib/l10n/` 代码——见 [l10n/INDEX.md](l10n/INDEX.md)）。下方各行合计 **1459** 个已记录声明。
 
 | Tier | 计数 |
 |---|---|
-| Tier A（完整条目：Purpose/Inputs/Returns/Side effects/Algorithm/Usage/Notes） | 768 |
-| Tier B（仅索引行） | 674 |
-| **总计** | **1442** |
+| Tier A（完整条目：Purpose/Inputs/Returns/Side effects/Algorithm/Usage/Notes） | 770 |
+| Tier B（仅索引行） | 689 |
+| **总计** | **1459** |
 
 **已知缺口。** 这两个数字并不相等：有 18 个声明在源码中带 `/// Purpose:` 注释但此处没有对应行，因此本索引对 `lib/` 的覆盖少了这么多。1.5.7 重新测量时发现，1.5.6 记录的 864 本身已经过时——同一条命令在 1.5.6 的源码树上量到的是 901，因此这个缺口大部分是此前几个版本累积而未被发现的，而不是本次新增的。在 1.5.6 之前这个数是 10：当时发现 `adaptive_layout.dart` 那一行仍写着 `4 | 4`——那是它在 1.5.3 时的计数，彼时该模块还没有从详情页自己的辅助函数长成全应用的策略。它的页面自 1.5.5 起就记录了十二个声明，只有这一行没有跟上。该缺口分布不均，且尚未逐文件审计。另有一个文件方向相反，比其源码的 `Purpose:` 注释数多出一行——见下方 `features/` 小节的说明。
 
@@ -19,6 +19,8 @@
 ```bash
 find lib -name "*.dart" -not -path "lib/l10n/*" | xargs grep -h '/// Purpose:' | wc -l
 ```
+
+**1.6.7 重新统计。** 实测的 `/// Purpose:` 数为 1477（此前 1460），各行合计 1459，缺口仍为 18。本次发布在九个改动文件中新增 17 个声明：`anime_storage.dart` +7（两个写入队列、`_writeData`、`_exclusiveData`、`updateRecord`、`updateLibrary`、`_writeConfig`、`updateConfig`；移除 `_atomicWrite`），`file_open_service.dart` +3（`safeCoverExt`、`isSafeCoverPath`、`discardUnusedCovers`），`local_api_server.dart` +2（`buildHandler`、`isAllowedOrigin`；`_corsMiddleware` 变为 `_originMiddleware`），`anime_detail_page.dart` +2（`dispose`、`_reloadRecord`），以及 `anime.dart`（`_plusDays`）、`home_page.dart`（`buildAiringIndex`；`_getEpisodeCalendarDate` 变为顶层的 `airingCalendarDate`）、`anime_edit_page.dart`（`resolveEndEpisode`）和 `playback_progress_service.dart`（`_tryStore`）各 +1，而 `metadata_cache.dart` 少了 `_atomicWrite`。新增声明中有十五个是 Tier B 行；Tier A 增加了 `_writeData`、`updateRecord`、`updateLibrary` 和 `updateConfig`，并少了两个 `_atomicWrite` 条目（`AnimeStorage`、`MetadataCache`），净增 2。
 
 ## 根（`lib/`）
 
@@ -56,23 +58,23 @@ find lib -name "*.dart" -not -path "lib/l10n/*" | xargs grep -h '/// Purpose:' |
 
 | 源文件 | 页面 | 声明数 | Tier A 计数 |
 |---|---|---|---|
-| `lib/features/anime/models/anime.dart` | [features/anime/models/anime.md](features/anime/models/anime.md) | 83 | 68 |
+| `lib/features/anime/models/anime.dart` | [features/anime/models/anime.md](features/anime/models/anime.md) | 84 | 68 |
 | `lib/features/anime/models/anime_category.dart` | [features/anime/models/anime_category.md](features/anime/models/anime_category.md) | 2 | 1 |
 | `lib/features/anime/models/metadata_update.dart` | [features/anime/models/metadata_update.md](features/anime/models/metadata_update.md) | 22 | 9 |
-| `lib/features/anime/services/anime_storage.dart` | [features/anime/services/anime_storage.md](features/anime/services/anime_storage.md) | 57 | 45 |
+| `lib/features/anime/services/anime_storage.dart` | [features/anime/services/anime_storage.md](features/anime/services/anime_storage.md) | 64 | 48 |
 | `lib/features/anime/services/manage_grouping.dart` | [features/anime/services/manage_grouping.md](features/anime/services/manage_grouping.md) | 5 | 1 |
 | `lib/features/anime/services/anime1_service.dart` | [features/anime/services/anime1_service.md](features/anime/services/anime1_service.md) | 31 | 17 |
 | `lib/features/anime/services/anime_search_service.dart` | [features/anime/services/anime_search_service.md](features/anime/services/anime_search_service.md) | 71 | 48 |
-| `lib/features/anime/services/metadata_cache.dart` | [features/anime/services/metadata_cache.md](features/anime/services/metadata_cache.md) | 10 | 7 |
+| `lib/features/anime/services/metadata_cache.dart` | [features/anime/services/metadata_cache.md](features/anime/services/metadata_cache.md) | 9 | 6 |
 | `lib/features/anime/services/metadata_update_service.dart` | [features/anime/services/metadata_update_service.md](features/anime/services/metadata_update_service.md) | 44 | 27 |
 | `lib/features/anime/services/series_service.dart` | [features/anime/services/series_service.md](features/anime/services/series_service.md) | 32 | 20 |
 | `lib/features/anime/views/anime1_labels.dart` | [features/anime/views/anime1_labels.md](features/anime/views/anime1_labels.md) | 5 | 4 |
-| `lib/features/anime/views/anime_detail_page.dart` | [features/anime/views/anime_detail_page.md](features/anime/views/anime_detail_page.md) | 38 | 16 |
-| `lib/features/anime/views/anime_edit_page.dart` | [features/anime/views/anime_edit_page.md](features/anime/views/anime_edit_page.md) | 30 | 15 |
+| `lib/features/anime/views/anime_detail_page.dart` | [features/anime/views/anime_detail_page.md](features/anime/views/anime_detail_page.md) | 40 | 16 |
+| `lib/features/anime/views/anime_edit_page.dart` | [features/anime/views/anime_edit_page.md](features/anime/views/anime_edit_page.md) | 31 | 15 |
 | `lib/features/anime/views/anime_search_dialog.dart` | [features/anime/views/anime_search_dialog.md](features/anime/views/anime_search_dialog.md) | 34 | 17 |
 | `lib/features/anime/views/archive_labels.dart` | [features/anime/views/archive_labels.md](features/anime/views/archive_labels.md) | 3 | 3 |
 | `lib/features/anime/views/category_widgets.dart` | [features/anime/views/category_widgets.md](features/anime/views/category_widgets.md) | 9 | 4 |
-| `lib/features/anime/views/home_page.dart` | [features/anime/views/home_page.md](features/anime/views/home_page.md) | 24 | 9 |
+| `lib/features/anime/views/home_page.dart` | [features/anime/views/home_page.md](features/anime/views/home_page.md) | 25 | 9 |
 | `lib/features/anime/views/management_page.dart` | [features/anime/views/management_page.md](features/anime/views/management_page.md) | 31 | 15 |
 | `lib/features/anime/views/metadata_updates_page.dart` | [features/anime/views/metadata_updates_page.md](features/anime/views/metadata_updates_page.md) | 23 | 9 |
 | `lib/features/anime/views/quarter_picker_dialog.dart` | [features/anime/views/quarter_picker_dialog.md](features/anime/views/quarter_picker_dialog.md) | 5 | 1 |
@@ -155,12 +157,12 @@ find lib -name "*.dart" -not -path "lib/l10n/*" | xargs grep -h '/// Purpose:' |
 | `lib/shared/services/backup_service.dart` | [shared/services/backup_service.md](shared/services/backup_service.md) | 12 | 12 |
 | `lib/shared/services/share_service.dart` | [shared/services/share_service.md](shared/services/share_service.md) | 33 | 25 |
 | `lib/shared/services/duplicate_service.dart` | [shared/services/duplicate_service.md](shared/services/duplicate_service.md) | 17 | 12 |
-| `lib/shared/services/file_open_service.dart` | [shared/services/file_open_service.md](shared/services/file_open_service.md) | 18 | 17 |
+| `lib/shared/services/file_open_service.dart` | [shared/services/file_open_service.md](shared/services/file_open_service.md) | 21 | 17 |
 | `lib/shared/services/reminder_service.dart` | [shared/services/reminder_service.md](shared/services/reminder_service.md) | 9 | 8 |
 | `lib/shared/services/import_export_service.dart` | [shared/services/import_export_service.md](shared/services/import_export_service.md) | 6 | 4 |
 | `lib/shared/services/tray_service.dart` | [shared/services/tray_service.md](shared/services/tray_service.md) | 16 | 8 |
 | `lib/shared/services/image_service.dart` | [shared/services/image_service.md](shared/services/image_service.md) | 6 | 6 |
-| `lib/shared/services/local_api_server.dart` | [shared/services/local_api_server.md](shared/services/local_api_server.md) | 45 | 36 |
+| `lib/shared/services/local_api_server.dart` | [shared/services/local_api_server.md](shared/services/local_api_server.md) | 47 | 36 |
 | `lib/shared/views/webdav_config_page.dart` | [shared/views/webdav_config_page.md](shared/views/webdav_config_page.md) | 24 | 14 |
 
 ## 区域总计
@@ -170,13 +172,13 @@ find lib -name "*.dart" -not -path "lib/l10n/*" | xargs grep -h '/// Purpose:' |
 | 根（`lib/`） | 1 | 1 | 1 | 0 |
 | `app/` | 5 | 25 | 17 | 8 |
 | `features/ai/` | 6 | 75 | 29 | 46 |
-| `features/anime/` | 33 | 795 | 379 | 416 |
+| `features/anime/` | 33 | 807 | 381 | 426 |
 | `features/categories/` | 2 | 18 | 11 | 7 |
 | `features/kana/` | 1 | 19 | 3 | 16 |
 | `features/recommendations/` | 11 | 153 | 63 | 90 |
 | `features/settings/` | 4 | 49 | 28 | 21 |
-| `shared/`（utils、widgets、providers、services、views） | 30 | 307 | 237 | 70 |
-| **总计** | **93** | **1442** | **768** | **674** |
+| `shared/`（utils、widgets、providers、services、views） | 30 | 312 | 237 | 75 |
+| **总计** | **93** | **1459** | **770** | **689** |
 
 
 ## Anime1 分集播放（1.6.4）
@@ -197,6 +199,6 @@ find lib -name "*.dart" -not -path "lib/l10n/*" | xargs grep -h '/// Purpose:' |
 | `lib/features/anime/models/playback_progress.dart` | [features/anime/models/playback_progress.md](features/anime/models/playback_progress.md) | 15 | 3 |
 | `lib/features/anime/services/playback_progress_merge.dart` | [features/anime/services/playback_progress_merge.md](features/anime/services/playback_progress_merge.md) | 3 | 1 |
 | `lib/features/anime/services/playback_progress_store.dart` | [features/anime/services/playback_progress_store.md](features/anime/services/playback_progress_store.md) | 7 | 1 |
-| `lib/features/anime/services/playback_progress_service.dart` | [features/anime/services/playback_progress_service.md](features/anime/services/playback_progress_service.md) | 5 | 2 |
+| `lib/features/anime/services/playback_progress_service.dart` | [features/anime/services/playback_progress_service.md](features/anime/services/playback_progress_service.md) | 6 | 2 |
 | `lib/features/anime/views/anime_player_controls.dart` | [features/anime/views/anime_player_controls.md](features/anime/views/anime_player_controls.md) | 25 | 2 |
 | `lib/shared/utils/playback_time.dart` | [shared/utils/playback_time.md](shared/utils/playback_time.md) | 1 | 0 |

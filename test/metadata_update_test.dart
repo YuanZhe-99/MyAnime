@@ -328,34 +328,53 @@ void main() {
   // "Apply all 1 updates?" and "This changes 1 records at once." The counts are
   // ints, so the ungrammatical form compiles and only shows up when a batch
   // happens to hold exactly one record — the most common case of all.
-  group('English batch labels are grammatical at every count', () {
-    final AppLocalizations en = AppLocalizationsEn();
-
-    test('singular', () {
-      expect(en.metaUpdatesConfirmAll(1), 'Apply this update?');
-      expect(en.metaUpdatesConfirmAgain(1), 'This changes one record. Apply it?');
-      expect(en.metaUpdatesApplied(1), '1 record updated');
-      expect(
+  group('English ICU labels are grammatical at every count', () {
+    final en = AppLocalizationsEn();
+    // (label, actual, expected). A String expects equality; a Matcher is used as is.
+    final table = <(String, String, Object)>[
+      ('confirmAll(1)', en.metaUpdatesConfirmAll(1), 'Apply this update?'),
+      (
+        'confirmAgain(1)',
+        en.metaUpdatesConfirmAgain(1),
+        'This changes one record. Apply it?',
+      ),
+      ('applied(1)', en.metaUpdatesApplied(1), '1 record updated'),
+      (
+        'excludedManual(1)',
         en.metaUpdatesExcludedManual(1),
         '1 record needing manual selection is excluded',
-      );
-    });
-
-    test('plural', () {
-      expect(en.metaUpdatesConfirmAll(3), 'Apply all 3 updates?');
-      expect(
+      ),
+      ('confirmAll(3)', en.metaUpdatesConfirmAll(3), 'Apply all 3 updates?'),
+      (
+        'confirmAgain(3)',
         en.metaUpdatesConfirmAgain(3),
         'This changes 3 records at once. Apply them?',
-      );
-      expect(en.metaUpdatesApplied(3), '3 records updated');
-      expect(
+      ),
+      ('applied(3)', en.metaUpdatesApplied(3), '3 records updated'),
+      (
+        'excludedManual(3)',
         en.metaUpdatesExcludedManual(3),
         '3 records needing manual selection are excluded',
-      );
-    });
+      ),
+      // Zero reads as none, not "0 records updated".
+      ('applied(0)', en.metaUpdatesApplied(0), 'No records updated'),
+      ('scanDone(0)', en.metaUpdatesScanDone(0), contains('No updates')),
+      ('scanDone(1)', en.metaUpdatesScanDone(1), contains('1 update found')),
+      ('scanDone(3)', en.metaUpdatesScanDone(3), contains('3 updates found')),
+      (
+        'scanCancelled(1)',
+        en.metaUpdatesScanCancelled(1),
+        contains('1 update found'),
+      ),
+      // Per-source counts are not pluralized at one.
+      ('sourceCount(1)', en.searchSourceCount(1), '1 result'),
+      ('sourceCount(2)', en.searchSourceCount(2), '2 results'),
+    ];
 
-    test('zero applied reads as none, not "0 records updated"', () {
-      expect(en.metaUpdatesApplied(0), 'No records updated');
+    test('every label matches its grammatical form', () {
+      for (final (label, actual, expected) in table) {
+        expect(actual, expected, reason: label);
+      }
     });
 
     test('the CJK locales carry the count without inflecting', () {
@@ -753,28 +772,21 @@ void main() {
   });
 
   group('MetadataScanProgress', () {
-    test('an empty queue reports no measurable fraction', () {
-      const progress = MetadataScanProgress(
-        phase: MetadataScanPhase.done,
-      );
-      expect(
-        progress.fraction,
-        isNull,
-        reason: 'nothing to check is a finished scan, not an empty bar',
-      );
-    });
+    test('fraction and running state per phase', () {
+      // An empty queue is a finished scan, not an empty bar.
+      const empty = MetadataScanProgress(phase: MetadataScanPhase.done);
+      expect(empty.fraction, isNull);
 
-    test('fraction tracks done over total', () {
-      const progress = MetadataScanProgress(
+      // Fraction tracks done over total while scanning.
+      const scanning = MetadataScanProgress(
         phase: MetadataScanPhase.scanning,
         done: 3,
         total: 12,
       );
-      expect(progress.fraction, closeTo(0.25, 1e-9));
-      expect(progress.isRunning, isTrue);
-    });
+      expect(scanning.fraction, closeTo(0.25, 1e-9));
+      expect(scanning.isRunning, isTrue);
 
-    test('terminal phases are not running', () {
+      // Terminal phases are not running.
       for (final phase in [
         MetadataScanPhase.idle,
         MetadataScanPhase.done,
@@ -812,25 +824,6 @@ void main() {
         reason: 'only the sources that came back empty are re-queried, so the '
             'bar fills twice instead of jumping backwards',
       );
-    });
-  });
-
-  group('scan labels in English', () {
-    final en = AppLocalizationsEn();
-
-    test('a finished scan reads correctly at zero, one, and many', () {
-      expect(en.metaUpdatesScanDone(0), contains('No updates'));
-      expect(en.metaUpdatesScanDone(1), contains('1 update found'));
-      expect(en.metaUpdatesScanDone(3), contains('3 updates found'));
-    });
-
-    test('a stopped scan reads correctly at one', () {
-      expect(en.metaUpdatesScanCancelled(1), contains('1 update found'));
-    });
-
-    test('per-source counts are not pluralized at one', () {
-      expect(en.searchSourceCount(1), '1 result');
-      expect(en.searchSourceCount(2), '2 results');
     });
   });
 }

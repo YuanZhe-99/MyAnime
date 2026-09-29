@@ -60,3 +60,7 @@
   ```
   （来自 `showImportBundleFlow`，同一文件）
 - **备注：** `count` 在每种可设想的调用方中未必等于 `importedIds.length`——本文件中它们总是保持同步（`totalImported = added + mergedCount`，`importedIds` 从同一未跳过集合构建），但类本身不强制该不变量。
+
+## 1.6.7 变更
+
+`showImportBundleFlow` 收集合并后的记录，并在应用捆绑与合并之后，用作为新记录添加的索引调用 `FileOpenService.discardUnusedCovers`。解析时为用户跳过（保留本地或取消）的记录写入的封面会被删除，而不是堆积在 `images/` 里。

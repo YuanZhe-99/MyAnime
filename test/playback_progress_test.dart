@@ -281,6 +281,32 @@ void main() {
       expect((await PlaybackProgressStore.load()).entries, isEmpty);
     });
 
+    test('an unreadable file is never overwritten by a write', () async {
+      file.parent.createSync(recursive: true);
+      file.writeAsStringSync('{broken');
+      await expectLater(
+        PlaybackProgressStore.put(entry(1, 30, _t1)),
+        throwsA(isA<FormatException>()),
+      );
+      expect(file.readAsStringSync(), '{broken');
+    });
+
+    test('an unreadable file still lets a finished episode be marked', () async {
+      file.parent.createSync(recursive: true);
+      file.writeAsStringSync('{broken');
+      await PlaybackProgressService.report(
+        animeId: 'a',
+        episode: 5,
+        pageUrl: 'https://anime1.me/5',
+        position: const Duration(seconds: 96),
+        duration: const Duration(seconds: 100),
+        now: _t2,
+      );
+      expect(file.readAsStringSync(), '{broken');
+      final anime = (await AnimeStorage.load()).animes.single;
+      expect(anime.episodeStatuses[5], EpisodeStatus.watched);
+    });
+
     Future<PlaybackProgressRule> report(int episode, int seconds) =>
         PlaybackProgressService.report(
           animeId: 'a',

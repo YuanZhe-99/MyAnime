@@ -73,6 +73,7 @@
 | [`weekOffsetFor`](#weekoffsetfor) | 方法（`Anime`） | A | 对不超过某集编号的 `episodeWeekOffsets` 条目求和。 |
 | [`getEpisodeAirDate`](#getepisodeairdate) | 方法（`Anime`） | A | 一集的 JST 播出时间戳，带深夜（`25:00` 式）回卷。 |
 | [`getEpisodeCalendarDate`](#getepisodecalendardate) | 方法（`Anime`） | A | 一集的 JST 日历日期，不回卷。 |
+| `_plusDays` | 顶层函数 | B | 加整数个日历日，保留时钟时间和本地／UTC 模式（1.6.7）。 |
 | [`nextUnwatchedEpisode`](#nextunwatchedepisode) | getter（`Anime`） | A | 第一个仍未观看的集编号。 |
 | [`validWatchProgress`](#validwatchprogress) | getter（`Anime`） | A | 已存的观看站点进度，仅当它是为当前 `watchUrl` 读取时。 |
 | [`isCompleted`](#iscompleted) | getter（`Anime`） | A | 到 `endEpisode` 为止的每一集是否都已看。 |
@@ -1138,3 +1139,7 @@
 ## 1.6.4 变更
 
 Anime 新增可选 episodeMapping；AnimeExternalMeta 新增可选 episodeCatalog。构造、copyWith、JSON、导入副本与元数据合并保留这些字段。缓存写入保留 modifiedAt，字段形状见 data-formats.md。
+
+## 1.6.7 变更
+
+`getEpisodeAirDate` 和 `getEpisodeCalendarDate` 通过 `_plusDays`（日历字段运算，`DateTime(y, m, d + n, …)` 或 `DateTime.utc(…)`）加周数，不再用 `firstAirDate.add(Duration(days: n))`。24 小时步进在夏令时切换处会漂移一小时，靠近午夜的播出时间因此落到次日，整整跳过一周。`airsInQuarter` 里估算的结束日期仍用 `Duration`，因为它只需要一个粗略跨度。由 `test/audit_fixes_test.dart` 覆盖（该 DST 测试只有在有夏令时的时区才真正起作用；CI 上 Linux 或 macOS 以 `TZ=America/New_York` 运行才是真正的检查）。

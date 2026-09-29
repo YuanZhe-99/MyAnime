@@ -319,3 +319,7 @@
 - **副作用：** 无。
 - **用法：** `_ConflictDialog.build` 在每侧摘要下各加一行，但仅当两侧 `seriesLink?.toJson()` 的 `jsonEncode` 结果不同时。
 - **备注：** 否则对话框只显示 `modifiedAt`、集数范围和已看集数，因此仅关于系列的冲突——在另一台设备上被同时编辑的固化系列——会看起来像两个完全相同的版本。见 [`../../../sync.md`](../../../sync.md) 与 [`../../../features/series-linking.md`](../../../features/series-linking.md)。
+
+## 1.6.7 变更
+
+`_saveConfig` 和 `_disconnect` 在 await 之后若页面已不在树中就直接返回，不再触碰 `setState`、文本控制器或 `ScaffoldMessenger`。

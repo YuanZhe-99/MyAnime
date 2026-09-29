@@ -25,3 +25,8 @@ each real write. See [`../../../app/data_modules.md`](../../../app/data_modules.
 - **Notes:** entries for records that no longer exist are kept. Pruning here would read to sync as
   a deliberate deletion and could remove another device's entries for a record this device has not
   received yet.
+
+## Changes in 1.6.7
+
+- **An unreadable `playback_progress.json` is never overwritten.** `_apply` used to treat a parse failure as an empty store and then save over the file, which erased every resume point and, once synced, deleted them on every device. It now throws a `FormatException` (a blank file still counts as empty) and leaves the bytes untouched; `PlaybackProgressService.report` catches it so the player keeps working. `load()` still reads such a file as empty.
+- The file is written with `atomicWriteString` (unique temporary name) instead of a fixed `<file>.tmp`.

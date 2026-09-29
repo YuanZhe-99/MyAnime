@@ -15,6 +15,7 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:http/http.dart' as http;
+import 'package:myapps_data/myapps_data.dart' show atomicWriteString;
 import 'package:path/path.dart' as p;
 
 import '../models/metadata_update.dart';
@@ -42,20 +43,6 @@ class MetadataCache {
   static Future<File> _file() async {
     final dir = await AnimeStorage.getAppDir();
     return File(p.join(dir.path, fileName));
-  }
-
-  /// Purpose: Write a file atomically through a temporary file and rename step.
-  /// Inputs: `file`, `content`.
-  /// Returns: None.
-  /// Side effects: Writes a temp file and renames it over the target path.
-  /// Notes: Internal helper used within this file only. Mirrors
-  /// `AnimeStorage._atomicWrite` so a kill mid-write cannot leave a truncated
-  /// cache behind; the cache is rebuildable, but a corrupt file would still
-  /// cost a full re-scan.
-  static Future<void> _atomicWrite(File file, String content) async {
-    final tmp = File('${file.path}.tmp');
-    await tmp.writeAsString(content, flush: true);
-    await tmp.rename(file.path);
   }
 
   /// Purpose: Load the local update cache.
@@ -88,7 +75,7 @@ class MetadataCache {
   /// so scheduling an upload for it would be pure churn.
   static Future<void> save(MetadataUpdateStore store) async {
     final file = await _file();
-    await _atomicWrite(
+    await atomicWriteString(
       file,
       const JsonEncoder.withIndent('  ').convert(store.toJson()),
     );

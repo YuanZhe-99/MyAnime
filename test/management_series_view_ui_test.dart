@@ -99,9 +99,10 @@ void main() {
   /// Notes: Test helper. Real I/O completes during the real waits; the
   /// continuations it schedules run on the fake clock's pumps. Nothing reads
   /// the file meanwhile: on Windows a read during the page's tmp-then-rename
-  /// fails the rename.
+  /// fails the rename. The queued config write (read, unique temp file, rename)
+  /// takes one pump per I/O step, hence the generous loop.
   Future<void> drainIo(WidgetTester tester) async {
-    for (var i = 0; i < 12; i++) {
+    for (var i = 0; i < 40; i++) {
       await tester.runAsync(
         () => Future<void>.delayed(const Duration(milliseconds: 30)),
       );

@@ -311,7 +311,8 @@ class _AnimeEpisodePageState extends State<AnimeEpisodeLinksPage> {
   /// Inputs: Public episode descriptor; `episode` — its local number, null
   /// for extras.
   /// Returns: Completion when playback closes.
-  /// Side effects: Pushes the player route, then reloads playback progress.
+  /// Side effects: Pushes the player route, then reloads playback progress and
+  /// the stored record and library.
   /// Notes: Only resolved links enter the regular playlist; extras can still
   /// be selected directly. Since 1.6.5 the player records a resume point and
   /// marks a numbered episode watched past 95%.
@@ -337,7 +338,18 @@ class _AnimeEpisodePageState extends State<AnimeEpisodeLinksPage> {
       ),
     );
     final progress = await PlaybackProgressStore.load();
-    if (mounted) setState(() => _progress = progress);
+    // The player may have marked an episode watched; reread so the next play
+    // resolves against the current record instead of the pre-playback copy.
+    final data = await AnimeStorage.load();
+    final fresh = data.animes.where((a) => a.id == widget.animeId).firstOrNull;
+    if (!mounted) return;
+    setState(() {
+      _progress = progress;
+      if (fresh != null) {
+        _anime = fresh;
+        _library = data.animes;
+      }
+    });
   }
 
   /// Purpose: Build the status lines shown above everything else.

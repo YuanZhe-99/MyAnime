@@ -293,3 +293,7 @@
   3. `null` → 重试时间一小时后；否则清除它，把记录并入待写元数据（`mergedWith(AnimeExternalMeta(watchProgress: …))`），并计入冲刷计数。
   4. 达到批量阈值时冲刷；有任何变化时通知监听器。
 - **备注：** 仅在本文件内部使用的辅助函数。`?cat=` URL 不花请求，因此任何规模的库都是每个 tick 一次下载。内存中重试刻意与条目退避分开——观看站点一次抖动永远不能拖延该记录的元数据刷新。写入经 `_pendingMeta`，因此 `modifiedAt` 与元数据刷新时一样被完整保留。`_runOnce` 在刷新与探索之间运行它，`startManualScan` 先运行它，不计入被统计的队列。
+
+## 1.6.7 变更
+
+`AnimeStorage.patchExternalMeta` 抛出异常时，`_flushPendingMeta` 不再丢失这一批：它用 `putIfAbsent` 把条目放回 `_pendingMeta`（期间为同一记录缓冲的内容更新，以它为准）并重新抛出，下次刷新会重试。此前它在写入之前就清空了缓冲。

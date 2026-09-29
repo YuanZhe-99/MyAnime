@@ -409,3 +409,7 @@ held no Riverpod state at all.
 ## Changes in 1.6.4
 
 The anime row uses animeEpisodeProgressLabel to distinguish local episode progress from raw site numbering.
+
+## Changes in 1.6.7
+
+`_showAddOptions` checks `context.mounted` (its `context` parameter shadows the state's) after each await, which clears four `use_build_context_synchronously` lints; the list thumbnail passes `cacheHeight` so a full-size cover is not decoded for a 40 x 56 tile.

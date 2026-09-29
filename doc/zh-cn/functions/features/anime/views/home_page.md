@@ -13,7 +13,8 @@
 | [`_load`](#_load) | 方法（`_HomePageState`） | A | 从存储重载所有动画。 |
 | [`_getEventsForDay`](#_geteventsforday) | 方法（`_HomePageState`） | A | 收集给定日历日播出的每个剧集。 |
 | [`_today`](#_today) | 方法（`_HomePageState`） | A | 在所选主页日历时间基准下返回"今天"。 |
-| [`_getEpisodeCalendarDate`](#_getepisodecalendardate) | 方法（`_HomePageState`） | A | 在所选时间基准下解析一集的日历日期。 |
+| [`airingCalendarDate`](#airingcalendardate) | 顶层函数 | A | 在所选时间基准下解析一集的日历日期。 |
+| `buildAiringIndex` | 顶层函数，`@visibleForTesting` | B | 按日历日期给所有播出剧集分组，让日历直接查日而不是重新扫描资料库（1.6.7）。 |
 | [`_getEpisodeDisplayAirDate`](#_getepisodedisplayairdate) | 方法（`_HomePageState`） | A | 在所选时间基准下解析一集的显示播出日期/时间。 |
 | [`_getUnwatchedEpisodes`](#_getunwatchedepisodes) | 方法（`_HomePageState`） | A | 构建已播出但未看剧集的排序列表，每部动画一条。 |
 | [`_countUnwatchedAiredEpisodes`](#_countunwatchedairedepisodes) | 方法（`_HomePageState`） | A | 统计每部动画中所有已播出未看剧集。 |
@@ -29,7 +30,7 @@
 | `_showActions` | 方法（`_HomePageState`） | B | 展示某个动画的长按操作面板并重新加载。 |
 | `_siteHasEpisode` | 方法（`_HomePageState`） | B | 当季对应结果是否包含这一集的明确页面。 |
 | `_buildEpisodeTile` | 方法（组件辅助） | B | 渲染一个剧集行（封面、标题、播出日期、观看按钮——观看站点已列出该集时为主色——观看切换、长按操作）。 |
-| `_AiringEpisode.new` | 构造函数（`_AiringEpisode`） | B | 把一部动画与它的一个集编号配对。 |
+| `AiringEpisode.new` | 构造函数（`AiringEpisode`） | B | 把一部动画与它的一个集编号配对。 |
 
 ## 文档
 
@@ -53,17 +54,17 @@
   （`_HomePageState.initState`，同一文件；也在 `build` 中接成 `RefreshIndicator.onRefresh`，并注册给 `AutoSyncService`，使后台同步/恢复触发重载）
 - **备注：** 在 `initState` 中注册给 [`AutoSyncService.addOnLocalDataChanged`](../../../shared/services/auto_sync_service.md#addonlocaldatachanged) 并在 `dispose` 注销，使后台同步或备份恢复替换本地数据后日历自动刷新。
 
-### `List<_AiringEpisode> _getEventsForDay(DateTime day, HomeCalendarTimeBasis timeBasis)` <a id="_geteventsforday"></a>
+### `List<AiringEpisode> _getEventsForDay(DateTime day, HomeCalendarTimeBasis timeBasis)` <a id="_geteventsforday"></a>
 - **种类：** `_HomePageState` 的方法
 - **来源：** `lib/features/anime/views/home_page.dart`（约第 82 行）
 - **用途：** 收集跨每部被跟踪动画、日历日期（在给定时间基准下）匹配 `day` 的每个剧集。
 - **输入：** `day`；`timeBasis` — `HomeCalendarTimeBasis.jst` 或 `.local`。
-- **返回：** `List<_AiringEpisode>`。
+- **返回：** `List<AiringEpisode>`。
 - **副作用：** 无。
 - **算法：**
   1. 把 `day` 规范化为纯日期 `DateTime`。
   2. 对每部动画，从 `startEpisode` 到 `endEpisode ?? startEpisode` 循环每个剧集。
-  3. 对每个剧集，经 [`_getEpisodeCalendarDate`](#_getepisodecalendardate) 计算其日历日期；等于 `dayOnly` 时添加 `_AiringEpisode(anime: anime, episode: ep)`。
+  3. 对每个剧集，经 [`airingCalendarDate`](#airingcalendardate) 计算其日历日期；等于 `dayOnly` 时添加 `AiringEpisode(anime: anime, episode: ep)`。
 - **用法：**
   ```dart
   eventLoader: (day) =>
@@ -89,8 +90,8 @@
   （`_HomePageState.build`，同一文件）
 - **备注：** 这是 [`../../../../features/home-management-statistics.md`](../../../../features/home-management-statistics.md) 描述的"日历日期网格默认日本时间，但可以切换到设备本地时区"行为的具体实现。
 
-### `DateTime? _getEpisodeCalendarDate(Anime anime, int episode, HomeCalendarTimeBasis timeBasis)` <a id="_getepisodecalendardate"></a>
-- **种类：** `_HomePageState` 的方法
+### `DateTime? airingCalendarDate(Anime anime, int episode, HomeCalendarTimeBasis timeBasis)` <a id="airingcalendardate"></a>
+- **种类：** 顶层函数（1.6.7 之前是 `_HomePageState` 的方法）
 - **来源：** `lib/features/anime/views/home_page.dart`（约第 117 行）
 - **用途：** 解析一集在日历网格归属中应落在哪个日历日，尊重本地时间切换，同时把一次性放送固定在其 JST 发布日期上。
 - **输入：** `anime`；`episode`；`timeBasis`。
@@ -101,9 +102,9 @@
   2. 否则（本地基准、非一次性放送）：经 [`anime.getEpisodeAirDate(episode)`](../models/anime.md#getepisodeairdate) 取 JST 播出时刻；为 `null` 时回退到 JST 日历日期；否则经 `JstTime.toLocal` 转换为本地时间并取其纯日期部分。
 - **用法：**
   ```dart
-  final calDate = _getEpisodeCalendarDate(anime, ep, timeBasis);
+  final calDate = airingCalendarDate(anime, ep, timeBasis);
   if (calDate != null && calDate == dayOnly) {
-    events.add(_AiringEpisode(anime: anime, episode: ep));
+    events.add(AiringEpisode(anime: anime, episode: ep));
   }
   ```
   （`_getEventsForDay`，同一文件）
@@ -112,7 +113,7 @@
 ### `DateTime? _getEpisodeDisplayAirDate(Anime anime, int episode, HomeCalendarTimeBasis timeBasis)` <a id="_getepisodedisplayairdate"></a>
 - **种类：** `_HomePageState` 的方法
 - **来源：** `lib/features/anime/views/home_page.dart`（约第 141 行）
-- **用途：** 解析剧集块上作为文本显示的播出日期/时间，遵循与 [`_getEpisodeCalendarDate`](#_getepisodecalendardate) 相同的本地/JST 和一次性放送规则，但在相关时返回完整播出时刻（不只是日期）。
+- **用途：** 解析剧集块上作为文本显示的播出日期/时间，遵循与 [`airingCalendarDate`](#airingcalendardate) 相同的本地/JST 和一次性放送规则，但在相关时返回完整播出时刻（不只是日期）。
 - **输入：** `anime`；`episode`；`timeBasis`。
 - **返回：** `DateTime?`。
 - **副作用：** 无。
@@ -129,14 +130,14 @@
   );
   ```
   （`_buildEpisodeTile`，同一文件，格式化显示的播出日期字符串）
-- **备注：** 与 [`_getEpisodeCalendarDate`](#_getepisodecalendardate) 不同，这保留完整日内时刻（不只是日期），因为它喂给显示文本而不是日历网格归属。
+- **备注：** 与 [`airingCalendarDate`](#airingcalendardate) 不同，这保留完整日内时刻（不只是日期），因为它喂给显示文本而不是日历网格归属。
 
-### `List<_AiringEpisode> _getUnwatchedEpisodes()` <a id="_getunwatchedepisodes"></a>
+### `List<AiringEpisode> _getUnwatchedEpisodes()` <a id="_getunwatchedepisodes"></a>
 - **种类：** `_HomePageState` 的方法
 - **来源：** `lib/features/anime/views/home_page.dart`（约第 162 行）
 - **用途：** 构建日历下方显示的"已播出但未看"列表——每部动画最早的一条未看、已播出剧集，按播出日期排序。
 - **输入：** 无。
-- **返回：** `List<_AiringEpisode>`。
+- **返回：** `List<AiringEpisode>`。
 - **副作用：** 无。
 - **算法：**
   1. 对每部动画，从 `startEpisode` 向上扫描；找第一条状态为（或默认为）`unwatched` 的剧集。
@@ -165,11 +166,11 @@
   （`_HomePageState.build`，未看小节页头——`unwatched.length` 是来自 `_getUnwatchedEpisodes` 的动画数，`unwatchedEpisodeCount` 是本方法的剧集总数）
 - **备注：** 这正是页头能显示比可见行数更大的剧集数的原因——可见列表每部动画上限一行，而这个计数反映每个积压剧集。
 
-### `Future<void> _toggleWatched(_AiringEpisode ep)` <a id="_togglewatched"></a>
+### `Future<void> _toggleWatched(AiringEpisode ep)` <a id="_togglewatched"></a>
 - **种类：** `_HomePageState` 的方法
 - **来源：** `lib/features/anime/views/home_page.dart`（约第 216 行）
 - **用途：** 从主页的剧集块在 `watched` 与 `unwatched` 之间切换一集。
-- **输入：** `ep` — 被切换的 `_AiringEpisode`（动画 + 集编号）。
+- **输入：** `ep` — 被切换的 `AiringEpisode`（动画 + 集编号）。
 - **返回：** `Future<void>`。
 - **副作用：** 调用 `AnimeStorage.addOrUpdate`；经 `_load()` 重载。
 - **算法：** 翻转该集状态：任何非 `watched` 的变成 `watched`；`watched` 变成 `unwatched`。经 `copyWith(episodeStatuses: ..., modifiedAt: ...)` 持久化并 `_load()`。
@@ -236,3 +237,9 @@
 ## 1.6.4 变更
 
 _siteHasEpisode 改为检查明确链接，不再直接比较站点与本地编号。_buildEpisodeTile 通过 openAnimeWatch 打开本地对应集，并在返回后重载。
+
+## 1.6.7 变更
+
+- **播出索引。** 日历的 `eventLoader` 和所选日期列表每次构建都会为每个可见日调用 `_getEventsForDay`，每次调用都扫描每条记录的所有集数。现在 `buildAiringIndex(list, basis)` 一次性按日历日期给集数分组；只有资料库列表（按对象标识比较）或时间基准变化时 `_getEventsForDay` 才重建它，并每次返回一个新的可变列表（调用方会对它排序）。`test/home_events_test.dart` 对两种时间基准，把索引与旧的逐日扫描做对照。
+- `_AiringEpisode` 现在是公开的 `AiringEpisode`，`_getEpisodeCalendarDate` 是顶层的 `airingCalendarDate`，以便测试索引；行为不变。
+- 列表缩略图传入 `cacheHeight`（56 逻辑像素乘以设备像素比），不再为 40 x 56 的图块解码整张封面。
