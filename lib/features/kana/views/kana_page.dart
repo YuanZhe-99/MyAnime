@@ -139,11 +139,9 @@ class _KanaPageState extends State<KanaPage> {
     return Scaffold(
       appBar: AppBar(title: Text(l10n.kanaTitle)),
       body: ListView(
-        padding: EdgeInsets.fromLTRB(
-          16,
-          8,
-          16,
-          shellListBottomInset(screen.width),
+        padding: navBarAwarePadding(
+          context,
+          EdgeInsets.fromLTRB(16, 8, 16, shellListBottomInset(screen.width)),
         ),
         children: [
           Center(

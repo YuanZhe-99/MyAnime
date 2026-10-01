@@ -172,7 +172,15 @@ Z Fold 7 竖持都能通过它，却会让图表只剩 215 到 245 dp。它们�
 bool useNavigationRail(double screenWidth) => screenWidth >= navRailMinWidth; // 600.0
 ```
 
-在其之上，外壳沿侧边渲染一个 `NavigationRail`；在其之下则是底栏——自 1.7.0 起是*悬浮岛*（`_FloatingNavBar`：带左右与底部边距、有高度的胶囊形表面，宽度上限 480 dp），当界面风格为 **Expressive**（默认；自 1.7.1 起悬浮栏是该风格的一部分，此前在 1.7.0 中是单独的开关）时显示；当**设置 › 通用 › 界面风格**为 **Material 3** 时则是经典的通栏 `NavigationBar`。该岛位于 `Scaffold` 的底栏槽位而不是覆盖在 body 之上，因此不改变任何页面布局，下文的底部预留也不变。侧边导航栏不受影响，显示侧边导航栏时该样式设置没有效果。两者都由
+`useNavigationRail` 判定窗口何时宽到足以在侧边放一个 `NavigationRail`；自 1.7.2 起，外壳是否真的使用它是一项设置。
+`AppSettings.navPlacement`（`NavPlacement`；**设置 › 通用 › 导航栏位置**；两种界面风格通用）有三个取值：**全部底部**（默认：每个窗口都用底栏，
+宽窗口也不例外；1.7.2 之前宽窗口总是使用侧边导航栏）、**宽屏侧边**（`useNavigationRail` 为真时用侧边导航栏，窄于它时用底栏）与**全部侧边**（每个窗口都用侧边导航栏，包括手机；不推荐，因为侧边导航栏会占用内容的宽度）。外壳据此计算 `showRail`。第二项设置 `navRailOnRight`（*侧边导航栏位置*，位置不是全部底部时显示）在两种风格下都把侧边导航栏移到窗口右侧。
+
+底栏随界面风格而定。**Expressive**（默认）显示*紧凑悬浮栏*（`_ExpressiveNavBar`，1.7.2 重新设计）：宽度就是各项的宽度、居中、与屏幕边缘留有边距的胶囊，选中的目的地在色调胶囊里并排显示图标与标签，其余只显示带提示的轮廓图标。它**悬浮在页面之上**：此时外壳使用 `Scaffold(extendBody: true)`，页面因此绘制到底栏之后，最后的内容可以滚到它的下面。当**设置 › 通用 › 界面风格**为 **Material 3** 时，底栏是经典的通栏 `NavigationBar`，内容停在其上方。显示侧边导航栏时该样式设置没有效果。
+
+**在悬浮栏之下滚动的页面必须为它留出空间。** `navBarAwarePadding(context, padding)` 把 `MediaQuery.paddingOf(context).bottom` 加到页面自己的内边距上：有悬浮栏时那就是底栏的高度（`extendBody` 上报的值），其他情形则只是系统内边距，因此调用无害。每个应用 `shellListBottomInset` 的列表都用它包住自己的内边距（管理页的四个列表、统计页的主列表、假名页的主列表）；首页与设置不设显式内边距，它们的列表会自动获得这份内边距。外壳还把传给其子级的 `viewPadding.bottom` 抬到同一个值，因为页面自己的 `Scaffold` 按 `viewPadding` 摆放 FAB；没有这一步，FAB 会落在底栏后面。
+
+两者都由
 [`shell_scaffold.dart`](functions/shared/widgets/shell_scaffold.md) 中同一份目的地列表（四个，开启假名标签时为五个）构建，
 因此不可能彼此走样。侧边导航栏将其目的地**居中**（`groupAlignment: 0`）而非采用默认的顶部对齐：顶部对齐是为了让导航栏坐落
 在一个前导菜单按钮或 FAB 之下，而这里两者都没有，于是这些目的地挤在一条 704 dp 高的导航栏顶端会让它整个下半
@@ -188,7 +196,9 @@ bool useNavigationRail(double screenWidth) => screenWidth >= navRailMinWidth; //
 - `shellContentWidth(screenWidth)` 在侧边导航栏显示时减去 `navRailWidth`（81 = 80 dp 的导航栏加其 1 dp 的
   分隔线）。每一处容量都由此测量，绝不使用未经处理的屏幕宽度。
 - `shellListBottomInset(screenWidth)` 在没有底栏时，把滚动页面为底栏预留的 80 dp 降到 16——否则这份预留恰好
-  会在垂直空间最紧缺的时刻变成一片死区。
+  会在垂直空间最紧缺的时刻变成一片死区。这个 80 是 FAB 的避让空间；悬浮栏自身的高度由 `navBarAwarePadding` 叠加在其上，见上文。
+
+**已知的近似（1.7.2）。** `shellContentWidth` 与其他宽度辅助函数仍按 `useNavigationRail(width)` 而非所选的位置计算。因此宽窗口上使用底栏时，它们会低估内容宽度约 81 dp，这是安全的（最坏少一列）；手机上使用侧边导航栏（*全部侧边*）时，它们会高估侧边导航栏那么宽的内容宽度，内容可能比容量所假设的略紧。
 
 刻意没有做：在 1240 dp 以上使用 `NavigationDrawer`。侧边导航栏在这里直到 extra-large 都是正确的，而第三种导航
 形态不值得它的代价。
@@ -284,7 +294,7 @@ Fold 8 在其两个方向上给出两个不同的答案，而那个行为——�
 满足的需求。
 
 其余一切都严格遵循 Google：宽度与高度下限就是它的断点，列容量就是它的 feed 规范，而 medium 宽度及以上使用
-侧边导航栏更是它的原话。
+侧边导航栏是它的建议，「宽屏侧边」这一导航栏位置遵循它（自 1.7.2 起默认是每个窗口都用底栏，只需一项设置即可切换）。
 
 ## 测试
 

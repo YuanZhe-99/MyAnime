@@ -60,6 +60,9 @@
 
   两列是指派的而非流式排布，这样才平衡：高的清音表与拗音表在左，矮的浊音表加规则在右。
 
+  自 1.7.2 起，主 `ListView` 的内边距被包进
+  `navBarAwarePadding(context, EdgeInsets.fromLTRB(16, 8, 16, shellListBottomInset(screen.width)))`，因此最后的内容可以滚到恰好位于悬浮在页面之上的 Expressive 悬浮栏之上。
+
 ### `List<_KanaEntry> _matchingEntries(String query)` <a id="_matchingentries"></a>
 - **种类：** `_KanaPageState` 的方法
 - **来源：** `lib/features/kana/views/kana_page.dart`（第 140 行）

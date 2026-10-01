@@ -1967,6 +1967,60 @@ abstract class AppLocalizations {
   /// **'Expressive'**
   String get settingsUiStyleExpressive;
 
+  /// No description provided for @settingsNavPlacement.
+  ///
+  /// In en, this message translates to:
+  /// **'Navigation position'**
+  String get settingsNavPlacement;
+
+  /// No description provided for @settingsNavPlacementDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'Bottom everywhere, at the side on wide screens such as unfolded foldables, tablets and desktop, or at the side everywhere (not recommended on phones).'**
+  String get settingsNavPlacementDesc;
+
+  /// No description provided for @settingsNavPlacementBottom.
+  ///
+  /// In en, this message translates to:
+  /// **'Bottom'**
+  String get settingsNavPlacementBottom;
+
+  /// No description provided for @settingsNavPlacementSideOnWide.
+  ///
+  /// In en, this message translates to:
+  /// **'Side on wide'**
+  String get settingsNavPlacementSideOnWide;
+
+  /// No description provided for @settingsNavPlacementSide.
+  ///
+  /// In en, this message translates to:
+  /// **'Side'**
+  String get settingsNavPlacementSide;
+
+  /// No description provided for @settingsRailSide.
+  ///
+  /// In en, this message translates to:
+  /// **'Side navigation position'**
+  String get settingsRailSide;
+
+  /// No description provided for @settingsRailSideDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'Which side of the window the navigation rail sits on.'**
+  String get settingsRailSideDesc;
+
+  /// No description provided for @settingsRailSideLeft.
+  ///
+  /// In en, this message translates to:
+  /// **'Left'**
+  String get settingsRailSideLeft;
+
+  /// No description provided for @settingsRailSideRight.
+  ///
+  /// In en, this message translates to:
+  /// **'Right'**
+  String get settingsRailSideRight;
+
   /// No description provided for @settingsGeneral.
   ///
   /// In en, this message translates to:
@@ -3892,6 +3946,30 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Profile and settings'**
   String get profileOpenSettings;
+
+  /// No description provided for @profileAdjustAvatar.
+  ///
+  /// In en, this message translates to:
+  /// **'Adjust avatar'**
+  String get profileAdjustAvatar;
+
+  /// No description provided for @profileAvatarRotate.
+  ///
+  /// In en, this message translates to:
+  /// **'Rotate'**
+  String get profileAvatarRotate;
+
+  /// No description provided for @profileAvatarReset.
+  ///
+  /// In en, this message translates to:
+  /// **'Reset'**
+  String get profileAvatarReset;
+
+  /// No description provided for @profileAvatarEditorHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Drag to move. Pinch or scroll to zoom.'**
+  String get profileAvatarEditorHint;
 }
 
 class _AppLocalizationsDelegate

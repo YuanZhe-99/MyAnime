@@ -19,6 +19,7 @@ and [`../../../../features/profile.md`](../../../../features/profile.md).
 | `_ProfileDialogState.initState` | method (widget lifecycle) | B | Seed the name field from the current profile. |
 | `_ProfileDialogState.dispose` | method (widget lifecycle) | B | Release the text controller. |
 | [`_ProfileDialogState._run`](#_run) | method (`_ProfileDialogState`) | A | Run an avatar action with a busy state and error reporting. |
+| [`_ProfileDialogState._editAvatar`](#_editavatar) | method (`_ProfileDialogState`) | A | Frame an image in the avatar editor and store the result (1.7.2). |
 | [`_ProfileDialogState._save`](#_save) | method (`_ProfileDialogState`) | A | Save the name and close. |
 | `_ProfileDialogState.build` | method (widget build) | B | Build the dialog. |
 
@@ -37,15 +38,23 @@ and [`../../../../features/profile.md`](../../../../features/profile.md).
 
 ## Dialog layout
 
-An `AlertDialog` titled `profileTitle` holding a large `ProfileAvatar(radius: 48)`; a *Choose avatar*
-`FilledButton.tonalIcon` (`profileChangeAvatar`) and, only while an avatar is set, a *Remove* button
-(`profileRemoveAvatar`); and a name `TextField` (`profileName`, `maxLength: 40`, submitting saves).
+An `AlertDialog` titled `profileTitle` holding a large `ProfileAvatar(radius: 48)` that is itself tappable
+(1.7.2: it adjusts the current avatar, or picks one when there is none); a *Choose avatar*
+`FilledButton.tonalIcon` (`profileChangeAvatar`: pick, then the editor, then save) and, only while an avatar is set, an
+*Adjust avatar* `OutlinedButton.icon` (`profileAdjustAvatar`, `crop_rotate` icon: re-open the editor on the stored
+avatar) and a *Remove* button (`profileRemoveAvatar`); and a name `TextField` (`profileName`, `maxLength: 40`, submitting saves).
 Actions are **Cancel** and **Save**. Everything is disabled while `_busy`.
 
 ## _run
 
 - **Side effects:** Sets `_busy`, awaits the action, and on any error shows a `SnackBar` with
   `profileAvatarError` ("This image could not be used"). Used for choosing and removing the avatar.
+
+## _editAvatar
+
+- **Inputs:** `loadSource` — returns the image to edit (`ProfileStore.pickAvatarSource` or `ProfileStore.readAvatarBytes`), or null to stop (picker cancelled, no avatar file yet).
+- **Side effects:** Inside `_run`: opens the editor with `showAvatarEditor`, then saves the result through `ProfileNotifier.setAvatarJpeg`; an image that cannot be used shows the `profileAvatarError` snack bar.
+- **Notes:** Backing out of the editor saves nothing. Shared by the avatar tap, *Choose avatar* and *Adjust avatar*.
 
 ## _save
 

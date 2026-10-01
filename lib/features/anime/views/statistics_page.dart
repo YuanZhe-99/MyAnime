@@ -1614,8 +1614,11 @@ class _StatisticsPageState extends ConsumerState<StatisticsPage> {
       body: RefreshIndicator(
         onRefresh: _load,
         child: ListView(
-          padding: EdgeInsets.only(
-            bottom: shellListBottomInset(MediaQuery.sizeOf(context).width),
+          padding: navBarAwarePadding(
+            context,
+            EdgeInsets.only(
+              bottom: shellListBottomInset(MediaQuery.sizeOf(context).width),
+            ),
           ),
           children: [
             Padding(

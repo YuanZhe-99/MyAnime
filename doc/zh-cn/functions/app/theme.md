@@ -1,12 +1,13 @@
 # lib/app/theme.dart
 
-定义 `AppUiStyle`（两种界面风格）与 `AppTheme`——一个纯静态类，用单个种子色构建应用的 `ThemeData`。自 1.7.0 起，视觉体系是纯 Flutter Material 3（`ThemeData` + `ColorScheme.fromSeed`）；`flex_color_scheme` 已移除。自 1.7.1 起，主题在相同配色之上提供两种风格：原版 **Material 3**，以及 **Expressive**（默认）——在其之上叠加的、主题层面的 Material 3 Expressive 近似。平台动态取色（Material You）**不**在此处读取——由调用方决定是否传入动态配色方案。被 [`../app/app.md`](app.md) 中的 `MyAnimeApp.build()` 作为 `theme:`/`darkTheme:` 消费；`ShareService` 也由 `AppTheme.seedColor` 派生分享图配色。视觉体系在应用外壳中的位置见 [../../architecture.md](../../architecture.md#app-shell)。
+定义 `AppUiStyle`（两种界面风格）、`NavPlacement`（外壳把导航放在哪里，1.7.2）与 `AppTheme`——一个纯静态类，用单个种子色构建应用的 `ThemeData`。自 1.7.0 起，视觉体系是纯 Flutter Material 3（`ThemeData` + `ColorScheme.fromSeed`）；`flex_color_scheme` 已移除。自 1.7.1 起，主题在相同配色之上提供两种风格：原版 **Material 3**，以及 **Expressive**（默认）——在其之上叠加的、主题层面的 Material 3 Expressive 近似。平台动态取色（Material You）**不**在此处读取——由调用方决定是否传入动态配色方案。被 [`../app/app.md`](app.md) 中的 `MyAnimeApp.build()` 作为 `theme:`/`darkTheme:` 消费；`ShareService` 也由 `AppTheme.seedColor` 派生分享图配色。视觉体系在应用外壳中的位置见 [../../architecture.md](../../architecture.md#app-shell)。
 
 ## 声明
 
 | 声明 | 种类 | Tier | 用途 |
 |---|---|---|---|
 | [`AppUiStyle`](#appuistyle) | 枚举 | A | 用户可选的两种界面风格：`material3` 与 `expressive`（1.7.1）。 |
+| [`NavPlacement`](#navplacement) | 枚举 | A | 外壳把导航放在哪里，两种风格通用：`bottom`、`sideOnWide` 或 `side`（1.7.2）。 |
 | `AppTheme._` | 构造函数（`AppTheme`） | B | 阻止直接实例化，只暴露静态成员。 |
 | [`AppTheme.seedColor`](#apptheme-seedcolor) | 静态常量（`AppTheme`） | A | 应用的品牌色，也是视觉体系中唯一的每应用旋钮。 |
 | [`AppTheme._morphDuration`](#apptheme-morphduration) | 静态常量（`AppTheme`，私有） | A | Expressive 按钮在静止与按下形状之间变形所用的时长（1.7.1）。 |
@@ -27,7 +28,7 @@
 - **输入：** 无。
 - **返回：** 枚举值 `AppUiStyle.material3` 与 `AppUiStyle.expressive`。
 - **副作用：** 无。
-- **备注：** 1.7.1 新增；带有文档注释但没有 `Purpose:` 行，因此不计入 [INDEX.md](../INDEX.md)。`expressive` 为默认值。它**在主题层面**近似 Material 3 Expressive（Flutter 没有自带 Expressive 组件），并为窄窗口提供悬浮岛导航栏。`material3` 是原版 Material 3，配经典的通栏底栏。该风格由 `AnimeStorage.setUiStyle` 持久化（字符串 `'material3'`，Expressive 则不写键），保存在 `AppSettings.uiStyle` 中，由 `MyAnimeApp.build` 传给 `AppTheme.light`/`dark`；`ShellScaffold` 读取它来选择底栏。两种风格共用相同的配色。
+- **备注：** 1.7.1 新增；带有文档注释但没有 `Purpose:` 行，因此不计入 [INDEX.md](../INDEX.md)。`expressive` 为默认值。它**在主题层面**近似 Material 3 Expressive（Flutter 没有自带 Expressive 组件），并让底栏成为紧凑悬浮胶囊（`_ExpressiveNavBar`）。`material3` 是原版 Material 3，配经典的通栏底栏。该风格由 `AnimeStorage.setUiStyle` 持久化（字符串 `'material3'`，Expressive 则不写键），保存在 `AppSettings.uiStyle` 中，由 `MyAnimeApp.build` 传给 `AppTheme.light`/`dark`；`ShellScaffold` 读取它来选择底栏。两种风格共用相同的配色。
 
 ### `static const Color seedColor` <a id="apptheme-seedcolor"></a>
 - **种类：** `AppTheme` 的静态常量
@@ -37,6 +38,15 @@
 - **返回：** `Color`。
 - **副作用：** 无。
 - **备注：** 只要平台没有提供动态配色方案，Material 3 色调调色板的每个角色都由它生成。系列中每个应用都有自己的种子色，便于一眼区分。`ShareService` 也由它派生（始终为浅色、从不动态的）分享图配色。`ShareService` 不受界面风格影响。
+
+### `enum NavPlacement` <a id="navplacement"></a>
+- **种类：** 顶层枚举
+- **来源：** `lib/app/theme.dart`
+- **用途：** 命名外壳把导航放在哪里，与界面风格无关。
+- **输入：** 无。
+- **返回：** 枚举值 `NavPlacement.bottom`（默认：每个窗口都用底栏）、`NavPlacement.sideOnWide`（宽窗口用侧边导航栏，窄窗口用底栏）与 `NavPlacement.side`（每个窗口都用侧边导航栏，包括手机；不推荐，因为侧边导航栏会占用内容的宽度）。
+- **副作用：** 无。
+- **备注：** 1.7.2 新增；带有文档注释但没有 `Purpose:` 行，因此不计入 [INDEX.md](../INDEX.md)。与 `AppUiStyle` 一同声明于此，保存在 `AppSettings.navPlacement` 中；由 `AnimeStorage.setNavPlacement` 持久化（键 `navPlacement`，`bottom` 时不存在），在设置 › 通用 › 导航栏位置中选择。由 `ShellScaffold` 读取。主题本身忽略它。
 
 ### `static ColorScheme scheme(Brightness brightness, [ColorScheme? dynamicScheme])` <a id="apptheme-scheme"></a>
 - **种类：** `AppTheme` 的静态方法

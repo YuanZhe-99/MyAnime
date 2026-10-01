@@ -399,7 +399,9 @@ migrates data files, backups, and images.
 | API server enabled/listen address/port/credentials | `storage_config.json` | No | Local desktop config; credentials must not be committed |
 | Tray and launch-at-startup preferences | `storage_config.json` | No | Local desktop config |
 | Kana tab shown | `storage_config.json` | No | Device-specific `kanaTabEnabled`; absent means hidden (1.6.0) |
-| Interface style | `storage_config.json` | No | Device-specific `uiStyle` (1.7.1); written only as `"material3"` when Material 3 is chosen; absent means Expressive (the default, which also shows the floating navigation bar) |
+| Interface style | `storage_config.json` | No | Device-specific `uiStyle` (1.7.1); written only as `"material3"` when Material 3 is chosen; absent means Expressive (the default, which also shows the compact floating navigation bar) |
+| Navigation position | `storage_config.json` | No | Device-specific `navPlacement` (1.7.2); written only as `"sideOnWide"` or `"side"`; absent means `bottom`, the bottom bar on every window (the default, for both interface styles); unknown values read as `bottom` |
+| Navigation rail side | `storage_config.json` | No | Device-specific `navRailRight` (1.7.2); written only as `true` when the side rail sits on the right; absent means left (both interface styles) |
 | Bottom navigation bar style (superseded) | `storage_config.json` | No | Device-specific `classicNavBar` (1.7.0), replaced by `uiStyle` in 1.7.1: still read once as Material 3 when it is `true`, and removed on the next interface-style write |
 | On-device AI switch and model-size preference | `storage_config.json` | No | Device-specific `onDeviceAiEnabled` and `onDeviceAiPreferFast` (Android); absent means off (1.6.0) |
 | Automatic categories | `storage_config.json` | No | Device-specific `autoCategoriesEnabled`; absent means off (1.6.0) |
@@ -512,7 +514,7 @@ faster model" preference (`onDeviceAiEnabled`, `onDeviceAiPreferFast`, each writ
 see [`on-device-ai.md`](on-device-ai.md)), and whether automatic categories are on
 (`autoCategoriesEnabled`, written only when on), and whether recommendations are on
 (`recommendationsEnabled`, written only when on), and since 1.6.2 the Manage tab's view and
-series sort (`manageViewMode`, `manageSeriesSort`, each written only when not the default). Since 1.7.1 it also holds the interface style (`uiStyle`, written only as `"material3"`; absent means Expressive, including its floating navigation bar). The 1.7.0 key `classicNavBar` is superseded: still read once as Material 3, removed on the next write. None of this file is
+series sort (`manageViewMode`, `manageSeriesSort`, each written only when not the default). Since 1.7.1 it also holds the interface style (`uiStyle`, written only as `"material3"`; absent means Expressive, including its compact floating navigation bar). The 1.7.0 key `classicNavBar` is superseded: still read once as Material 3, removed on the next write. Since 1.7.2 it also holds the navigation position (`navPlacement`, written only as `"sideOnWide"` or `"side"`; absent means the bottom bar on every window) and the rail side (`navRailRight`, written only as `true`). None of this file is
 synced — it is intentionally device-specific, which is the right home for a network policy that
 should differ between a desktop on Ethernet and a phone on a data plan.
 

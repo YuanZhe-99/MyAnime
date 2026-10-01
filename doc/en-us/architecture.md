@@ -10,8 +10,8 @@ Architecture" section. See [`data-formats.md`](data-formats.md) for the data mod
 - `lib/main.dart` — app entry point.
 - `lib/app/app.dart` — root `MaterialApp`/`App` widget wiring.
 - `lib/app/router.dart` — navigation, built on `go_router`. The router uses a `ShellRoute` wrapping
-  the navigation tabs — rendered as a bottom bar on a narrow window (a floating island since 1.7.0, which since 1.7.1 is part of the default Expressive interface style, or the classic `NavigationBar` for the Material 3 style) and a side
-  `NavigationRail` from 600 logical pixels up, see [`adaptive-layout.md`](adaptive-layout.md):
+  the navigation tabs — rendered, by default (Settings › General › Navigation position, 1.7.2), as a bottom bar on every window: the compact floating bar of the default Expressive interface style (`_ExpressiveNavBar`, redesigned in 1.7.2; pages draw behind it and leave room with `navBarAwarePadding`) or the classic `NavigationBar` for the Material 3 style; the same setting can move it to a side
+  `NavigationRail` (on the left or right) on windows from 600 logical pixels up, or on every window, see [`adaptive-layout.md`](adaptive-layout.md):
   - Home (`/home`, `home_page.dart`)
   - Manage (`/manage`, `management_page.dart`)
   - Stats (`/stats`, `statistics_page.dart`)
@@ -219,9 +219,9 @@ feature area:
 
 - **State management:** `flutter_riverpod`; no Provider or Bloc for normal changes.
 - **Navigation:** `go_router` with a `ShellRoute` and the four or five tabs listed above.
-- **Visual system:** Google Material 3 — `ColorScheme.fromSeed` from one seed color (`AppTheme.seedColor`), in two interface styles since 1.7.1 (stock Material 3, or the default **Expressive**, a theme-level approximation with rounder shapes, bolder titles and the floating navigation bar; same colors in both), plus `dynamic_color` wallpaper colors on Android 12+ only (since 1.7.0; `flex_color_scheme` was removed). See [`functions/app/theme.md`](functions/app/theme.md).
+- **Visual system:** Google Material 3 — `ColorScheme.fromSeed` from one seed color (`AppTheme.seedColor`), in two interface styles since 1.7.1 (stock Material 3, or the default **Expressive**, a theme-level approximation with rounder shapes, bolder titles and the compact floating navigation bar; same colors in both), plus `dynamic_color` wallpaper colors on Android 12+ only (since 1.7.0; `flex_color_scheme` was removed). See [`functions/app/theme.md`](functions/app/theme.md).
 - **Responsive layout:** one shared rule decides when the UI may split into panes or columns, and
-  how many columns a list gets; a second, width-only rule decides whether navigation sits at the
+  how many columns a list gets; a second, width-only rule says when a window is wide enough for navigation to sit at the
   side or along the bottom. Both live in `shared/utils/adaptive_layout.dart` and are derived in
   [`adaptive-layout.md`](adaptive-layout.md). **Do not add a new inline width breakpoint** — as of
   1.5.4 there is not a single one left in `lib/`. Measure capacity against `shellContentWidth`,

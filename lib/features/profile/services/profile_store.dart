@@ -1,11 +1,9 @@
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
-import 'dart:isolate';
 import 'dart:typed_data';
 
 import 'package:file_picker/file_picker.dart';
-import 'package:image/image.dart' as img;
 import 'package:myapps_data/myapps_data.dart' show atomicWriteString;
 import 'package:path/path.dart' as p;
 import 'package:uuid/uuid.dart';
@@ -134,17 +132,14 @@ class ProfileStore {
     );
   }
 
-  /// Purpose: Let the user pick an image and make it the avatar.
+  /// Purpose: Let the user pick an image to edit into an avatar (1.7.2).
   /// Inputs: None.
-  /// Returns: `Future<ProfileData?>` — the new profile, or null when the
-  /// picker was cancelled.
-  /// Side effects: Opens the file picker, writes a new square JPEG under
-  /// `images/`, writes `profile.json`, and deletes the previous avatar file
-  /// on this device.
-  /// Notes: Throws when the picked file is not a decodable image. Every
-  /// avatar gets a fresh file name, because image sync never overwrites a
-  /// file that already exists on the other side.
-  static Future<ProfileData?> pickAvatar() async {
+  /// Returns: `Future<Uint8List?>` — the picked file's bytes, or null when
+  /// the picker was cancelled.
+  /// Side effects: Opens the file picker.
+  /// Notes: Nothing is saved; the bytes go to the avatar editor, whose result
+  /// is stored with [setAvatarJpeg].
+  static Future<Uint8List?> pickAvatarSource() async {
     final result = await FilePicker.platform.pickFiles(
       type: FileType.image,
       allowMultiple: false,
@@ -152,11 +147,36 @@ class ProfileStore {
     );
     if (result == null || result.files.isEmpty) return null;
     final picked = result.files.single;
-    final bytes =
-        picked.bytes ??
+    return picked.bytes ??
         (picked.path == null ? null : await File(picked.path!).readAsBytes());
-    if (bytes == null) return null;
-    final jpeg = await Isolate.run(() => squareAvatarJpeg(bytes, avatarSize));
+  }
+
+  /// Purpose: Read the current avatar image, to adjust it again (1.7.2).
+  /// Inputs: None.
+  /// Returns: `Future<Uint8List?>` — the avatar's bytes, or null when there
+  /// is no avatar or its file has not arrived on this device yet.
+  /// Side effects: Reads one file under `images/`.
+  /// Notes: The stored avatar is already a 512-pixel square, so adjusting it
+  /// can only zoom further in, rotate or re-centre.
+  static Future<Uint8List?> readAvatarBytes() async {
+    final rel = (await load()).avatar;
+    if (rel == null) return null;
+    try {
+      final file = await ImageService.resolve(rel);
+      return await file.exists() ? await file.readAsBytes() : null;
+    } catch (_) {
+      return null;
+    }
+  }
+
+  /// Purpose: Store an edited avatar (1.7.2).
+  /// Inputs: `jpeg` — the editor's square JPEG ([avatarSize] pixels).
+  /// Returns: `Future<ProfileData>` — the new profile.
+  /// Side effects: Writes a new `images/avatar_<uuid>.jpg`, writes
+  /// `profile.json`, and deletes the previous avatar file on this device.
+  /// Notes: Every avatar gets a fresh file name, because image sync never
+  /// overwrites a file that already exists on the other side.
+  static Future<ProfileData> setAvatarJpeg(Uint8List jpeg) async {
     final appDir = await AnimeStorage.getAppDir();
     final imagesDir = Directory(p.join(appDir.path, 'images'));
     await imagesDir.create(recursive: true);
@@ -200,31 +220,4 @@ class ProfileStore {
       await ImageService.delete(rel);
     } catch (_) {}
   }
-}
-
-/// Purpose: Turn any decodable image into a centred square JPEG.
-/// Inputs: `bytes` — the source image; `size` — output edge in pixels.
-/// Returns: `Uint8List` — JPEG bytes.
-/// Side effects: None; safe to run in another isolate.
-/// Notes: Applies EXIF orientation first so phone photos are upright. Throws
-/// a [FormatException] when `bytes` is not an image.
-Uint8List squareAvatarJpeg(Uint8List bytes, int size) {
-  img.Image? decoded;
-  try {
-    decoded = img.decodeImage(bytes);
-  } catch (_) {
-    // Truncated or foreign data can make a format probe throw (for example
-    // a RangeError) instead of returning null.
-    decoded = null;
-  }
-  if (decoded == null) {
-    throw const FormatException('Not a supported image');
-  }
-  final upright = img.bakeOrientation(decoded);
-  final square = img.copyResizeCropSquare(
-    upright,
-    size: size,
-    interpolation: img.Interpolation.average,
-  );
-  return img.encodeJpg(square, quality: 88);
 }

@@ -56,6 +56,10 @@
 | [`setKanaTabEnabled`](#setkanatabenabled) | 静态方法（`AnimeStorage`） | A | 持久化是否显示五十音速查标签。 |
 | [`getUiStyle`](#getuistyle) | 静态方法（`AnimeStorage`） | A | 读取已存储的界面风格名称，并迁移 1.7.0 的 `classicNavBar` 键（1.7.1；取代 `getFloatingNavBar`）。 |
 | [`setUiStyle`](#setuistyle) | 静态方法（`AnimeStorage`） | A | 持久化界面风格并丢弃被取代的 `classicNavBar` 键（1.7.1；取代 `setFloatingNavBar`）。 |
+| [`getNavPlacement`](#getnavplacement) | 静态方法（`AnimeStorage`） | A | 读取已存储的导航位置名称（1.7.2）。 |
+| [`setNavPlacement`](#setnavplacement) | 静态方法（`AnimeStorage`） | A | 持久化导航位置；底部时移除该键（1.7.2）。 |
+| [`getNavRailRight`](#getnavrailright) | 静态方法（`AnimeStorage`） | A | 读取侧边导航栏是否位于右侧（1.7.2）。 |
+| [`setNavRailRight`](#setnavrailright) | 静态方法（`AnimeStorage`） | A | 持久化侧边导航栏所在的一侧；左侧时移除该键（1.7.2）。 |
 | [`getOnDeviceAiEnabled`](#getondeviceaienabled) | 静态方法（`AnimeStorage`） | A | 读取是否开启端侧 AI。 |
 | [`setOnDeviceAiEnabled`](#setondeviceaienabled) | 静态方法（`AnimeStorage`） | A | 持久化是否开启端侧 AI。 |
 | [`getAutoCategoriesEnabled`](#getautocategoriesenabled) | 静态方法（`AnimeStorage`） | A | 读取是否开启自动分类。 |
@@ -635,6 +639,30 @@
 - **输入：** `name`——`'material3'`，或 `null` 表示默认的 Expressive 风格。
 - **副作用：** 写入 `storage_config.json`。
 - **备注：** 1.7.1 新增；取代 `setFloatingNavBar`。始终移除 `classicNavBar`；仅在 Material 3 时写入 `uiStyle: "material3"`，否则移除 `uiStyle`，因此只存储非默认的选择。
+
+### `static Future<String?> getNavPlacement()` <a id="getnavplacement"></a>
+- **种类：** `AnimeStorage` 的静态方法
+- **返回：** `Future<String?>` —— `config['navPlacement']` 为 `'sideOnWide'` 或 `'side'` 时返回它；否则为 `null`，表示默认（每个窗口都用底栏）。
+- **副作用：** 读取 `storage_config.json`。
+- **备注：** 1.7.2 新增。未知的值按默认读取。仅限设备本地，从不同步；对两种界面风格都生效。由 `AppSettingsNotifier._loadPersisted` 读取，并映射为 `NavPlacement`。
+
+### `static Future<void> setNavPlacement(String? name)` <a id="setnavplacement"></a>
+- **种类：** `AnimeStorage` 的静态方法
+- **输入：** `name`——`'sideOnWide'`、`'side'`，或 `null` 表示底部。
+- **副作用：** 写入 `storage_config.json`。
+- **备注：** 1.7.2 新增。只为两个非默认值写入 `navPlacement`；其他情形移除该键，因此只存储非默认的选择。
+
+### `static Future<bool> getNavRailRight()` <a id="getnavrailright"></a>
+- **种类：** `AnimeStorage` 的静态方法
+- **返回：** `Future<bool>` —— 仅当 `storage_config.json` 含 `navRailRight: true` 时为 `true`；默认在左侧。
+- **副作用：** 读取 `storage_config.json`。
+- **备注：** 1.7.2 新增。仅限设备本地，从不同步；只要显示侧边导航栏，就对两种界面风格生效。
+
+### `static Future<void> setNavRailRight(bool right)` <a id="setnavrailright"></a>
+- **种类：** `AnimeStorage` 的静态方法
+- **输入：** `right`。
+- **副作用：** 写入 `storage_config.json`。
+- **备注：** 1.7.2 新增。开启时写入 `navRailRight: true`，关闭时移除该键，形态与 `setKanaTabEnabled` 相同。
 
 ### `static Future<bool> getOnDeviceAiEnabled()` <a id="getondeviceaienabled"></a>
 - **种类：** `AnimeStorage` 的静态方法

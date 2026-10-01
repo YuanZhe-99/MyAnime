@@ -864,6 +864,11 @@ held no Riverpod state at all.
   with the detail, settings and kana pages. Its cost is that a phone in landscape at 915 × 412
   keeps the stacked layout although it has the least height of any viewport.
 
+  Since 1.7.2 the page's main list (`ListView` in `build`) wraps its bottom padding in
+  `navBarAwarePadding(context, EdgeInsets.only(bottom: shellListBottomInset(width)))`, because the Expressive
+  floating bar floats over the page and the last content has to scroll to just above it; the 80 inside
+  `shellListBottomInset` is the FAB's clearance.
+
 ### `Widget _buildSummaryCard(ThemeData theme, String label, int count, Color color)` <a id="statisticspagestate_buildsummarycard"></a>
 - **Kind:** method of `_StatisticsPageState`
 - **Source:** `lib/features/anime/views/statistics_page.dart` (approx. line 1766)

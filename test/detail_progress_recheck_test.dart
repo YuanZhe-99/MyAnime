@@ -115,7 +115,7 @@ void main() {
             home: AnimeDetailPage(animeId: 'a1'),
           ),
         );
-        for (var i = 0; i < 4; i++) {
+        for (var i = 0; i < 20; i++) {
           await Future<void>.delayed(const Duration(milliseconds: 50));
           await tester.pump();
         }
@@ -156,7 +156,7 @@ void main() {
             }
           }
           // Let the reload after the check land.
-          for (var i = 0; i < 4; i++) {
+          for (var i = 0; i < 20; i++) {
             await Future<void>.delayed(const Duration(milliseconds: 50));
             await tester.pump();
           }

@@ -65,6 +65,10 @@ notifies `AutoSyncService`/`ReminderService` after every save. See
 | [`setKanaTabEnabled`](#setkanatabenabled) | static method (`AnimeStorage`) | A | Persist whether the Kana quick-reference tab is shown. |
 | [`getUiStyle`](#getuistyle) | static method (`AnimeStorage`) | A | Read the stored interface style name, migrating the 1.7.0 `classicNavBar` key (1.7.1; replaces `getFloatingNavBar`). |
 | [`setUiStyle`](#setuistyle) | static method (`AnimeStorage`) | A | Persist the interface style and drop the superseded `classicNavBar` key (1.7.1; replaces `setFloatingNavBar`). |
+| [`getNavPlacement`](#getnavplacement) | static method (`AnimeStorage`) | A | Read the stored navigation placement name (1.7.2). |
+| [`setNavPlacement`](#setnavplacement) | static method (`AnimeStorage`) | A | Persist the navigation placement; bottom removes the key (1.7.2). |
+| [`getNavRailRight`](#getnavrailright) | static method (`AnimeStorage`) | A | Read whether the navigation rail sits on the right (1.7.2). |
+| [`setNavRailRight`](#setnavrailright) | static method (`AnimeStorage`) | A | Persist the rail side; left removes the key (1.7.2). |
 | [`getOnDeviceAiEnabled`](#getondeviceaienabled) | static method (`AnimeStorage`) | A | Read whether on-device AI is turned on. |
 | [`setOnDeviceAiEnabled`](#setondeviceaienabled) | static method (`AnimeStorage`) | A | Persist whether on-device AI is turned on. |
 | [`getAutoCategoriesEnabled`](#getautocategoriesenabled) | static method (`AnimeStorage`) | A | Read whether automatic categories are turned on. |
@@ -672,6 +676,30 @@ notifies `AutoSyncService`/`ReminderService` after every save. See
 - **Inputs:** `name` — `'material3'`, or `null` for the default Expressive style.
 - **Side effects:** Writes `storage_config.json`.
 - **Notes:** Added in 1.7.1; replaces `setFloatingNavBar`. Always removes `classicNavBar`; writes `uiStyle: "material3"` only for Material 3, otherwise removes `uiStyle`, so only the non-default choice is stored.
+
+### `static Future<String?> getNavPlacement()` <a id="getnavplacement"></a>
+- **Kind:** static method of `AnimeStorage`
+- **Returns:** `Future<String?>` — `'sideOnWide'` or `'side'` when `config['navPlacement']` holds one of them; otherwise `null`, meaning the default (bottom bar on every window).
+- **Side effects:** Reads `storage_config.json`.
+- **Notes:** Added in 1.7.2. Unknown values read as the default. Device-local, never synced; applies to both interface styles. Read by `AppSettingsNotifier._loadPersisted`, which maps it to `NavPlacement`.
+
+### `static Future<void> setNavPlacement(String? name)` <a id="setnavplacement"></a>
+- **Kind:** static method of `AnimeStorage`
+- **Inputs:** `name` — `'sideOnWide'`, `'side'`, or `null` for bottom.
+- **Side effects:** Writes `storage_config.json`.
+- **Notes:** Added in 1.7.2. Writes `navPlacement` only for the two non-default values; anything else removes the key, so only the non-default choice is stored.
+
+### `static Future<bool> getNavRailRight()` <a id="getnavrailright"></a>
+- **Kind:** static method of `AnimeStorage`
+- **Returns:** `Future<bool>` — `true` only when `storage_config.json` holds `navRailRight: true`; left by default.
+- **Side effects:** Reads `storage_config.json`.
+- **Notes:** Added in 1.7.2. Device-local, never synced; applies to both interface styles whenever the rail shows.
+
+### `static Future<void> setNavRailRight(bool right)` <a id="setnavrailright"></a>
+- **Kind:** static method of `AnimeStorage`
+- **Inputs:** `right`.
+- **Side effects:** Writes `storage_config.json`.
+- **Notes:** Added in 1.7.2. Writes `navRailRight: true` when on and removes the key when off, the same shape as `setKanaTabEnabled`.
 
 ### `static Future<bool> getOnDeviceAiEnabled()` <a id="getondeviceaienabled"></a>
 - **Kind:** static method of `AnimeStorage`

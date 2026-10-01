@@ -33,6 +33,8 @@ management conventions (Riverpod, no Provider/Bloc) and
 | `AppSettingsNotifier.setStatsListColumns` | method (`AppSettingsNotifier`) | B | Update the remembered statistics list column preference and persist it. |
 | `AppSettingsNotifier.setKanaTabEnabled` | method (`AppSettingsNotifier`) | B | Show or hide the Kana tab and persist the choice. |
 | `AppSettingsNotifier.setUiStyle` | method (`AppSettingsNotifier`) | B | Choose the interface style (Expressive by default, or Material 3) and persist the choice (1.7.1; replaces `setFloatingNavBar`). |
+| `AppSettingsNotifier.setNavPlacement` | method (`AppSettingsNotifier`) | B | Choose where navigation sits: bottom, side on wide windows, or side everywhere, and persist it (1.7.2). |
+| `AppSettingsNotifier.setNavRailOnRight` | method (`AppSettingsNotifier`) | B | Choose which side of the window the navigation rail sits on and persist it (1.7.2). |
 | [`AppSettingsNotifier.setOnDeviceAiEnabled`](#appsettingsnotifier-setondeviceaienabled) | method (`AppSettingsNotifier`) | A | Turn on-device AI on or off, persist it, and switch `OnDeviceAiService`. |
 | `AppSettingsNotifier.setOnDeviceAiPreferFast` | method (`AppSettingsNotifier`) | B | Prefer the faster on-device model where both sizes are served; persist it and tell `OnDeviceAiService`. |
 | [`AppSettingsNotifier.setAutoCategoriesEnabled`](#appsettingsnotifier-setautocategoriesenabled) | method (`AppSettingsNotifier`) | A | Turn automatic categories on or off, persist it, and switch `CategoryClassifier`. |
@@ -477,10 +479,24 @@ persist.
 `state` and persists through `AnimeStorage.setUiStyle('material3' or null)`, which stores only Material 3
 as `uiStyle: "material3"` in `storage_config.json` and removes the 1.7.0 `classicNavBar` key. `MyAnimeApp.build`
 passes `settings.uiStyle` to `AppTheme.light`/`dark`, so the theme rebuilds at once; `ShellScaffold` watches
-`appSettingsProvider.select((s) => s.uiStyle)` and builds `_FloatingNavBar` for Expressive or the stock
-`NavigationBar` for Material 3. The wide-window navigation rail is the same in both styles. The only UI
+`appSettingsProvider.select((s) => s.uiStyle)` and builds `_ExpressiveNavBar` (the compact floating bar, 1.7.2) for Expressive or the stock
+`NavigationBar` for Material 3. Where the navigation sits is a separate preference, below. The only UI
 is the *Interface style* picker in Settings › General. See [`../../app/theme.md`](../../app/theme.md)
 and [`../widgets/shell_scaffold.md`](../widgets/shell_scaffold.md).
+
+## Navigation placement preferences (1.7.2)
+
+`navPlacement` is a `NavPlacement` (declared in `lib/app/theme.dart`: `bottom`, `sideOnWide`, `side`) defaulting to
+`NavPlacement.bottom`, and `navRailOnRight` is a `bool` defaulting to `false`. Both are present in the constructor,
+`copyWith` and `_loadPersisted` (through `AnimeStorage.getNavPlacement()`, which returns `'sideOnWide'`, `'side'` or
+null, and `AnimeStorage.getNavRailRight()`). `setNavPlacement(NavPlacement)` and `setNavRailOnRight(bool)` update
+`state` and persist through `AnimeStorage.setNavPlacement(name or null)` and `AnimeStorage.setNavRailRight(bool)`,
+which write `navPlacement: "sideOnWide" | "side"` and `navRailRight: true` to `storage_config.json` and remove
+the key for the default. Both apply to **both** interface styles and are device-local. `bottom` keeps the bottom
+bar on every window (before 1.7.2 a wide window always used the rail); `sideOnWide` uses the rail once
+`useNavigationRail(width)` holds; `side` uses it everywhere, phones included, which is not recommended because the
+rail takes width from the content. `ShellScaffold` watches both. The UI is the *Navigation position* and *Side
+navigation position* rows in Settings › General (see [`../../features/settings/views/settings_page.md`](../../features/settings/views/settings_page.md)).
 
 ## On-device AI preferences
 

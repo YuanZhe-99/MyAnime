@@ -370,7 +370,7 @@ The grouping itself is the pure [`groupForSeriesView`](../services/manage_groupi
   `manageSeriesMembers(count, completed)`) whose children are the members' tiles laid out by
   `adaptiveTileRows` at the page's column count.
 - **Usage:** `build`, when not searching and `manageViewMode` is `series`.
-- **Notes:** Search still replaces the whole body with the flat result list, in either view.
+- **Notes:** Search still replaces the whole body with the flat result list, in either view. Since 1.7.2 every list in this page (the search results, both quarter-view lists and this series list) wraps its bottom padding in `navBarAwarePadding(context, EdgeInsets.only(bottom: shellListBottomInset(width)))`: the Expressive floating bar floats over the page, so the last row has to scroll to just above it. The 80 inside `shellListBottomInset` remains the FAB's clearance. See [`../../../shared/utils/adaptive_layout.md`](../../../shared/utils/adaptive_layout.md#navbarawarepadding).
 
 ## List layout and row actions
 

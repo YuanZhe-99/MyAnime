@@ -675,6 +675,9 @@
   这里挂在 `canSplitLayout` 而非只看宽度上，是为与详情页、设置页和假名页保持一致而作出的刻意选择。它的代价是
   手机横持于 915 × 412 时保持堆叠布局，尽管它是所有视口里高度最少的一个。
 
+  自 1.7.2 起，页面的主列表（`build` 中的 `ListView`）把底部内边距包进
+  `navBarAwarePadding(context, EdgeInsets.only(bottom: shellListBottomInset(width)))`，因为 Expressive 悬浮栏悬浮在页面之上，最后的内容必须能滚到恰好位于它之上；`shellListBottomInset` 里的 80 是 FAB 的避让空间。
+
 ### `Widget _buildSummaryCard(ThemeData theme, String label, int count, Color color)` <a id="statisticspagestate_buildsummarycard"></a>
 - **种类：** `_StatisticsPageState` 的方法
 - **来源：** `lib/features/anime/views/statistics_page.dart`（约第 1766 行）

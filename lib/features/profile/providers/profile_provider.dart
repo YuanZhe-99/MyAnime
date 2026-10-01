@@ -1,3 +1,5 @@
+import 'dart:typed_data';
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../shared/services/auto_sync_service.dart';
@@ -49,16 +51,14 @@ class ProfileNotifier extends StateNotifier<ProfileData> {
     if (mounted) state = data;
   }
 
-  /// Purpose: Pick and save a new avatar.
-  /// Inputs: None.
-  /// Returns: `bool` — false when the picker was cancelled.
-  /// Side effects: See [ProfileStore.pickAvatar].
-  /// Notes: Errors (an unreadable image) propagate to the caller.
-  Future<bool> pickAvatar() async {
-    final data = await ProfileStore.pickAvatar();
-    if (data == null) return false;
+  /// Purpose: Save an avatar produced by the avatar editor (1.7.2).
+  /// Inputs: `jpeg` — the edited square JPEG.
+  /// Returns: None.
+  /// Side effects: See [ProfileStore.setAvatarJpeg].
+  /// Notes: Picking and editing happen in the UI before this is called.
+  Future<void> setAvatarJpeg(Uint8List jpeg) async {
+    final data = await ProfileStore.setAvatarJpeg(jpeg);
     if (mounted) state = data;
-    return true;
   }
 
   /// Purpose: Remove the avatar.

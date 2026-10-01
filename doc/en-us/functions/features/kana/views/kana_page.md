@@ -74,6 +74,10 @@ exception went; there is no longer a second layout rule in `lib/`. See
   The columns are assigned rather than flowed so they balance: the tall basic and yoon tables on
   the left against the short voiced table plus the rules on the right.
 
+  Since 1.7.2 the main `ListView`'s padding is wrapped in
+  `navBarAwarePadding(context, EdgeInsets.fromLTRB(16, 8, 16, shellListBottomInset(screen.width)))`, so the last
+  content scrolls to just above the Expressive floating bar, which floats over the page.
+
 ### `List<_KanaEntry> _matchingEntries(String query)` <a id="_matchingentries"></a>
 
 - **Kind:** method of `_KanaPageState`

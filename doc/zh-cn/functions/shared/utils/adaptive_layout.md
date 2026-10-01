@@ -5,10 +5,9 @@
 `listColumnsAuto` 四个常量，外加为外壳侧边导航栏与设置详情栏而设的 `navRailMinWidth`、`navRailWidth`
 与 `settingsRightPaneMinWidth`，以及为统计页而设的 `statsSummaryPaneMinWidth`、`statsChartMinWidth`、
 `rankingFilterMinWidth`、`rankingScoreSourceWidth` 与 `rankingDirectionWidth`，为资料库更新审阅页而设的
-`metaUpdateCardMinWidth`，以及为分集页卡片而设的 `episodeTileMinWidth`（360，1.6.5）。在它们之上是十二个纯函数。
+`metaUpdateCardMinWidth`，以及为分集页卡片而设的 `episodeTileMinWidth`（360，1.6.5）。在它们之上是十二个纯函数，外加一个读取上下文的函数 `navBarAwarePadding`（1.7.2）。
 
-该模块刻意只依赖 `dart:core`——它不含任何 Flutter 导入，`canSplitLayout` 接收两个 double 而非一个 `Size` 正是
-出于这个原因——因此每个辅助函数都可直接进行单元测试（`test/adaptive_layout_test.dart`），而渲染结果则由
+该模块的辅助函数刻意不涉及 Flutter 类型——它们接收普通的 double，`canSplitLayout` 接收两个 double 而非一个 `Size` 正是出于这个原因。唯一的例外是需要 `BuildContext` 的 `navBarAwarePadding`（1.7.2），因此该文件现在导入 `package:flutter/widgets.dart`。其余每个辅助函数都可直接进行单元测试（`test/adaptive_layout_test.dart`），而渲染结果则由
 `test/list_columns_ui_test.dart`、`test/detail_layout_ui_test.dart`、`test/kana_layout_ui_test.dart`、
 `test/settings_two_pane_ui_test.dart`、`test/shell_nav_ui_test.dart`、
 `test/statistics_layout_ui_test.dart`、`test/anime_edit_two_pane_ui_test.dart` 与
@@ -33,6 +32,7 @@
 | [`useNavigationRail`](#usenavigationrail) | 顶层函数 | A | 报告外壳是否应展示侧边导航栏。 |
 | [`shellContentWidth`](#shellcontentwidth) | 顶层函数 | A | 返回外壳页面内容实际获得的宽度。 |
 | [`shellListBottomInset`](#shelllistbottominset) | 顶层函数 | A | 返回外壳页面滚动列表所需的底部内边距。 |
+| [`navBarAwarePadding`](#navbarawarepadding) | 顶层函数 | A | 把悬浮导航栏的高度加到页面的内边距上（1.7.2）。 |
 | [`columnCapacity`](#columncapacity) | 顶层函数 | A | 返回给定最小宽度下一个内容框能容纳多少列。 |
 | [`listColumnCapacity`](#listcolumncapacity) | 顶层函数 | A | 返回给定内容宽度能承载多少列表列。 |
 | [`listColumnCount`](#listcolumncount) | 顶层函数 | A | 返回列表实际应当渲染的列数。 |
@@ -131,6 +131,25 @@
   （出自 `_ManagementPageState._buildQuarterView`）
 - **备注：** 底部导航栏会盖住列表的最后几行，因此页面为其预留空间。侧边导航栏改为占用宽度，于是这份预留恰好
   会在垂直空间最紧缺的时刻变成死区——Z Fold 8 横向时只有 704 逻辑像素高。
+  自 1.7.2 起，这个 80 只是 FAB 的避让空间：Expressive 底栏悬浮在页面之上，其高度由 [`navBarAwarePadding`](#navbarawarepadding) 叠加在其上，每个调用方现在都用它包住这个值。
+
+### `EdgeInsets navBarAwarePadding(BuildContext context, EdgeInsets padding)` <a id="navbarawarepadding"></a>
+- **种类：** 顶层函数（1.7.2）
+- **来源：** `lib/shared/utils/adaptive_layout.dart`
+- **用途：** 把悬浮导航栏的高度加到页面的内边距上。
+- **输入：** `context`——位于外壳页面之内；`padding`——页面自己的内边距。
+- **返回：** `EdgeInsets`——在 `padding` 的底部加上 `MediaQuery.paddingOf(context).bottom` 的结果。
+- **副作用：** 无。
+- **算法：** `padding.copyWith(bottom: padding.bottom + MediaQuery.paddingOf(context).bottom)`。
+- **用法：**
+  ```dart
+  padding: navBarAwarePadding(
+    context,
+    EdgeInsets.only(bottom: shellListBottomInset(MediaQuery.sizeOf(context).width)),
+  ),
+  ```
+  （每个设置了 `shellListBottomInset` 的列表都采用这一写法：管理页的四个列表、统计页的主列表与假名页的主列表）
+- **备注：** 使用 Expressive 底栏时，外壳启用 `extendBody`，页面因此绘制到底栏之后，`Scaffold` 把底栏高度作为 `MediaQuery.padding.bottom` 上报。没有显式内边距的滚动视图（首页、设置）会自己应用这份内边距；设置了显式 `padding` 的滚动视图则不会，所以必须把内边距经由这里传入，才能留出空间，让最后的内容可以滚到底栏上方。在其他情形（经典栏、侧边导航栏、被推入的路由）里，这份内边距只是系统的，调用无害。这是每个外壳页面的规则：任何带显式内边距的列表都要用 `navBarAwarePadding` 包住它。
 
 ### `int columnCapacity(double contentWidth, {required double minItemWidth, double gap = listTileGap, int maxColumns = listMaxColumns})` <a id="columncapacity"></a>
 - **种类：** 顶层函数

@@ -105,7 +105,7 @@ void main() {
           home: AnimeEpisodeLinksPage(animeId: 'a', edit: true),
         ),
       );
-      for (var i = 0; i < 5; i++) {
+      for (var i = 0; i < 20; i++) {
         await Future<void>.delayed(const Duration(milliseconds: 50));
         await tester.pump();
       }

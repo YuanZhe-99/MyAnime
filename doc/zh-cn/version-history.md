@@ -2,6 +2,17 @@
 
 MyAnime!!!!! 的逐版本摘要。在改动一个行为之前理解它*为什么*存在很有用——多条记录记录的是刻意的安全修复，否则看起来像怪癖。
 
+## 1.7.2 — 紧凑的 Expressive 导航、导航位置与头像编辑器
+
+- **紧凑的 Expressive 导航栏。** `shell_scaffold.dart` 中的 `_FloatingNavBar` 被 `_ExpressiveNavBar`（以及 `_ExpressiveNavItem`）取代：宽度就是各项的宽度、居中、elevation 为 3、与屏幕边缘留有边距的胶囊，而不再是宽度上限 480 dp 的 `NavigationBar` 岛。选中的目的地在一个 48 dp 高的 `secondaryContainer` 胶囊里并排显示图标与标签；其余只显示轮廓图标，带提示与语义标签；选中切换带 250 ms 动画。`floatingNavBarIsland` 这个 key 不变。该栏现在**悬浮在页面之上**：Expressive 底栏下外壳使用 `Scaffold(extendBody: true)`，页面因此绘制到它之后，外壳还把传给其子级的 `viewPadding.bottom` 抬到底栏的高度。Material 3 保持经典栏，内容仍停在其上方。
+- **页面用 `navBarAwarePadding` 留出空间。** `adaptive_layout.dart`（该文件现在导入 `flutter/widgets`）中新增的 `navBarAwarePadding(context, padding)` 把 `MediaQuery.paddingOf(context).bottom` 加到列表的内边距上。它包住每一处 `shellListBottomInset` 内边距：管理页的四个列表、统计页的主列表与假名页的主列表；首页与设置的列表没有显式内边距，会自动获得这份内边距。`shellListBottomInset` 的 80 现在被明确记录为仅是 FAB 的避让空间。
+- **FAB 修复。** 页面自己的 `Scaffold` 按 `viewPadding` 而不是 `padding` 摆放 FAB，因此内容绘制到底栏之后时，FAB 起初落在底栏后面。外壳的 `MediaQuery` 包装把 `viewPadding.bottom` 抬到 `padding.bottom`，FAB 因此高于底栏。
+- **导航位置。** 一项设备本地设置 `AppSettings.navPlacement`（`NavPlacement { bottom, sideOnWide, side }`，声明于 `theme.dart`；**设置 › 通用 › 导航栏位置**，两种界面风格通用）决定导航放在哪里：**全部底部**（默认：每个窗口都用底栏）、**宽屏侧边**（按 `useNavigationRail` 使用侧边导航栏，与 1.7.2 之前相同）或**全部侧边**（每个窗口都用侧边导航栏，包括手机；不推荐）。**这改变了默认值：**1.7.2 之前宽窗口总是使用侧边导航栏，现在除非更改位置，Material 3 在宽窗口上也显示标准的 `NavigationBar`。`navRailOnRight`（**侧边导航栏位置**，位置不是全部底部时显示）在两种风格下都把侧边导航栏放到右侧。`showRail = switch (placement) { bottom => false, sideOnWide => wide, side => true }`。它们存储在 `storage_config.json` 中，键为 `navPlacement: "sideOnWide" | "side"`（缺省表示底部；未知的值按底部读取）与 `navRailRight: true`；两者都不同步。**已知的近似：**`shellContentWidth` 与其他宽度辅助函数仍按 `useNavigationRail(width)` 计算，因此宽窗口上使用底栏时它们会低估内容宽度约 81 dp（安全一侧），手机上使用侧边导航栏时则会高估侧边导航栏那么宽的内容宽度。
+- **头像编辑器。** 所选图片不再被自动居中裁剪：它会在全屏编辑器（`showAvatarEditor` / `AvatarEditorPage`）中打开，在圆形遮罩内拖动与缩放（1 倍到 8 倍）、按四分之一圈旋转与重置，*保存*会把恰好取景的正方形存为 512 px 的 JPEG。个人资料对话框新增了*调整头像*按钮，并让头像可点按，二者都会在已存储的头像上重新打开编辑器。图像操作移到新的 `avatar_image.dart`（`prepareAvatarSource`、`cropAvatarJpeg`、`squareAvatarJpeg` 与各个 `...InBackground` 包装函数）；`ProfileStore.pickAvatar()` 被 `pickAvatarSource()`、`readAvatarBytes()` 与 `setAvatarJpeg(jpeg)` 取代，`ProfileNotifier.pickAvatar()` 被 `setAvatarJpeg(Uint8List)` 取代。
+- **GUI 测试中发现并修复的 isolate 缺陷。** 第一版把图像处理写成在 `State` 方法里创建的闭包，而它会同时捕获该 `State` 及其控制器，无法发送到另一个 isolate。`prepareAvatarSourceInBackground` 与 `cropAvatarJpegInBackground` 现在是顶层函数，其闭包只捕获各自的参数。
+- **一处既有的不稳定测试修复。** 十四个 UI 测试文件用 150–300 ms 的真实时间循环（3–6 × 50 ms）等待界面稳定，在并行负载下会失败；全部加宽为 20 × 50 ms。
+- 测试从 639 个增至 659 个通过（3 个跳过）；`shell_nav_ui_test` 覆盖紧凑栏的标签与提示、内容滚动到底栏之后且最后一行与 FAB 高于底栏、Material 3 保持内容在其底栏之上、两种风格下的每种导航位置，以及右侧的侧边导航栏；`profile_test` 覆盖 `prepareAvatarSource`、`cropAvatarJpeg`（区域与限制）、在 isolate 中运行的后台辅助函数，以及 `setAvatarJpeg` / `readAvatarBytes`。`flutter analyze` 无任何问题。已在 Windows 调试版上验证，包括编辑器的完整流程（选择、旋转、保存）。版本 1.7.2+71；安装包/MSIX 版本 1.7.2.0。
+
 ## 1.7.1 — Material 3 或 Expressive
 
 - **界面风格设置取代悬浮栏开关。** **设置 › 通用 › 界面风格**是一个 `SegmentedButton<AppUiStyle>`，有 *Material 3* 与 *Expressive*（默认）两项，布局与主题选择器一致；它取代了 1.7.0 的*悬浮导航栏*开关。悬浮岛现在属于 Expressive，Material 3 使用经典的通栏底栏（`ShellScaffold` 只在 Expressive 时显示 `_FloatingNavBar`；宽窗口的侧边导航栏在两者下相同）。`AppSettings.uiStyle` / `setUiStyle` 取代 `floatingNavBar` / `setFloatingNavBar`，`AnimeStorage.getUiStyle` / `setUiStyle` 取代 `getFloatingNavBar` / `setFloatingNavBar`；l10n 键 `settingsFloatingNavBar` 与 `settingsFloatingNavBarDesc` 换成了 `settingsUiStyle`、`settingsUiStyleDesc`、`settingsUiStyleMaterial3` 与 `settingsUiStyleExpressive`。

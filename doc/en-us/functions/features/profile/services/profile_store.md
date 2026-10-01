@@ -17,10 +17,11 @@ other devices. See [`../../../app/data_modules.md`](../../../app/data_modules.md
 | [`update`](#update) | static method | A | Apply one queued change and save it. |
 | `_apply` | static method | B | Run one queued update. |
 | [`setName`](#setname) | static method | A | Set or clear the display name. |
-| [`pickAvatar`](#pickavatar) | static method | A | Let the user pick an image and make it the avatar. |
+| [`pickAvatarSource`](#pickavatarsource) | static method | A | Let the user pick an image to edit into an avatar (1.7.2; replaces `pickAvatar`). |
+| [`readAvatarBytes`](#readavatarbytes) | static method | A | Read the current avatar image, to adjust it again (1.7.2). |
+| [`setAvatarJpeg`](#setavatarjpeg) | static method | A | Store an edited avatar as a fresh file and update the profile (1.7.2). |
 | [`removeAvatar`](#removeavatar) | static method | A | Remove the avatar with a timestamped removal. |
 | `_deleteQuietly` | static method | B | Delete a replaced avatar file, ignoring failures. |
-| [`squareAvatarJpeg`](#squareavatarjpeg) | top-level function | A | Turn any decodable image into a centred square JPEG. |
 
 `fileName` (`profile.json`, which must match `profileFileName` in `data_modules.dart`), `avatarSize`
 (`512`) and the queue `_tail` carry no `/// Purpose:` comment.
@@ -44,18 +45,24 @@ other devices. See [`../../../app/data_modules.md`](../../../app/data_modules.md
 - **Inputs:** `name` — trimmed; empty clears it.
 - **Notes:** An unchanged name keeps its old timestamp, so it does not win a merge it should not.
 
-## pickAvatar
+## pickAvatarSource
 
-- **Returns:** `ProfileData?` — null when the picker was cancelled (or no bytes were available).
-- **Side effects:** Opens `FilePicker` (image, `withData`), crops and scales in an isolate
-  (`Isolate.run(squareAvatarJpeg(bytes, 512))`), writes `images/avatar_<uuid>.jpg`, updates
-  `profile.json` through `update` with `withAvatar(rel, now)`, then deletes the previous avatar file
-  on this device.
-- **Notes:** Throws when the picked file is not a decodable image. Every avatar gets a **fresh file
-  name**, because image sync never overwrites an existing local or remote file of the same name, so
-  re-using one name would leave other devices with the old picture. The old avatar files stay on the
-  WebDAV server and on other devices, because image sync is additive and never deletes — a known
-  limitation.
+- **Returns:** `Uint8List?` — the picked file's bytes; null when the picker was cancelled (or no bytes were available).
+- **Side effects:** Opens `FilePicker` (image, `withData`); falls back to reading `picked.path` when the platform returns no bytes.
+- **Notes:** Nothing is saved. The bytes go to the avatar editor ([`../views/avatar_editor.md`](../views/avatar_editor.md)), whose result is stored with [`setAvatarJpeg`](#setavatarjpeg). It replaces the 1.7.0 `pickAvatar`, which picked, cropped to the centre and saved in one step; that centred crop survives as `squareAvatarJpeg` in [`avatar_image.md`](avatar_image.md).
+
+## readAvatarBytes
+
+- **Returns:** `Uint8List?` — the avatar file's bytes; null when there is no avatar or its file has not arrived on this device yet (or cannot be read).
+- **Side effects:** Reads `profile.json` and one file under `images/`, resolved through `ImageService.resolve`.
+- **Notes:** The stored avatar is already a 512-pixel square, so adjusting it can only zoom further in, rotate or re-centre.
+
+## setAvatarJpeg
+
+- **Inputs:** `jpeg` — the editor's square JPEG (`avatarSize` pixels).
+- **Returns:** `ProfileData` — the new profile.
+- **Side effects:** Writes a fresh `images/avatar_<uuid>.jpg`, updates `profile.json` through `update` with `withAvatar(rel, now)`, then deletes the previous avatar file on this device.
+- **Notes:** Every avatar gets a **fresh file name**, because image sync never overwrites an existing local or remote file of the same name, so re-using one name would leave other devices with the old picture. The old avatar files stay on the WebDAV server and on other devices, because image sync is additive and never deletes — a known limitation.
 
 ## removeAvatar
 
@@ -68,12 +75,3 @@ other devices. See [`../../../app/data_modules.md`](../../../app/data_modules.md
 - **Notes:** Only basenames starting with `avatar_` are ever deleted, so a cover can never be
   removed by this path. Failures are ignored.
 
-## squareAvatarJpeg
-
-- **Inputs:** `bytes` — the source image; `size` — output edge in pixels.
-- **Returns:** `Uint8List` — JPEG bytes.
-- **Algorithm:** `img.decodeImage` (any decoder exception becomes `FormatException('Not a supported
-  image')`), `bakeOrientation` (applies EXIF orientation so phone photos are upright),
-  `copyResizeCropSquare(size: size, interpolation: average)`, then `encodeJpg(quality: 88)`.
-- **Notes:** Pure and safe to run in another isolate. The store passes `avatarSize` (512), so every
-  avatar is a 512 x 512 JPEG.

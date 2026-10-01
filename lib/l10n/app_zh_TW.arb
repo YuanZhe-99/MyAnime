@@ -356,6 +356,15 @@
   "settingsUiStyleDesc": "Expressive 使用更圓潤的形狀、更粗的標題和懸浮導覽列。Material 3 為標準外觀，使用通欄導覽列。",
   "settingsUiStyleMaterial3": "Material 3",
   "settingsUiStyleExpressive": "Expressive",
+  "settingsNavPlacement": "導覽列位置",
+  "settingsNavPlacementDesc": "全部放在底部；寬螢幕（摺疊螢幕展開、平板、桌面）時放在側邊；或全部放在側邊（手機上不建議）。",
+  "settingsNavPlacementBottom": "全部底部",
+  "settingsNavPlacementSideOnWide": "寬螢幕側邊",
+  "settingsNavPlacementSide": "全部側邊",
+  "settingsRailSide": "側邊導覽列位置",
+  "settingsRailSideDesc": "側邊導覽列顯示在視窗的哪一側。",
+  "settingsRailSideLeft": "左側",
+  "settingsRailSideRight": "右側",
   "settingsGeneral": "一般",
   "settingsData": "資料",
   "settingsSelectItem": "從左側清單中選擇一項",
@@ -714,5 +723,9 @@
     "profileChangeAvatar": "選擇頭像",
     "profileRemoveAvatar": "移除",
     "profileAvatarError": "無法使用此圖片",
-    "profileOpenSettings": "個人資料與設定"
+    "profileOpenSettings": "個人資料與設定",
+    "profileAdjustAvatar": "調整頭像",
+    "profileAvatarRotate": "旋轉",
+    "profileAvatarReset": "重設",
+    "profileAvatarEditorHint": "拖曳以移動，雙指縮放或捲動滑鼠滾輪以縮放。"
 }

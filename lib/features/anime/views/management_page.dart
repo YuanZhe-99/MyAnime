@@ -362,9 +362,7 @@ class _ManagementPageState extends ConsumerState<ManagementPage> {
     } else {
       final result = await showImportBundleFlow(context);
       await _load();
-      if (result != null &&
-          result.importedIds.isNotEmpty &&
-          context.mounted) {
+      if (result != null && result.importedIds.isNotEmpty && context.mounted) {
         await context.push('/anime/detail/${result.importedIds.first}');
         await _load();
         _jumpToAnimeQuarter(result.importedIds.first);
@@ -623,8 +621,11 @@ class _ManagementPageState extends ConsumerState<ManagementPage> {
       );
     }
     return ListView.builder(
-      padding: EdgeInsets.only(
-        bottom: shellListBottomInset(MediaQuery.sizeOf(context).width),
+      padding: navBarAwarePadding(
+        context,
+        EdgeInsets.only(
+          bottom: shellListBottomInset(MediaQuery.sizeOf(context).width),
+        ),
       ),
       itemCount: listRowCount(results.length, columns),
       itemBuilder: (context, row) => adaptiveTileRow(
@@ -725,9 +726,12 @@ class _ManagementPageState extends ConsumerState<ManagementPage> {
                   );
                 }
                 return ListView.builder(
-                  padding: EdgeInsets.only(
-                    bottom: shellListBottomInset(
-                      MediaQuery.sizeOf(context).width,
+                  padding: navBarAwarePadding(
+                    context,
+                    EdgeInsets.only(
+                      bottom: shellListBottomInset(
+                        MediaQuery.sizeOf(context).width,
+                      ),
                     ),
                   ),
                   itemCount: listRowCount(animeList.length, columns),
@@ -756,9 +760,12 @@ class _ManagementPageState extends ConsumerState<ManagementPage> {
               }
 
               return ListView.builder(
-                padding: EdgeInsets.only(
-                  bottom: shellListBottomInset(
-                    MediaQuery.sizeOf(context).width,
+                padding: navBarAwarePadding(
+                  context,
+                  EdgeInsets.only(
+                    bottom: shellListBottomInset(
+                      MediaQuery.sizeOf(context).width,
+                    ),
                   ),
                 ),
                 itemCount: listRowCount(animeList.length, columns),
@@ -846,8 +853,11 @@ class _ManagementPageState extends ConsumerState<ManagementPage> {
       );
     }
     return ListView.builder(
-      padding: EdgeInsets.only(
-        bottom: shellListBottomInset(MediaQuery.sizeOf(context).width),
+      padding: navBarAwarePadding(
+        context,
+        EdgeInsets.only(
+          bottom: shellListBottomInset(MediaQuery.sizeOf(context).width),
+        ),
       ),
       itemCount: groups.length,
       itemBuilder: (context, i) {
@@ -928,7 +938,9 @@ class _ManagementPageState extends ConsumerState<ManagementPage> {
                         snap.data!,
                         width: 40,
                         height: 56,
-                        cacheHeight: (56 * MediaQuery.devicePixelRatioOf(context)).ceil(),
+                        cacheHeight:
+                            (56 * MediaQuery.devicePixelRatioOf(context))
+                                .ceil(),
                         fit: BoxFit.cover,
                       ),
                     );

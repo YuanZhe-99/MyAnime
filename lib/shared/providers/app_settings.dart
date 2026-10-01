@@ -98,6 +98,12 @@ class AppSettingsNotifier extends StateNotifier<AppSettings> {
     final uiStyle = (await AnimeStorage.getUiStyle()) == 'material3'
         ? AppUiStyle.material3
         : AppUiStyle.expressive;
+    final navRailOnRight = await AnimeStorage.getNavRailRight();
+    final navPlacement = switch (await AnimeStorage.getNavPlacement()) {
+      'sideOnWide' => NavPlacement.sideOnWide,
+      'side' => NavPlacement.side,
+      _ => NavPlacement.bottom,
+    };
     final onDeviceAiEnabled = await AnimeStorage.getOnDeviceAiEnabled();
     final onDeviceAiPreferFast = await AnimeStorage.getOnDeviceAiPreferFast();
     final autoCategoriesEnabled = await AnimeStorage.getAutoCategoriesEnabled();
@@ -130,6 +136,8 @@ class AppSettingsNotifier extends StateNotifier<AppSettings> {
       statsListColumns: statsListColumns,
       kanaTabEnabled: kanaTabEnabled,
       uiStyle: uiStyle,
+      navRailOnRight: navRailOnRight,
+      navPlacement: navPlacement,
       onDeviceAiEnabled: onDeviceAiEnabled,
       onDeviceAiPreferFast: onDeviceAiPreferFast,
       autoCategoriesEnabled: autoCategoriesEnabled,
@@ -302,6 +310,30 @@ class AppSettingsNotifier extends StateNotifier<AppSettings> {
     AnimeStorage.setUiStyle(style == AppUiStyle.material3 ? 'material3' : null);
   }
 
+  /// Purpose: Choose where navigation sits (1.7.2).
+  /// Inputs: `placement`.
+  /// Returns: None.
+  /// Side effects: Persists the preference; the shell rebuilds.
+  /// Notes: Bottom by default, for both styles. [NavPlacement.side] puts the
+  /// rail on phones too, which is not recommended.
+  void setNavPlacement(NavPlacement placement) {
+    state = state.copyWith(navPlacement: placement);
+    AnimeStorage.setNavPlacement(
+      placement == NavPlacement.bottom ? null : placement.name,
+    );
+  }
+
+  /// Purpose: Choose which side of the window the navigation rail sits on
+  /// (1.7.2).
+  /// Inputs: `right`.
+  /// Returns: None.
+  /// Side effects: Persists the preference; the shell rebuilds.
+  /// Notes: Left by default; applies to both styles whenever the rail shows.
+  void setNavRailOnRight(bool right) {
+    state = state.copyWith(navRailOnRight: right);
+    AnimeStorage.setNavRailRight(right);
+  }
+
   /// Purpose: Turn on-device AI on or off.
   /// Inputs: `enabled`.
   /// Returns: None.
@@ -400,6 +432,13 @@ class AppSettings {
   /// island bottom bar) or stock Material 3 (classic bottom bar).
   final AppUiStyle uiStyle;
 
+  /// Whether the navigation rail sits on the right of the window (1.7.2).
+  /// Off (left) by default; applies to both styles.
+  final bool navRailOnRight;
+
+  /// Where the shell puts its navigation (1.7.2). Bottom by default.
+  final NavPlacement navPlacement;
+
   /// Whether on-device AI is turned on. Off by default.
   final bool onDeviceAiEnabled;
 
@@ -413,7 +452,7 @@ class AppSettings {
   final bool recommendationsEnabled;
 
   /// Purpose: Create a app settings instance.
-  /// Inputs: `themeMode`, `locale`, `weekStartDay`, `homeCalendarLayout`, `homeCalendarTimeBasis`, `homeCalendarFormat`, `homeListColumns`, `manageListColumns`, `manageViewMode`, `manageSeriesSort`, `statsListColumns`, `kanaTabEnabled`, `uiStyle`, `onDeviceAiEnabled`, `onDeviceAiPreferFast`, `autoCategoriesEnabled`, `recommendationsEnabled`.
+  /// Inputs: `themeMode`, `locale`, `weekStartDay`, `homeCalendarLayout`, `homeCalendarTimeBasis`, `homeCalendarFormat`, `homeListColumns`, `manageListColumns`, `manageViewMode`, `manageSeriesSort`, `statsListColumns`, `kanaTabEnabled`, `uiStyle`, `navPlacement`, `navRailOnRight`, `onDeviceAiEnabled`, `onDeviceAiPreferFast`, `autoCategoriesEnabled`, `recommendationsEnabled`.
   /// Returns: A new `AppSettings` instance.
   /// Side effects: None.
   /// Notes: `weekStartDay` stores the local-calendar preference; Japanese layout uses Sunday effectively.
@@ -431,6 +470,8 @@ class AppSettings {
     this.statsListColumns = listColumnsAuto,
     this.kanaTabEnabled = false,
     this.uiStyle = AppUiStyle.expressive,
+    this.navRailOnRight = false,
+    this.navPlacement = NavPlacement.bottom,
     this.onDeviceAiEnabled = false,
     this.onDeviceAiPreferFast = false,
     this.autoCategoriesEnabled = false,
@@ -448,7 +489,7 @@ class AppSettings {
       : weekStartDay;
 
   /// Purpose: Create a copy with selected fields replaced.
-  /// Inputs: `themeMode`, `locale`, `weekStartDay`, `homeCalendarLayout`, `homeCalendarTimeBasis`, `homeCalendarFormat`, `homeListColumns`, `manageListColumns`, `manageViewMode`, `manageSeriesSort`, `statsListColumns`, `kanaTabEnabled`, `uiStyle`, `onDeviceAiEnabled`, `onDeviceAiPreferFast`, `autoCategoriesEnabled`, `recommendationsEnabled`, `clearLocale`.
+  /// Inputs: `themeMode`, `locale`, `weekStartDay`, `homeCalendarLayout`, `homeCalendarTimeBasis`, `homeCalendarFormat`, `homeListColumns`, `manageListColumns`, `manageViewMode`, `manageSeriesSort`, `statsListColumns`, `kanaTabEnabled`, `uiStyle`, `navPlacement`, `navRailOnRight`, `onDeviceAiEnabled`, `onDeviceAiPreferFast`, `autoCategoriesEnabled`, `recommendationsEnabled`, `clearLocale`.
   /// Returns: `AppSettings`.
   /// Side effects: None.
   /// Notes: None.
@@ -466,6 +507,8 @@ class AppSettings {
     int? statsListColumns,
     bool? kanaTabEnabled,
     AppUiStyle? uiStyle,
+    bool? navRailOnRight,
+    NavPlacement? navPlacement,
     bool? onDeviceAiEnabled,
     bool? onDeviceAiPreferFast,
     bool? autoCategoriesEnabled,
@@ -487,6 +530,8 @@ class AppSettings {
       statsListColumns: statsListColumns ?? this.statsListColumns,
       kanaTabEnabled: kanaTabEnabled ?? this.kanaTabEnabled,
       uiStyle: uiStyle ?? this.uiStyle,
+      navRailOnRight: navRailOnRight ?? this.navRailOnRight,
+      navPlacement: navPlacement ?? this.navPlacement,
       onDeviceAiEnabled: onDeviceAiEnabled ?? this.onDeviceAiEnabled,
       onDeviceAiPreferFast: onDeviceAiPreferFast ?? this.onDeviceAiPreferFast,
       autoCategoriesEnabled:

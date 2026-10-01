@@ -7,10 +7,9 @@ gets once it may, plus `navRailMinWidth`, `navRailWidth` and `settingsRightPaneM
 for the shell's navigation rail and the settings detail pane, and `statsSummaryPaneMinWidth`,
 `statsChartMinWidth`, `rankingFilterMinWidth`, `rankingScoreSourceWidth` and
 `rankingDirectionWidth` for the statistics page, `metaUpdateCardMinWidth` for the metadata
-review page, and `episodeTileMinWidth` (360, 1.6.5) for the episode page's tiles. Twelve pure helpers sit on top of them.
+review page, and `episodeTileMinWidth` (360, 1.6.5) for the episode page's tiles. Twelve pure helpers sit on top of them, plus one context-reading helper, `navBarAwarePadding` (1.7.2).
 
-The module deliberately depends on nothing but `dart:core` — it holds no Flutter imports, and
-`canSplitLayout` takes two doubles rather than a `Size` for exactly that reason — so every helper
+The module keeps its helpers free of Flutter types — they take plain doubles, and `canSplitLayout` takes two doubles rather than a `Size` for exactly that reason. The one exception is `navBarAwarePadding` (1.7.2), which needs a `BuildContext`, so the file now imports `package:flutter/widgets.dart`. Every other helper
 is directly unit-testable (`test/adaptive_layout_test.dart`), and the rendered result is covered
 separately at real device geometries by `test/list_columns_ui_test.dart`,
 `test/detail_layout_ui_test.dart`, `test/kana_layout_ui_test.dart`,
@@ -40,6 +39,7 @@ validating the stored preference; `shell_scaffold.dart` for `useNavigationRail`;
 | [`useNavigationRail`](#usenavigationrail) | top-level function | A | Report whether the shell should show a navigation rail. |
 | [`shellContentWidth`](#shellcontentwidth) | top-level function | A | Return the width a shell page's content actually receives. |
 | [`shellListBottomInset`](#shelllistbottominset) | top-level function | A | Return the bottom padding a shell page's scrolling list needs. |
+| [`navBarAwarePadding`](#navbarawarepadding) | top-level function | A | Add the floating navigation bar's height to a page's padding (1.7.2). |
 | [`columnCapacity`](#columncapacity) | top-level function | A | Return how many columns of a given minimum width fit a content box. |
 | [`listColumnCapacity`](#listcolumncapacity) | top-level function | A | Return how many list columns a given content width can carry. |
 | [`listColumnCount`](#listcolumncount) | top-level function | A | Return the number of columns a list should actually render. |
@@ -146,6 +146,25 @@ separate rows.
 - **Notes:** The bottom navigation bar overlaps the last rows of a list, so pages reserve room for
   it. A rail takes width instead, and the reservation becomes dead space at the exact moment
   vertical room is scarcest â a Z Fold 8 in landscape is only 704 logical pixels tall.
+  Since 1.7.2 the 80 is only the FAB clearance: the Expressive bottom bar floats over the page, and its height is added on top by [`navBarAwarePadding`](#navbarawarepadding), which every caller now wraps around this value.
+
+### `EdgeInsets navBarAwarePadding(BuildContext context, EdgeInsets padding)` <a id="navbarawarepadding"></a>
+- **Kind:** top-level function (1.7.2)
+- **Source:** `lib/shared/utils/adaptive_layout.dart`
+- **Purpose:** Add the floating navigation bar's height to a page's padding.
+- **Inputs:** `context` — inside a shell page; `padding` — the page's own padding.
+- **Returns:** `EdgeInsets` — `padding` with `MediaQuery.paddingOf(context).bottom` added to its bottom.
+- **Side effects:** None.
+- **Algorithm:** `padding.copyWith(bottom: padding.bottom + MediaQuery.paddingOf(context).bottom)`.
+- **Usage:**
+  ```dart
+  padding: navBarAwarePadding(
+    context,
+    EdgeInsets.only(bottom: shellListBottomInset(MediaQuery.sizeOf(context).width)),
+  ),
+  ```
+  (the pattern used by every list that sets `shellListBottomInset`: management_page's four lists, statistics_page's main list and kana_page's main list)
+- **Notes:** With the Expressive bottom bar the shell uses `extendBody`, so pages draw behind the bar and the `Scaffold` reports the bar's height as `MediaQuery.padding.bottom`. A scroll view with no explicit padding (Home, Settings) applies that inset itself; a scroll view with an explicit `padding` does not, so it must pass its padding through here to leave room to scroll its last content above the bar. Elsewhere (classic bar, rail, pushed routes) the inset is just the system's, so the call is harmless. This is the rule for every shell page: any list with explicit padding wraps it in `navBarAwarePadding`.
 
 ### `int columnCapacity(double contentWidth, {required double minItemWidth, double gap = listTileGap, int maxColumns = listMaxColumns})` <a id="columncapacity"></a>
 - **Kind:** top-level function

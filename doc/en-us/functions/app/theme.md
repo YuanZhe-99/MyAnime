@@ -1,6 +1,6 @@
 # lib/app/theme.dart
 
-Defines `AppUiStyle` (the two interface styles) and `AppTheme`, a static-only class that builds the app's
+Defines `AppUiStyle` (the two interface styles), `NavPlacement` (where the shell puts its navigation, 1.7.2) and `AppTheme`, a static-only class that builds the app's
 `ThemeData` from a single seed color. Since 1.7.0 the visual system is plain Flutter Material 3
 (`ThemeData` + `ColorScheme.fromSeed`); `flex_color_scheme` is gone. Since 1.7.1 the theme comes in two
 styles over the same colors: stock **Material 3**, and **Expressive** (the default), a theme-level
@@ -16,6 +16,7 @@ app shell.
 | Declaration | Kind | Tier | Purpose |
 |---|---|---|---|
 | [`AppUiStyle`](#appuistyle) | enum | A | The two interface styles the user can choose between: `material3` and `expressive` (1.7.1). |
+| [`NavPlacement`](#navplacement) | enum | A | Where the shell puts its navigation, for both styles: `bottom`, `sideOnWide` or `side` (1.7.2). |
 | `AppTheme._` | constructor (`AppTheme`) | B | Prevent direct instantiation and expose only static members. |
 | [`AppTheme.seedColor`](#apptheme-seedcolor) | static constant (`AppTheme`) | A | The app's brand color and the only per-app knob of the visual system. |
 | [`AppTheme._morphDuration`](#apptheme-morphduration) | static constant (`AppTheme`, private) | A | How long Expressive buttons take to morph between resting and pressed shapes (1.7.1). |
@@ -39,8 +40,8 @@ app shell.
 - **Side effects:** None.
 - **Notes:** Added in 1.7.1; carries a doc comment but no `Purpose:` line, so it is not counted in
   [INDEX.md](../INDEX.md). `expressive` is the default. It approximates Material 3 Expressive **at the
-  theme level** (Flutter ships no Expressive components) and gives narrow windows the floating island
-  navigation bar. `material3` is stock Material 3 with the classic full-width bottom bar. The style is
+  theme level** (Flutter ships no Expressive components) and gives the bottom bar the compact
+  floating pill (`_ExpressiveNavBar`). `material3` is stock Material 3 with the classic full-width bottom bar. The style is
   persisted by `AnimeStorage.setUiStyle` (as the string `'material3'`, or no key for Expressive), held in
   `AppSettings.uiStyle` and passed to `AppTheme.light`/`dark` by `MyAnimeApp.build`; `ShellScaffold`
   reads it to choose the bottom bar. Both styles share the same colors.
@@ -57,6 +58,15 @@ app shell.
   supplies no dynamic scheme. Each app in the series has its own seed so they are told apart at a
   glance. `ShareService` also derives its (always light, never dynamic) share-image palette from it.
   `ShareService` is unaffected by the interface style.
+
+### `enum NavPlacement` <a id="navplacement"></a>
+- **Kind:** top-level enum
+- **Source:** `lib/app/theme.dart`
+- **Purpose:** Name where the shell puts its navigation, independent of the interface style.
+- **Inputs:** None.
+- **Returns:** Enum values `NavPlacement.bottom` (the default: the bottom bar on every window), `NavPlacement.sideOnWide` (the side rail on wide windows, the bottom bar on narrow ones) and `NavPlacement.side` (the side rail on every window, phones included; not recommended, because the rail takes width from the content).
+- **Side effects:** None.
+- **Notes:** Added in 1.7.2; carries a doc comment but no `Purpose:` line, so it is not counted in [INDEX.md](../INDEX.md). Declared here beside `AppUiStyle` and held in `AppSettings.navPlacement`; persisted by `AnimeStorage.setNavPlacement` (key `navPlacement`, absent for `bottom`) and chosen in Settings › General › Navigation position. Read by `ShellScaffold`. The theme itself ignores it.
 
 ### `static ColorScheme scheme(Brightness brightness, [ColorScheme? dynamicScheme])` <a id="apptheme-scheme"></a>
 - **Kind:** static method of `AppTheme`

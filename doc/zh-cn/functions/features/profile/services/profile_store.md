@@ -12,10 +12,11 @@
 | [`update`](#update) | 静态方法 | A | 应用一个排队的更改并保存。 |
 | `_apply` | 静态方法 | B | 执行一个排队的更新。 |
 | [`setName`](#setname) | 静态方法 | A | 设置或清除名称。 |
-| [`pickAvatar`](#pickavatar) | 静态方法 | A | 让用户选择一张图片并设为头像。 |
+| [`pickAvatarSource`](#pickavatarsource) | 静态方法 | A | 让用户选择一张图片以编辑成头像（1.7.2；取代 `pickAvatar`）。 |
+| [`readAvatarBytes`](#readavatarbytes) | 静态方法 | A | 读取当前头像图片，以便再次调整（1.7.2）。 |
+| [`setAvatarJpeg`](#setavatarjpeg) | 静态方法 | A | 把编辑后的头像存为全新文件并更新个人资料（1.7.2）。 |
 | [`removeAvatar`](#removeavatar) | 静态方法 | A | 以带时间戳的移除方式移除头像。 |
 | `_deleteQuietly` | 静态方法 | B | 删除被替换的头像文件，忽略失败。 |
-| [`squareAvatarJpeg`](#squareavatarjpeg) | 顶层函数 | A | 把任何可解码的图片变成居中裁剪的正方形 JPEG。 |
 
 `fileName`（`profile.json`，必须与 `data_modules.dart` 中的 `profileFileName` 一致）、`avatarSize`（`512`）和队列 `_tail` 没有 `/// Purpose:` 注释。
 
@@ -34,11 +35,24 @@
 - **输入：** `name`——会去除首尾空白；为空则清除。
 - **备注：** 未变化的名称保留其旧时间戳，因此不会赢得它本不该赢的合并。
 
-## pickAvatar
+## pickAvatarSource
 
-- **返回：** `ProfileData?`——选择器被取消（或没有可用字节）时为 null。
-- **副作用：** 打开 `FilePicker`（图片，`withData`），在 isolate 中裁剪并缩放（`Isolate.run(squareAvatarJpeg(bytes, 512))`），写入 `images/avatar_<uuid>.jpg`，通过 `update` 以 `withAvatar(rel, now)` 更新 `profile.json`，然后删除本设备上先前的头像文件。
-- **备注：** 所选文件不是可解码的图片时抛出。每个头像都使用**全新的文件名**，因为图像同步从不覆盖本地或远程已存在的同名文件，复用同一个名称会让其他设备一直保留旧图。旧头像文件会留在 WebDAV 服务器和其他设备上，因为图像同步只增不删——这是已知限制。
+- **返回：** `Uint8List?`——所选文件的字节；选择器被取消（或没有可用字节）时为 null。
+- **副作用：** 打开 `FilePicker`（图片，`withData`）；平台没有返回字节时回退为读取 `picked.path`。
+- **备注：** 不保存任何东西。字节交给头像编辑器（[`../views/avatar_editor.md`](../views/avatar_editor.md)），其结果再由 [`setAvatarJpeg`](#setavatarjpeg) 存储。它取代了 1.7.0 的 `pickAvatar`——后者一步完成选择、居中裁剪与保存；那种居中裁剪保留为 [`avatar_image.md`](avatar_image.md) 中的 `squareAvatarJpeg`。
+
+## readAvatarBytes
+
+- **返回：** `Uint8List?`——头像文件的字节；没有头像、或其文件尚未到达本设备（或无法读取）时为 null。
+- **副作用：** 读取 `profile.json` 与 `images/` 下的一个文件，经 `ImageService.resolve` 解析。
+- **备注：** 已存储的头像本身就是 512 像素的正方形，因此再次调整只能进一步放大、旋转或重新居中。
+
+## setAvatarJpeg
+
+- **输入：** `jpeg`——编辑器给出的正方形 JPEG（`avatarSize` 像素）。
+- **返回：** `ProfileData`——新的个人资料。
+- **副作用：** 写入全新的 `images/avatar_<uuid>.jpg`，通过 `update` 以 `withAvatar(rel, now)` 更新 `profile.json`，然后删除本设备上先前的头像文件。
+- **备注：** 每个头像都使用**全新的文件名**，因为图像同步从不覆盖本地或远程已存在的同名文件，复用同一个名称会让其他设备一直保留旧图。旧头像文件会留在 WebDAV 服务器和其他设备上，因为图像同步只增不删——这是已知限制。
 
 ## removeAvatar
 
@@ -49,9 +63,3 @@
 
 - **备注：** 只会删除基名以 `avatar_` 开头的文件，因此这条路径永远不会删除封面。失败被忽略。
 
-## squareAvatarJpeg
-
-- **输入：** `bytes`——源图片；`size`——输出边长（像素）。
-- **返回：** `Uint8List`——JPEG 字节。
-- **算法：** `img.decodeImage`（任何解码器异常都变成 `FormatException('Not a supported image')`）、`bakeOrientation`（应用 EXIF 方向，使手机照片是正的）、`copyResizeCropSquare(size: size, interpolation: average)`，然后 `encodeJpg(quality: 88)`。
-- **备注：** 纯函数，可安全地在另一个 isolate 中运行。存储传入 `avatarSize`（512），因此每个头像都是 512 x 512 的 JPEG。

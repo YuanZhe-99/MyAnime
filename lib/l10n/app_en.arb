@@ -370,6 +370,15 @@
   "settingsUiStyleDesc": "Expressive uses rounder shapes, bolder titles and a floating navigation bar. Material 3 is the standard look with a full-width bar.",
   "settingsUiStyleMaterial3": "Material 3",
   "settingsUiStyleExpressive": "Expressive",
+  "settingsNavPlacement": "Navigation position",
+  "settingsNavPlacementDesc": "Bottom everywhere, at the side on wide screens such as unfolded foldables, tablets and desktop, or at the side everywhere (not recommended on phones).",
+  "settingsNavPlacementBottom": "Bottom",
+  "settingsNavPlacementSideOnWide": "Side on wide",
+  "settingsNavPlacementSide": "Side",
+  "settingsRailSide": "Side navigation position",
+  "settingsRailSideDesc": "Which side of the window the navigation rail sits on.",
+  "settingsRailSideLeft": "Left",
+  "settingsRailSideRight": "Right",
   "settingsGeneral": "General",
   "settingsData": "Data",
   "settingsSelectItem": "Select an item from the list",
@@ -746,5 +755,9 @@
     "profileChangeAvatar": "Choose avatar",
     "profileRemoveAvatar": "Remove",
     "profileAvatarError": "This image could not be used",
-    "profileOpenSettings": "Profile and settings"
+    "profileOpenSettings": "Profile and settings",
+    "profileAdjustAvatar": "Adjust avatar",
+    "profileAvatarRotate": "Rotate",
+    "profileAvatarReset": "Reset",
+    "profileAvatarEditorHint": "Drag to move. Pinch or scroll to zoom."
 }

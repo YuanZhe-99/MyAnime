@@ -356,6 +356,15 @@
   "settingsUiStyleDesc": "Expressive 使用更圆润的形状、更粗的标题和悬浮导航栏。Material 3 为标准外观，使用通栏导航栏。",
   "settingsUiStyleMaterial3": "Material 3",
   "settingsUiStyleExpressive": "Expressive",
+  "settingsNavPlacement": "导航栏位置",
+  "settingsNavPlacementDesc": "全部放在底部；宽屏（折叠屏展开、平板、桌面）时放在侧边；或全部放在侧边（手机上不推荐）。",
+  "settingsNavPlacementBottom": "全部底部",
+  "settingsNavPlacementSideOnWide": "宽屏侧边",
+  "settingsNavPlacementSide": "全部侧边",
+  "settingsRailSide": "侧边导航栏位置",
+  "settingsRailSideDesc": "侧边导航栏显示在窗口的哪一侧。",
+  "settingsRailSideLeft": "左侧",
+  "settingsRailSideRight": "右侧",
   "settingsGeneral": "通用",
   "settingsData": "数据",
   "settingsSelectItem": "从左侧列表中选择一项",
@@ -716,5 +725,9 @@
     "profileChangeAvatar": "选择头像",
     "profileRemoveAvatar": "移除",
     "profileAvatarError": "无法使用此图片",
-    "profileOpenSettings": "个人资料与设置"
+    "profileOpenSettings": "个人资料与设置",
+    "profileAdjustAvatar": "调整头像",
+    "profileAvatarRotate": "旋转",
+    "profileAvatarReset": "重置",
+    "profileAvatarEditorHint": "拖动以移动，双指缩放或滚动鼠标滚轮以缩放。"
 }

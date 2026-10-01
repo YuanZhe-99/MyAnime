@@ -1059,6 +1059,34 @@ class AppLocalizationsZh extends AppLocalizations {
   String get settingsUiStyleExpressive => 'Expressive';
 
   @override
+  String get settingsNavPlacement => '导航栏位置';
+
+  @override
+  String get settingsNavPlacementDesc =>
+      '全部放在底部；宽屏（折叠屏展开、平板、桌面）时放在侧边；或全部放在侧边（手机上不推荐）。';
+
+  @override
+  String get settingsNavPlacementBottom => '全部底部';
+
+  @override
+  String get settingsNavPlacementSideOnWide => '宽屏侧边';
+
+  @override
+  String get settingsNavPlacementSide => '全部侧边';
+
+  @override
+  String get settingsRailSide => '侧边导航栏位置';
+
+  @override
+  String get settingsRailSideDesc => '侧边导航栏显示在窗口的哪一侧。';
+
+  @override
+  String get settingsRailSideLeft => '左侧';
+
+  @override
+  String get settingsRailSideRight => '右侧';
+
+  @override
   String get settingsGeneral => '通用';
 
   @override
@@ -2101,6 +2129,18 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get profileOpenSettings => '个人资料与设置';
+
+  @override
+  String get profileAdjustAvatar => '调整头像';
+
+  @override
+  String get profileAvatarRotate => '旋转';
+
+  @override
+  String get profileAvatarReset => '重置';
+
+  @override
+  String get profileAvatarEditorHint => '拖动以移动，双指缩放或滚动鼠标滚轮以缩放。';
 }
 
 /// The translations for Chinese, as used in Taiwan (`zh_TW`).
@@ -3158,6 +3198,34 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
   String get settingsUiStyleExpressive => 'Expressive';
 
   @override
+  String get settingsNavPlacement => '導覽列位置';
+
+  @override
+  String get settingsNavPlacementDesc =>
+      '全部放在底部；寬螢幕（摺疊螢幕展開、平板、桌面）時放在側邊；或全部放在側邊（手機上不建議）。';
+
+  @override
+  String get settingsNavPlacementBottom => '全部底部';
+
+  @override
+  String get settingsNavPlacementSideOnWide => '寬螢幕側邊';
+
+  @override
+  String get settingsNavPlacementSide => '全部側邊';
+
+  @override
+  String get settingsRailSide => '側邊導覽列位置';
+
+  @override
+  String get settingsRailSideDesc => '側邊導覽列顯示在視窗的哪一側。';
+
+  @override
+  String get settingsRailSideLeft => '左側';
+
+  @override
+  String get settingsRailSideRight => '右側';
+
+  @override
   String get settingsGeneral => '一般';
 
   @override
@@ -4200,4 +4268,16 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
 
   @override
   String get profileOpenSettings => '個人資料與設定';
+
+  @override
+  String get profileAdjustAvatar => '調整頭像';
+
+  @override
+  String get profileAvatarRotate => '旋轉';
+
+  @override
+  String get profileAvatarReset => '重設';
+
+  @override
+  String get profileAvatarEditorHint => '拖曳以移動，雙指縮放或捲動滑鼠滾輪以縮放。';
 }

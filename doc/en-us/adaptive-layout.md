@@ -196,12 +196,32 @@ A **second rule, and deliberately a narrower one**:
 bool useNavigationRail(double screenWidth) => screenWidth >= navRailMinWidth; // 600.0
 ```
 
-Above it the shell renders a `NavigationRail` down the side; below it, a bottom bar — since 1.7.0 a *floating island*
-(`_FloatingNavBar`: a pill-shaped, elevated surface with side and bottom margins, capped at 480 dp
-wide) when the interface style is **Expressive** (the default; the floating bar is part of that style since 1.7.1, after being a
-separate switch in 1.7.0), or the classic full-width `NavigationBar` when **Settings › General › Interface style** is **Material 3**. The island sits in the `Scaffold`'s bottom-bar slot rather than over the body, so it
-changes no page layout, and the bottom reservation below is unchanged. The rail is unaffected, and the
-style setting has no effect while the rail is shown. Both are built from one list of destinations — four, or five while the Kana tab is
+`useNavigationRail` says when a window is wide enough for a `NavigationRail` down the side; since 1.7.2 whether
+the shell actually uses it is a setting. `AppSettings.navPlacement` (`NavPlacement`; **Settings › General ›
+Navigation position**; both interface styles) has three values: **bottom** (the default: the bottom bar on every
+window, wide ones included; before 1.7.2 a wide window always got the rail), **side on wide** (the rail once
+`useNavigationRail` is true, the bottom bar below it) and **side** (the rail on every window, phones included; not
+recommended, because the rail takes width from the content). The shell computes `showRail` from it. A second
+setting, `navRailOnRight` (*Side navigation position*, shown while the placement is not bottom), moves the rail to
+the right of the window in both styles.
+
+The bottom bar follows the interface style. **Expressive** (the default) shows a *compact floating bar*
+(`_ExpressiveNavBar`, redesigned in 1.7.2): a pill as wide as its items, centred, with margins from the screen
+edges, in which the selected destination shows its icon and label side by side in a tonal pill and the others show
+an outlined icon only, with a tooltip. It **floats over the page**: the shell then uses `Scaffold(extendBody: true)`,
+so pages draw behind the bar and scroll their last content out from under it. When **Settings › General › Interface
+style** is **Material 3**, the bottom bar is the classic full-width `NavigationBar` and content stays above it. The
+style setting has no effect while the rail is shown.
+
+**A page that scrolls under the floating bar must leave room for it.** `navBarAwarePadding(context, padding)` adds
+`MediaQuery.paddingOf(context).bottom` to the page's own padding: with the floating bar that is the bar's height
+(what `extendBody` reports), and elsewhere just the system inset, so the call is harmless. Every list that applies
+`shellListBottomInset` wraps its padding in it (Manage's four lists, Stats' main list, Kana's main list); Home and
+Settings set no explicit padding, so their lists get the inset automatically. The shell also raises
+`viewPadding.bottom` for its child to the same value, because a page's own `Scaffold` places its FAB from
+`viewPadding`; without that, the FAB sat behind the bar.
+
+Both are built from one list of destinations — four, or five while the Kana tab is
 on — in
 [`shell_scaffold.dart`](functions/shared/widgets/shell_scaffold.md), so they cannot drift apart. The rail
 centres its destinations (`groupAlignment: 0`) rather than taking the default top alignment: a rail
@@ -222,7 +242,13 @@ Two consequences follow through the rest of the app:
   screen width.
 - `shellListBottomInset(screenWidth)` drops the 80 dp that scrolling pages reserved for the bottom
   bar down to 16 when there is no bottom bar — otherwise the reservation becomes dead space at the
-  exact moment vertical room is scarcest.
+  exact moment vertical room is scarcest. The 80 is the FAB's clearance; the floating bar's own height is
+  added on top by `navBarAwarePadding`, described above.
+
+**Known approximation (1.7.2).** `shellContentWidth` and the other width helpers still follow
+`useNavigationRail(width)` rather than the chosen placement. With the bottom bar on a wide window they therefore
+under-estimate the content width by about 81 dp, which is safe (a column fewer at worst); with the rail on a phone
+(*Side*) they over-estimate it by the rail's width, so content can be a little tighter than the capacity assumed.
 
 Not done, deliberately: a `NavigationDrawer` above 1240 dp. The rail is correct through
 extra-large here, and a third navigation mode is not worth its cost.
@@ -337,8 +363,8 @@ its two orientations, and that behaviour — split in landscape, original single
 is the requirement the rule exists to satisfy.
 
 Everything else follows Google exactly: the width and height floors are its breakpoints, the column
-capacity is its feed guidance, and the navigation rail at medium width and up is its recommendation
-verbatim.
+capacity is its feed guidance, and the navigation rail at medium width and up is its recommendation,
+which the *Side on wide* navigation position follows (since 1.7.2 the default is the bottom bar everywhere, a setting away from it).
 
 ## Tests
 

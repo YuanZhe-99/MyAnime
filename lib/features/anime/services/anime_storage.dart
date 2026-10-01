@@ -795,6 +795,58 @@ class AnimeStorage {
     });
   }
 
+  /// Purpose: Return the stored navigation placement (1.7.2).
+  /// Inputs: None.
+  /// Returns: `Future<String?>` — `'sideOnWide'`, `'side'`, or null for the
+  /// default (bottom everywhere).
+  /// Side effects: Reads `storage_config.json`.
+  /// Notes: Device-local; applies to both interface styles. Unknown values
+  /// read as the default.
+  static Future<String?> getNavPlacement() async {
+    final value = (await readConfig())['navPlacement'];
+    return value == 'sideOnWide' || value == 'side' ? value as String : null;
+  }
+
+  /// Purpose: Persist the navigation placement (1.7.2).
+  /// Inputs: `name` — `'sideOnWide'`, `'side'`, or null for bottom.
+  /// Returns: None.
+  /// Side effects: Writes `storage_config.json`.
+  /// Notes: The default (bottom) removes the key.
+  static Future<void> setNavPlacement(String? name) async {
+    await updateConfig((config) {
+      if (name == 'sideOnWide' || name == 'side') {
+        config['navPlacement'] = name;
+      } else {
+        config.remove('navPlacement');
+      }
+    });
+  }
+
+  /// Purpose: Return whether the navigation rail sits on the right (1.7.2).
+  /// Inputs: None.
+  /// Returns: `Future<bool>` — false (left) by default.
+  /// Side effects: Reads `storage_config.json`.
+  /// Notes: Device-local; applies to both interface styles.
+  static Future<bool> getNavRailRight() async {
+    final config = await readConfig();
+    return config['navRailRight'] == true;
+  }
+
+  /// Purpose: Persist which side the navigation rail sits on (1.7.2).
+  /// Inputs: `right`.
+  /// Returns: None.
+  /// Side effects: Writes `storage_config.json`.
+  /// Notes: Only the right side is stored; left removes the key.
+  static Future<void> setNavRailRight(bool right) async {
+    await updateConfig((config) {
+      if (right) {
+        config['navRailRight'] = true;
+      } else {
+        config.remove('navRailRight');
+      }
+    });
+  }
+
   /// Purpose: Return whether on-device AI is turned on.
   /// Inputs: None.
   /// Returns: `Future<bool>` — defaults to false.

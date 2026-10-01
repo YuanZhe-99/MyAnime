@@ -10,7 +10,7 @@
 | `ProfileNotifier.fixed` | 构造函数（`ProfileNotifier`） | B | 创建带固定个人资料且无 I/O 的 notifier；供测试使用。 |
 | [`reload`](#reload) | 方法（`ProfileNotifier`） | A | 把 `profile.json` 重新读入状态。 |
 | `setName` | 方法（`ProfileNotifier`） | B | 保存新名称；为空则清除。 |
-| `pickAvatar` | 方法（`ProfileNotifier`） | B | 选择并保存新头像；选择器被取消时返回 false。 |
+| `setAvatarJpeg` | 方法（`ProfileNotifier`） | B | 保存由头像编辑器产生的头像（1.7.2；取代 `pickAvatar`）。 |
 | `removeAvatar` | 方法（`ProfileNotifier`） | B | 移除头像。 |
 | `dispose` | 方法（`ProfileNotifier`） | B | 取消订阅本地数据变更。 |
 
@@ -28,4 +28,4 @@
 
 ## 编辑
 
-`setName`、`pickAvatar` 和 `removeAvatar` 调用对应的 `ProfileStore` 方法，然后用返回的个人资料替换状态。选择器被取消时 `pickAvatar` 返回 `false`；无法读取的图片以异常形式向上传播，由对话框报告。`dispose` 调用 `removeOnLocalDataChanged(reload)`。
+`setName`、`setAvatarJpeg` 和 `removeAvatar` 调用对应的 `ProfileStore` 方法，然后用返回的个人资料替换状态。`setAvatarJpeg(Uint8List jpeg)` 接收编辑器给出的正方形 JPEG；选择与取景在调用它之前由界面完成（1.7.2 取代了一步完成选择与保存的 `pickAvatar()` 及其选择器被取消时的 `false`）。失败以异常形式向上传播，由对话框报告。`dispose` 调用 `removeOnLocalDataChanged(reload)`。

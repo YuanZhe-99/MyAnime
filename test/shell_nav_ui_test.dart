@@ -6,6 +6,7 @@ import 'package:my_anime/app/theme.dart';
 import 'package:my_anime/app/router.dart';
 import 'package:my_anime/l10n/app_localizations.dart';
 import 'package:my_anime/shared/providers/app_settings.dart';
+import 'package:my_anime/shared/utils/adaptive_layout.dart';
 import 'package:my_anime/shared/widgets/shell_scaffold.dart';
 
 /// Purpose: Test that the shell swaps its bottom bar for a rail on wide windows,
@@ -21,12 +22,19 @@ import 'package:my_anime/shared/widgets/shell_scaffold.dart';
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
+  // The Expressive bottom bar (the default style) has this key.
+  const island = ValueKey('floatingNavBarIsland');
+
   Future<GoRouter> pumpAt(
     WidgetTester tester,
     double width,
     double height, {
     bool kanaTabEnabled = false,
     AppUiStyle uiStyle = AppUiStyle.expressive,
+    // The app default is bottom everywhere; most cases here exercise the
+    // wide-window rail, so they default to side-on-wide.
+    NavPlacement placement = NavPlacement.sideOnWide,
+    bool railRight = false,
     String initialLocation = '/home',
   }) async {
     tester.view.devicePixelRatio = 1.0;
@@ -36,8 +44,29 @@ void main() {
     GoRoute stub(String path) => GoRoute(
       path: path,
       redirect: path == '/kana' ? kanaRouteRedirect : null,
-      builder: (context, state) =>
-          Scaffold(body: Center(child: Text('page $path'))),
+      builder: (context, state) => path == '/manage'
+          // A long list with a FAB, laid out the way the real tab pages are:
+          // explicit padding passed through navBarAwarePadding.
+          ? Scaffold(
+              floatingActionButton: FloatingActionButton(
+                key: const ValueKey('fab'),
+                onPressed: () {},
+                child: const Icon(Icons.add),
+              ),
+              body: Builder(
+                builder: (context) => ListView(
+                  padding: navBarAwarePadding(
+                    context,
+                    const EdgeInsets.only(bottom: 80),
+                  ),
+                  children: [
+                    for (var i = 0; i < 40; i++)
+                      SizedBox(height: 56, child: Text('row $i')),
+                  ],
+                ),
+              ),
+            )
+          : Scaffold(body: Center(child: Text('page $path'))),
     );
 
     final router = GoRouter(
@@ -65,7 +94,12 @@ void main() {
         overrides: [
           appSettingsProvider.overrideWithValue(
             AppSettingsNotifier.fixed(
-              AppSettings(kanaTabEnabled: kanaTabEnabled, uiStyle: uiStyle),
+              AppSettings(
+                kanaTabEnabled: kanaTabEnabled,
+                uiStyle: uiStyle,
+                navPlacement: placement,
+                navRailOnRight: railRight,
+              ),
             ),
           ),
         ],
@@ -85,7 +119,7 @@ void main() {
     tester,
   ) async {
     await pumpAt(tester, 412, 915); // Pixel 9
-    expect(find.byType(NavigationBar), findsOneWidget);
+    expect(find.byKey(island), findsOneWidget);
     expect(find.byType(NavigationRail), findsNothing);
   });
 
@@ -108,20 +142,17 @@ void main() {
   });
 
   group('bottom bar style', () {
-    const island = ValueKey('floatingNavBarIsland');
-
     testWidgets('the default Expressive style floats the bar as an island', (
       tester,
     ) async {
       await pumpAt(tester, 412, 915);
       expect(find.byKey(island), findsOneWidget);
-      expect(
-        find.descendant(
-          of: find.byKey(island),
-          matching: find.byType(NavigationBar),
-        ),
-        findsOneWidget,
-      );
+      expect(find.byType(NavigationBar), findsNothing);
+      // Only the selected destination shows its label; the others are icons
+      // with tooltips.
+      expect(find.text('Home'), findsOneWidget);
+      expect(find.text('Manage'), findsNothing);
+      expect(find.byTooltip('Manage'), findsOneWidget);
     });
 
     testWidgets('the Material 3 style keeps the classic bar', (tester) async {
@@ -144,11 +175,110 @@ void main() {
     });
   });
 
+  group('content behind the Expressive bar (1.7.2)', () {
+    testWidgets('the last row and the FAB clear the floating bar', (
+      tester,
+    ) async {
+      await pumpAt(tester, 412, 915, initialLocation: '/manage');
+      final barTop = tester.getRect(find.byKey(island)).top;
+      expect(
+        tester.getRect(find.byKey(const ValueKey('fab'))).bottom,
+        lessThanOrEqualTo(barTop),
+      );
+      // Before scrolling, rows are drawn behind the bar.
+      expect(tester.getRect(find.text('row 14')).bottom, greaterThan(barTop));
+      await tester.scrollUntilVisible(find.text('row 39'), 400);
+      await tester.drag(find.byType(ListView), const Offset(0, -2000));
+      await tester.pumpAndSettle();
+      expect(
+        tester.getRect(find.text('row 39')).bottom,
+        lessThanOrEqualTo(barTop),
+      );
+    });
+
+    testWidgets('Material 3 keeps content above its bar', (tester) async {
+      await pumpAt(
+        tester,
+        412,
+        915,
+        uiStyle: AppUiStyle.material3,
+        initialLocation: '/manage',
+      );
+      final barTop = tester.getRect(find.byType(NavigationBar)).top;
+      expect(
+        tester.getRect(find.byType(ListView)).bottom,
+        lessThanOrEqualTo(barTop),
+      );
+    });
+  });
+
+  group('navigation position (1.7.2)', () {
+    test('the default is bottom everywhere', () {
+      expect(const AppSettings().navPlacement, NavPlacement.bottom);
+    });
+
+    for (final style in AppUiStyle.values) {
+      testWidgets('bottom keeps the bar on a wide window (${style.name})', (
+        tester,
+      ) async {
+        await pumpAt(
+          tester,
+          933,
+          704,
+          uiStyle: style,
+          placement: NavPlacement.bottom,
+        );
+        expect(find.byType(NavigationRail), findsNothing);
+        expect(
+          style == AppUiStyle.expressive
+              ? find.byKey(island)
+              : find.byType(NavigationBar),
+          findsOneWidget,
+        );
+      });
+
+      testWidgets('side puts the rail on a phone too (${style.name})', (
+        tester,
+      ) async {
+        await pumpAt(
+          tester,
+          412,
+          915,
+          uiStyle: style,
+          placement: NavPlacement.side,
+        );
+        expect(find.byType(NavigationRail), findsOneWidget);
+        expect(find.byKey(island), findsNothing);
+        expect(find.byType(NavigationBar), findsNothing);
+      });
+
+      testWidgets('the rail can sit on the right (${style.name})', (
+        tester,
+      ) async {
+        await pumpAt(tester, 933, 704, uiStyle: style, railRight: true);
+        final rail = tester.getRect(find.byType(NavigationRail));
+        expect(rail.right, 933);
+        expect(find.text('page /home'), findsOneWidget);
+      });
+    }
+
+    testWidgets('side on wide keeps the bar on a phone', (tester) async {
+      await pumpAt(tester, 412, 915);
+      expect(find.byKey(island), findsOneWidget);
+      expect(find.byType(NavigationRail), findsNothing);
+    });
+
+    testWidgets('the rail sits on the left by default', (tester) async {
+      await pumpAt(tester, 933, 704);
+      expect(tester.getTopLeft(find.byType(NavigationRail)).dx, 0);
+    });
+  });
+
   group('Kana tab off (the default)', () {
     testWidgets('the bar and the rail both carry four destinations', (
       tester,
     ) async {
-      await pumpAt(tester, 412, 915);
+      await pumpAt(tester, 412, 915, uiStyle: AppUiStyle.material3);
       final bar = tester.widget<NavigationBar>(find.byType(NavigationBar));
       expect(bar.destinations, hasLength(4));
       expect(find.byIcon(Icons.translate_outlined), findsNothing);
@@ -208,6 +338,7 @@ void main() {
         915,
         kanaTabEnabled: true,
         initialLocation: '/settings',
+        uiStyle: AppUiStyle.material3,
       );
       final bar = tester.widget<NavigationBar>(find.byType(NavigationBar));
       expect(bar.destinations, hasLength(5));

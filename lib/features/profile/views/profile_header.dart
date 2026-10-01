@@ -1,8 +1,12 @@
+import 'dart:typed_data';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../l10n/app_localizations.dart';
 import '../providers/profile_provider.dart';
+import '../services/profile_store.dart';
+import 'avatar_editor.dart';
 import 'profile_avatar.dart';
 
 /// The avatar-and-name row at the top of Settings (1.7.0). Tapping it opens
@@ -113,6 +117,24 @@ class _ProfileDialogState extends ConsumerState<_ProfileDialog> {
     }
   }
 
+  /// Purpose: Frame an image in the avatar editor and store the result
+  /// (1.7.2).
+  /// Inputs: `loadSource` — returns the image to edit, or null to stop
+  /// (picker cancelled, no avatar file yet).
+  /// Returns: None.
+  /// Side effects: Opens the editor; saves the edited avatar; shows a snack
+  /// bar when the image cannot be used.
+  /// Notes: Internal helper used within this file only. Backing out of the
+  /// editor saves nothing.
+  Future<void> _editAvatar(Future<Uint8List?> Function() loadSource) =>
+      _run(() async {
+        final source = await loadSource();
+        if (source == null || !mounted) return;
+        final jpeg = await showAvatarEditor(context, source);
+        if (jpeg == null) return;
+        await ref.read(profileProvider.notifier).setAvatarJpeg(jpeg);
+      });
+
   /// Purpose: Save the name and close.
   /// Inputs: None.
   /// Returns: None.
@@ -141,19 +163,39 @@ class _ProfileDialogState extends ConsumerState<_ProfileDialog> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const ProfileAvatar(radius: 48),
+            // Tapping the avatar adjusts it (or picks one when there is none).
+            InkWell(
+              customBorder: const CircleBorder(),
+              onTap: _busy
+                  ? null
+                  : () => _editAvatar(
+                      hasAvatar
+                          ? ProfileStore.readAvatarBytes
+                          : ProfileStore.pickAvatarSource,
+                    ),
+              child: const ProfileAvatar(radius: 48),
+            ),
             const SizedBox(height: 12),
             Wrap(
               alignment: WrapAlignment.center,
               spacing: 8,
+              runSpacing: 4,
               children: [
                 FilledButton.tonalIcon(
                   onPressed: _busy
                       ? null
-                      : () => _run(() async => notifier.pickAvatar()),
+                      : () => _editAvatar(ProfileStore.pickAvatarSource),
                   icon: const Icon(Icons.photo_outlined),
                   label: Text(l10n.profileChangeAvatar),
                 ),
+                if (hasAvatar)
+                  OutlinedButton.icon(
+                    onPressed: _busy
+                        ? null
+                        : () => _editAvatar(ProfileStore.readAvatarBytes),
+                    icon: const Icon(Icons.crop_rotate),
+                    label: Text(l10n.profileAdjustAvatar),
+                  ),
                 if (hasAvatar)
                   TextButton(
                     onPressed: _busy ? null : () => _run(notifier.removeAvatar),

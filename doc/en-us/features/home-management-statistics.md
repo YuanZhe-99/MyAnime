@@ -102,6 +102,10 @@ takes 81 logical pixels on any window 600 wide or more. That is a real differenc
 tablet in landscape now gets two columns where it previously got three, because a third of the
 943 that remain would be 306 wide, under the 320 dp a tile needs. The room changed, not the rule.
 
+Since 1.7.2 the Manage, Stats and Kana lists add the Expressive floating bar's height to their bottom padding
+(`navBarAwarePadding`), because pages draw behind that bar; the last row scrolls to just above it. The Home and
+Settings lists get the same inset without explicit padding.
+
 ## Statistics on a wide window
 
 Two changes in 1.5.5, both about the vertical space the page spends before showing any anime. Both

@@ -1067,6 +1067,34 @@ class AppLocalizationsJa extends AppLocalizations {
   String get settingsUiStyleExpressive => 'Expressive';
 
   @override
+  String get settingsNavPlacement => 'ナビゲーションの位置';
+
+  @override
+  String get settingsNavPlacementDesc =>
+      '常に下部、ワイド画面（折りたたみ端末を開いたとき、タブレット、デスクトップ）のみサイド、または常にサイド（スマートフォンでは非推奨）。';
+
+  @override
+  String get settingsNavPlacementBottom => '下部';
+
+  @override
+  String get settingsNavPlacementSideOnWide => 'ワイドはサイド';
+
+  @override
+  String get settingsNavPlacementSide => 'サイド';
+
+  @override
+  String get settingsRailSide => 'サイドナビゲーションの位置';
+
+  @override
+  String get settingsRailSideDesc => 'ナビゲーションレールをウィンドウのどちら側に表示するかです。';
+
+  @override
+  String get settingsRailSideLeft => '左';
+
+  @override
+  String get settingsRailSideRight => '右';
+
+  @override
   String get settingsGeneral => '一般';
 
   @override
@@ -2117,4 +2145,16 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get profileOpenSettings => 'プロフィールと設定';
+
+  @override
+  String get profileAdjustAvatar => 'アバターを調整';
+
+  @override
+  String get profileAvatarRotate => '回転';
+
+  @override
+  String get profileAvatarReset => 'リセット';
+
+  @override
+  String get profileAvatarEditorHint => 'ドラッグで移動、ピンチまたはスクロールで拡大縮小します。';
 }

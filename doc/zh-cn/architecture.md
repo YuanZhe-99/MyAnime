@@ -6,7 +6,7 @@
 
 - `lib/main.dart` — 应用入口点。
 - `lib/app/app.dart` — 根 `MaterialApp`/`App` 组件接线。
-- `lib/app/router.dart` — 基于 `go_router` 的导航。路由器使用一个 `ShellRoute` 包住各导航标签——在窄窗口上渲染为底栏（自 1.7.0 起的悬浮岛，自 1.7.1 起它是默认的 Expressive 界面风格的一部分；Material 3 风格则使用经典的 `NavigationBar`），从 600 逻辑像素起渲染为侧边 `NavigationRail`，见 [`adaptive-layout.md`](adaptive-layout.md)：
+- `lib/app/router.dart` — 基于 `go_router` 的导航。路由器使用一个 `ShellRoute` 包住各导航标签——默认（设置 › 通用 › 导航栏位置，1.7.2）在每个窗口上渲染为底栏：默认 Expressive 界面风格的紧凑悬浮栏（`_ExpressiveNavBar`，1.7.2 重新设计；页面绘制到它之后，并用 `navBarAwarePadding` 留出空间），或 Material 3 风格的经典 `NavigationBar`；同一项设置还可以把它改为侧边 `NavigationRail`（位于左侧或右侧），仅在 600 逻辑像素及以上的窗口，或在每个窗口上，见 [`adaptive-layout.md`](adaptive-layout.md)：
   - 主页（`/home`，`home_page.dart`）
   - 管理（`/manage`，`management_page.dart`）
   - 统计（`/stats`，`statistics_page.dart`）
@@ -172,9 +172,9 @@ WebDAV 同步引擎、备份引擎、ZIP 传输引擎和自动同步调度器**�
 
 - **状态管理：** `flutter_riverpod`；常规变更不用 Provider 或 Bloc。
 - **导航：** `go_router`，带 `ShellRoute` 和上面列出的四个或五个标签。
-- **视觉体系：** Google Material 3——由单个种子色（`AppTheme.seedColor`）经 `ColorScheme.fromSeed` 生成，自 1.7.1 起有两种界面风格（原版 Material 3，或默认的 **Expressive**——主题层面的近似，有更圆的形状、更粗的标题和悬浮导航栏；两者配色相同），仅在 Android 12+ 上额外使用 `dynamic_color` 壁纸取色（自 1.7.0 起；`flex_color_scheme` 已移除）。见 [`functions/app/theme.md`](functions/app/theme.md)。
+- **视觉体系：** Google Material 3——由单个种子色（`AppTheme.seedColor`）经 `ColorScheme.fromSeed` 生成，自 1.7.1 起有两种界面风格（原版 Material 3，或默认的 **Expressive**——主题层面的近似，有更圆的形状、更粗的标题和紧凑悬浮导航栏；两者配色相同），仅在 Android 12+ 上额外使用 `dynamic_color` 壁纸取色（自 1.7.0 起；`flex_color_scheme` 已移除）。见 [`functions/app/theme.md`](functions/app/theme.md)。
 - **响应式布局：** 一条共享规则决定界面何时可以拆成分栏或多列，以及列表分成几列；另有一条只看宽度的规则
-  决定导航放在侧边还是底部。两者都位于 `shared/utils/adaptive_layout.dart`，推导见
+  判定窗口是否宽到可以把导航放在侧边。两者都位于 `shared/utils/adaptive_layout.dart`，推导见
   [`adaptive-layout.md`](adaptive-layout.md)。**不要新增内联的宽度断点**——截至 1.5.4，`lib/` 中一个
   也不剩了。容量请对 `shellContentWidth` 测量而非原始屏幕宽度，因为侧边导航栏并不归页面支配。
 - **文件 I/O：** 应通过 `AnimeStorage.getAppDir()`，使自定义存储路径（见 [`data-formats.md`](data-formats.md) 中的 `storage_config.json`）一致工作。

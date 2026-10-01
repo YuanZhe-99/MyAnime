@@ -6,6 +6,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:image/image.dart' as img;
 import 'package:my_anime/app/data_modules.dart';
 import 'package:my_anime/features/profile/models/profile_data.dart';
+import 'package:my_anime/features/profile/services/avatar_image.dart';
 import 'package:my_anime/features/profile/services/profile_merge.dart';
 import 'package:my_anime/features/profile/services/profile_store.dart';
 import 'package:path/path.dart' as p;
@@ -194,6 +195,117 @@ void main() {
     expect(
       () => squareAvatarJpeg(Uint8List.fromList([1, 2, 3]), 64),
       throwsFormatException,
+    );
+  });
+
+  group('avatar editor images', () {
+    test('prepareAvatarSource rotates and limits the size', () {
+      final png = Uint8List.fromList(
+        img.encodePng(img.Image(width: 4000, height: 1000)),
+      );
+      final upright = prepareAvatarSource(png);
+      expect(upright.width, avatarSourceMaxEdge);
+      expect(upright.height, 512);
+      final turned = prepareAvatarSource(png, quarterTurns: 1);
+      expect(turned.width, 512);
+      expect(turned.height, avatarSourceMaxEdge);
+      expect(
+        () => prepareAvatarSource(Uint8List.fromList([1, 2, 3])),
+        throwsFormatException,
+      );
+    });
+
+    test('cropAvatarJpeg cuts the framed square', () {
+      // Left half red, right half blue: framing the right half must give a
+      // blue avatar.
+      final source = img.Image(width: 200, height: 100);
+      img.fillRect(
+        source,
+        x1: 0,
+        y1: 0,
+        x2: 99,
+        y2: 99,
+        color: img.ColorRgb8(255, 0, 0),
+      );
+      img.fillRect(
+        source,
+        x1: 100,
+        y1: 0,
+        x2: 199,
+        y2: 99,
+        color: img.ColorRgb8(0, 0, 255),
+      );
+      final jpeg = cropAvatarJpeg(
+        Uint8List.fromList(img.encodePng(source)),
+        x: 100,
+        y: 0,
+        side: 100,
+        size: 64,
+      );
+      final out = img.decodeJpg(jpeg)!;
+      expect(out.width, 64);
+      final centre = out.getPixel(32, 32);
+      expect(centre.b, greaterThan(200));
+      expect(centre.r, lessThan(60));
+    });
+
+    test('the background helpers run in another isolate', () async {
+      // Regression: calling Isolate.run from inside the editor's State
+      // captured the State and failed; the top-level helpers must work.
+      final png = Uint8List.fromList(
+        img.encodePng(img.Image(width: 300, height: 200)),
+      );
+      final source = await prepareAvatarSourceInBackground(
+        png,
+        quarterTurns: 1,
+      );
+      expect(source.width, 200);
+      final jpeg = await cropAvatarJpegInBackground(
+        source.bytes,
+        x: 0,
+        y: 0,
+        side: 200,
+        size: 64,
+      );
+      expect(img.decodeJpg(jpeg)!.width, 64);
+    });
+
+    test('cropAvatarJpeg clamps a square that runs off the image', () {
+      final png = Uint8List.fromList(
+        img.encodePng(img.Image(width: 120, height: 80)),
+      );
+      final out = img.decodeJpg(
+        cropAvatarJpeg(png, x: 100, y: 50, side: 500, size: 32),
+      )!;
+      expect(out.width, 32);
+      expect(out.height, 32);
+    });
+  });
+
+  group('store avatar', () {
+    late Directory temp;
+    setUp(() async {
+      temp = await Directory.systemTemp.createTemp('myanime_avatar');
+      final docs = Directory(p.join(temp.path, 'docs'))..createSync();
+      Directory(p.join(docs.path, 'MyAnime')).createSync();
+      PathProviderPlatform.instance = _FakePathProvider(docs.path);
+    });
+    tearDown(() {
+      if (temp.existsSync()) temp.deleteSync(recursive: true);
+    });
+
+    test(
+      'setAvatarJpeg stores a fresh file and readAvatarBytes reads it',
+      () async {
+        final first = Uint8List.fromList([1, 2, 3]);
+        final a = await ProfileStore.setAvatarJpeg(first);
+        expect(a.avatar, startsWith('images/avatar_'));
+        expect(await ProfileStore.readAvatarBytes(), first);
+        final b = await ProfileStore.setAvatarJpeg(Uint8List.fromList([4]));
+        expect(b.avatar, isNot(a.avatar));
+        final dir = Directory(p.join(temp.path, 'docs', 'MyAnime', 'images'));
+        expect(dir.listSync(), hasLength(1)); // the replaced file is deleted
+      },
     );
   });
 }

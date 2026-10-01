@@ -880,6 +880,62 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
               onSelectionChanged: (s) => notifier.setUiStyle(s.first),
             ),
           ),
+          // Navigation position (1.7.2, both styles): bottom everywhere (the
+          // default), side rail on wide windows only, or side rail everywhere
+          // (not recommended on phones). Left/right shows for either side
+          // option.
+          ListTile(
+            leading: const Icon(Icons.view_sidebar_outlined),
+            title: Text(l10n.settingsNavPlacement),
+            subtitle: Text(l10n.settingsNavPlacementDesc),
+          ),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            child: SegmentedButton<NavPlacement>(
+              segments: [
+                ButtonSegment(
+                  value: NavPlacement.bottom,
+                  label: Text(l10n.settingsNavPlacementBottom),
+                ),
+                ButtonSegment(
+                  value: NavPlacement.sideOnWide,
+                  label: Text(l10n.settingsNavPlacementSideOnWide),
+                ),
+                ButtonSegment(
+                  value: NavPlacement.side,
+                  label: Text(l10n.settingsNavPlacementSide),
+                ),
+              ],
+              selected: {settings.navPlacement},
+              onSelectionChanged: (s) => notifier.setNavPlacement(s.first),
+            ),
+          ),
+          if (settings.navPlacement != NavPlacement.bottom) ...[
+            ListTile(
+              leading: const Icon(Icons.swap_horiz),
+              title: Text(l10n.settingsRailSide),
+              subtitle: Text(l10n.settingsRailSideDesc),
+            ),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              child: SegmentedButton<bool>(
+                segments: [
+                  ButtonSegment(
+                    value: false,
+                    icon: const Icon(Icons.align_horizontal_left, size: 18),
+                    label: Text(l10n.settingsRailSideLeft),
+                  ),
+                  ButtonSegment(
+                    value: true,
+                    icon: const Icon(Icons.align_horizontal_right, size: 18),
+                    label: Text(l10n.settingsRailSideRight),
+                  ),
+                ],
+                selected: {settings.navRailOnRight},
+                onSelectionChanged: (s) => notifier.setNavRailOnRight(s.first),
+              ),
+            ),
+          ],
           ListTile(
             leading: const Icon(Icons.language),
             title: Text(l10n.settingsLanguage),

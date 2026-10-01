@@ -296,7 +296,7 @@
   `_buildAnimeTile`；分组是一个 `ExpansionTile`（以分组键为 `PageStorageKey`、`Icons.account_tree_outlined`、标签，以及
   `manageSeriesMembers(count, completed)`），其子项是按页面列数由 `adaptiveTileRows` 排布的成员块。
 - **用法：** `build`，未在搜索且 `manageViewMode` 为 `series` 时。
-- **备注：** 无论哪种视图，搜索仍会用扁平的结果列表替换整个页面主体。
+- **备注：** 无论哪种视图，搜索仍会用扁平的结果列表替换整个页面主体。自 1.7.2 起，本页的每个列表（搜索结果、季度视图的两个列表以及这个系列列表）都把底部内边距包进 `navBarAwarePadding(context, EdgeInsets.only(bottom: shellListBottomInset(width)))`：Expressive 悬浮栏悬浮在页面之上，因此最后一行必须能滚到恰好位于它之上。`shellListBottomInset` 里的 80 仍是 FAB 的避让空间。见 [`../../../shared/utils/adaptive_layout.md`](../../../shared/utils/adaptive_layout.md#navbarawarepadding)。
 
 ## 列表布局与行操作
 

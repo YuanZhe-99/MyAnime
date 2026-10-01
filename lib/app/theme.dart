@@ -16,6 +16,23 @@ enum AppUiStyle {
   expressive,
 }
 
+/// Where the shell puts its navigation (1.7.2), for both interface styles.
+///
+/// [bottom] (the default) keeps the bottom bar on every window; [sideOnWide]
+/// switches to the side rail once the window is wide enough
+/// (`useNavigationRail`); [side] uses the rail everywhere, phones included,
+/// which is not recommended because the rail takes width from the content.
+enum NavPlacement {
+  /// Bottom bar on every window.
+  bottom,
+
+  /// Side rail on wide windows, bottom bar on narrow ones.
+  sideOnWide,
+
+  /// Side rail on every window.
+  side,
+}
+
 class AppTheme {
   /// Purpose: Prevent direct instantiation and expose only static members.
   /// Inputs: None.

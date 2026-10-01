@@ -318,7 +318,9 @@ enum AnimeType {
 | API 服务器启用/监听地址/端口/凭据 | `storage_config.json` | 否 | 本地桌面配置；凭据不得被提交 |
 | 托盘和开机自启偏好 | `storage_config.json` | 否 | 本地桌面配置 |
 | 是否显示假名标签 | `storage_config.json` | 否 | 设备特有的 `kanaTabEnabled`；缺省表示隐藏（1.6.0） |
-| 界面风格 | `storage_config.json` | 否 | 设备特有的 `uiStyle`（1.7.1）；仅在选择 Material 3 时写入 `"material3"`；缺省表示 Expressive（默认值，同时显示悬浮导航栏） |
+| 界面风格 | `storage_config.json` | 否 | 设备特有的 `uiStyle`（1.7.1）；仅在选择 Material 3 时写入 `"material3"`；缺省表示 Expressive（默认值，同时显示紧凑悬浮导航栏） |
+| 导航位置 | `storage_config.json` | 否 | 设备特有的 `navPlacement`（1.7.2）；仅写入 `"sideOnWide"` 或 `"side"`；缺省表示 `bottom`，即每个窗口都用底栏（默认值，两种界面风格通用）；未知的值按 `bottom` 读取 |
+| 侧边导航栏所在一侧 | `storage_config.json` | 否 | 设备特有的 `navRailRight`（1.7.2）；仅在侧边导航栏位于右侧时写入 `true`；缺省表示左侧（两种界面风格通用） |
 | 底部导航栏样式（已被取代） | `storage_config.json` | 否 | 设备特有的 `classicNavBar`（1.7.0），1.7.1 起被 `uiStyle` 取代：为 `true` 时仍会被读取一次并视为 Material 3，并在下一次写入界面风格时移除 |
 | 端侧 AI 开关与模型尺寸偏好 | `storage_config.json` | 否 | 设备特有的 `onDeviceAiEnabled` 与 `onDeviceAiPreferFast`（Android）；缺省表示关闭（1.6.0） |
 | 自动分类 | `storage_config.json` | 否 | 设备特有的 `autoCategoriesEnabled`；缺省表示关闭（1.6.0） |
@@ -401,7 +403,7 @@ enum AnimeType {
 
 ### `storage_config.json`
 
-保存上表中除 WebDAV 配置外的每个设备本地偏好：主题模式、语言区域、日历周起始/布局/时间基准/视图格式偏好、存储路径覆盖、自动备份启用 + 保留天数（`backupRetentionDays`）、提醒设置、API 服务器启用/监听地址/端口/凭据、托盘/开机自启偏好，以及后台资料更新设置（`metadataAutoUpdate`、`metadataPrefetchCovers`）、分模块的列表列数（`homeListColumns`、`manageListColumns`、`statsListColumns`），是否显示假名标签（`kanaTabEnabled`，仅在开启时写入），以及端侧 AI 开关与「使用更快的模型」偏好（`onDeviceAiEnabled`、`onDeviceAiPreferFast`，都仅在开启时写入；见 [`on-device-ai.md`](on-device-ai.md)），以及是否开启自动分类（`autoCategoriesEnabled`，仅在开启时写入），以及是否开启推荐（`recommendationsEnabled`，仅在开启时写入），以及自 1.6.2 起管理标签的视图与系列排序（`manageViewMode`、`manageSeriesSort`，都仅在不是默认值时写入），以及自 1.7.1 起的界面风格（`uiStyle`，仅写入 `"material3"`；缺省表示 Expressive，包括其悬浮导航栏）。1.7.0 的键 `classicNavBar` 已被取代：仍会被读取一次并视为 Material 3，并在下一次写入时移除。此文件的任何内容都不被同步——它刻意设备特有，而这正是网络策略应有的归宿：接有线网的桌面与走流量套餐的手机本就该不同。
+保存上表中除 WebDAV 配置外的每个设备本地偏好：主题模式、语言区域、日历周起始/布局/时间基准/视图格式偏好、存储路径覆盖、自动备份启用 + 保留天数（`backupRetentionDays`）、提醒设置、API 服务器启用/监听地址/端口/凭据、托盘/开机自启偏好，以及后台资料更新设置（`metadataAutoUpdate`、`metadataPrefetchCovers`）、分模块的列表列数（`homeListColumns`、`manageListColumns`、`statsListColumns`），是否显示假名标签（`kanaTabEnabled`，仅在开启时写入），以及端侧 AI 开关与「使用更快的模型」偏好（`onDeviceAiEnabled`、`onDeviceAiPreferFast`，都仅在开启时写入；见 [`on-device-ai.md`](on-device-ai.md)），以及是否开启自动分类（`autoCategoriesEnabled`，仅在开启时写入），以及是否开启推荐（`recommendationsEnabled`，仅在开启时写入），以及自 1.6.2 起管理标签的视图与系列排序（`manageViewMode`、`manageSeriesSort`，都仅在不是默认值时写入），以及自 1.7.1 起的界面风格（`uiStyle`，仅写入 `"material3"`；缺省表示 Expressive，包括其紧凑悬浮导航栏）。1.7.0 的键 `classicNavBar` 已被取代：仍会被读取一次并视为 Material 3，并在下一次写入时移除。自 1.7.2 起它还保存导航位置（`navPlacement`，仅写入 `"sideOnWide"` 或 `"side"`；缺省表示每个窗口都用底栏）与侧边导航栏所在一侧（`navRailRight`，仅写入 `true`）。此文件的任何内容都不被同步——它刻意设备特有，而这正是网络策略应有的归宿：接有线网的桌面与走流量套餐的手机本就该不同。
 
 ### `webdav_config.json`
 

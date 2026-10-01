@@ -107,7 +107,7 @@
 | column capacity | 列容量 | 给定最小列宽时一行能容纳的列数 |
 | interface style | 界面风格 | 设置 › 通用里的选项，取值 Material 3 与 Expressive（默认）；Expressive 含悬浮导航栏。zh-TW 用「介面風格」，ja 用「インターフェーススタイル」 |
 | Expressive | Expressive | 界面风格之一（默认）：在主题层面近似 Material 3 Expressive（更圆的形状、更粗的标题、悬浮导航栏）；所有语言都不翻译，与「Material 3」并列 |
-| floating navigation bar | 悬浮导航栏 | 窄窗口底栏的悬浮样式：带边距、胶囊形的「岛」；属于 Expressive 界面风格，Material 3 使用经典通栏。zh-TW 用「懸浮導覽列」，ja 用「フローティングナビゲーションバー」 |
+| floating navigation bar | 悬浮导航栏 | 窄窗口底栏的悬浮样式：紧凑的胶囊、宽度随内容，选中项显示图标和文字、其余项只显示图标，页面内容可显示在其后方；属于 Expressive 界面风格，Material 3 使用经典通栏。zh-TW 用「懸浮導覽列」，ja 用「フローティングナビゲーションバー」 |
 | profile | 个人资料 | 名称加头像，保存在 `profile.json` 并同步；设置页顶部条目与编辑对话框都叫「个人资料」。zh-TW 用「個人資料」，ja 用「プロフィール」 |
 | avatar | 头像 | 个人资料里的图片，裁剪为 512 px 的正方形 JPEG，显示在圆形内。zh-TW 用「頭像」，ja 用「アバター」 |
 | display name | 名称 | 个人资料里的名字，界面标签写作「名称」，勿写成「昵称」或「用户名」。zh-TW 用「名稱」，ja 用「名前」 |
@@ -211,6 +211,9 @@
 | playback speed | 播放速度 | 倍速菜单的标题；数值写作 `1.5x`，不翻译 |
 | full screen | 全屏 | zh-TW 用「全螢幕」，ja 用「全画面」 |
 | seek bar | 进度条 | 播放器底部可拖动的时间条；zh-TW 用「進度列」，ja 用「シークバー」 |
+| navigation position | 导航栏位置 | 1.7.2 起设置 › 通用里的选项（`navPlacement`）：全部底部（默认）、宽屏侧边、全部侧边；两种界面风格通用。zh-TW 用「導覽列位置」，ja 用「ナビゲーションの位置」 |
+| compact floating bar | 紧凑悬浮栏 | 1.7.2 起 Expressive 风格的底栏：宽度就是各项的宽度、悬浮在页面之上的胶囊，选中项显示图标与标签；取代 1.7.0 的「悬浮岛」。zh-TW 用「精簡懸浮列」，ja 用「コンパクトなフローティングバー」 |
+| avatar editor | 头像编辑器 | 1.7.2 起选择头像后打开的全屏取景界面：拖动、缩放、旋转，圆形遮罩内的内容即最终头像。zh-TW 用「頭像編輯器」，ja 用「アバターエディター」 |
 
 ## 6. 复查清单（提交中文页面之前运行）
 

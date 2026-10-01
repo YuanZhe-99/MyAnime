@@ -25,6 +25,8 @@
 | `AppSettingsNotifier.setStatsListColumns` | 方法（`AppSettingsNotifier`） | B | 更新并持久化记住的统计列表列数偏好。 |
 | `AppSettingsNotifier.setKanaTabEnabled` | 方法（`AppSettingsNotifier`） | B | 显示或隐藏假名标签并持久化该选择。 |
 | `AppSettingsNotifier.setUiStyle` | 方法（`AppSettingsNotifier`） | B | 选择界面风格（默认 Expressive，或 Material 3）并持久化该选择（1.7.1；取代 `setFloatingNavBar`）。 |
+| `AppSettingsNotifier.setNavPlacement` | 方法（`AppSettingsNotifier`） | B | 选择导航的位置：底部、宽窗口时在侧边、或始终在侧边，并持久化（1.7.2）。 |
+| `AppSettingsNotifier.setNavRailOnRight` | 方法（`AppSettingsNotifier`） | B | 选择侧边导航栏位于窗口的哪一侧并持久化（1.7.2）。 |
 | [`AppSettingsNotifier.setOnDeviceAiEnabled`](#appsettingsnotifier-setondeviceaienabled) | 方法（`AppSettingsNotifier`） | A | 开启或关闭端侧 AI，持久化该选择，并切换 `OnDeviceAiService`。 |
 | `AppSettingsNotifier.setOnDeviceAiPreferFast` | 方法（`AppSettingsNotifier`） | B | 在设备同时提供两种尺寸时优先使用更快的端侧模型；持久化该选择并告知 `OnDeviceAiService`。 |
 | [`AppSettingsNotifier.setAutoCategoriesEnabled`](#appsettingsnotifier-setautocategoriesenabled) | 方法（`AppSettingsNotifier`） | A | 开启或关闭自动分类，持久化该选择并切换 `CategoryClassifier`。 |
@@ -371,7 +373,11 @@
 
 ## 界面风格偏好
 
-1.7.0 曾新增 `floatingNavBar` 开关；1.7.1 将其替换为 `uiStyle`，一个默认 `AppUiStyle.expressive` 的 `AppUiStyle`，出现在构造函数、`copyWith` 和 `_loadPersisted` 中（通过 `AnimeStorage.getUiStyle()` 加载，它返回 `'material3'` 或 null）。`setUiStyle(AppUiStyle style)` 更新 `state` 并通过 `AnimeStorage.setUiStyle('material3' 或 null)` 持久化，后者只把 Material 3 存为 `storage_config.json` 中的 `uiStyle: "material3"`，并移除 1.7.0 的 `classicNavBar` 键。`MyAnimeApp.build` 把 `settings.uiStyle` 传给 `AppTheme.light`/`dark`，因此主题会立即重建；`ShellScaffold` 监听 `appSettingsProvider.select((s) => s.uiStyle)`，Expressive 构建 `_FloatingNavBar`，Material 3 构建原版 `NavigationBar`。宽窗口的侧边导航栏在两种风格下相同。唯一的界面是设置 › 通用中的“界面风格”选择器。见 [`../../app/theme.md`](../../app/theme.md) 和 [`../widgets/shell_scaffold.md`](../widgets/shell_scaffold.md)。
+1.7.0 曾新增 `floatingNavBar` 开关；1.7.1 将其替换为 `uiStyle`，一个默认 `AppUiStyle.expressive` 的 `AppUiStyle`，出现在构造函数、`copyWith` 和 `_loadPersisted` 中（通过 `AnimeStorage.getUiStyle()` 加载，它返回 `'material3'` 或 null）。`setUiStyle(AppUiStyle style)` 更新 `state` 并通过 `AnimeStorage.setUiStyle('material3' 或 null)` 持久化，后者只把 Material 3 存为 `storage_config.json` 中的 `uiStyle: "material3"`，并移除 1.7.0 的 `classicNavBar` 键。`MyAnimeApp.build` 把 `settings.uiStyle` 传给 `AppTheme.light`/`dark`，因此主题会立即重建；`ShellScaffold` 监听 `appSettingsProvider.select((s) => s.uiStyle)`，Expressive 构建 `_ExpressiveNavBar`（紧凑悬浮栏，1.7.2），Material 3 构建原版 `NavigationBar`。导航位于何处是另一项偏好，见下。唯一的界面是设置 › 通用中的“界面风格”选择器。见 [`../../app/theme.md`](../../app/theme.md) 和 [`../widgets/shell_scaffold.md`](../widgets/shell_scaffold.md)。
+
+## 导航位置偏好（1.7.2）
+
+`navPlacement` 是一个 `NavPlacement`（声明于 `lib/app/theme.dart`：`bottom`、`sideOnWide`、`side`），默认 `NavPlacement.bottom`；`navRailOnRight` 是默认 `false` 的 `bool`。两者都出现在构造函数、`copyWith` 和 `_loadPersisted` 中（通过返回 `'sideOnWide'`、`'side'` 或 null 的 `AnimeStorage.getNavPlacement()`，以及 `AnimeStorage.getNavRailRight()` 加载）。`setNavPlacement(NavPlacement)` 与 `setNavRailOnRight(bool)` 更新 `state`，并通过 `AnimeStorage.setNavPlacement(名称或 null)` 与 `AnimeStorage.setNavRailRight(bool)` 持久化，它们把 `navPlacement: "sideOnWide" | "side"` 与 `navRailRight: true` 写入 `storage_config.json`，默认值则移除该键。两者对**两种**界面风格都生效，且仅限设备本地。`bottom` 让底栏出现在每个窗口上（1.7.2 之前，宽窗口总是使用侧边导航栏）；`sideOnWide` 在 `useNavigationRail(width)` 成立时使用侧边导航栏；`side` 在任何窗口上都使用它（包括手机），不推荐这样做，因为侧边导航栏会占用内容的宽度。`ShellScaffold` 监听这两项。界面是设置 › 通用中的“导航栏位置”与“侧边导航栏位置”两行（见 [`../../features/settings/views/settings_page.md`](../../features/settings/views/settings_page.md)）。
 
 ## 端侧 AI 偏好
 
