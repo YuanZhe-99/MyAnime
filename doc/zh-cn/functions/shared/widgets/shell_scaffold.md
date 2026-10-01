@@ -1,7 +1,7 @@
 # lib/shared/widgets/shell_scaffold.dart
 
 `ShellScaffold` 是由 `router.dart` 的 `ShellRoute` 渲染的常驻外壳控件——它把当前标签页（`child`）包进一个
-`Scaffold`，其导航要么是底栏（自 1.7.0 起默认为悬浮岛，也可选经典的通栏 `NavigationBar`），要么是侧边的 `NavigationRail`，服务于主标签页：首页、管理、
+`Scaffold`，其导航要么是底栏（自 1.7.0 起的悬浮岛，自 1.7.1 起它属于 Expressive 界面风格并为默认；Material 3 风格则使用经典的通栏 `NavigationBar`），要么是侧边的 `NavigationRail`，服务于主标签页：首页、管理、
 统计与设置，开启假名标签时在统计与设置之间多出假名。它是一个 `ConsumerWidget`，以便监听这项偏好以及底栏样式。该控件所处的
 路由表见 [../../../architecture.md](../../../architecture.md#app-shell) 与
 [../../app/router.md](../../app/router.md)，而在两者之间做选择的规则见
@@ -15,7 +15,7 @@
 | [`ShellScaffold._currentIndex`](#shellscaffold_currentindex) | 方法（`ShellScaffold`） | A | 判定当前路由对应哪一个导航目的地被选中。 |
 | [`ShellScaffold._destinations`](#shellscaffold_destinations) | 方法（`ShellScaffold`） | A | 把外壳当前可见的目的地连同路径与图标一次性描述清楚。 |
 | [`ShellScaffold.build`](#shellscaffold_build) | 方法（`ShellScaffold`，控件构建） | A | 围绕 `child` 构建带侧边导航栏或底栏的 `Scaffold`。 |
-| [`_FloatingNavBar`](#floatingnavbar) | 类（私有） | A | 绘制为悬浮胶囊形岛的底栏（1.7.0，默认）。 |
+| [`_FloatingNavBar`](#floatingnavbar) | 类（私有） | A | 绘制为悬浮胶囊形岛的底栏（1.7.0；自 1.7.1 起用于 Expressive 风格）。 |
 | `_FloatingNavBar.new` | 构造函数（`_FloatingNavBar`） | B | 创建一个 `_FloatingNavBar` 实例。 |
 | `_FloatingNavBar.build` | 方法（`_FloatingNavBar`，控件构建） | B | 构建岛：边距、圆角表面、内部导航栏。 |
 | `_ShellDestination.new` | 构造函数（`_ShellDestination`） | B | 创建一个 `_ShellDestination` 实例。 |
@@ -79,10 +79,10 @@
 - **副作用：** 点击目的地时经由 `context.go(destinations[i].path)` 导航。
 - **算法：**
   1. 监听 `appSettingsProvider.select((s) => s.kanaTabEnabled)` 与
-     `appSettingsProvider.select((s) => s.floatingNavBar)`，然后构建目的地列表与选中下标。
+     `appSettingsProvider.select((s) => s.uiStyle == AppUiStyle.expressive)`，然后构建目的地列表与选中下标。
   2. 当 `useNavigationRail(MediaQuery.sizeOf(context).width)` 为假时，构建一份共用的 `NavigationDestination`
-     列表 `navDestinations`，返回一个 `Scaffold`，其 `bottomNavigationBar` 在 `floatingNavBar` 为真（默认）时是
-     `_FloatingNavBar`，否则是原版 `NavigationBar`（经典）。
+     列表 `navDestinations`，返回一个 `Scaffold`，其 `bottomNavigationBar` 在 `uiStyle` 为 `AppUiStyle.expressive`（默认）时是
+     `_FloatingNavBar`，为 `AppUiStyle.material3` 时是原版 `NavigationBar`（经典）。
   3. 否则返回一个 `Scaffold`，其 body 是由侧边导航栏、`VerticalDivider(width: 1)` 与
      `Expanded(child: child)` 组成的 `Row`。
 - **用法：**
@@ -113,4 +113,4 @@
 - **返回：** 悬浮栏的控件树。
 - **副作用：** 无。
 - **算法：** `SafeArea(top: false, minimum: EdgeInsets.fromLTRB(16, 0, 16, 12))` → `Padding(top: 8)` → `Center(heightFactor: 1)` → `ConstrainedBox(maxWidth: 480)` → `Material(key: islandKey, color: surfaceContainer, surfaceTintColor: transparent, elevation: 3, shadowColor: shadow, shape: StadiumBorder, clipBehavior: antiAlias)` → `MediaQuery.removePadding(removeLeft/Right/Bottom)` → `NavigationBar(height: 68, 透明背景, elevation: 0, ...)`。
-- **备注：** Flutter 没有自带悬浮导航栏（它属于 Material 3 Expressive），因此自定义了该控件。它位于 `Scaffold` 的 `bottomNavigationBar` 槽位，**而不是**覆盖在 body 之上（没有 `extendBody`），所以页面从不会绘制到它下方，FAB 位置和页面布局不变。底部系统内边距（手势条）在岛外只应用一次，并为内部 `NavigationBar` 去除，避免被重复留白。岛的宽度上限为 480 dp，使其在较宽的手机和竖持的小平板上仍是紧凑的胶囊。样式由 `AppSettings.floatingNavBar`（默认 true；设置中的“悬浮导航栏”开关）选择；侧边导航栏分支忽略该设置。私有构造函数和 `build` 为 Tier B，不单独成文。
+- **备注：** Flutter 没有自带悬浮导航栏（它属于 Material 3 Expressive），因此自定义了该控件。它位于 `Scaffold` 的 `bottomNavigationBar` 槽位，**而不是**覆盖在 body 之上（没有 `extendBody`），所以页面从不会绘制到它下方，FAB 位置和页面布局不变。底部系统内边距（手势条）在岛外只应用一次，并为内部 `NavigationBar` 去除，避免被重复留白。岛的宽度上限为 480 dp，使其在较宽的手机和竖持的小平板上仍是紧凑的胶囊。样式由 `AppSettings.uiStyle`（默认 `AppUiStyle.expressive`，显示悬浮岛；Material 3 显示经典栏；设置 › 通用 › 界面风格）选择；自 1.7.1 起悬浮栏属于 Expressive 风格，而不再是单独的开关。侧边导航栏分支忽略该设置。私有构造函数和 `build` 为 Tier B，不单独成文。

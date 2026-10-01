@@ -24,7 +24,7 @@
 | `AppSettingsNotifier.setManageSeriesSort` | 方法（`AppSettingsNotifier`） | B | 更新并持久化记住的管理页系列视图排序（1.6.2）；`latest` 会删除该键。 |
 | `AppSettingsNotifier.setStatsListColumns` | 方法（`AppSettingsNotifier`） | B | 更新并持久化记住的统计列表列数偏好。 |
 | `AppSettingsNotifier.setKanaTabEnabled` | 方法（`AppSettingsNotifier`） | B | 显示或隐藏假名标签并持久化该选择。 |
-| `AppSettingsNotifier.setFloatingNavBar` | 方法（`AppSettingsNotifier`） | B | 选择悬浮岛（默认）或经典底部导航栏并持久化该选择（1.7.0）。 |
+| `AppSettingsNotifier.setUiStyle` | 方法（`AppSettingsNotifier`） | B | 选择界面风格（默认 Expressive，或 Material 3）并持久化该选择（1.7.1；取代 `setFloatingNavBar`）。 |
 | [`AppSettingsNotifier.setOnDeviceAiEnabled`](#appsettingsnotifier-setondeviceaienabled) | 方法（`AppSettingsNotifier`） | A | 开启或关闭端侧 AI，持久化该选择，并切换 `OnDeviceAiService`。 |
 | `AppSettingsNotifier.setOnDeviceAiPreferFast` | 方法（`AppSettingsNotifier`） | B | 在设备同时提供两种尺寸时优先使用更快的端侧模型；持久化该选择并告知 `OnDeviceAiService`。 |
 | [`AppSettingsNotifier.setAutoCategoriesEnabled`](#appsettingsnotifier-setautocategoriesenabled) | 方法（`AppSettingsNotifier`） | A | 开启或关闭自动分类，持久化该选择并切换 `CategoryClassifier`。 |
@@ -369,9 +369,9 @@
 `overrideWithValue(AppSettingsNotifier.fixed(...))` 覆盖 `appSettingsProvider` 而不触及存储。它的 setter 仍会
 持久化。
 
-## 悬浮导航栏偏好
+## 界面风格偏好
 
-1.7.0 新增 `floatingNavBar`，一个默认 `true` 的 `bool`，出现在构造函数、`copyWith` 和 `_loadPersisted` 中（通过 `AnimeStorage.getFloatingNavBar()` 加载）。`setFloatingNavBar(bool floating)` 更新 `state` 并通过 `AnimeStorage.setFloatingNavBar` 持久化，后者只把非默认的经典栏存为 `storage_config.json` 中的 `classicNavBar: true`。`ShellScaffold` 监听 `appSettingsProvider.select((s) => s.floatingNavBar)`，构建 `_FloatingNavBar` 或原版 `NavigationBar`；显示侧边导航栏时该设置没有可见效果。唯一的界面是设置 › 通用中的“悬浮导航栏”开关。见 [`../widgets/shell_scaffold.md`](../widgets/shell_scaffold.md)。
+1.7.0 曾新增 `floatingNavBar` 开关；1.7.1 将其替换为 `uiStyle`，一个默认 `AppUiStyle.expressive` 的 `AppUiStyle`，出现在构造函数、`copyWith` 和 `_loadPersisted` 中（通过 `AnimeStorage.getUiStyle()` 加载，它返回 `'material3'` 或 null）。`setUiStyle(AppUiStyle style)` 更新 `state` 并通过 `AnimeStorage.setUiStyle('material3' 或 null)` 持久化，后者只把 Material 3 存为 `storage_config.json` 中的 `uiStyle: "material3"`，并移除 1.7.0 的 `classicNavBar` 键。`MyAnimeApp.build` 把 `settings.uiStyle` 传给 `AppTheme.light`/`dark`，因此主题会立即重建；`ShellScaffold` 监听 `appSettingsProvider.select((s) => s.uiStyle)`，Expressive 构建 `_FloatingNavBar`，Material 3 构建原版 `NavigationBar`。宽窗口的侧边导航栏在两种风格下相同。唯一的界面是设置 › 通用中的“界面风格”选择器。见 [`../../app/theme.md`](../../app/theme.md) 和 [`../widgets/shell_scaffold.md`](../widgets/shell_scaffold.md)。
 
 ## 端侧 AI 偏好
 

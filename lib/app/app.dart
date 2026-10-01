@@ -42,6 +42,8 @@ class MyAnimeApp extends ConsumerWidget {
   /// used on Android only, because on Windows and macOS the plugin falls back
   /// to the system accent color, which would replace the app's own seed.
   /// Everywhere else, and on Android 11 or older, the seed scheme applies.
+  /// The user's interface style (Material 3 or Expressive, 1.7.1) selects
+  /// the theme variant; both share the same colors.
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final settings = ref.watch(appSettingsProvider);
@@ -57,8 +59,14 @@ class MyAnimeApp extends ConsumerWidget {
         scrollBehavior: _DesktopScrollBehavior(),
 
         // Theme
-        theme: AppTheme.light(allowDynamic ? lightDynamic : null),
-        darkTheme: AppTheme.dark(allowDynamic ? darkDynamic : null),
+        theme: AppTheme.light(
+          allowDynamic ? lightDynamic : null,
+          settings.uiStyle,
+        ),
+        darkTheme: AppTheme.dark(
+          allowDynamic ? darkDynamic : null,
+          settings.uiStyle,
+        ),
         themeMode: settings.themeMode,
 
         // Localization

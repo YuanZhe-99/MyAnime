@@ -196,10 +196,10 @@ A **second rule, and deliberately a narrower one**:
 bool useNavigationRail(double screenWidth) => screenWidth >= navRailMinWidth; // 600.0
 ```
 
-Above it the shell renders a `NavigationRail` down the side; below it, a bottom bar — since 1.7.0 by default a *floating island*
+Above it the shell renders a `NavigationRail` down the side; below it, a bottom bar — since 1.7.0 a *floating island*
 (`_FloatingNavBar`: a pill-shaped, elevated surface with side and bottom margins, capped at 480 dp
-wide), or the classic full-width `NavigationBar` when **Settings › General › Floating navigation bar**
-is turned off. The island sits in the `Scaffold`'s bottom-bar slot rather than over the body, so it
+wide) when the interface style is **Expressive** (the default; the floating bar is part of that style since 1.7.1, after being a
+separate switch in 1.7.0), or the classic full-width `NavigationBar` when **Settings › General › Interface style** is **Material 3**. The island sits in the `Scaffold`'s bottom-bar slot rather than over the body, so it
 changes no page layout, and the bottom reservation below is unchanged. The rail is unaffected, and the
 style setting has no effect while the rail is shown. Both are built from one list of destinations — four, or five while the Kana tab is
 on — in

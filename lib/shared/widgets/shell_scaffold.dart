@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../l10n/app_localizations.dart';
+import '../../app/theme.dart';
 import '../providers/app_settings.dart';
 import '../utils/adaptive_layout.dart';
 
@@ -95,8 +96,10 @@ class ShellScaffold extends ConsumerWidget {
     final kanaTabEnabled = ref.watch(
       appSettingsProvider.select((s) => s.kanaTabEnabled),
     );
+    // Expressive (the default style) floats the bottom bar; Material 3 keeps
+    // the classic full-width bar.
     final floatingNavBar = ref.watch(
-      appSettingsProvider.select((s) => s.floatingNavBar),
+      appSettingsProvider.select((s) => s.uiStyle == AppUiStyle.expressive),
     );
     final destinations = _destinations(l10n, kanaTabEnabled: kanaTabEnabled);
     final index = _currentIndex(context, destinations);

@@ -172,7 +172,7 @@ Z Fold 7 竖持都能通过它，却会让图表只剩 215 到 245 dp。它们�
 bool useNavigationRail(double screenWidth) => screenWidth >= navRailMinWidth; // 600.0
 ```
 
-在其之上，外壳沿侧边渲染一个 `NavigationRail`；在其之下则是底栏——自 1.7.0 起默认是*悬浮岛*（`_FloatingNavBar`：带左右与底部边距、有高度的胶囊形表面，宽度上限 480 dp），在**设置 › 通用 › 悬浮导航栏**关闭时则是经典的通栏 `NavigationBar`。该岛位于 `Scaffold` 的底栏槽位而不是覆盖在 body 之上，因此不改变任何页面布局，下文的底部预留也不变。侧边导航栏不受影响，显示侧边导航栏时该样式设置没有效果。两者都由
+在其之上，外壳沿侧边渲染一个 `NavigationRail`；在其之下则是底栏——自 1.7.0 起是*悬浮岛*（`_FloatingNavBar`：带左右与底部边距、有高度的胶囊形表面，宽度上限 480 dp），当界面风格为 **Expressive**（默认；自 1.7.1 起悬浮栏是该风格的一部分，此前在 1.7.0 中是单独的开关）时显示；当**设置 › 通用 › 界面风格**为 **Material 3** 时则是经典的通栏 `NavigationBar`。该岛位于 `Scaffold` 的底栏槽位而不是覆盖在 body 之上，因此不改变任何页面布局，下文的底部预留也不变。侧边导航栏不受影响，显示侧边导航栏时该样式设置没有效果。两者都由
 [`shell_scaffold.dart`](functions/shared/widgets/shell_scaffold.md) 中同一份目的地列表（四个，开启假名标签时为五个）构建，
 因此不可能彼此走样。侧边导航栏将其目的地**居中**（`groupAlignment: 0`）而非采用默认的顶部对齐：顶部对齐是为了让导航栏坐落
 在一个前导菜单按钮或 FAB 之下，而这里两者都没有，于是这些目的地挤在一条 704 dp 高的导航栏顶端会让它整个下半

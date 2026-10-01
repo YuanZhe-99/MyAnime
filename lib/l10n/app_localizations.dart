@@ -1943,17 +1943,29 @@ abstract class AppLocalizations {
   /// **'Show the Kana tab. For kana practice and more, see MyNihongo!!!!!, a separate app.'**
   String get settingsKanaTabDesc;
 
-  /// No description provided for @settingsFloatingNavBar.
+  /// No description provided for @settingsUiStyle.
   ///
   /// In en, this message translates to:
-  /// **'Floating navigation bar'**
-  String get settingsFloatingNavBar;
+  /// **'Interface style'**
+  String get settingsUiStyle;
 
-  /// No description provided for @settingsFloatingNavBarDesc.
+  /// No description provided for @settingsUiStyleDesc.
   ///
   /// In en, this message translates to:
-  /// **'Show the bottom navigation bar as a floating island. Turn off for the classic full-width bar.'**
-  String get settingsFloatingNavBarDesc;
+  /// **'Expressive uses rounder shapes, bolder titles and a floating navigation bar. Material 3 is the standard look with a full-width bar.'**
+  String get settingsUiStyleDesc;
+
+  /// No description provided for @settingsUiStyleMaterial3.
+  ///
+  /// In en, this message translates to:
+  /// **'Material 3'**
+  String get settingsUiStyleMaterial3;
+
+  /// No description provided for @settingsUiStyleExpressive.
+  ///
+  /// In en, this message translates to:
+  /// **'Expressive'**
+  String get settingsUiStyleExpressive;
 
   /// No description provided for @settingsGeneral.
   ///

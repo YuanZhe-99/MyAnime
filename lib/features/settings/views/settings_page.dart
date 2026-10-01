@@ -10,6 +10,7 @@ import 'package:package_info_plus/package_info_plus.dart';
 import 'package:intl/intl.dart';
 
 import '../../../l10n/app_localizations.dart';
+import '../../../app/theme.dart';
 import '../../../shared/utils/jst_time.dart';
 import '../../../shared/providers/app_settings.dart';
 import '../../../shared/services/auto_sync_service.dart';
@@ -854,14 +855,30 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
               onSelectionChanged: (s) => notifier.setThemeMode(s.first),
             ),
           ),
-          // On by default since 1.7.0; off restores the classic full-width
-          // bottom bar. Wide windows use the rail either way.
-          SwitchListTile(
-            secondary: const Icon(Icons.space_dashboard_outlined),
-            title: Text(l10n.settingsFloatingNavBar),
-            subtitle: Text(l10n.settingsFloatingNavBarDesc),
-            value: settings.floatingNavBar,
-            onChanged: notifier.setFloatingNavBar,
+          // Interface style (1.7.1), replacing 1.7.0's floating-bar switch:
+          // Expressive (default) also floats the bottom bar, Material 3 keeps
+          // the classic one. Laid out like the theme picker above.
+          ListTile(
+            leading: const Icon(Icons.auto_awesome_outlined),
+            title: Text(l10n.settingsUiStyle),
+            subtitle: Text(l10n.settingsUiStyleDesc),
+          ),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            child: SegmentedButton<AppUiStyle>(
+              segments: [
+                ButtonSegment(
+                  value: AppUiStyle.material3,
+                  label: Text(l10n.settingsUiStyleMaterial3),
+                ),
+                ButtonSegment(
+                  value: AppUiStyle.expressive,
+                  label: Text(l10n.settingsUiStyleExpressive),
+                ),
+              ],
+              selected: {settings.uiStyle},
+              onSelectionChanged: (s) => notifier.setUiStyle(s.first),
+            ),
           ),
           ListTile(
             leading: const Icon(Icons.language),

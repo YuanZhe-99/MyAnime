@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
+import 'package:my_anime/app/theme.dart';
 import 'package:my_anime/app/router.dart';
 import 'package:my_anime/l10n/app_localizations.dart';
 import 'package:my_anime/shared/providers/app_settings.dart';
@@ -25,7 +26,7 @@ void main() {
     double width,
     double height, {
     bool kanaTabEnabled = false,
-    bool floatingNavBar = true,
+    AppUiStyle uiStyle = AppUiStyle.expressive,
     String initialLocation = '/home',
   }) async {
     tester.view.devicePixelRatio = 1.0;
@@ -64,10 +65,7 @@ void main() {
         overrides: [
           appSettingsProvider.overrideWithValue(
             AppSettingsNotifier.fixed(
-              AppSettings(
-                kanaTabEnabled: kanaTabEnabled,
-                floatingNavBar: floatingNavBar,
-              ),
+              AppSettings(kanaTabEnabled: kanaTabEnabled, uiStyle: uiStyle),
             ),
           ),
         ],
@@ -112,7 +110,9 @@ void main() {
   group('bottom bar style', () {
     const island = ValueKey('floatingNavBarIsland');
 
-    testWidgets('floats as an island by default', (tester) async {
+    testWidgets('the default Expressive style floats the bar as an island', (
+      tester,
+    ) async {
       await pumpAt(tester, 412, 915);
       expect(find.byKey(island), findsOneWidget);
       expect(
@@ -124,8 +124,8 @@ void main() {
       );
     });
 
-    testWidgets('the classic bar has no island', (tester) async {
-      await pumpAt(tester, 412, 915, floatingNavBar: false);
+    testWidgets('the Material 3 style keeps the classic bar', (tester) async {
+      await pumpAt(tester, 412, 915, uiStyle: AppUiStyle.material3);
       expect(find.byType(NavigationBar), findsOneWidget);
       expect(find.byKey(island), findsNothing);
     });

@@ -1,8 +1,9 @@
 # lib/shared/widgets/shell_scaffold.dart
 
 `ShellScaffold` is the persistent shell widget rendered by `router.dart`'s `ShellRoute` — it wraps
-the current tab (`child`) in a `Scaffold` whose navigation is either a bottom bar (a floating island by
-default since 1.7.0, or the classic full-width `NavigationBar`) or a side `NavigationRail`, for the main tabs: Home, Manage, Stats and Settings, with Kana between Stats
+the current tab (`child`) in a `Scaffold` whose navigation is either a bottom bar (the floating island
+since 1.7.0, which since 1.7.1 belongs to the Expressive interface style and is the default, or the classic
+full-width `NavigationBar` of the Material 3 style) or a side `NavigationRail`, for the main tabs: Home, Manage, Stats and Settings, with Kana between Stats
 and Settings while the Kana tab is turned on. It is a `ConsumerWidget` so that it can watch that
 preference and the bottom-bar style. See [../../../architecture.md](../../../architecture.md#app-shell) and
 [../../app/router.md](../../app/router.md) for the route table this widget sits inside, and
@@ -16,7 +17,7 @@ preference and the bottom-bar style. See [../../../architecture.md](../../../arc
 | [`ShellScaffold._currentIndex`](#shellscaffold_currentindex) | method (`ShellScaffold`) | A | Determine which navigation destination is selected for the current route. |
 | [`ShellScaffold._destinations`](#shellscaffold_destinations) | method (`ShellScaffold`) | A | Describe the shell's visible destinations once, paths and icons included. |
 | [`ShellScaffold.build`](#shellscaffold_build) | method (`ShellScaffold`, widget build) | A | Build the `Scaffold` with a rail or a bottom bar around `child`. |
-| [`_FloatingNavBar`](#floatingnavbar) | class (private) | A | The bottom bar drawn as a floating pill-shaped island (1.7.0, default). |
+| [`_FloatingNavBar`](#floatingnavbar) | class (private) | A | The bottom bar drawn as a floating pill-shaped island (1.7.0; shown for the Expressive style since 1.7.1). |
 | `_FloatingNavBar.new` | constructor (`_FloatingNavBar`) | B | Create a `_FloatingNavBar` instance. |
 | `_FloatingNavBar.build` | method (`_FloatingNavBar`, widget build) | B | Build the island: margins, rounded surface, inner bar. |
 | `_ShellDestination.new` | constructor (`_ShellDestination`) | B | Create a `_ShellDestination` instance. |
@@ -86,12 +87,12 @@ preference and the bottom-bar style. See [../../../architecture.md](../../../arc
 - **Side effects:** Navigating on a destination tap, via `context.go(destinations[i].path)`.
 - **Algorithm:**
   1. Watch `appSettingsProvider.select((s) => s.kanaTabEnabled)` and
-     `appSettingsProvider.select((s) => s.floatingNavBar)`, then build the destinations and the
+     `appSettingsProvider.select((s) => s.uiStyle == AppUiStyle.expressive)`, then build the destinations and the
      selected index.
   2. When `useNavigationRail(MediaQuery.sizeOf(context).width)` is false, build one shared
      `navDestinations` list of `NavigationDestination`s and return a `Scaffold` whose
-     `bottomNavigationBar` is `_FloatingNavBar` when `floatingNavBar` is true (the default), or the
-     stock `NavigationBar` (classic) otherwise.
+     `bottomNavigationBar` is `_FloatingNavBar` when `uiStyle` is `AppUiStyle.expressive` (the default),
+     or the stock `NavigationBar` (classic) for `AppUiStyle.material3`.
   3. Otherwise return a `Scaffold` whose body is a `Row` of the rail, a `VerticalDivider(width: 1)`
      and `Expanded(child: child)`.
 - **Usage:**
@@ -140,6 +141,7 @@ preference and the bottom-bar style. See [../../../architecture.md](../../../arc
   unchanged. The bottom system inset (gesture bar) is applied once, outside the island, and removed
   for the inner `NavigationBar` so it is not padded twice. The island is capped at 480 dp wide so it
   stays a compact pill on wide phones and small tablets in portrait. The style is chosen by
-  `AppSettings.floatingNavBar` (default true; Settings switch "Floating navigation bar"); the rail
-  branch ignores the setting. The private constructor and `build` are Tier B and not documented
+  `AppSettings.uiStyle` (default `AppUiStyle.expressive`, which shows the island; Material 3 shows the
+  classic bar; Settings › General › Interface style); since 1.7.1 the floating bar is part of the
+  Expressive style rather than a switch of its own. The rail branch ignores the setting. The private constructor and `build` are Tier B and not documented
   separately.

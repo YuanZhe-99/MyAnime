@@ -63,8 +63,8 @@ notifies `AutoSyncService`/`ReminderService` after every save. See
 | [`setMetadataPrefetchCovers`](#setmetadataprefetchcovers) | static method (`AnimeStorage`) | A | Persist whether candidate covers are prefetched. |
 | [`getKanaTabEnabled`](#getkanatabenabled) | static method (`AnimeStorage`) | A | Read whether the Kana quick-reference tab is shown. |
 | [`setKanaTabEnabled`](#setkanatabenabled) | static method (`AnimeStorage`) | A | Persist whether the Kana quick-reference tab is shown. |
-| [`getFloatingNavBar`](#getfloatingnavbar) | static method (`AnimeStorage`) | A | Read whether the bottom navigation bar floats as an island (1.7.0). |
-| [`setFloatingNavBar`](#setfloatingnavbar) | static method (`AnimeStorage`) | A | Persist whether the bottom navigation bar floats as an island (1.7.0). |
+| [`getUiStyle`](#getuistyle) | static method (`AnimeStorage`) | A | Read the stored interface style name, migrating the 1.7.0 `classicNavBar` key (1.7.1; replaces `getFloatingNavBar`). |
+| [`setUiStyle`](#setuistyle) | static method (`AnimeStorage`) | A | Persist the interface style and drop the superseded `classicNavBar` key (1.7.1; replaces `setFloatingNavBar`). |
 | [`getOnDeviceAiEnabled`](#getondeviceaienabled) | static method (`AnimeStorage`) | A | Read whether on-device AI is turned on. |
 | [`setOnDeviceAiEnabled`](#setondeviceaienabled) | static method (`AnimeStorage`) | A | Persist whether on-device AI is turned on. |
 | [`getAutoCategoriesEnabled`](#getautocategoriesenabled) | static method (`AnimeStorage`) | A | Read whether automatic categories are turned on. |
@@ -661,20 +661,17 @@ notifies `AutoSyncService`/`ReminderService` after every save. See
 - **Notes:** Writes `kanaTabEnabled: true` when on and removes the key when off, the same shape as
   `setMetadataPrefetchCovers`.
 
-### `static Future<bool> getFloatingNavBar()` <a id="getfloatingnavbar"></a>
+### `static Future<String?> getUiStyle()` <a id="getuistyle"></a>
 - **Kind:** static method of `AnimeStorage`
-- **Returns:** `Future<bool>` — `config['classicNavBar'] != true`, so it defaults to `true`.
+- **Returns:** `Future<String?>` — `'material3'` when `config['uiStyle'] == 'material3'` **or** the 1.7.0 key `config['classicNavBar'] == true`; otherwise `null`, meaning the default Expressive style.
 - **Side effects:** Reads `storage_config.json`.
-- **Notes:** Added in 1.7.0. Stored inverted as `classicNavBar` so the default (floating) needs no key and
-  existing installs get the floating bar too. Device-local, never synced. Read by
-  `AppSettingsNotifier._loadPersisted`.
+- **Notes:** Added in 1.7.1; replaces `getFloatingNavBar`. The `classicNavBar` fallback is a migration: 1.7.0 users who turned the floating bar off (the classic bar is now part of Material 3) keep the classic look. That key is read once like this and deleted on the next `setUiStyle` write. Device-local, never synced. Read by `AppSettingsNotifier._loadPersisted`.
 
-### `static Future<void> setFloatingNavBar(bool floating)` <a id="setfloatingnavbar"></a>
+### `static Future<void> setUiStyle(String? name)` <a id="setuistyle"></a>
 - **Kind:** static method of `AnimeStorage`
-- **Inputs:** `floating`.
+- **Inputs:** `name` — `'material3'`, or `null` for the default Expressive style.
 - **Side effects:** Writes `storage_config.json`.
-- **Notes:** Removes the key when floating and writes `classicNavBar: true` when classic, so only the
-  non-default choice is stored.
+- **Notes:** Added in 1.7.1; replaces `setFloatingNavBar`. Always removes `classicNavBar`; writes `uiStyle: "material3"` only for Material 3, otherwise removes `uiStyle`, so only the non-default choice is stored.
 
 ### `static Future<bool> getOnDeviceAiEnabled()` <a id="getondeviceaienabled"></a>
 - **Kind:** static method of `AnimeStorage`

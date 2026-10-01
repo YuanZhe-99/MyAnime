@@ -54,8 +54,8 @@
 | [`setMetadataPrefetchCovers`](#setmetadataprefetchcovers) | 静态方法（`AnimeStorage`） | A | 持久化是否预下载候选封面。 |
 | [`getKanaTabEnabled`](#getkanatabenabled) | 静态方法（`AnimeStorage`） | A | 读取是否显示五十音速查标签。 |
 | [`setKanaTabEnabled`](#setkanatabenabled) | 静态方法（`AnimeStorage`） | A | 持久化是否显示五十音速查标签。 |
-| [`getFloatingNavBar`](#getfloatingnavbar) | 静态方法（`AnimeStorage`） | A | 读取底部导航栏是否以悬浮岛显示（1.7.0）。 |
-| [`setFloatingNavBar`](#setfloatingnavbar) | 静态方法（`AnimeStorage`） | A | 持久化底部导航栏是否以悬浮岛显示（1.7.0）。 |
+| [`getUiStyle`](#getuistyle) | 静态方法（`AnimeStorage`） | A | 读取已存储的界面风格名称，并迁移 1.7.0 的 `classicNavBar` 键（1.7.1；取代 `getFloatingNavBar`）。 |
+| [`setUiStyle`](#setuistyle) | 静态方法（`AnimeStorage`） | A | 持久化界面风格并丢弃被取代的 `classicNavBar` 键（1.7.1；取代 `setFloatingNavBar`）。 |
 | [`getOnDeviceAiEnabled`](#getondeviceaienabled) | 静态方法（`AnimeStorage`） | A | 读取是否开启端侧 AI。 |
 | [`setOnDeviceAiEnabled`](#setondeviceaienabled) | 静态方法（`AnimeStorage`） | A | 持久化是否开启端侧 AI。 |
 | [`getAutoCategoriesEnabled`](#getautocategoriesenabled) | 静态方法（`AnimeStorage`） | A | 读取是否开启自动分类。 |
@@ -624,17 +624,17 @@
 - **副作用：** 写入 `storage_config.json`。
 - **备注：** 开启时写入 `kanaTabEnabled: true`，关闭时移除该键，形态与 `setMetadataPrefetchCovers` 相同。
 
-### `static Future<bool> getFloatingNavBar()` <a id="getfloatingnavbar"></a>
+### `static Future<String?> getUiStyle()` <a id="getuistyle"></a>
 - **种类：** `AnimeStorage` 的静态方法
-- **返回：** `Future<bool>` —— `config['classicNavBar'] != true`，因此默认为 `true`。
+- **返回：** `Future<String?>` —— 当 `config['uiStyle'] == 'material3'` **或** 1.7.0 的键 `config['classicNavBar'] == true` 时为 `'material3'`；否则为 `null`，表示默认的 Expressive 风格。
 - **副作用：** 读取 `storage_config.json`。
-- **备注：** 1.7.0 新增。以反向的 `classicNavBar` 存储，使默认值（悬浮）无需任何键，已有安装同样得到悬浮栏。仅限设备本地，从不同步。由 `AppSettingsNotifier._loadPersisted` 读取。
+- **备注：** 1.7.1 新增；取代 `getFloatingNavBar`。`classicNavBar` 回退是一种迁移：关闭过悬浮栏的 1.7.0 用户（经典栏现在属于 Material 3）保持经典外观。该键这样被读取一次，并在下一次 `setUiStyle` 写入时删除。仅限设备本地，从不同步。由 `AppSettingsNotifier._loadPersisted` 读取。
 
-### `static Future<void> setFloatingNavBar(bool floating)` <a id="setfloatingnavbar"></a>
+### `static Future<void> setUiStyle(String? name)` <a id="setuistyle"></a>
 - **种类：** `AnimeStorage` 的静态方法
-- **输入：** `floating`。
+- **输入：** `name`——`'material3'`，或 `null` 表示默认的 Expressive 风格。
 - **副作用：** 写入 `storage_config.json`。
-- **备注：** 悬浮时移除该键，经典时写入 `classicNavBar: true`，因此只存储非默认的选择。
+- **备注：** 1.7.1 新增；取代 `setFloatingNavBar`。始终移除 `classicNavBar`；仅在 Material 3 时写入 `uiStyle: "material3"`，否则移除 `uiStyle`，因此只存储非默认的选择。
 
 ### `static Future<bool> getOnDeviceAiEnabled()` <a id="getondeviceaienabled"></a>
 - **种类：** `AnimeStorage` 的静态方法

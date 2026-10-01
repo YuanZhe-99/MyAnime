@@ -86,7 +86,7 @@ reuses the shared search service.
 
 ## Dynamic color (1.7.0)
 
-The app uses stock Material 3 colors generated from one seed color (deep purple, `AppTheme.seedColor`).
+The app uses stock Material 3 colors generated from one seed color (deep purple, `AppTheme.seedColor`). Both interface styles (Material 3 and the default Expressive, 1.7.1) share these colors.
 On **Android 12 and newer** the `dynamic_color` plugin supplies the wallpaper-derived (Material You)
 scheme and the app uses it instead of the seed, in light and dark. On **Android 11 and older**, **iOS**,
 **Windows**, **macOS** and any other platform the seed scheme applies.

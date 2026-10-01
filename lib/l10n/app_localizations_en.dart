@@ -1108,11 +1108,17 @@ class AppLocalizationsEn extends AppLocalizations {
       'Show the Kana tab. For kana practice and more, see MyNihongo!!!!!, a separate app.';
 
   @override
-  String get settingsFloatingNavBar => 'Floating navigation bar';
+  String get settingsUiStyle => 'Interface style';
 
   @override
-  String get settingsFloatingNavBarDesc =>
-      'Show the bottom navigation bar as a floating island. Turn off for the classic full-width bar.';
+  String get settingsUiStyleDesc =>
+      'Expressive uses rounder shapes, bolder titles and a floating navigation bar. Material 3 is the standard look with a full-width bar.';
+
+  @override
+  String get settingsUiStyleMaterial3 => 'Material 3';
+
+  @override
+  String get settingsUiStyleExpressive => 'Expressive';
 
   @override
   String get settingsGeneral => 'General';

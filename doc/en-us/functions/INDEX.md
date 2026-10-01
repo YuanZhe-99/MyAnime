@@ -6,15 +6,15 @@ This is the top-level index of the hand-written Function Explanation Layer docum
 `lib/` in the MyAnime repo. Each row links to a per-source-file page under `doc/en-us/functions/`
 mirroring the `lib/` tree (with `.dart` replaced by `.md`).
 
-**Totals:** the repo's `/// Purpose:` comment count is **1533** (per the Function Explanation Layer
+**Totals:** the repo's `/// Purpose:` comment count is **1536** (per the Function Explanation Layer
 convention in `AGENTS.md`, excluding generated `lib/l10n/` code — see [l10n/INDEX.md](l10n/INDEX.md)).
-The rows below sum to **1515** documented declarations.
+The rows below sum to **1518** documented declarations.
 
 | Tier | Count |
 |---|---|
-| Tier A (full entry: Purpose/Inputs/Returns/Side effects/Algorithm/Usage/Notes) | 798 |
+| Tier A (full entry: Purpose/Inputs/Returns/Side effects/Algorithm/Usage/Notes) | 801 |
 | Tier B (index row only) | 717 |
-| **Total** | **1515** |
+| **Total** | **1518** |
 
 **Known gap.** These two numbers do not match: 18 declarations carry a `/// Purpose:` comment in
 source but have no row here, so the index under-covers `lib/` by that much. The 1.5.7 recount found
@@ -95,6 +95,8 @@ find lib -name "*.dart" -not -path "lib/l10n/*" | xargs grep -h '/// Purpose:' |
 
 **1.7.0 recount.** The measured `/// Purpose:` count is 1533 (1477 before) and the rows sum to 1515, so the gap stays 18. The release added 56 declarations: seven new files (`status_colors.dart` +2 and the six `features/profile/` files +44 — `profile_data.dart` 8, `profile_merge.dart` 4, `profile_store.dart` 10, `profile_provider.dart` 7, `profile_avatar.dart` 5, `profile_header.dart` 10) and five changed ones: `data_modules.dart` +3 (`validateProfileJson`, `profileReferencedImages`, `buildProfileModule`), `theme.dart` +2 (`scheme` and `build` are new, `light` and `dark` became methods, and the new `seedColor` constant is documented on its page without a `Purpose:` comment), `anime_storage.dart` +2 (`getFloatingNavBar`, `setFloatingNavBar`), `shell_scaffold.dart` +2 (the private `_FloatingNavBar` constructor and `build`) and `app_settings.dart` +1 (`setFloatingNavBar`). `app.dart`, `home_page.dart`, `statistics_page.dart`, `share_service.dart`, `settings_page.dart` and `backup_page.dart` changed without a new declaration. Twenty-eight of the new rows are Tier A and 28 are Tier B.
 
+**1.7.1 recount.** The measured `/// Purpose:` count is 1536 (1533 before) and the rows sum to 1518, so the gap stays 18. The release added 3 declarations, all in `theme.dart` (`_morphingButtonStyle`, `_emphasized` and `_expressive`, all Tier A; its row goes from `5 | 4` to `8 | 7`). The new `AppUiStyle` enum and the private `_morphDuration` constant are documented on the page but carry no `Purpose:` comment (like `seedColor`), so they are not counted. `anime_storage.dart` swapped `getFloatingNavBar`/`setFloatingNavBar` for `getUiStyle`/`setUiStyle` and `app_settings.dart` swapped `setFloatingNavBar` for `setUiStyle`, so both keep their counts; `app.dart`, `shell_scaffold.dart` and `settings_page.dart` changed without a new declaration. Tier A rose from 798 to 801; Tier B stays 717.
+
 ## Root (`lib/`)
 
 | Source file | Page | Declarations | Tier A count |
@@ -109,7 +111,7 @@ find lib -name "*.dart" -not -path "lib/l10n/*" | xargs grep -h '/// Purpose:' |
 | `lib/app/flavor.dart` | [app/flavor.md](app/flavor.md) | 1 | 0 |
 | `lib/app/router.dart` | [app/router.md](app/router.md) | 1 | 1 |
 | `lib/app/data_modules.dart` | [app/data_modules.md](app/data_modules.md) | 20 | 17 |
-| `lib/app/theme.dart` | [app/theme.md](app/theme.md) | 5 | 4 |
+| `lib/app/theme.dart` | [app/theme.md](app/theme.md) | 8 | 7 |
 
 `app/router.dart` has one row, `kanaRouteRedirect` (1.6.0). Its other top-level declaration
 (`appRouter`, a `GoRouter` config value) carries no `/// Purpose:` comment and falls outside the

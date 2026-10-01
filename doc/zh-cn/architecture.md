@@ -6,7 +6,7 @@
 
 - `lib/main.dart` — 应用入口点。
 - `lib/app/app.dart` — 根 `MaterialApp`/`App` 组件接线。
-- `lib/app/router.dart` — 基于 `go_router` 的导航。路由器使用一个 `ShellRoute` 包住各导航标签——在窄窗口上渲染为底栏（自 1.7.0 起默认为悬浮岛，也可选经典的 `NavigationBar`），从 600 逻辑像素起渲染为侧边 `NavigationRail`，见 [`adaptive-layout.md`](adaptive-layout.md)：
+- `lib/app/router.dart` — 基于 `go_router` 的导航。路由器使用一个 `ShellRoute` 包住各导航标签——在窄窗口上渲染为底栏（自 1.7.0 起的悬浮岛，自 1.7.1 起它是默认的 Expressive 界面风格的一部分；Material 3 风格则使用经典的 `NavigationBar`），从 600 逻辑像素起渲染为侧边 `NavigationRail`，见 [`adaptive-layout.md`](adaptive-layout.md)：
   - 主页（`/home`，`home_page.dart`）
   - 管理（`/manage`，`management_page.dart`）
   - 统计（`/stats`，`statistics_page.dart`）
@@ -14,7 +14,7 @@
   - 设置（`/settings`，`settings_page.dart`）
 
   非标签路由（动画详情、动画编辑/新增、元数据更新审阅、推荐、重复检查）与外壳路由一起声明，并压栈在它之上（如 `/anime/detail/:id`、`/anime/edit`、`/anime/edit/:id`、`/metadata-updates`、`/recommendations`、`/duplicate-check`）。`/recommendations`（1.6.0）只能从推荐开启时显示的首页应用栏操作进入（见 [`features/categories-and-recommendations.md`](features/categories-and-recommendations.md)）。
-- `lib/app/theme.dart` — 视觉体系：原版 Google Material 3（带 `ColorScheme.fromSeed` 的 `ThemeData`）；Android 12+ 可通过 `dynamic_color` 用壁纸颜色覆盖种子色。
+- `lib/app/theme.dart` — 视觉体系：Google Material 3（带 `ColorScheme.fromSeed` 的 `ThemeData`），自 1.7.1 起有两种界面风格——原版 Material 3 与默认的 Expressive 近似；Android 12+ 可通过 `dynamic_color` 用壁纸颜色覆盖种子色。
 - `lib/app/flavor.dart` — 构建风味逻辑（见下文）。
 
 ## 构建风味
@@ -172,7 +172,7 @@ WebDAV 同步引擎、备份引擎、ZIP 传输引擎和自动同步调度器**�
 
 - **状态管理：** `flutter_riverpod`；常规变更不用 Provider 或 Bloc。
 - **导航：** `go_router`，带 `ShellRoute` 和上面列出的四个或五个标签。
-- **视觉体系：** 原版 Google Material 3——由单个种子色（`AppTheme.seedColor`）经 `ColorScheme.fromSeed` 生成，仅在 Android 12+ 上额外使用 `dynamic_color` 壁纸取色（自 1.7.0 起；`flex_color_scheme` 已移除）。见 [`functions/app/theme.md`](functions/app/theme.md)。
+- **视觉体系：** Google Material 3——由单个种子色（`AppTheme.seedColor`）经 `ColorScheme.fromSeed` 生成，自 1.7.1 起有两种界面风格（原版 Material 3，或默认的 **Expressive**——主题层面的近似，有更圆的形状、更粗的标题和悬浮导航栏；两者配色相同），仅在 Android 12+ 上额外使用 `dynamic_color` 壁纸取色（自 1.7.0 起；`flex_color_scheme` 已移除）。见 [`functions/app/theme.md`](functions/app/theme.md)。
 - **响应式布局：** 一条共享规则决定界面何时可以拆成分栏或多列，以及列表分成几列；另有一条只看宽度的规则
   决定导航放在侧边还是底部。两者都位于 `shared/utils/adaptive_layout.dart`，推导见
   [`adaptive-layout.md`](adaptive-layout.md)。**不要新增内联的宽度断点**——截至 1.5.4，`lib/` 中一个

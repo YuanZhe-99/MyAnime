@@ -4,13 +4,13 @@
 
 这是 MyAnime 仓库中 `lib/` 手写函数解释层文档的顶层索引。每行链接到 `doc/en-us/functions/` 下镜像 `lib/` 树的逐源文件页面（`.dart` 换成 `.md`）。
 
-**总计：** 仓库的 `/// Purpose:` 注释数为 **1533**（按 `AGENTS.md` 中的函数解释层约定，排除生成的 `lib/l10n/` 代码——见 [l10n/INDEX.md](l10n/INDEX.md)）。下方各行合计 **1459** 个已记录声明。
+**总计：** 仓库的 `/// Purpose:` 注释数为 **1536**（按 `AGENTS.md` 中的函数解释层约定，排除生成的 `lib/l10n/` 代码——见 [l10n/INDEX.md](l10n/INDEX.md)）。下方各行合计 **1518** 个已记录声明。
 
 | Tier | 计数 |
 |---|---|
-| Tier A（完整条目：Purpose/Inputs/Returns/Side effects/Algorithm/Usage/Notes） | 798 |
+| Tier A（完整条目：Purpose/Inputs/Returns/Side effects/Algorithm/Usage/Notes） | 801 |
 | Tier B（仅索引行） | 717 |
-| **总计** | **1515** |
+| **总计** | **1518** |
 
 **已知缺口。** 这两个数字并不相等：有 18 个声明在源码中带 `/// Purpose:` 注释但此处没有对应行，因此本索引对 `lib/` 的覆盖少了这么多。1.5.7 重新测量时发现，1.5.6 记录的 864 本身已经过时——同一条命令在 1.5.6 的源码树上量到的是 901，因此这个缺口大部分是此前几个版本累积而未被发现的，而不是本次新增的。在 1.5.6 之前这个数是 10：当时发现 `adaptive_layout.dart` 那一行仍写着 `4 | 4`——那是它在 1.5.3 时的计数，彼时该模块还没有从详情页自己的辅助函数长成全应用的策略。它的页面自 1.5.5 起就记录了十二个声明，只有这一行没有跟上。该缺口分布不均，且尚未逐文件审计。另有一个文件方向相反，比其源码的 `Purpose:` 注释数多出一行——见下方 `features/` 小节的说明。
 
@@ -23,6 +23,8 @@ find lib -name "*.dart" -not -path "lib/l10n/*" | xargs grep -h '/// Purpose:' |
 **1.6.7 重新统计。** 实测的 `/// Purpose:` 数为 1477（此前 1460），各行合计 1459，缺口仍为 18。本次发布在九个改动文件中新增 17 个声明：`anime_storage.dart` +7（两个写入队列、`_writeData`、`_exclusiveData`、`updateRecord`、`updateLibrary`、`_writeConfig`、`updateConfig`；移除 `_atomicWrite`），`file_open_service.dart` +3（`safeCoverExt`、`isSafeCoverPath`、`discardUnusedCovers`），`local_api_server.dart` +2（`buildHandler`、`isAllowedOrigin`；`_corsMiddleware` 变为 `_originMiddleware`），`anime_detail_page.dart` +2（`dispose`、`_reloadRecord`），以及 `anime.dart`（`_plusDays`）、`home_page.dart`（`buildAiringIndex`；`_getEpisodeCalendarDate` 变为顶层的 `airingCalendarDate`）、`anime_edit_page.dart`（`resolveEndEpisode`）和 `playback_progress_service.dart`（`_tryStore`）各 +1，而 `metadata_cache.dart` 少了 `_atomicWrite`。新增声明中有十五个是 Tier B 行；Tier A 增加了 `_writeData`、`updateRecord`、`updateLibrary` 和 `updateConfig`，并少了两个 `_atomicWrite` 条目（`AnimeStorage`、`MetadataCache`），净增 2。
 
 **1.7.0 重新统计。** 实测的 `/// Purpose:` 数为 1533（此前 1477），各行合计 1515，缺口仍为 18。本次发布新增 56 个声明：七个新文件（`status_colors.dart` +2，以及六个 `features/profile/` 文件 +44——`profile_data.dart` 8、`profile_merge.dart` 4、`profile_store.dart` 10、`profile_provider.dart` 7、`profile_avatar.dart` 5、`profile_header.dart` 10）和五个改动文件：`data_modules.dart` +3（`validateProfileJson`、`profileReferencedImages`、`buildProfileModule`），`theme.dart` +2（`scheme` 和 `build` 是新增的，`light` 和 `dark` 变成了方法，新增的 `seedColor` 常量在其页面中有文档，但没有 `Purpose:` 注释），`anime_storage.dart` +2（`getFloatingNavBar`、`setFloatingNavBar`），`shell_scaffold.dart` +2（私有的 `_FloatingNavBar` 构造函数和 `build`），`app_settings.dart` +1（`setFloatingNavBar`）。`app.dart`、`home_page.dart`、`statistics_page.dart`、`share_service.dart`、`settings_page.dart` 和 `backup_page.dart` 有改动但没有新增声明。新增行中二十八个是 Tier A，二十八个是 Tier B。
+
+**1.7.1 重新统计。** 实测的 `/// Purpose:` 数为 1536（此前 1533），各行合计 1518，缺口仍为 18。本次发布新增 3 个声明，全部在 `theme.dart`（`_morphingButtonStyle`、`_emphasized` 和 `_expressive`，均为 Tier A；其行由 `5 | 4` 变为 `8 | 7`）。新增的 `AppUiStyle` 枚举和私有常量 `_morphDuration` 在其页面中有文档，但没有 `Purpose:` 注释（与 `seedColor` 相同），因此不计入。`anime_storage.dart` 把 `getFloatingNavBar`/`setFloatingNavBar` 换成了 `getUiStyle`/`setUiStyle`，`app_settings.dart` 把 `setFloatingNavBar` 换成了 `setUiStyle`，两者计数不变；`app.dart`、`shell_scaffold.dart` 和 `settings_page.dart` 有改动但没有新增声明。Tier A 由 798 增至 801；Tier B 仍为 717。
 
 ## 根（`lib/`）
 
@@ -38,7 +40,7 @@ find lib -name "*.dart" -not -path "lib/l10n/*" | xargs grep -h '/// Purpose:' |
 | `lib/app/flavor.dart` | [app/flavor.md](app/flavor.md) | 1 | 0 |
 | `lib/app/router.dart` | [app/router.md](app/router.md) | 1 | 1 |
 | `lib/app/data_modules.dart` | [app/data_modules.md](app/data_modules.md) | 20 | 17 |
-| `lib/app/theme.dart` | [app/theme.md](app/theme.md) | 5 | 4 |
+| `lib/app/theme.dart` | [app/theme.md](app/theme.md) | 8 | 7 |
 
 `app/router.dart` 有一行，即 `kanaRouteRedirect`（1.6.0）。它的另一个顶层声明（`appRouter`，一个 `GoRouter` 配置值）不带 `/// Purpose:` 注释，落在函数解释层约定（函数/方法/构造函数/getter/setter）之外；详见该页面。
 

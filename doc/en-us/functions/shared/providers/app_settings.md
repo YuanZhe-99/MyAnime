@@ -32,7 +32,7 @@ management conventions (Riverpod, no Provider/Bloc) and
 | `AppSettingsNotifier.setManageSeriesSort` | method (`AppSettingsNotifier`) | B | Update the remembered Manage series-view sort (1.6.2) and persist it; `latest` removes the key. |
 | `AppSettingsNotifier.setStatsListColumns` | method (`AppSettingsNotifier`) | B | Update the remembered statistics list column preference and persist it. |
 | `AppSettingsNotifier.setKanaTabEnabled` | method (`AppSettingsNotifier`) | B | Show or hide the Kana tab and persist the choice. |
-| `AppSettingsNotifier.setFloatingNavBar` | method (`AppSettingsNotifier`) | B | Choose the floating island (default) or the classic bottom navigation bar and persist the choice (1.7.0). |
+| `AppSettingsNotifier.setUiStyle` | method (`AppSettingsNotifier`) | B | Choose the interface style (Expressive by default, or Material 3) and persist the choice (1.7.1; replaces `setFloatingNavBar`). |
 | [`AppSettingsNotifier.setOnDeviceAiEnabled`](#appsettingsnotifier-setondeviceaienabled) | method (`AppSettingsNotifier`) | A | Turn on-device AI on or off, persist it, and switch `OnDeviceAiService`. |
 | `AppSettingsNotifier.setOnDeviceAiPreferFast` | method (`AppSettingsNotifier`) | B | Prefer the faster on-device model where both sizes are served; persist it and tell `OnDeviceAiService`. |
 | [`AppSettingsNotifier.setAutoCategoriesEnabled`](#appsettingsnotifier-setautocategoriesenabled) | method (`AppSettingsNotifier`) | A | Turn automatic categories on or off, persist it, and switch `CategoryClassifier`. |
@@ -469,16 +469,18 @@ skips `_loadPersisted`, so a widget test can override `appSettingsProvider` with
 `overrideWithValue(AppSettingsNotifier.fixed(...))` without touching storage. Its setters still
 persist.
 
-## Floating navigation bar preference
+## Interface style preference
 
-1.7.0 adds `floatingNavBar`, a `bool` defaulting to `true`, present in the constructor, `copyWith` and
-`_loadPersisted` (through `AnimeStorage.getFloatingNavBar()`). `setFloatingNavBar(bool floating)` updates
-`state` and persists through `AnimeStorage.setFloatingNavBar`, which stores only the non-default classic
-bar as `classicNavBar: true` in `storage_config.json`. `ShellScaffold` watches
-`appSettingsProvider.select((s) => s.floatingNavBar)` and builds either `_FloatingNavBar` or the stock
-`NavigationBar`; the setting has no visible effect while the navigation rail is shown. The only UI is
-the *Floating navigation bar* switch in Settings › General. See
-[`../widgets/shell_scaffold.md`](../widgets/shell_scaffold.md).
+1.7.0 added a `floatingNavBar` switch; 1.7.1 replaces it with `uiStyle`, an `AppUiStyle` defaulting to
+`AppUiStyle.expressive`, present in the constructor, `copyWith` and `_loadPersisted` (through
+`AnimeStorage.getUiStyle()`, which returns `'material3'` or null). `setUiStyle(AppUiStyle style)` updates
+`state` and persists through `AnimeStorage.setUiStyle('material3' or null)`, which stores only Material 3
+as `uiStyle: "material3"` in `storage_config.json` and removes the 1.7.0 `classicNavBar` key. `MyAnimeApp.build`
+passes `settings.uiStyle` to `AppTheme.light`/`dark`, so the theme rebuilds at once; `ShellScaffold` watches
+`appSettingsProvider.select((s) => s.uiStyle)` and builds `_FloatingNavBar` for Expressive or the stock
+`NavigationBar` for Material 3. The wide-window navigation rail is the same in both styles. The only UI
+is the *Interface style* picker in Settings › General. See [`../../app/theme.md`](../../app/theme.md)
+and [`../widgets/shell_scaffold.md`](../widgets/shell_scaffold.md).
 
 ## On-device AI preferences
 

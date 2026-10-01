@@ -1054,11 +1054,17 @@ class AppLocalizationsJa extends AppLocalizations {
       'かなタブを表示します。かなの練習などは別アプリ MyNihongo!!!!! をご利用ください。';
 
   @override
-  String get settingsFloatingNavBar => 'フローティングナビゲーションバー';
+  String get settingsUiStyle => 'インターフェーススタイル';
 
   @override
-  String get settingsFloatingNavBarDesc =>
-      '下部のナビゲーションバーを浮かぶアイランド形式で表示します。オフにすると従来の全幅バーに戻ります。';
+  String get settingsUiStyleDesc =>
+      'Expressive は丸みのある形、太めの見出し、フローティングナビゲーションバーを使います。Material 3 は全幅バーの標準デザインです。';
+
+  @override
+  String get settingsUiStyleMaterial3 => 'Material 3';
+
+  @override
+  String get settingsUiStyleExpressive => 'Expressive';
 
   @override
   String get settingsGeneral => '一般';

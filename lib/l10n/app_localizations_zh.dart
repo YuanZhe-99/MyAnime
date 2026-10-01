@@ -1046,10 +1046,17 @@ class AppLocalizationsZh extends AppLocalizations {
       '显示五十音标签页。如需练习假名等更多功能，请使用独立应用 MyNihongo!!!!!。';
 
   @override
-  String get settingsFloatingNavBar => '悬浮导航栏';
+  String get settingsUiStyle => '界面风格';
 
   @override
-  String get settingsFloatingNavBarDesc => '以悬浮岛样式显示底部导航栏。关闭后恢复为经典的通栏样式。';
+  String get settingsUiStyleDesc =>
+      'Expressive 使用更圆润的形状、更粗的标题和悬浮导航栏。Material 3 为标准外观，使用通栏导航栏。';
+
+  @override
+  String get settingsUiStyleMaterial3 => 'Material 3';
+
+  @override
+  String get settingsUiStyleExpressive => 'Expressive';
 
   @override
   String get settingsGeneral => '通用';
@@ -3138,10 +3145,17 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
       '顯示五十音分頁。如需練習假名等更多功能，請使用獨立應用程式 MyNihongo!!!!!。';
 
   @override
-  String get settingsFloatingNavBar => '懸浮導覽列';
+  String get settingsUiStyle => '介面風格';
 
   @override
-  String get settingsFloatingNavBarDesc => '以懸浮島樣式顯示底部導覽列。關閉後恢復為經典的通欄樣式。';
+  String get settingsUiStyleDesc =>
+      'Expressive 使用更圓潤的形狀、更粗的標題和懸浮導覽列。Material 3 為標準外觀，使用通欄導覽列。';
+
+  @override
+  String get settingsUiStyleMaterial3 => 'Material 3';
+
+  @override
+  String get settingsUiStyleExpressive => 'Expressive';
 
   @override
   String get settingsGeneral => '一般';

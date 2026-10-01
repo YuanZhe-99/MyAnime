@@ -761,29 +761,36 @@ class AnimeStorage {
     });
   }
 
-  /// Purpose: Return whether the bottom navigation bar floats as an island.
+  /// Purpose: Return the stored interface style name (1.7.1).
   /// Inputs: None.
-  /// Returns: `Future<bool>` — defaults to true.
+  /// Returns: `Future<String?>` — `'material3'`, or null for the default
+  /// Expressive style.
   /// Side effects: Reads `storage_config.json`.
-  /// Notes: Stored inverted as `classicNavBar` so the default (floating, since
-  /// 1.7.0) needs no key and existing installs get it too.
-  static Future<bool> getFloatingNavBar() async {
+  /// Notes: The 1.7.0 key `classicNavBar: true` (the classic bottom bar,
+  /// which is now part of the Material 3 style) also reads as `'material3'`,
+  /// so a user who turned the floating bar off keeps that look.
+  static Future<String?> getUiStyle() async {
     final config = await readConfig();
-    return config['classicNavBar'] != true;
+    if (config['uiStyle'] == 'material3' || config['classicNavBar'] == true) {
+      return 'material3';
+    }
+    return null;
   }
 
-  /// Purpose: Persist whether the bottom navigation bar floats as an island.
-  /// Inputs: `floating`.
+  /// Purpose: Persist the interface style (1.7.1).
+  /// Inputs: `name` — `'material3'`, or null for the default Expressive style.
   /// Returns: None.
   /// Side effects: Writes `storage_config.json`.
-  /// Notes: Only the non-default classic bar is stored, as
-  /// `classicNavBar: true`; choosing floating removes the key.
-  static Future<void> setFloatingNavBar(bool floating) async {
+  /// Notes: Only the non-default Material 3 style is stored, as
+  /// `uiStyle: "material3"`. The superseded 1.7.0 `classicNavBar` key is
+  /// removed on every write.
+  static Future<void> setUiStyle(String? name) async {
     await updateConfig((config) {
-      if (floating) {
-        config.remove('classicNavBar');
+      config.remove('classicNavBar');
+      if (name == 'material3') {
+        config['uiStyle'] = 'material3';
       } else {
-        config['classicNavBar'] = true;
+        config.remove('uiStyle');
       }
     });
   }

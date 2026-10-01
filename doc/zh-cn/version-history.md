@@ -2,6 +2,13 @@
 
 MyAnime!!!!! 的逐版本摘要。在改动一个行为之前理解它*为什么*存在很有用——多条记录记录的是刻意的安全修复，否则看起来像怪癖。
 
+## 1.7.1 — Material 3 或 Expressive
+
+- **界面风格设置取代悬浮栏开关。** **设置 › 通用 › 界面风格**是一个 `SegmentedButton<AppUiStyle>`，有 *Material 3* 与 *Expressive*（默认）两项，布局与主题选择器一致；它取代了 1.7.0 的*悬浮导航栏*开关。悬浮岛现在属于 Expressive，Material 3 使用经典的通栏底栏（`ShellScaffold` 只在 Expressive 时显示 `_FloatingNavBar`；宽窗口的侧边导航栏在两者下相同）。`AppSettings.uiStyle` / `setUiStyle` 取代 `floatingNavBar` / `setFloatingNavBar`，`AnimeStorage.getUiStyle` / `setUiStyle` 取代 `getFloatingNavBar` / `setFloatingNavBar`；l10n 键 `settingsFloatingNavBar` 与 `settingsFloatingNavBarDesc` 换成了 `settingsUiStyle`、`settingsUiStyleDesc`、`settingsUiStyleMaterial3` 与 `settingsUiStyleExpressive`。
+- **Expressive 在主题层面改变了什么。** `AppTheme.build` / `light` / `dark` 增加 `style` 参数（默认 `AppUiStyle.expressive`），`_expressive` 在与 1.7.0 完全相同的主题之上叠加：更大的圆角（卡片 20、对话框 32、底部面板上缘 32、菜单 16、Chip 12、FAB 20、描边文本框 12）；按下时从胶囊形变为圆角方形的按钮（200 ms）；加重的 display、headline 与 title 字重（字号与行高不变）；2024 版的进度指示器与滑块设计；Android、Fuchsia、Linux 与 Windows 上的淡入前进式页面转场（iOS 与 macOS 仍用 Cupertino）；以及圆角 16 的悬浮 snack bar。**它不做的事：**弹簧动效、波浪形指示器、按钮组、分体按钮、FAB 菜单和悬浮工具栏都不模仿，因为 Flutter 没有 Expressive 组件——这是一种近似，而不是 Material 3 Expressive 本身。两种风格的配色完全相同，布局从不改变。
+- **设置会被沿用。** 设备本地的 `storage_config.json` 键 `uiStyle` 只存储 `"material3"`；缺省表示 Expressive。关闭过悬浮栏的 1.7.0 安装（`classicNavBar: true`）保持经典外观：`getUiStyle` 把该键读取一次并视为 Material 3，下一次 `setUiStyle` 写入时将其移除。
+- 测试从 631 增至 639 个通过（3 个跳过）；新的 `theme_style_test` 覆盖共用配色、默认风格、原版 Material 3、Expressive 的形状、字重、悬浮 snack bar、文本框圆角与按下变形，以及存储的默认值、`classicNavBar` 沿用和写入语义，`shell_nav_ui_test` 现在使用 `uiStyle`。`flutter analyze` 无任何问题。版本 1.7.1+70；安装器/MSIX 版本 1.7.1.0。
+
 ## 1.7.0 — Material 3、悬浮导航栏与同步的个人资料
 
 - **原版 Google Material 3 取代 `flex_color_scheme`。** `AppTheme` 现在由 `seedColor`（深紫色）、`scheme`、`build` 以及 `light([dynamicScheme])` / `dark([dynamicScheme])` 组成——后两者由 getter 改成了方法。颜色来自 `ColorScheme.fromSeed`；唯一的组件覆盖是描边文本框，因此表单外观如前。其余全部是 Flutter 默认值：没有着染表面，使用 Material 3 分隔线，底栏始终显示所有标签（旧的 `onlyShowSelected` 已不复存在）。`MyAnimeApp.build` 把应用包在 `DynamicColorBuilder` 中；**壁纸（Material You）取色仅在 Android 上生效**，因为在 Windows 和 macOS 上该插件返回的是系统强调色，会取代应用的种子色。Android 11 及更早版本和其他所有平台使用种子色。Android 动态取色尚未在真机上验证。

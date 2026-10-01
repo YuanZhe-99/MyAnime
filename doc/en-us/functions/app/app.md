@@ -35,4 +35,6 @@ The gate exists because on Windows and macOS the plugin returns the system accen
 replace the app's own deep-purple seed; those platforms (and iOS, and Android 11 or older, where the
 plugin returns no scheme) therefore use `ColorScheme.fromSeed(AppTheme.seedColor)`. All other
 `MaterialApp.router` arguments (scroll behavior, locale, delegates, `DevicePreview.appBuilder`,
-router) are unchanged. See [theme.md](theme.md) and [../../platform-notes.md](../../platform-notes.md).
+router) are unchanged. Since 1.7.1 `build` also reads `settings.uiStyle` (`AppSettings.uiStyle`) and passes it as the
+second argument of both `AppTheme.light(...)` and `AppTheme.dark(...)`, so changing the interface style
+rebuilds the theme at once. See [theme.md](theme.md) and [../../platform-notes.md](../../platform-notes.md).
