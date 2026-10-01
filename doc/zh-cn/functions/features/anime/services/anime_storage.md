@@ -54,6 +54,8 @@
 | [`setMetadataPrefetchCovers`](#setmetadataprefetchcovers) | 静态方法（`AnimeStorage`） | A | 持久化是否预下载候选封面。 |
 | [`getKanaTabEnabled`](#getkanatabenabled) | 静态方法（`AnimeStorage`） | A | 读取是否显示五十音速查标签。 |
 | [`setKanaTabEnabled`](#setkanatabenabled) | 静态方法（`AnimeStorage`） | A | 持久化是否显示五十音速查标签。 |
+| [`getFloatingNavBar`](#getfloatingnavbar) | 静态方法（`AnimeStorage`） | A | 读取底部导航栏是否以悬浮岛显示（1.7.0）。 |
+| [`setFloatingNavBar`](#setfloatingnavbar) | 静态方法（`AnimeStorage`） | A | 持久化底部导航栏是否以悬浮岛显示（1.7.0）。 |
 | [`getOnDeviceAiEnabled`](#getondeviceaienabled) | 静态方法（`AnimeStorage`） | A | 读取是否开启端侧 AI。 |
 | [`setOnDeviceAiEnabled`](#setondeviceaienabled) | 静态方法（`AnimeStorage`） | A | 持久化是否开启端侧 AI。 |
 | [`getAutoCategoriesEnabled`](#getautocategoriesenabled) | 静态方法（`AnimeStorage`） | A | 读取是否开启自动分类。 |
@@ -621,6 +623,18 @@
 - **种类：** `AnimeStorage` 的静态方法
 - **副作用：** 写入 `storage_config.json`。
 - **备注：** 开启时写入 `kanaTabEnabled: true`，关闭时移除该键，形态与 `setMetadataPrefetchCovers` 相同。
+
+### `static Future<bool> getFloatingNavBar()` <a id="getfloatingnavbar"></a>
+- **种类：** `AnimeStorage` 的静态方法
+- **返回：** `Future<bool>` —— `config['classicNavBar'] != true`，因此默认为 `true`。
+- **副作用：** 读取 `storage_config.json`。
+- **备注：** 1.7.0 新增。以反向的 `classicNavBar` 存储，使默认值（悬浮）无需任何键，已有安装同样得到悬浮栏。仅限设备本地，从不同步。由 `AppSettingsNotifier._loadPersisted` 读取。
+
+### `static Future<void> setFloatingNavBar(bool floating)` <a id="setfloatingnavbar"></a>
+- **种类：** `AnimeStorage` 的静态方法
+- **输入：** `floating`。
+- **副作用：** 写入 `storage_config.json`。
+- **备注：** 悬浮时移除该键，经典时写入 `classicNavBar: true`，因此只存储非默认的选择。
 
 ### `static Future<bool> getOnDeviceAiEnabled()` <a id="getondeviceaienabled"></a>
 - **种类：** `AnimeStorage` 的静态方法

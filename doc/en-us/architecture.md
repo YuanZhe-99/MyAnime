@@ -10,7 +10,7 @@ Architecture" section. See [`data-formats.md`](data-formats.md) for the data mod
 - `lib/main.dart` — app entry point.
 - `lib/app/app.dart` — root `MaterialApp`/`App` widget wiring.
 - `lib/app/router.dart` — navigation, built on `go_router`. The router uses a `ShellRoute` wrapping
-  the navigation tabs — rendered as a bottom `NavigationBar` on a narrow window and a side
+  the navigation tabs — rendered as a bottom bar on a narrow window (a floating island by default since 1.7.0, or the classic `NavigationBar`) and a side
   `NavigationRail` from 600 logical pixels up, see [`adaptive-layout.md`](adaptive-layout.md):
   - Home (`/home`, `home_page.dart`)
   - Manage (`/manage`, `management_page.dart`)
@@ -26,7 +26,7 @@ Architecture" section. See [`data-formats.md`](data-formats.md) for the data mod
   `/duplicate-check`). `/recommendations` (1.6.0) is reached only from the Home app-bar action shown
   while recommendations are on (see
   [`features/categories-and-recommendations.md`](features/categories-and-recommendations.md)).
-- `lib/app/theme.dart` — the visual system, built on Material 3 via `flex_color_scheme`.
+- `lib/app/theme.dart` — the visual system: stock Google Material 3 (`ThemeData` with `ColorScheme.fromSeed`); Android 12+ may override the seed with wallpaper colors through `dynamic_color`.
 - `lib/app/flavor.dart` — build flavor logic (see below).
 
 ## Build flavors
@@ -99,6 +99,15 @@ lib/
       services/category_service.dart
       widgets/categorize_now_tile.dart
     kana/views/kana_page.dart
+    profile/                  # synced display name and avatar (1.7.0)
+      models/profile_data.dart
+      services/
+        profile_merge.dart
+        profile_store.dart
+      providers/profile_provider.dart
+      views/
+        profile_avatar.dart
+        profile_header.dart
     recommendations/          # recommendations (1.6.0)
       services/
         recommendation_service.dart  # deterministic ranking
@@ -132,6 +141,7 @@ lib/
       chinese_convert_data.dart
       jst_time.dart
       season_label.dart       # season ordinals, markers, next label (1.6.0)
+      status_colors.dart      # completed/dropped colors from the scheme (1.7.0)
     views/webdav_config_page.dart
     widgets/
       duplicate_check_page.dart
@@ -192,7 +202,7 @@ what keeps their wire format, backup format, and lock semantics interoperable.
   backup bundle and blob store, ZIP allowlist, and sync scheduling.
 - **The seam:** [`functions/app/data_modules.md`](functions/app/data_modules.md) declares the
   `StorageAdapter` over `AnimeStorage` plus the `DataModule`s describing `anime_data.json`, since
-  1.6.2 `recommendations.json` and since 1.6.5 `playback_progress.json`, in that order. It is the
+  1.6.2 `recommendations.json`, since 1.6.5 `playback_progress.json` and since 1.7.0 `profile.json`, in that order (four modules). It is the
   single source of truth for the data-file names and backup module keys.
 - **The facades:** `WebDAVService`, `BackupService`, `ImportExportService`, and `AutoSyncService`
   keep their previous public APIs and delegate to the package. Their shapes are deliberately frozen
@@ -209,7 +219,7 @@ feature area:
 
 - **State management:** `flutter_riverpod`; no Provider or Bloc for normal changes.
 - **Navigation:** `go_router` with a `ShellRoute` and the four or five tabs listed above.
-- **Visual system:** Material 3 via `flex_color_scheme`.
+- **Visual system:** stock Google Material 3 — `ColorScheme.fromSeed` from one seed color (`AppTheme.seedColor`), plus `dynamic_color` wallpaper colors on Android 12+ only (since 1.7.0; `flex_color_scheme` was removed). See [`functions/app/theme.md`](functions/app/theme.md).
 - **Responsive layout:** one shared rule decides when the UI may split into panes or columns, and
   how many columns a list gets; a second, width-only rule decides whether navigation sits at the
   side or along the bottom. Both live in `shared/utils/adaptive_layout.dart` and are derived in

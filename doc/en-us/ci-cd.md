@@ -64,9 +64,9 @@ iscc /DARM64 installer.iss
 Use the narrowest relevant command set for verification. For model or sync changes, include
 `flutter test test/anime_json_test.dart`.
 
-`flutter analyze` currently reports pre-existing info-level items (in `tool/`, a view, and a test)
-plus pub advisory decode warnings. Distinguish that pre-existing noise from regressions introduced by
-the change in hand — compare against the count before your edit rather than expecting zero.
+Since 1.7.0 `flutter analyze` reports **no issues** (the 25 pre-existing infos were cleared), so any finding
+it prints is a regression introduced by the change in hand. Pub advisory decode warnings, when shown,
+are unrelated noise.
 
 ## Fresh clone
 

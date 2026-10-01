@@ -1,3 +1,6 @@
+// Command-line developer script: printing to the console is its output.
+// ignore_for_file: avoid_print
+
 import 'dart:io';
 import 'dart:typed_data';
 

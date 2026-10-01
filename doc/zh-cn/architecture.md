@@ -6,7 +6,7 @@
 
 - `lib/main.dart` — 应用入口点。
 - `lib/app/app.dart` — 根 `MaterialApp`/`App` 组件接线。
-- `lib/app/router.dart` — 基于 `go_router` 的导航。路由器使用一个 `ShellRoute` 包住各导航标签——在窄窗口上渲染为底部 `NavigationBar`，从 600 逻辑像素起渲染为侧边 `NavigationRail`，见 [`adaptive-layout.md`](adaptive-layout.md)：
+- `lib/app/router.dart` — 基于 `go_router` 的导航。路由器使用一个 `ShellRoute` 包住各导航标签——在窄窗口上渲染为底栏（自 1.7.0 起默认为悬浮岛，也可选经典的 `NavigationBar`），从 600 逻辑像素起渲染为侧边 `NavigationRail`，见 [`adaptive-layout.md`](adaptive-layout.md)：
   - 主页（`/home`，`home_page.dart`）
   - 管理（`/manage`，`management_page.dart`）
   - 统计（`/stats`，`statistics_page.dart`）
@@ -14,7 +14,7 @@
   - 设置（`/settings`，`settings_page.dart`）
 
   非标签路由（动画详情、动画编辑/新增、元数据更新审阅、推荐、重复检查）与外壳路由一起声明，并压栈在它之上（如 `/anime/detail/:id`、`/anime/edit`、`/anime/edit/:id`、`/metadata-updates`、`/recommendations`、`/duplicate-check`）。`/recommendations`（1.6.0）只能从推荐开启时显示的首页应用栏操作进入（见 [`features/categories-and-recommendations.md`](features/categories-and-recommendations.md)）。
-- `lib/app/theme.dart` — 基于 `flex_color_scheme` 的 Material 3 视觉体系。
+- `lib/app/theme.dart` — 视觉体系：原版 Google Material 3（带 `ColorScheme.fromSeed` 的 `ThemeData`）；Android 12+ 可通过 `dynamic_color` 用壁纸颜色覆盖种子色。
 - `lib/app/flavor.dart` — 构建风味逻辑（见下文）。
 
 ## 构建风味
@@ -79,6 +79,15 @@ lib/
       services/category_service.dart
       widgets/categorize_now_tile.dart
     kana/views/kana_page.dart
+    profile/                  # synced display name and avatar (1.7.0)
+      models/profile_data.dart
+      services/
+        profile_merge.dart
+        profile_store.dart
+      providers/profile_provider.dart
+      views/
+        profile_avatar.dart
+        profile_header.dart
     recommendations/          # recommendations (1.6.0)
       services/
         recommendation_service.dart  # deterministic ranking
@@ -112,6 +121,7 @@ lib/
       chinese_convert_data.dart
       jst_time.dart
       season_label.dart       # season ordinals, markers, next label (1.6.0)
+      status_colors.dart      # completed/dropped colors from the scheme (1.7.0)
     views/webdav_config_page.dart
     widgets/
       duplicate_check_page.dart
@@ -151,7 +161,7 @@ WebDAV 同步引擎、备份引擎、ZIP 传输引擎和自动同步调度器**�
 
 - **留在这里的内容：** 所有模型、`AnimeStorage`、`mergeAnimeData` 包装器、Markdown 导出，以及每个页面。
 - **移走的内容：** 传输、锁生命周期、合并流水线、`.sync_base` 快照、图像同步、备份捆绑与 blob 存储、ZIP 允许列表和同步调度。
-- **接缝：** [`functions/app/data_modules.md`](functions/app/data_modules.md) 声明了基于 `AnimeStorage` 的 `StorageAdapter`，以及依次描述 `anime_data.json`、（自 1.6.2 起）`recommendations.json` 和（自 1.6.5 起）`playback_progress.json` 的 `DataModule`。它是数据文件名和备份模块键的唯一真实来源。
+- **接缝：** [`functions/app/data_modules.md`](functions/app/data_modules.md) 声明了基于 `AnimeStorage` 的 `StorageAdapter`，以及依次描述 `anime_data.json`、（自 1.6.2 起）`recommendations.json`、（自 1.6.5 起）`playback_progress.json` 和（自 1.7.0 起）`profile.json` 的 `DataModule`（共四个模块）。它是数据文件名和备份模块键的唯一真实来源。
 - **门面：** `WebDAVService`、`BackupService`、`ImportExportService` 和 `AutoSyncService` 保留它们此前的公共 API 并委托给该包。它们的形态被刻意冻结，使调用点和测试继续工作；行为变更属于该包。
 
 `.gitmodules` 使用相对 URL `../MyApps-DATA.git`，因此它按克隆所跟踪的远程解析——Gitea 克隆从 Gitea 拉取，GitHub 克隆从 GitHub 拉取，而且任何主机名都不会被提交。全新克隆需要 `git clone --recurse-submodules` 或 `git submodule update --init`。
@@ -162,7 +172,7 @@ WebDAV 同步引擎、备份引擎、ZIP 传输引擎和自动同步调度器**�
 
 - **状态管理：** `flutter_riverpod`；常规变更不用 Provider 或 Bloc。
 - **导航：** `go_router`，带 `ShellRoute` 和上面列出的四个或五个标签。
-- **视觉体系：** 基于 `flex_color_scheme` 的 Material 3。
+- **视觉体系：** 原版 Google Material 3——由单个种子色（`AppTheme.seedColor`）经 `ColorScheme.fromSeed` 生成，仅在 Android 12+ 上额外使用 `dynamic_color` 壁纸取色（自 1.7.0 起；`flex_color_scheme` 已移除）。见 [`functions/app/theme.md`](functions/app/theme.md)。
 - **响应式布局：** 一条共享规则决定界面何时可以拆成分栏或多列，以及列表分成几列；另有一条只看宽度的规则
   决定导航放在侧边还是底部。两者都位于 `shared/utils/adaptive_layout.dart`，推导见
   [`adaptive-layout.md`](adaptive-layout.md)。**不要新增内联的宽度断点**——截至 1.5.4，`lib/` 中一个

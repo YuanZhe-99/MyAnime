@@ -10,9 +10,11 @@ import 'package:path_provider/path_provider.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 import 'package:share_plus/share_plus.dart';
 
+import '../../app/theme.dart';
 import '../../features/anime/models/anime.dart';
 import '../../l10n/app_localizations.dart';
 import '../utils/jst_time.dart';
+import '../utils/status_colors.dart';
 import 'file_open_service.dart';
 import 'image_service.dart';
 
@@ -51,12 +53,23 @@ class ShareService {
   static const double _logoSize = 18.0;
   static const double _maxImageDimension = 16000;
 
-  static const _accentColor = Color(0xFF673AB7);
-  static const _bgColor = Color(0xFFFFFFFF);
-  static const _textColor = Color(0xFF212121);
-  static const _subtitleColor = Color(0xFF757575);
-  static const _borderColor = Color(0xFFE0E0E0);
-  static const _trackColor = Color(0xFFE0E0E0);
+  // Share images are always drawn as a light card, whatever the app theme or
+  // wallpaper colors, so the same anime looks the same on every device. The
+  // palette is the light Material 3 scheme generated from the app seed.
+  static final ColorScheme _palette = ColorScheme.fromSeed(
+    seedColor: AppTheme.seedColor,
+  );
+  static final _accentColor = _palette.primary;
+  static final _onAccentColor = _palette.onPrimary;
+  static final _bgColor = _palette.surface;
+  static final _textColor = _palette.onSurface;
+  static final _subtitleColor = _palette.onSurfaceVariant;
+  static final _borderColor = _palette.outlineVariant;
+  static final _trackColor = _palette.surfaceContainerHighest;
+  static final _rowTintColor = _palette.surfaceContainerLow;
+  static final _placeholderColor = _palette.primaryContainer;
+  static final _completedColor = StatusColors.completed(_palette);
+  static final _droppedColor = StatusColors.dropped(_palette);
 
   /// Purpose: Share anime through the relevant platform flow.
   /// Inputs: `context`, `anime`.
@@ -559,11 +572,7 @@ class ShareService {
       // Title
       final titlePainter = _layoutText(
         anime.displayTitle,
-        const TextStyle(
-          color: _textColor,
-          fontSize: 20,
-          fontWeight: FontWeight.bold,
-        ),
+        TextStyle(color: _textColor, fontSize: 20, fontWeight: FontWeight.bold),
         infoWidth,
       );
       final titleY = y;
@@ -583,7 +592,7 @@ class ShareService {
         titleJaY = y;
         titleJaPainter = _layoutText(
           anime.titleJa!,
-          const TextStyle(color: _subtitleColor, fontSize: 14),
+          TextStyle(color: _subtitleColor, fontSize: 14),
           infoWidth,
         );
         y += titleJaPainter.height;
@@ -619,7 +628,7 @@ class ShareService {
         infoYs.add(y);
         final tp = _layoutText(
           line,
-          const TextStyle(color: _textColor, fontSize: 14),
+          TextStyle(color: _textColor, fontSize: 14),
           infoWidth,
         );
         infoPainters.add(tp);
@@ -636,7 +645,7 @@ class ShareService {
           : '$airedCount ${l10n.animeEpisodes}';
       final progressPainter = _layoutText(
         progressText,
-        const TextStyle(color: _textColor, fontSize: 14),
+        TextStyle(color: _textColor, fontSize: 14),
         infoWidth,
       );
       y += progressPainter.height + 8;
@@ -668,7 +677,7 @@ class ShareService {
         }
         notesPainter = _layoutText(
           notesText,
-          const TextStyle(color: _textColor, fontSize: 13),
+          TextStyle(color: _textColor, fontSize: 13),
           contentWidth,
           maxLines: 6,
         );
@@ -682,7 +691,7 @@ class ShareService {
           notesEllipsisY = y;
           notesEllipsisPainter = _layoutText(
             '...',
-            const TextStyle(
+            TextStyle(
               color: _accentColor,
               fontSize: 12,
               fontWeight: FontWeight.bold,
@@ -702,7 +711,7 @@ class ShareService {
           final entryY = y;
           final urlPainter = _layoutText(
             entry.label,
-            const TextStyle(color: _subtitleColor, fontSize: 11),
+            TextStyle(color: _subtitleColor, fontSize: 11),
             contentWidth - _qrSize - _gap,
             maxLines: 3,
           );
@@ -715,7 +724,7 @@ class ShareService {
       y += _gap;
       final watermarkPainter = _layoutText(
         'MyAnime!!!!!',
-        const TextStyle(
+        TextStyle(
           color: _accentColor,
           fontSize: 13,
           fontWeight: FontWeight.bold,
@@ -931,11 +940,7 @@ class ShareService {
 
       final titlePainter = _layoutText(
         title,
-        const TextStyle(
-          color: _textColor,
-          fontSize: 24,
-          fontWeight: FontWeight.bold,
-        ),
+        TextStyle(color: _textColor, fontSize: 24, fontWeight: FontWeight.bold),
         contentWidth,
       );
       final titleY = y;
@@ -943,7 +948,7 @@ class ShareService {
 
       final subtitlePainter = _layoutText(
         subtitle,
-        const TextStyle(color: _subtitleColor, fontSize: 14),
+        TextStyle(color: _subtitleColor, fontSize: 14),
         contentWidth,
         maxLines: 2,
       );
@@ -952,7 +957,7 @@ class ShareService {
 
       final metaPainter = _layoutText(
         '${l10n.statsRankingSortBy}: $sortLabel · $orderLabel · ${l10n.statsRankingCount(entries.length)}',
-        const TextStyle(color: _textColor, fontSize: 13),
+        TextStyle(color: _textColor, fontSize: 13),
         contentWidth,
         maxLines: 2,
       );
@@ -963,7 +968,7 @@ class ShareService {
 
       final watermarkPainter = _layoutText(
         'MyAnime!!!!!',
-        const TextStyle(
+        TextStyle(
           color: _accentColor,
           fontSize: 13,
           fontWeight: FontWeight.bold,
@@ -1092,7 +1097,7 @@ class ShareService {
     );
     canvas.drawRRect(
       RRect.fromRectAndRadius(rowRect, const Radius.circular(12)),
-      Paint()..color = const Color(0xFFF7F4FF),
+      Paint()..color = _rowTintColor,
     );
     canvas.drawRRect(
       RRect.fromRectAndRadius(rowRect, const Radius.circular(12)),
@@ -1111,8 +1116,8 @@ class ShareService {
     );
     final rankPainter = _layoutText(
       '${entry.rank}',
-      const TextStyle(
-        color: Colors.white,
+      TextStyle(
+        color: _onAccentColor,
         fontSize: 16,
         fontWeight: FontWeight.bold,
       ),
@@ -1142,11 +1147,11 @@ class ShareService {
     } else {
       canvas.drawRRect(
         RRect.fromRectAndRadius(coverRect, const Radius.circular(6)),
-        Paint()..color = const Color(0xFFEDE7F6),
+        Paint()..color = _placeholderColor,
       );
       final placeholder = _layoutText(
         '#',
-        const TextStyle(
+        TextStyle(
           color: _accentColor,
           fontSize: 20,
           fontWeight: FontWeight.bold,
@@ -1164,11 +1169,7 @@ class ShareService {
 
     final scorePainter = _layoutText(
       _formatScore(entry.score),
-      const TextStyle(
-        color: _accentColor,
-        fontSize: 22,
-        fontWeight: FontWeight.bold,
-      ),
+      TextStyle(color: _accentColor, fontSize: 22, fontWeight: FontWeight.bold),
       _rankingScoreWidth,
     );
     final scoreX = _rankingCardWidth - _padding - 12 - _rankingScoreWidth;
@@ -1181,11 +1182,7 @@ class ShareService {
     final textWidth = scoreX - textX - 12;
     final titlePainter = _layoutText(
       entry.anime.displayTitle,
-      const TextStyle(
-        color: _textColor,
-        fontSize: 16,
-        fontWeight: FontWeight.bold,
-      ),
+      TextStyle(color: _textColor, fontSize: 16, fontWeight: FontWeight.bold),
       textWidth,
       maxLines: 1,
     );
@@ -1199,7 +1196,7 @@ class ShareService {
     ].join(' · ');
     final detailPainter = _layoutText(
       detail,
-      const TextStyle(color: _subtitleColor, fontSize: 12),
+      TextStyle(color: _subtitleColor, fontSize: 12),
       textWidth,
       maxLines: 1,
     );
@@ -1765,11 +1762,7 @@ class ShareService {
 
       final titlePainter = _layoutText(
         title,
-        const TextStyle(
-          color: _textColor,
-          fontSize: 24,
-          fontWeight: FontWeight.bold,
-        ),
+        TextStyle(color: _textColor, fontSize: 24, fontWeight: FontWeight.bold),
         contentWidth,
       );
       final titleY = y;
@@ -1777,7 +1770,7 @@ class ShareService {
 
       final subtitlePainter = _layoutText(
         subtitle,
-        const TextStyle(color: _subtitleColor, fontSize: 14),
+        TextStyle(color: _subtitleColor, fontSize: 14),
         contentWidth,
         maxLines: 2,
       );
@@ -1803,7 +1796,7 @@ class ShareService {
 
       final watermarkPainter = _layoutText(
         'MyAnime!!!!!',
-        const TextStyle(
+        TextStyle(
           color: _accentColor,
           fontSize: 13,
           fontWeight: FontWeight.bold,
@@ -1968,15 +1961,15 @@ class ShareService {
   }) {
     final bars = [
       (l10n.statsTracked, summary.tracked.toDouble(), _accentColor),
-      (l10n.statsCompleted, summary.completed.toDouble(), Colors.green),
-      (l10n.statsDropped, summary.dropped.toDouble(), Colors.red),
+      (l10n.statsCompleted, summary.completed.toDouble(), _completedColor),
+      (l10n.statsDropped, summary.dropped.toDouble(), _droppedColor),
     ];
     final maxVal = bars.map((b) => b.$2).fold<double>(0, max);
     double cy = y;
     for (final (label, value, color) in bars) {
       final labelPainter = _layoutText(
         '$label: ${value.toInt()}',
-        const TextStyle(color: _textColor, fontSize: 13),
+        TextStyle(color: _textColor, fontSize: 13),
         contentWidth,
       );
       labelPainter.paint(canvas, Offset(_padding, cy));
@@ -2077,7 +2070,7 @@ class ShareService {
     );
     canvas.drawRRect(
       RRect.fromRectAndRadius(rowRect, const Radius.circular(12)),
-      Paint()..color = const Color(0xFFF7F4FF),
+      Paint()..color = _rowTintColor,
     );
     canvas.drawRRect(
       RRect.fromRectAndRadius(rowRect, const Radius.circular(12)),
@@ -2096,8 +2089,8 @@ class ShareService {
     );
     final rankPainter = _layoutText(
       '${entry.rank}',
-      const TextStyle(
-        color: Colors.white,
+      TextStyle(
+        color: _onAccentColor,
         fontSize: 16,
         fontWeight: FontWeight.bold,
       ),
@@ -2127,11 +2120,11 @@ class ShareService {
     } else {
       canvas.drawRRect(
         RRect.fromRectAndRadius(coverRect, const Radius.circular(6)),
-        Paint()..color = const Color(0xFFEDE7F6),
+        Paint()..color = _placeholderColor,
       );
       final placeholder = _layoutText(
         '#',
-        const TextStyle(
+        TextStyle(
           color: _accentColor,
           fontSize: 20,
           fontWeight: FontWeight.bold,
@@ -2152,7 +2145,7 @@ class ShareService {
     if (entry.score != null) {
       final scorePainter = _layoutText(
         _formatScore(entry.score!),
-        const TextStyle(
+        TextStyle(
           color: _accentColor,
           fontSize: 22,
           fontWeight: FontWeight.bold,
@@ -2169,11 +2162,7 @@ class ShareService {
     final textWidth = scoreX - textX - 12;
     final titlePainter = _layoutText(
       entry.anime.displayTitle,
-      const TextStyle(
-        color: _textColor,
-        fontSize: 16,
-        fontWeight: FontWeight.bold,
-      ),
+      TextStyle(color: _textColor, fontSize: 16, fontWeight: FontWeight.bold),
       textWidth,
       maxLines: 1,
     );
@@ -2186,7 +2175,7 @@ class ShareService {
     ].join(' · ');
     final detailPainter = _layoutText(
       detail,
-      const TextStyle(color: _subtitleColor, fontSize: 12),
+      TextStyle(color: _subtitleColor, fontSize: 12),
       textWidth,
       maxLines: 1,
     );

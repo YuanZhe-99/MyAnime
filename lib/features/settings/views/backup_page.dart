@@ -507,6 +507,7 @@ class _RestoreModuleDialogState extends State<_RestoreModuleDialog> {
         Icons.recommend_outlined,
       ),
       playbackModuleId: (l10n.backupModulePlayback, Icons.play_circle_outline),
+      profileModuleId: (l10n.backupModuleProfile, Icons.person_outline),
     };
     return AlertDialog(
       title: Text(l10n.backupRestoreModules),

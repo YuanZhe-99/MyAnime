@@ -1046,6 +1046,12 @@ class AppLocalizationsZh extends AppLocalizations {
       '显示五十音标签页。如需练习假名等更多功能，请使用独立应用 MyNihongo!!!!!。';
 
   @override
+  String get settingsFloatingNavBar => '悬浮导航栏';
+
+  @override
+  String get settingsFloatingNavBarDesc => '以悬浮岛样式显示底部导航栏。关闭后恢复为经典的通栏样式。';
+
+  @override
   String get settingsGeneral => '通用';
 
   @override
@@ -2061,6 +2067,33 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get backupModulePlayback => '播放进度';
+
+  @override
+  String get backupModuleProfile => '个人资料';
+
+  @override
+  String get profileTitle => '个人资料';
+
+  @override
+  String get profileName => '名称';
+
+  @override
+  String get profileNamePlaceholder => '设置你的名称';
+
+  @override
+  String get profileEditHint => '名称和头像会在你的设备间同步';
+
+  @override
+  String get profileChangeAvatar => '选择头像';
+
+  @override
+  String get profileRemoveAvatar => '移除';
+
+  @override
+  String get profileAvatarError => '无法使用此图片';
+
+  @override
+  String get profileOpenSettings => '个人资料与设置';
 }
 
 /// The translations for Chinese, as used in Taiwan (`zh_TW`).
@@ -3105,6 +3138,12 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
       '顯示五十音分頁。如需練習假名等更多功能，請使用獨立應用程式 MyNihongo!!!!!。';
 
   @override
+  String get settingsFloatingNavBar => '懸浮導覽列';
+
+  @override
+  String get settingsFloatingNavBarDesc => '以懸浮島樣式顯示底部導覽列。關閉後恢復為經典的通欄樣式。';
+
+  @override
   String get settingsGeneral => '一般';
 
   @override
@@ -4120,4 +4159,31 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
 
   @override
   String get backupModulePlayback => '播放進度';
+
+  @override
+  String get backupModuleProfile => '個人資料';
+
+  @override
+  String get profileTitle => '個人資料';
+
+  @override
+  String get profileName => '名稱';
+
+  @override
+  String get profileNamePlaceholder => '設定你的名稱';
+
+  @override
+  String get profileEditHint => '名稱和頭像會在你的裝置間同步';
+
+  @override
+  String get profileChangeAvatar => '選擇頭像';
+
+  @override
+  String get profileRemoveAvatar => '移除';
+
+  @override
+  String get profileAvatarError => '無法使用此圖片';
+
+  @override
+  String get profileOpenSettings => '個人資料與設定';
 }

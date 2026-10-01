@@ -46,7 +46,7 @@ iscc /DARM64 installer.iss
 
 使用最窄的相关命令集做校验。模型或同步变更时，包含 `flutter test test/anime_json_test.dart`。
 
-`flutter analyze` 目前报告既有的 info 级条目（在 `tool/`、一个视图和一个测试中），外加 pub advisory 的 decode 警告。把这些既有噪声与本次变更引入的回归区分开——与编辑前的计数比较，而不是期望为零。
+自 1.7.0 起 `flutter analyze` 报告**没有任何问题**（原有的 25 条 info 已清除），因此它输出的任何条目都是本次变更引入的回归。pub advisory 的 decode 警告若出现，则是无关的噪声。
 
 ## 全新克隆
 

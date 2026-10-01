@@ -7,6 +7,7 @@ import 'package:intl/intl.dart';
 import 'package:table_calendar/table_calendar.dart';
 
 import '../../../l10n/app_localizations.dart';
+import '../../profile/views/profile_avatar.dart';
 import '../../../shared/providers/app_settings.dart';
 import '../../../shared/services/auto_sync_service.dart';
 import '../../../shared/widgets/adaptive_tile_grid.dart';
@@ -311,6 +312,16 @@ class _HomePageState extends ConsumerState<HomePage> {
 
     return Scaffold(
       appBar: AppBar(
+        // The profile avatar sits left of the title (1.7.0); it opens
+        // Settings, whose header edits the name and avatar.
+        leading: Padding(
+          padding: const EdgeInsetsDirectional.only(start: 8),
+          child: IconButton(
+            tooltip: l10n.profileOpenSettings,
+            onPressed: () => context.go('/settings'),
+            icon: const ProfileAvatar(radius: 16),
+          ),
+        ),
         title: Text(l10n.appTitle),
         actions: [
           // Recommendations are off by default; the action appears only
@@ -700,7 +711,9 @@ class _HomePageState extends ConsumerState<HomePage> {
                           snap.data!,
                           width: 40,
                           height: 56,
-                          cacheHeight: (56 * MediaQuery.devicePixelRatioOf(context)).ceil(),
+                          cacheHeight:
+                              (56 * MediaQuery.devicePixelRatioOf(context))
+                                  .ceil(),
                           fit: BoxFit.cover,
                         ),
                       );

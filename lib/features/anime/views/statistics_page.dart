@@ -12,6 +12,7 @@ import '../../../shared/services/auto_sync_service.dart';
 import '../../../shared/services/image_service.dart';
 import '../../../shared/services/share_service.dart';
 import '../../../shared/utils/adaptive_layout.dart';
+import '../../../shared/utils/status_colors.dart';
 import '../../../shared/widgets/adaptive_tile_grid.dart';
 import '../../../shared/widgets/anime_actions_sheet.dart';
 import '../models/anime.dart';
@@ -1822,13 +1823,13 @@ class _StatisticsPageState extends ConsumerState<StatisticsPage> {
         theme,
         l10n.statsCompleted,
         grouped[AnimeViewingStatus.completed]!.length,
-        Colors.green,
+        StatusColors.completed(theme.colorScheme),
       ),
       _buildSummaryCard(
         theme,
         l10n.statsDropped,
         grouped[AnimeViewingStatus.dropped]!.length,
-        Colors.red,
+        StatusColors.dropped(theme.colorScheme),
       ),
       _buildSummaryCard(
         theme,
@@ -2439,9 +2440,15 @@ class _StatisticsPageState extends ConsumerState<StatisticsPage> {
             children: [
               _legendDot(theme.colorScheme.primary, l10n.statsTracked),
               const SizedBox(width: 12),
-              _legendDot(Colors.green, l10n.statsCompleted),
+              _legendDot(
+                StatusColors.completed(theme.colorScheme),
+                l10n.statsCompleted,
+              ),
               const SizedBox(width: 12),
-              _legendDot(Colors.red, l10n.statsDropped),
+              _legendDot(
+                StatusColors.dropped(theme.colorScheme),
+                l10n.statsDropped,
+              ),
             ],
           ),
           const SizedBox(height: 8),
@@ -2642,7 +2649,7 @@ class _StatisticsPageState extends ConsumerState<StatisticsPage> {
               ),
               BarChartRodData(
                 toY: e.completed.toDouble(),
-                color: Colors.green,
+                color: StatusColors.completed(theme.colorScheme),
                 width: barWidth,
                 borderRadius: const BorderRadius.vertical(
                   top: Radius.circular(2),
@@ -2650,7 +2657,7 @@ class _StatisticsPageState extends ConsumerState<StatisticsPage> {
               ),
               BarChartRodData(
                 toY: e.dropped.toDouble(),
-                color: Colors.red,
+                color: StatusColors.dropped(theme.colorScheme),
                 width: barWidth,
                 borderRadius: const BorderRadius.vertical(
                   top: Radius.circular(2),

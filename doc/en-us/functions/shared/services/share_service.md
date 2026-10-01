@@ -583,3 +583,17 @@ reading the source (noted below).
 - **Native image resources are released.** Every `ui.Codec` is disposed right after `getNextFrame`; the logo and cover `ui.Image`s (and the ranking / statistics cover map) are disposed in a `finally` when the card function ends; each page's `ui.Picture` is disposed after `toImage`, and its `ui.Image` after PNG encoding. Nothing was disposed before, so a long export session held every decoded cover until garbage collection.
 - **Covers decode no wider than the card.** The covers are decoded with `targetWidth: cardWidth * pixelRatio` and `allowUpscaling: false` instead of at full source size.
 - **PowerShell clipboard copy escapes `'`.** `_copyImageToClipboard` doubles single quotes in the image path inside the single-quoted PowerShell string, so a path containing `'` no longer breaks the command.
+
+## Changes in 1.7.0
+
+- **The card palette is derived from the app seed.** The hardcoded purple palette is replaced by
+  `static final ColorScheme _palette = ColorScheme.fromSeed(seedColor: AppTheme.seedColor)`, which is
+  always the **light** scheme and never the dynamic (wallpaper) one, so a share image looks the same
+  on every device whatever the app theme. The private color fields are read from it: `_accentColor` =
+  `primary`, `_onAccentColor` = `onPrimary` (the rank-number text, previously `Colors.white`),
+  `_bgColor` = `surface`, `_textColor` = `onSurface`, `_subtitleColor` = `onSurfaceVariant`,
+  `_borderColor` = `outlineVariant`, `_trackColor` = `surfaceContainerHighest`, `_rowTintColor` =
+  `surfaceContainerLow` (was `0xFFF7F4FF`), `_placeholderColor` = `primaryContainer` (the cover
+  placeholder, was `0xFFEDE7F6`), and `_completedColor` / `_droppedColor` from
+  [`StatusColors`](../utils/status_colors.md) evaluated on that light scheme. No public signature
+  changed.

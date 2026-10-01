@@ -1054,6 +1054,13 @@ class AppLocalizationsJa extends AppLocalizations {
       'かなタブを表示します。かなの練習などは別アプリ MyNihongo!!!!! をご利用ください。';
 
   @override
+  String get settingsFloatingNavBar => 'フローティングナビゲーションバー';
+
+  @override
+  String get settingsFloatingNavBarDesc =>
+      '下部のナビゲーションバーを浮かぶアイランド形式で表示します。オフにすると従来の全幅バーに戻ります。';
+
+  @override
   String get settingsGeneral => '一般';
 
   @override
@@ -2077,4 +2084,31 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get backupModulePlayback => '再生位置';
+
+  @override
+  String get backupModuleProfile => 'プロフィール';
+
+  @override
+  String get profileTitle => 'プロフィール';
+
+  @override
+  String get profileName => '名前';
+
+  @override
+  String get profileNamePlaceholder => '名前を設定';
+
+  @override
+  String get profileEditHint => '名前とアバターはデバイス間で同期されます';
+
+  @override
+  String get profileChangeAvatar => 'アバターを選択';
+
+  @override
+  String get profileRemoveAvatar => '削除';
+
+  @override
+  String get profileAvatarError => 'この画像は使用できません';
+
+  @override
+  String get profileOpenSettings => 'プロフィールと設定';
 }

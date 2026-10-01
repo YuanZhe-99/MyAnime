@@ -7,8 +7,9 @@
 /// Notes: Every hardcoded `anime_data.json` list in the shared services is
 /// replaced by this registry. File names and module IDs are
 /// persisted compatibility contracts (I1/I2) and must never change. Since
-/// 1.6.5 the registry holds three modules: `anime_data.json`, then
-/// `recommendations.json` (1.6.2), then `playback_progress.json` (1.6.5).
+/// 1.7.0 the registry holds four modules: `anime_data.json`, then
+/// `recommendations.json` (1.6.2), then `playback_progress.json` (1.6.5),
+/// then `profile.json` (1.7.0).
 library;
 
 import 'dart:convert';
@@ -21,6 +22,8 @@ import '../features/anime/models/anime.dart';
 import '../features/anime/models/playback_progress.dart';
 import '../features/anime/services/anime_storage.dart';
 import '../features/anime/services/playback_progress_merge.dart';
+import '../features/profile/models/profile_data.dart';
+import '../features/profile/services/profile_merge.dart';
 import '../features/recommendations/models/recommendation_data.dart';
 import '../features/recommendations/services/recommendation_merge.dart';
 import '../shared/services/sync_merge.dart';
@@ -93,6 +96,12 @@ const playbackProgressFileName = 'playback_progress.json';
 
 /// Backup bundle module key for that file (1.6.5; I2).
 const playbackModuleId = 'playback';
+
+/// Local and remote name of the profile file (1.7.0; I1/I2).
+const profileFileName = 'profile.json';
+
+/// Backup bundle module key for that file (1.7.0; I2).
+const profileModuleId = 'profile';
 
 /// Default remote WebDAV directory for MyAnime.
 const animeDefaultRemotePath = '/MyAnime';
@@ -307,10 +316,58 @@ DataModule buildPlaybackProgressModule() => DataModule(
       ),
 );
 
+/// Purpose: Validate a `profile.json` payload before it is written.
+/// Inputs: [json] raw module content.
+/// Returns: None; throws when the payload is not a JSON object.
+/// Side effects: None.
+/// Notes: The model is tolerant inside the object.
+void validateProfileJson(String json) {
+  ProfileData.fromJson(jsonDecode(json));
+}
+
+/// Purpose: Extract the avatar image basename referenced by the profile.
+/// Inputs: [json] raw or merged module JSON.
+/// Returns: A set holding the avatar's basename, or empty.
+/// Side effects: None.
+/// Notes: This is what makes the avatar file travel through the engine's
+/// image phase alongside the covers. Malformed input yields an empty set.
+Set<String> profileReferencedImages(String json) {
+  try {
+    final avatar = ProfileData.fromJson(jsonDecode(json)).avatar;
+    return avatar == null ? {} : {p.basename(avatar)};
+  } catch (_) {
+    return {};
+  }
+}
+
+/// Purpose: Describe `profile.json` to the shared engines (1.7.0).
+/// Inputs: None.
+/// Returns: The profile [DataModule].
+/// Side effects: None.
+/// Notes: Conflict-free (each field is last-writer-wins by its own
+/// timestamp), so `baseJson` and `autoResolve` are unused. Builds older than
+/// 1.7.0 never request this file, so adding it leaves them unaffected.
+DataModule buildProfileModule() => DataModule(
+  fileName: profileFileName,
+  moduleId: profileModuleId,
+  validate: validateProfileJson,
+  referencedImages: profileReferencedImages,
+  merge:
+      ({
+        required String localJson,
+        required String remoteJson,
+        required String? baseJson,
+        required bool autoResolve,
+      }) => ModuleMergeOutcome(
+        mergedJson: mergeProfileJson(localJson, remoteJson),
+      ),
+);
+
 /// Purpose: Provide MyAnime's ordered module registry.
 /// Inputs: None.
 /// Returns: A registry holding the anime module, then the recommendations
-/// module, then the playback progress module (1.6.5).
+/// module, then the playback progress module (1.6.5), then the profile
+/// module (1.7.0).
 /// Side effects: None.
 /// Notes: Built once; the shared engines treat registry order as significant
 /// (request order, progress indices), so anime stays first.
@@ -318,4 +375,5 @@ final ModuleRegistry animeModuleRegistry = ModuleRegistry([
   buildAnimeModule(),
   buildRecommendationsModule(),
   buildPlaybackProgressModule(),
+  buildProfileModule(),
 ]);

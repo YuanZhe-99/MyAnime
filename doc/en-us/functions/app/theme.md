@@ -1,8 +1,11 @@
 # lib/app/theme.dart
 
-Defines `AppTheme`, a static-only class exposing the app's light and dark `ThemeData` built with
-`flex_color_scheme`'s `FlexThemeData`. Consumed by `MyAnimeApp.build()` in
-[`../app/app.md`](app.md) as `theme:`/`darkTheme:`. See
+Defines `AppTheme`, a static-only class that builds the app's stock Material 3 `ThemeData` from a
+single seed color. Since 1.7.0 the visual system is plain Flutter Material 3 (`ThemeData` +
+`ColorScheme.fromSeed`); `flex_color_scheme` is gone. Platform dynamic color (Material You) is **not**
+read here — the caller decides whether to pass a dynamic scheme in. Consumed by
+`MyAnimeApp.build()` in [`../app/app.md`](app.md) as `theme:`/`darkTheme:`; `ShareService` also
+derives its share-image palette from `AppTheme.seedColor`. See
 [../../architecture.md](../../architecture.md#app-shell) for where the visual system sits in the
 app shell.
 
@@ -11,53 +14,79 @@ app shell.
 | Declaration | Kind | Tier | Purpose |
 |---|---|---|---|
 | `AppTheme._` | constructor (`AppTheme`) | B | Prevent direct instantiation and expose only static members. |
-| [`AppTheme.light`](#apptheme-light) | getter (`AppTheme`) | A | Return the light Material theme used by the app. |
-| [`AppTheme.dark`](#apptheme-dark) | getter (`AppTheme`) | A | Return the dark Material theme used by the app. |
+| [`AppTheme.seedColor`](#apptheme-seedcolor) | static constant (`AppTheme`) | A | The app's brand color and the only per-app knob of the visual system. |
+| [`AppTheme.scheme`](#apptheme-scheme) | static method (`AppTheme`) | A | Resolve the `ColorScheme` for one brightness: the dynamic scheme if given, else the seed scheme. |
+| [`AppTheme.build`](#apptheme-build) | static method (`AppTheme`) | A | Build a stock Material 3 `ThemeData` for one brightness. |
+| [`AppTheme.light`](#apptheme-light) | static method (`AppTheme`) | A | Return the light Material theme used by the app. |
+| [`AppTheme.dark`](#apptheme-dark) | static method (`AppTheme`) | A | Return the dark Material theme used by the app. |
 
 ## Documentation
 
-### `static ThemeData get light` <a id="apptheme-light"></a>
-- **Kind:** static getter of `AppTheme`
-- **Source:** `lib/app/theme.dart` (approx. line 17)
-- **Purpose:** Build and return the light-mode `ThemeData` for the whole app.
+### `static const Color seedColor` <a id="apptheme-seedcolor"></a>
+- **Kind:** static constant of `AppTheme`
+- **Source:** `lib/app/theme.dart` (approx. line 16)
+- **Purpose:** Hold the app's brand color, `Color(0xFF673AB7)` (deep purple), the only per-app knob of
+  the visual system.
 - **Inputs:** None.
-- **Returns:** `ThemeData`, built by `FlexThemeData.light(...)`.
-- **Side effects:** None (pure construction; `flex_color_scheme` does no I/O here).
-- **Algorithm:**
-  1. Call `FlexThemeData.light` with `scheme: FlexScheme.deepPurple` (the app's color scheme seed).
-  2. Set `surfaceMode: FlexSurfaceMode.levelSurfacesLowScaffold` and `blendLevel: 7` to control how
-     much of the primary color tints surfaces vs. the scaffold background.
-  3. Pass `FlexSubThemesData` with `blendOnLevel: 10`, `useMaterial3Typography: true`,
-     `useM2StyleDividerInM3: true`, `inputDecoratorBorderType: FlexInputBorderType.outline`, and
-     `navigationBarLabelBehavior: NavigationDestinationLabelBehavior.onlyShowSelected` (only the
-     selected bottom-nav label is shown, matching the five-tab shell in `router.dart`).
-  4. Set `useMaterial3: true` and return the resulting `ThemeData`.
+- **Returns:** `Color`.
+- **Side effects:** None.
+- **Notes:** Every role of the Material 3 tonal palette is generated from it whenever the platform
+  supplies no dynamic scheme. Each app in the series has its own seed so they are told apart at a
+  glance. `ShareService` also derives its (always light, never dynamic) share-image palette from it.
+
+### `static ColorScheme scheme(Brightness brightness, [ColorScheme? dynamicScheme])` <a id="apptheme-scheme"></a>
+- **Kind:** static method of `AppTheme`
+- **Source:** `lib/app/theme.dart` (approx. line 26)
+- **Purpose:** Resolve the `ColorScheme` for one brightness.
+- **Inputs:** `brightness`; `dynamicScheme` — the platform's wallpaper-derived scheme for that
+  brightness, or `null`.
+- **Returns:** `ColorScheme` — `dynamicScheme` when given, otherwise
+  `ColorScheme.fromSeed(seedColor: seedColor, brightness: brightness)`.
+- **Side effects:** None.
+- **Algorithm:** `dynamicScheme ?? ColorScheme.fromSeed(...)`.
+- **Notes:** Which platforms may pass a dynamic scheme is decided by the **caller**:
+  `MyAnimeApp.build` allows Android only (see [app.md](app.md) and
+  [platform-notes.md](../../platform-notes.md)).
+
+### `static ThemeData build(Brightness brightness, [ColorScheme? dynamicScheme])` <a id="apptheme-build"></a>
+- **Kind:** static method of `AppTheme`
+- **Source:** `lib/app/theme.dart` (approx. line 40)
+- **Purpose:** Build a stock Material 3 theme for one brightness.
+- **Inputs:** `brightness`; `dynamicScheme` — optional platform scheme.
+- **Returns:** `ThemeData`.
+- **Side effects:** None (pure construction).
+- **Algorithm:** Return `ThemeData(useMaterial3: true, colorScheme: scheme(brightness, dynamicScheme),
+  inputDecorationTheme: const InputDecorationTheme(border: OutlineInputBorder()))`.
+- **Notes:** Deliberately close to Flutter's Material 3 defaults. The only component override is
+  **outlined text fields**, which the Material 3 spec allows and which keep every form looking as it
+  did before 1.7.0. Everything else is stock: no tinted/blended surfaces, Material 3 dividers, and the
+  bottom `NavigationBar` always shows all labels (before 1.7.0 only the selected label was shown).
+
+### `static ThemeData light([ColorScheme? dynamicScheme])` <a id="apptheme-light"></a>
+- **Kind:** static method of `AppTheme` (a getter before 1.7.0)
+- **Source:** `lib/app/theme.dart` (approx. line 54)
+- **Purpose:** Return the light theme used by the app.
+- **Inputs:** `dynamicScheme` — optional light platform scheme.
+- **Returns:** `ThemeData` — `build(Brightness.light, dynamicScheme)`.
+- **Side effects:** None.
 - **Usage:**
   ```dart
   MaterialApp.router(
-    theme: AppTheme.light,
-    darkTheme: AppTheme.dark,
+    theme: AppTheme.light(allowDynamic ? lightDynamic : null),
+    darkTheme: AppTheme.dark(allowDynamic ? darkDynamic : null),
     themeMode: settings.themeMode,
     ...
   )
   ```
   (from `lib/app/app.dart`, `MyAnimeApp.build`)
-- **Notes:** The blend/level constants (`blendLevel: 7`, `blendOnLevel: 10`) are lower than the dark
-  theme's (`13`/`20`), which is a deliberate `flex_color_scheme` convention — dark surfaces
-  typically need a stronger tint to read correctly against a dark background.
+- **Notes:** Now a method, so call it as `AppTheme.light()`; it is no longer a getter.
 
-### `static ThemeData get dark` <a id="apptheme-dark"></a>
-- **Kind:** static getter of `AppTheme`
-- **Source:** `lib/app/theme.dart` (approx. line 37)
-- **Purpose:** Build and return the dark-mode `ThemeData` for the whole app.
-- **Inputs:** None.
-- **Returns:** `ThemeData`, built by `FlexThemeData.dark(...)`.
+### `static ThemeData dark([ColorScheme? dynamicScheme])` <a id="apptheme-dark"></a>
+- **Kind:** static method of `AppTheme` (a getter before 1.7.0)
+- **Source:** `lib/app/theme.dart` (approx. line 62)
+- **Purpose:** Return the dark theme used by the app.
+- **Inputs:** `dynamicScheme` — optional dark platform scheme.
+- **Returns:** `ThemeData` — `build(Brightness.dark, dynamicScheme)`.
 - **Side effects:** None.
-- **Algorithm:** Identical shape to `AppTheme.light` (same `FlexScheme.deepPurple` scheme,
-  `FlexSurfaceMode.levelSurfacesLowScaffold`, and `FlexSubThemesData` options), except
-  `blendLevel: 13` and `blendOnLevel: 20` — both higher than the light theme's `7`/`10` to give dark
-  surfaces a visible primary-color tint.
-- **Usage:** See `AppTheme.light` above; both getters are read together in `MyAnimeApp.build`.
-- **Notes:** Keep `light` and `dark` in sync when changing shared options (typography, divider
-  style, input border, nav label behavior) — only the surface/blend levels are intentionally
-  different between the two.
+- **Usage:** See `AppTheme.light` above; both are called together in `MyAnimeApp.build`.
+- **Notes:** Light and dark differ only in the brightness passed to `scheme`.

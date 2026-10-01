@@ -1,6 +1,6 @@
 # lib/features/settings/views/settings_page.dart
 
-`SettingsPage` is the app's main Settings screen: theme/locale/calendar preferences (backed by
+`SettingsPage` is the app's main Settings screen: the profile header (display name and avatar, 1.7.0), theme/floating-navigation-bar/locale/calendar preferences (backed by
 `shared/providers/app_settings.dart`), the reminder toggle, the Kana-tab switch, the *Categories & recommendations* section (automatic
 categories, recommendations and on-device AI), data actions (WebDAV sync entry point,
 backup entry point, ZIP/Markdown export/import, duplicate check, storage location), desktop-only
@@ -139,8 +139,8 @@ lead to (`../../../shared/views/webdav_config_page.md`, `backup_page.md` in this
   `usesJapaneseCalendar`, which disables the week-start row.
 - **Returns:** `Widget` — the scrolling `ListView` of sections.
 - **Side effects:** None beyond building widgets; the rows' own callbacks have their own.
-- **Algorithm:** Unchanged from what `build` used to return directly: the General, Data, Debug,
-  Desktop and About sections. Since 1.6.0 General ends with the *Kana quick reference*
+- **Algorithm:** Unchanged from what `build` used to return directly: a `ProfileHeader` (since 1.7.0, always the first child, so it shows in both the one-pane and the two-pane layout; see [`../../profile/views/profile_header.md`](../../profile/views/profile_header.md)) followed by the General, Data, Debug,
+  Desktop and About sections. Since 1.7.0 General holds, right after the theme `SegmentedButton`, the *Floating navigation bar* `SwitchListTile` (`space_dashboard_outlined` icon; `settings.floatingNavBar` / `notifier.setFloatingNavBar`) that turns the floating bottom bar off for the classic one. Since 1.6.0 General ends with the *Kana quick reference*
   `SwitchListTile`, bound to `settings.kanaTabEnabled` and `notifier.setKanaTabEnabled`; its
   description names MyNihongo!!!!! without a store link.
   Since 1.6.0 (M4) a *Categories & recommendations* section (`aiSectionTitle`) follows General: the

@@ -2,11 +2,13 @@
 
 **The seam between this app and the shared `myapps_data` package**, and the single source of truth
 for MyAnime's data files. Every hardcoded `anime_data.json` list and backup-module map the app used
-to carry now reads from the registry declared here. Since 1.6.5 the registry holds three modules:
+to carry now reads from the registry declared here. Since 1.7.0 the registry holds four modules:
 `anime_data.json`, then `recommendations.json` (the recommendation trash bins and related lists;
 see [`../features/recommendations/services/recommendation_store.md`](../features/recommendations/services/recommendation_store.md)),
 then `playback_progress.json` (resume points of in-app playback, 1.6.5; see
-[`../features/anime/services/playback_progress_store.md`](../features/anime/services/playback_progress_store.md)).
+[`../features/anime/services/playback_progress_store.md`](../features/anime/services/playback_progress_store.md)),
+then `profile.json` (the synced display name and avatar, 1.7.0; see
+[`../features/profile/services/profile_store.md`](../features/profile/services/profile_store.md)).
 
 ## Declarations
 
@@ -28,6 +30,9 @@ then `playback_progress.json` (resume points of in-app playback, 1.6.5; see
 | `validatePlaybackProgressJson(json)` | function | B | Throw unless the payload is a JSON object (1.6.5). |
 | `mergePlaybackProgressModule({...})` | function | B | Adapt the conflict-free playback progress merge to the engine (1.6.5). |
 | `buildPlaybackProgressModule()` | function | B | Build the playback progress `DataModule`; no images, no transforms (1.6.5). |
+| [`validateProfileJson(json)`](#validateprofilejson) | function | A | Throw unless the payload is a JSON object (1.7.0). |
+| [`profileReferencedImages(json)`](#profilereferencedimages) | function | A | The avatar basename the profile references, so the avatar travels with the images (1.7.0). |
+| [`buildProfileModule()`](#buildprofilemodule) | function | A | Build the profile `DataModule`; conflict-free merge, avatar as its only image (1.7.0). |
 | [`animeModuleRegistry`](#animemoduleregistry) | field | A | The app's `ModuleRegistry`. |
 
 ## Documentation
@@ -48,7 +53,8 @@ then `playback_progress.json` (resume points of in-app playback, 1.6.5; see
   change them. 1.6.2 added `recommendationsFileName` (`'recommendations.json'`) and
   `recommendationsModuleId` (`'recommendations'`), under the same rule; they are named in the
   Constants section rather than as rows. 1.6.5 added `playbackProgressFileName`
-  (`'playback_progress.json'`) and `playbackModuleId` (`'playback'`) under the same rule.
+  (`'playback_progress.json'`) and `playbackModuleId` (`'playback'`) under the same rule. 1.7.0 added
+  `profileFileName` (`'profile.json'`) and `profileModuleId` (`'profile'`), again frozen.
 
 ### `validateAnimeJson(json)` <a id="validateanimejson"></a>
 - **Throws:** Whatever `jsonDecode` or `AnimeData.fromJson` throws.
@@ -91,11 +97,33 @@ then `playback_progress.json` (resume points of in-app playback, 1.6.5; see
 - **Notes:** No images, no transforms. The engine's `autoResolve` argument is accepted and
   ignored: there is nothing to resolve.
 
+### `validateProfileJson(json)` <a id="validateprofilejson"></a>
+- **Throws:** `FormatException` when the payload is not a JSON object, or whatever `jsonDecode`
+  throws (it calls `ProfileData.fromJson(jsonDecode(json))`).
+- **Notes:** The model is tolerant inside the object, so only a file that is not ours at all is
+  rejected.
+
+### `profileReferencedImages(json)` <a id="profilereferencedimages"></a>
+- **Returns:** A set holding `basename(avatar)` when the profile has an avatar, otherwise empty;
+  malformed input also yields an empty set.
+- **Notes:** This is what makes the avatar file (`images/avatar_<uuid>.jpg`) travel through the
+  engine's image phase alongside the covers, with no avatar-specific sync code.
+
+### `buildProfileModule()` <a id="buildprofilemodule"></a>
+- **Returns:** The profile `DataModule` (`profileFileName`, `profileModuleId`, `validateProfileJson`,
+  `profileReferencedImages`) whose merge returns a complete outcome from `mergeProfileJson`
+  ([`../features/profile/services/profile_merge.md`](../features/profile/services/profile_merge.md)).
+- **Notes:** Conflict-free (each field is last-writer-wins by its own timestamp), so `baseJson` and
+  `autoResolve` are unused and it never reaches the conflict dialog. Builds older than 1.7.0 never
+  request this file, so adding it leaves them unaffected. Costs one extra `GET profile.json` per
+  sync.
+
 ### `animeModuleRegistry` <a id="animemoduleregistry"></a>
 - **Notes:** Built once. Registry order is behaviorally significant for sync order, progress
   reporting, and backup key order. `anime_data.json` stays first, so its progress index and
   its conflicts come before anything else; `recommendations.json` follows, then
-  `playback_progress.json` (1.6.5). Neither later module ever reports a conflict.
+  `playback_progress.json` (1.6.5), then `profile.json` (1.7.0, appended last so existing indices
+  do not shift). None of the later modules ever reports a conflict.
 
 ## Where the contract documentation lives
 

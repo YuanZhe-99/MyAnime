@@ -94,6 +94,7 @@ class AppSettingsNotifier extends StateNotifier<AppSettings> {
     );
     final statsListColumns = await AnimeStorage.getStatsListColumns();
     final kanaTabEnabled = await AnimeStorage.getKanaTabEnabled();
+    final floatingNavBar = await AnimeStorage.getFloatingNavBar();
     final onDeviceAiEnabled = await AnimeStorage.getOnDeviceAiEnabled();
     final onDeviceAiPreferFast = await AnimeStorage.getOnDeviceAiPreferFast();
     final autoCategoriesEnabled = await AnimeStorage.getAutoCategoriesEnabled();
@@ -125,6 +126,7 @@ class AppSettingsNotifier extends StateNotifier<AppSettings> {
       manageSeriesSort: manageSeriesSort,
       statsListColumns: statsListColumns,
       kanaTabEnabled: kanaTabEnabled,
+      floatingNavBar: floatingNavBar,
       onDeviceAiEnabled: onDeviceAiEnabled,
       onDeviceAiPreferFast: onDeviceAiPreferFast,
       autoCategoriesEnabled: autoCategoriesEnabled,
@@ -284,6 +286,17 @@ class AppSettingsNotifier extends StateNotifier<AppSettings> {
     AnimeStorage.setKanaTabEnabled(enabled);
   }
 
+  /// Purpose: Choose the floating island or the classic full-width bottom bar.
+  /// Inputs: `floating`.
+  /// Returns: None.
+  /// Side effects: Persists the preference; the shell rebuilds its bottom bar.
+  /// Notes: Floating by default. Has no effect while the window is wide
+  /// enough for the navigation rail.
+  void setFloatingNavBar(bool floating) {
+    state = state.copyWith(floatingNavBar: floating);
+    AnimeStorage.setFloatingNavBar(floating);
+  }
+
   /// Purpose: Turn on-device AI on or off.
   /// Inputs: `enabled`.
   /// Returns: None.
@@ -378,6 +391,10 @@ class AppSettings {
   /// Whether the Kana quick-reference tab appears in navigation. Off by default.
   final bool kanaTabEnabled;
 
+  /// Whether the narrow-window bottom bar floats as a rounded island (1.7.0).
+  /// On by default; off restores the classic full-width bar.
+  final bool floatingNavBar;
+
   /// Whether on-device AI is turned on. Off by default.
   final bool onDeviceAiEnabled;
 
@@ -391,7 +408,7 @@ class AppSettings {
   final bool recommendationsEnabled;
 
   /// Purpose: Create a app settings instance.
-  /// Inputs: `themeMode`, `locale`, `weekStartDay`, `homeCalendarLayout`, `homeCalendarTimeBasis`, `homeCalendarFormat`, `homeListColumns`, `manageListColumns`, `manageViewMode`, `manageSeriesSort`, `statsListColumns`, `kanaTabEnabled`, `onDeviceAiEnabled`, `onDeviceAiPreferFast`, `autoCategoriesEnabled`, `recommendationsEnabled`.
+  /// Inputs: `themeMode`, `locale`, `weekStartDay`, `homeCalendarLayout`, `homeCalendarTimeBasis`, `homeCalendarFormat`, `homeListColumns`, `manageListColumns`, `manageViewMode`, `manageSeriesSort`, `statsListColumns`, `kanaTabEnabled`, `floatingNavBar`, `onDeviceAiEnabled`, `onDeviceAiPreferFast`, `autoCategoriesEnabled`, `recommendationsEnabled`.
   /// Returns: A new `AppSettings` instance.
   /// Side effects: None.
   /// Notes: `weekStartDay` stores the local-calendar preference; Japanese layout uses Sunday effectively.
@@ -408,6 +425,7 @@ class AppSettings {
     this.manageSeriesSort = ManageSeriesSort.latest,
     this.statsListColumns = listColumnsAuto,
     this.kanaTabEnabled = false,
+    this.floatingNavBar = true,
     this.onDeviceAiEnabled = false,
     this.onDeviceAiPreferFast = false,
     this.autoCategoriesEnabled = false,
@@ -425,7 +443,7 @@ class AppSettings {
       : weekStartDay;
 
   /// Purpose: Create a copy with selected fields replaced.
-  /// Inputs: `themeMode`, `locale`, `weekStartDay`, `homeCalendarLayout`, `homeCalendarTimeBasis`, `homeCalendarFormat`, `homeListColumns`, `manageListColumns`, `manageViewMode`, `manageSeriesSort`, `statsListColumns`, `kanaTabEnabled`, `onDeviceAiEnabled`, `onDeviceAiPreferFast`, `autoCategoriesEnabled`, `recommendationsEnabled`, `clearLocale`.
+  /// Inputs: `themeMode`, `locale`, `weekStartDay`, `homeCalendarLayout`, `homeCalendarTimeBasis`, `homeCalendarFormat`, `homeListColumns`, `manageListColumns`, `manageViewMode`, `manageSeriesSort`, `statsListColumns`, `kanaTabEnabled`, `floatingNavBar`, `onDeviceAiEnabled`, `onDeviceAiPreferFast`, `autoCategoriesEnabled`, `recommendationsEnabled`, `clearLocale`.
   /// Returns: `AppSettings`.
   /// Side effects: None.
   /// Notes: None.
@@ -442,6 +460,7 @@ class AppSettings {
     ManageSeriesSort? manageSeriesSort,
     int? statsListColumns,
     bool? kanaTabEnabled,
+    bool? floatingNavBar,
     bool? onDeviceAiEnabled,
     bool? onDeviceAiPreferFast,
     bool? autoCategoriesEnabled,
@@ -462,6 +481,7 @@ class AppSettings {
       manageSeriesSort: manageSeriesSort ?? this.manageSeriesSort,
       statsListColumns: statsListColumns ?? this.statsListColumns,
       kanaTabEnabled: kanaTabEnabled ?? this.kanaTabEnabled,
+      floatingNavBar: floatingNavBar ?? this.floatingNavBar,
       onDeviceAiEnabled: onDeviceAiEnabled ?? this.onDeviceAiEnabled,
       onDeviceAiPreferFast: onDeviceAiPreferFast ?? this.onDeviceAiPreferFast,
       autoCategoriesEnabled:

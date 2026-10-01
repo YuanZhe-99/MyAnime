@@ -58,6 +58,12 @@
 - 本地可通过 `key.properties` 可选签名；CI 使用 GitHub Secrets。
 - `FileProvider` 和 `FLAG_ACTIVITY_NEW_TASK` 支持分享/导入流程（见 [`features/share-and-import.md`](features/share-and-import.md)）。
 
+## 动态取色（1.7.0）
+
+应用使用由单个种子色（深紫色，`AppTheme.seedColor`）生成的原版 Material 3 颜色。在 **Android 12 及更新版本**上，`dynamic_color` 插件提供由壁纸派生的（Material You）配色方案，应用在浅色和深色下都用它取代种子色。在 **Android 11 及更早版本**、**iOS**、**Windows**、**macOS** 和其他任何平台上，使用种子色方案。
+
+桌面端被刻意排除在外。在 Windows 和 macOS 上，该插件返回的不是壁纸调色板，而是系统**强调色**，使用它会取代应用自己的种子色，导致系列中的每个应用都看起来像用户选的强调色，而失去自己的辨识度。因此 `MyAnimeApp.build` 只有在 `!kIsWeb && defaultTargetPlatform == TargetPlatform.android` 时才把插件的配色方案传给 `AppTheme`（见 [`functions/app/app.md`](functions/app/app.md) 和 [`functions/app/theme.md`](functions/app/theme.md)）。Android 动态取色尚未在真机上验证。
+
 ## 桌面 API 服务器、托盘和开机自启
 
 `local_api_server.dart` 是**纯桌面**的 Shelf 服务器。默认禁用，由设置页控制。

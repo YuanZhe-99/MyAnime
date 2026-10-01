@@ -6,15 +6,15 @@ This is the top-level index of the hand-written Function Explanation Layer docum
 `lib/` in the MyAnime repo. Each row links to a per-source-file page under `doc/en-us/functions/`
 mirroring the `lib/` tree (with `.dart` replaced by `.md`).
 
-**Totals:** the repo's `/// Purpose:` comment count is **1477** (per the Function Explanation Layer
+**Totals:** the repo's `/// Purpose:` comment count is **1533** (per the Function Explanation Layer
 convention in `AGENTS.md`, excluding generated `lib/l10n/` code — see [l10n/INDEX.md](l10n/INDEX.md)).
-The rows below sum to **1459** documented declarations.
+The rows below sum to **1515** documented declarations.
 
 | Tier | Count |
 |---|---|
-| Tier A (full entry: Purpose/Inputs/Returns/Side effects/Algorithm/Usage/Notes) | 770 |
-| Tier B (index row only) | 689 |
-| **Total** | **1459** |
+| Tier A (full entry: Purpose/Inputs/Returns/Side effects/Algorithm/Usage/Notes) | 798 |
+| Tier B (index row only) | 717 |
+| **Total** | **1515** |
 
 **Known gap.** These two numbers do not match: 18 declarations carry a `/// Purpose:` comment in
 source but have no row here, so the index under-covers `lib/` by that much. The 1.5.7 recount found
@@ -93,6 +93,8 @@ find lib -name "*.dart" -not -path "lib/l10n/*" | xargs grep -h '/// Purpose:' |
 
 **1.6.7 recount.** The measured `/// Purpose:` count is 1477 (1460 before) and the rows sum to 1459, so the gap stays 18. The release added 17 declarations across nine changed files: `anime_storage.dart` +7 (two write queues, `_writeData`, `_exclusiveData`, `updateRecord`, `updateLibrary`, `_writeConfig`, `updateConfig`; `_atomicWrite` removed), `file_open_service.dart` +3 (`safeCoverExt`, `isSafeCoverPath`, `discardUnusedCovers`), `local_api_server.dart` +2 (`buildHandler`, `isAllowedOrigin`; `_corsMiddleware` became `_originMiddleware`), `anime_detail_page.dart` +2 (`dispose`, `_reloadRecord`), and one each in `anime.dart` (`_plusDays`), `home_page.dart` (`buildAiringIndex`; `_getEpisodeCalendarDate` became the top-level `airingCalendarDate`), `anime_edit_page.dart` (`resolveEndEpisode`) and `playback_progress_service.dart` (`_tryStore`), while `metadata_cache.dart` lost `_atomicWrite`. Fifteen of the new declarations are Tier B rows; Tier A gained `_writeData`, `updateRecord`, `updateLibrary` and `updateConfig` and lost the two `_atomicWrite` entries (`AnimeStorage`, `MetadataCache`), a net two.
 
+**1.7.0 recount.** The measured `/// Purpose:` count is 1533 (1477 before) and the rows sum to 1515, so the gap stays 18. The release added 56 declarations: seven new files (`status_colors.dart` +2 and the six `features/profile/` files +44 — `profile_data.dart` 8, `profile_merge.dart` 4, `profile_store.dart` 10, `profile_provider.dart` 7, `profile_avatar.dart` 5, `profile_header.dart` 10) and five changed ones: `data_modules.dart` +3 (`validateProfileJson`, `profileReferencedImages`, `buildProfileModule`), `theme.dart` +2 (`scheme` and `build` are new, `light` and `dark` became methods, and the new `seedColor` constant is documented on its page without a `Purpose:` comment), `anime_storage.dart` +2 (`getFloatingNavBar`, `setFloatingNavBar`), `shell_scaffold.dart` +2 (the private `_FloatingNavBar` constructor and `build`) and `app_settings.dart` +1 (`setFloatingNavBar`). `app.dart`, `home_page.dart`, `statistics_page.dart`, `share_service.dart`, `settings_page.dart` and `backup_page.dart` changed without a new declaration. Twenty-eight of the new rows are Tier A and 28 are Tier B.
+
 ## Root (`lib/`)
 
 | Source file | Page | Declarations | Tier A count |
@@ -106,8 +108,8 @@ find lib -name "*.dart" -not -path "lib/l10n/*" | xargs grep -h '/// Purpose:' |
 | `lib/app/app.dart` | [app/app.md](app/app.md) | 3 | 0 |
 | `lib/app/flavor.dart` | [app/flavor.md](app/flavor.md) | 1 | 0 |
 | `lib/app/router.dart` | [app/router.md](app/router.md) | 1 | 1 |
-| `lib/app/data_modules.dart` | [app/data_modules.md](app/data_modules.md) | 17 | 14 |
-| `lib/app/theme.dart` | [app/theme.md](app/theme.md) | 3 | 2 |
+| `lib/app/data_modules.dart` | [app/data_modules.md](app/data_modules.md) | 20 | 17 |
+| `lib/app/theme.dart` | [app/theme.md](app/theme.md) | 5 | 4 |
 
 `app/router.dart` has one row, `kanaRouteRedirect` (1.6.0). Its other top-level declaration
 (`appRouter`, a `GoRouter` config value) carries no `/// Purpose:` comment and falls outside the
@@ -136,7 +138,7 @@ that carry a `/// Purpose:` comment. See [../on-device-ai.md](../on-device-ai.md
 | `lib/features/anime/models/anime.dart` | [features/anime/models/anime.md](features/anime/models/anime.md) | 84 | 68 |
 | `lib/features/anime/models/anime_category.dart` | [features/anime/models/anime_category.md](features/anime/models/anime_category.md) | 2 | 1 |
 | `lib/features/anime/models/metadata_update.dart` | [features/anime/models/metadata_update.md](features/anime/models/metadata_update.md) | 22 | 9 |
-| `lib/features/anime/services/anime_storage.dart` | [features/anime/services/anime_storage.md](features/anime/services/anime_storage.md) | 64 | 48 |
+| `lib/features/anime/services/anime_storage.dart` | [features/anime/services/anime_storage.md](features/anime/services/anime_storage.md) | 66 | 50 |
 | `lib/features/anime/services/manage_grouping.dart` | [features/anime/services/manage_grouping.md](features/anime/services/manage_grouping.md) | 5 | 1 |
 | `lib/features/anime/services/anime1_service.dart` | [features/anime/services/anime1_service.md](features/anime/services/anime1_service.md) | 31 | 17 |
 | `lib/features/anime/services/anime_search_service.dart` | [features/anime/services/anime_search_service.md](features/anime/services/anime_search_service.md) | 71 | 48 |
@@ -179,6 +181,19 @@ Automatic categories (1.6.0, M4). See
 |---|---|---|---|
 | `lib/features/kana/views/kana_page.dart` | [features/kana/views/kana_page.md](features/kana/views/kana_page.md) | 19 | 3 |
 
+## features/profile/
+
+| Source file | Page | Declarations | Tier A count |
+|---|---|---|---|
+| `lib/features/profile/models/profile_data.dart` | [features/profile/models/profile_data.md](features/profile/models/profile_data.md) | 8 | 2 |
+| `lib/features/profile/services/profile_merge.dart` | [features/profile/services/profile_merge.md](features/profile/services/profile_merge.md) | 4 | 2 |
+| `lib/features/profile/services/profile_store.dart` | [features/profile/services/profile_store.md](features/profile/services/profile_store.md) | 10 | 6 |
+| `lib/features/profile/providers/profile_provider.dart` | [features/profile/providers/profile_provider.md](features/profile/providers/profile_provider.md) | 7 | 2 |
+| `lib/features/profile/views/profile_avatar.dart` | [features/profile/views/profile_avatar.md](features/profile/views/profile_avatar.md) | 5 | 3 |
+| `lib/features/profile/views/profile_header.dart` | [features/profile/views/profile_header.md](features/profile/views/profile_header.md) | 10 | 4 |
+
+The synced profile (1.7.0): display name and avatar. See [../features/profile.md](../features/profile.md).
+
 ## features/recommendations/
 
 | Source file | Page | Declarations | Tier A count |
@@ -216,7 +231,7 @@ the 771 hand-documented declarations above).
 
 | Source file | Page | Declarations | Tier A count |
 |---|---|---|---|
-| `lib/shared/providers/app_settings.dart` | [shared/providers/app_settings.md](shared/providers/app_settings.md) | 26 | 18 |
+| `lib/shared/providers/app_settings.dart` | [shared/providers/app_settings.md](shared/providers/app_settings.md) | 27 | 18 |
 | `lib/shared/utils/adaptive_layout.dart` | [shared/utils/adaptive_layout.md](shared/utils/adaptive_layout.md) | 12 | 12 |
 | `lib/shared/utils/calendar_preferences.dart` | [shared/utils/calendar_preferences.md](shared/utils/calendar_preferences.md) | 4 | 4 |
 | `lib/shared/utils/chinese_convert.dart` | [shared/utils/chinese_convert.md](shared/utils/chinese_convert.md) | 5 | 4 |
@@ -224,12 +239,13 @@ the 771 hand-documented declarations above).
 | `lib/shared/utils/detail_layout.dart` | [shared/utils/detail_layout.md](shared/utils/detail_layout.md) | 3 | 3 |
 | `lib/shared/utils/jst_time.dart` | [shared/utils/jst_time.md](shared/utils/jst_time.md) | 5 | 4 |
 | `lib/shared/utils/season_label.dart` | [shared/utils/season_label.md](shared/utils/season_label.md) | 10 | 8 |
+| `lib/shared/utils/status_colors.dart` | [shared/utils/status_colors.md](shared/utils/status_colors.md) | 2 | 2 |
 | `lib/shared/widgets/adaptive_tile_grid.dart` | [shared/widgets/adaptive_tile_grid.md](shared/widgets/adaptive_tile_grid.md) | 3 | 3 |
 | `lib/shared/widgets/anime_actions_sheet.dart` | [shared/widgets/anime_actions_sheet.md](shared/widgets/anime_actions_sheet.md) | 1 | 1 |
 | `lib/shared/widgets/delete_confirm.dart` | [shared/widgets/delete_confirm.md](shared/widgets/delete_confirm.md) | 1 | 1 |
 | `lib/shared/widgets/duplicate_check_page.dart` | [shared/widgets/duplicate_check_page.md](shared/widgets/duplicate_check_page.md) | 10 | 3 |
 | `lib/shared/widgets/import_bundle_dialog.dart` | [shared/widgets/import_bundle_dialog.md](shared/widgets/import_bundle_dialog.md) | 6 | 2 |
-| `lib/shared/widgets/shell_scaffold.dart` | [shared/widgets/shell_scaffold.md](shared/widgets/shell_scaffold.md) | 3 | 1 |
+| `lib/shared/widgets/shell_scaffold.dart` | [shared/widgets/shell_scaffold.md](shared/widgets/shell_scaffold.md) | 5 | 1 |
 | `lib/shared/services/webdav_service.dart` | [shared/services/webdav_service.md](shared/services/webdav_service.md) | 12 | 12 |
 | `lib/shared/services/sync_merge.dart` | [shared/services/sync_merge.md](shared/services/sync_merge.md) | 4 | 4 |
 | `lib/shared/services/sync_progress.dart` | [shared/services/sync_progress.md](shared/services/sync_progress.md) | 0 | 0 |
@@ -251,15 +267,16 @@ the 771 hand-documented declarations above).
 | Area | Files | Declarations | Tier A | Tier B |
 |---|---|---|---|---|
 | Root (`lib/`) | 1 | 1 | 1 | 0 |
-| `app/` | 5 | 25 | 17 | 8 |
+| `app/` | 5 | 30 | 22 | 8 |
 | `features/ai/` | 6 | 75 | 29 | 46 |
-| `features/anime/` | 33 | 807 | 381 | 426 |
+| `features/anime/` | 33 | 809 | 383 | 426 |
 | `features/categories/` | 2 | 18 | 11 | 7 |
 | `features/kana/` | 1 | 19 | 3 | 16 |
+| `features/profile/` | 6 | 44 | 19 | 25 |
 | `features/recommendations/` | 11 | 153 | 63 | 90 |
 | `features/settings/` | 4 | 49 | 28 | 21 |
-| `shared/` (utils, widgets, providers, services, views) | 30 | 312 | 237 | 75 |
-| **Total** | **93** | **1459** | **770** | **689** |
+| `shared/` (utils, widgets, providers, services, views) | 31 | 317 | 239 | 78 |
+| **Total** | **100** | **1515** | **798** | **717** |
 
 
 ## Anime1 episode playback (1.6.4)

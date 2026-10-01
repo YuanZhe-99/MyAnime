@@ -300,6 +300,15 @@ Long-pressing a row — or right-clicking it on desktop — opens
 title in full, untruncated, plus edit and delete. The rows themselves still truncate to one line,
 which is exactly why the sheet exists.
 
+## Profile avatar
+
+Since 1.7.0 `build` sets the app bar's `leading` to an `IconButton` (tooltip `profileOpenSettings`) holding
+a `ProfileAvatar(radius: 16)`, so the avatar sits left of the "MyAnime!!!!!" title; tapping it calls
+`context.go('/settings')`, whose header edits the name and avatar. With no profile set the avatar
+shows the placeholder. See
+[`../../profile/views/profile_avatar.md`](../../profile/views/profile_avatar.md) and
+[`../../../../features/profile.md`](../../../../features/profile.md).
+
 ## Recommendations action
 
 Since 1.6.0 (M5), while `AppSettings.recommendationsEnabled` is on, `build` puts an `IconButton`

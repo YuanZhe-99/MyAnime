@@ -32,6 +32,7 @@ management conventions (Riverpod, no Provider/Bloc) and
 | `AppSettingsNotifier.setManageSeriesSort` | method (`AppSettingsNotifier`) | B | Update the remembered Manage series-view sort (1.6.2) and persist it; `latest` removes the key. |
 | `AppSettingsNotifier.setStatsListColumns` | method (`AppSettingsNotifier`) | B | Update the remembered statistics list column preference and persist it. |
 | `AppSettingsNotifier.setKanaTabEnabled` | method (`AppSettingsNotifier`) | B | Show or hide the Kana tab and persist the choice. |
+| `AppSettingsNotifier.setFloatingNavBar` | method (`AppSettingsNotifier`) | B | Choose the floating island (default) or the classic bottom navigation bar and persist the choice (1.7.0). |
 | [`AppSettingsNotifier.setOnDeviceAiEnabled`](#appsettingsnotifier-setondeviceaienabled) | method (`AppSettingsNotifier`) | A | Turn on-device AI on or off, persist it, and switch `OnDeviceAiService`. |
 | `AppSettingsNotifier.setOnDeviceAiPreferFast` | method (`AppSettingsNotifier`) | B | Prefer the faster on-device model where both sizes are served; persist it and tell `OnDeviceAiService`. |
 | [`AppSettingsNotifier.setAutoCategoriesEnabled`](#appsettingsnotifier-setautocategoriesenabled) | method (`AppSettingsNotifier`) | A | Turn automatic categories on or off, persist it, and switch `CategoryClassifier`. |
@@ -467,6 +468,17 @@ Settings › General calls. `ShellScaffold` watches it to show four or five dest
 skips `_loadPersisted`, so a widget test can override `appSettingsProvider` with
 `overrideWithValue(AppSettingsNotifier.fixed(...))` without touching storage. Its setters still
 persist.
+
+## Floating navigation bar preference
+
+1.7.0 adds `floatingNavBar`, a `bool` defaulting to `true`, present in the constructor, `copyWith` and
+`_loadPersisted` (through `AnimeStorage.getFloatingNavBar()`). `setFloatingNavBar(bool floating)` updates
+`state` and persists through `AnimeStorage.setFloatingNavBar`, which stores only the non-default classic
+bar as `classicNavBar: true` in `storage_config.json`. `ShellScaffold` watches
+`appSettingsProvider.select((s) => s.floatingNavBar)` and builds either `_FloatingNavBar` or the stock
+`NavigationBar`; the setting has no visible effect while the navigation rail is shown. The only UI is
+the *Floating navigation bar* switch in Settings › General. See
+[`../widgets/shell_scaffold.md`](../widgets/shell_scaffold.md).
 
 ## On-device AI preferences
 

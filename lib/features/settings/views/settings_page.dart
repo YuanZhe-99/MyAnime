@@ -27,6 +27,7 @@ import '../../anime/models/metadata_update.dart';
 import '../../anime/services/anime_storage.dart';
 import '../../anime/services/metadata_update_service.dart';
 import '../../categories/widgets/categorize_now_tile.dart';
+import '../../profile/views/profile_header.dart';
 import 'backup_page.dart';
 import 'license_page.dart' as app_license;
 import 'privacy_policy_page.dart';
@@ -820,6 +821,9 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
   ) {
     return ListView(
       children: [
+        // Avatar and name (1.7.0); synced, unlike everything device-local
+        // below. Tapping opens the edit dialog.
+        const ProfileHeader(),
         // ── General ──
         _buildSection(l10n.settingsGeneral, [
           ListTile(
@@ -849,6 +853,15 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
               selected: {settings.themeMode},
               onSelectionChanged: (s) => notifier.setThemeMode(s.first),
             ),
+          ),
+          // On by default since 1.7.0; off restores the classic full-width
+          // bottom bar. Wide windows use the rail either way.
+          SwitchListTile(
+            secondary: const Icon(Icons.space_dashboard_outlined),
+            title: Text(l10n.settingsFloatingNavBar),
+            subtitle: Text(l10n.settingsFloatingNavBarDesc),
+            value: settings.floatingNavBar,
+            onChanged: notifier.setFloatingNavBar,
           ),
           ListTile(
             leading: const Icon(Icons.language),

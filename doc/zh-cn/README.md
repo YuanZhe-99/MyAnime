@@ -33,6 +33,7 @@
 - [`features/categories-and-recommendations.md`](features/categories-and-recommendations.md) — 自动分类（1.6.0）：分类表、类型标签映射、端侧 AI 补全、`categories` 字段与 `ai_insights.json` 缓存；推荐（1.6.0）：基于片库的确定性排序、可选的端侧 AI 理由，以及仅限本设备的*不感兴趣*列表。
 - [`features/home-management-statistics.md`](features/home-management-statistics.md) — 主页、管理和统计三个标签。
 - [`features/kana-reference.md`](features/kana-reference.md) — 纯 UI 的假名速查模块，自 1.6.0 起默认关闭。
+- [`features/profile.md`](features/profile.md) — 同步的个人资料（1.7.0）：名称和头像、出现位置、编辑、头像处理与同步。
 - [`features/multi-source-search.md`](features/multi-source-search.md) — 多源动画搜索、去重、模糊匹配和风味门控。
 - [`features/watch-url-lookup.md`](features/watch-url-lookup.md) — anime1.me 观看链接查找：系列索引、归一化匹配、别名补采与持久化的观看进度。
 - [`features/share-and-import.md`](features/share-and-import.md) — 分享/导出流程和 `.myanimeitem` 文件导入/导出。

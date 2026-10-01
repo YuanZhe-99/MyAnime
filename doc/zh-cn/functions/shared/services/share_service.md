@@ -356,7 +356,7 @@
 - **返回：** 无。
 - **副作用：** 无（纯画布绘制）。
 - **算法：**
-  1. 构建 `(label, value, color)` 三元组：已跟踪（强调色）、已完成（绿）、弃看（红），并找三个中的 `maxVal`。
+  1. 构建 `(label, value, color)` 三元组：已跟踪（强调色）、已完成（`_completedColor`，向强调色协调的绿）、弃看（`_droppedColor`，配色方案的 error 色），并找三个中的 `maxVal`。
   2. 按顺序对每条：绘制其 `"<label>: <count>"` 文本，然后圆角轨道矩形，然后宽度为 `contentWidth * value / maxVal`（与三个计数中最大的成比例，因此至少一条总是达到全宽）的圆角填充矩形——`maxVal` 为 0 时跳过。
 - **用法：** 提供 `summary` 时从 [`_generateStatisticsShareImage`](#_generatestatisticsshareimage)（仅第一页）内部调用。
 - **备注：** 条按**三个值中最大者**缩放，不是固定总数——因此如"已跟踪"远大于"已完成"/"弃看"时，那两条会显得相对较小，而不是各自凑成固定宽度。
@@ -403,3 +403,7 @@
 - **释放原生图像资源。** 每个 `ui.Codec` 在 `getNextFrame` 之后立即 dispose；徽标和封面的 `ui.Image`（以及排行／统计的封面映射）在卡片函数结束时于 `finally` 中 dispose；每页的 `ui.Picture` 在 `toImage` 之后 dispose，其 `ui.Image` 在 PNG 编码之后 dispose。此前什么都不释放，长时间导出会话会一直占着每张解码后的封面直到垃圾回收。
 - **封面解码不超过卡片宽度。** 封面以 `targetWidth: cardWidth * pixelRatio` 和 `allowUpscaling: false` 解码，而不是按源图原始尺寸。
 - **PowerShell 剪贴板复制转义 `'`。** `_copyImageToClipboard` 在单引号包裹的 PowerShell 字符串里把图片路径中的单引号加倍，路径含 `'` 不再破坏命令。
+
+## 1.7.0 变更
+
+- **卡片配色由应用种子色派生。** 硬编码的紫色配色被 `static final ColorScheme _palette = ColorScheme.fromSeed(seedColor: AppTheme.seedColor)` 取代，它始终是**浅色**方案，从不使用动态（壁纸）方案，因此无论应用主题如何，分享图在每台设备上看起来都一样。各私有颜色字段从它读取：`_accentColor` = `primary`，`_onAccentColor` = `onPrimary`（排名数字文字，此前是 `Colors.white`），`_bgColor` = `surface`，`_textColor` = `onSurface`，`_subtitleColor` = `onSurfaceVariant`，`_borderColor` = `outlineVariant`，`_trackColor` = `surfaceContainerHighest`，`_rowTintColor` = `surfaceContainerLow`（原为 `0xFFF7F4FF`），`_placeholderColor` = `primaryContainer`（封面占位，原为 `0xFFEDE7F6`），`_completedColor` / `_droppedColor` 来自 [`StatusColors`](../utils/status_colors.md)，在该浅色方案上求值。公开签名未变。

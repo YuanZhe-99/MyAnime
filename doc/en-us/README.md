@@ -64,6 +64,7 @@ The shared WebDAV sync, backup, and ZIP engines are not in this repository. They
   Manage, and Stats tabs.
 - [`features/kana-reference.md`](features/kana-reference.md) — the UI-only kana quick-reference
   module, off by default since 1.6.0.
+- [`features/profile.md`](features/profile.md) — the synced profile (1.7.0): display name and avatar, where they appear, editing, avatar processing, and sync.
 - [`features/multi-source-search.md`](features/multi-source-search.md) — multi-source anime
   search, dedup, fuzzy matching, and flavor gating.
 - [`features/watch-url-lookup.md`](features/watch-url-lookup.md) — the anime1.me watch-URL

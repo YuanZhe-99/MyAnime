@@ -990,3 +990,15 @@ held no Riverpod state at all.
 ## Changes in 1.6.7
 
 The ranking row's cover thumbnail (`_buildCoverThumbnail`) passes `cacheHeight` (62 logical pixels times the device pixel ratio) so a full-size cover is not decoded for a 44 x 62 thumbnail.
+
+## Changes in 1.7.0
+
+The *Completed* and *Dropped* colors are now theme-derived instead of fixed `Colors.green` and
+`Colors.red`: the summary cards (`_buildSummaryCards`), the trend chart's legend dots (`_legendDot`
+calls in `_buildTrendChart`) and its bar rods all use `StatusColors.completed(theme.colorScheme)` and
+`StatusColors.dropped(theme.colorScheme)`
+([`../../../shared/utils/status_colors.md`](../../../shared/utils/status_colors.md)). Completed is
+green harmonized toward the current primary color, and dropped is the scheme's `error` color, so both
+follow dynamic color and dark mode. The *Watching* card and the *Tracked* bars still use
+`colorScheme.primary`. The share image keeps its own fixed light palette
+([`../../../shared/services/share_service.md`](../../../shared/services/share_service.md)).

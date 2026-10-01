@@ -1943,6 +1943,18 @@ abstract class AppLocalizations {
   /// **'Show the Kana tab. For kana practice and more, see MyNihongo!!!!!, a separate app.'**
   String get settingsKanaTabDesc;
 
+  /// No description provided for @settingsFloatingNavBar.
+  ///
+  /// In en, this message translates to:
+  /// **'Floating navigation bar'**
+  String get settingsFloatingNavBar;
+
+  /// No description provided for @settingsFloatingNavBarDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'Show the bottom navigation bar as a floating island. Turn off for the classic full-width bar.'**
+  String get settingsFloatingNavBarDesc;
+
   /// No description provided for @settingsGeneral.
   ///
   /// In en, this message translates to:
@@ -3814,6 +3826,60 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Playback progress'**
   String get backupModulePlayback;
+
+  /// No description provided for @backupModuleProfile.
+  ///
+  /// In en, this message translates to:
+  /// **'Profile'**
+  String get backupModuleProfile;
+
+  /// No description provided for @profileTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Profile'**
+  String get profileTitle;
+
+  /// No description provided for @profileName.
+  ///
+  /// In en, this message translates to:
+  /// **'Name'**
+  String get profileName;
+
+  /// No description provided for @profileNamePlaceholder.
+  ///
+  /// In en, this message translates to:
+  /// **'Set your name'**
+  String get profileNamePlaceholder;
+
+  /// No description provided for @profileEditHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Name and avatar sync across your devices'**
+  String get profileEditHint;
+
+  /// No description provided for @profileChangeAvatar.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose avatar'**
+  String get profileChangeAvatar;
+
+  /// No description provided for @profileRemoveAvatar.
+  ///
+  /// In en, this message translates to:
+  /// **'Remove'**
+  String get profileRemoveAvatar;
+
+  /// No description provided for @profileAvatarError.
+  ///
+  /// In en, this message translates to:
+  /// **'This image could not be used'**
+  String get profileAvatarError;
+
+  /// No description provided for @profileOpenSettings.
+  ///
+  /// In en, this message translates to:
+  /// **'Profile and settings'**
+  String get profileOpenSettings;
 }
 
 class _AppLocalizationsDelegate

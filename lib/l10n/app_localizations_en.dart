@@ -1108,6 +1108,13 @@ class AppLocalizationsEn extends AppLocalizations {
       'Show the Kana tab. For kana practice and more, see MyNihongo!!!!!, a separate app.';
 
   @override
+  String get settingsFloatingNavBar => 'Floating navigation bar';
+
+  @override
+  String get settingsFloatingNavBarDesc =>
+      'Show the bottom navigation bar as a floating island. Turn off for the classic full-width bar.';
+
+  @override
   String get settingsGeneral => 'General';
 
   @override
@@ -2152,4 +2159,31 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get backupModulePlayback => 'Playback progress';
+
+  @override
+  String get backupModuleProfile => 'Profile';
+
+  @override
+  String get profileTitle => 'Profile';
+
+  @override
+  String get profileName => 'Name';
+
+  @override
+  String get profileNamePlaceholder => 'Set your name';
+
+  @override
+  String get profileEditHint => 'Name and avatar sync across your devices';
+
+  @override
+  String get profileChangeAvatar => 'Choose avatar';
+
+  @override
+  String get profileRemoveAvatar => 'Remove';
+
+  @override
+  String get profileAvatarError => 'This image could not be used';
+
+  @override
+  String get profileOpenSettings => 'Profile and settings';
 }

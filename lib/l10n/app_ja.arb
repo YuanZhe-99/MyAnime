@@ -352,6 +352,8 @@
   "settingsReminderTime": "リマインダー時刻",
   "settingsKanaTab": "かな早見表",
   "settingsKanaTabDesc": "かなタブを表示します。かなの練習などは別アプリ MyNihongo!!!!! をご利用ください。",
+  "settingsFloatingNavBar": "フローティングナビゲーションバー",
+  "settingsFloatingNavBarDesc": "下部のナビゲーションバーを浮かぶアイランド形式で表示します。オフにすると従来の全幅バーに戻ります。",
   "settingsGeneral": "一般",
   "settingsData": "データ",
   "settingsSelectItem": "左のリストから項目を選択してください",
@@ -705,5 +707,14 @@
     "episodeSpeed": "再生速度",
     "episodeFullscreen": "全画面",
     "episodeExitFullscreen": "全画面を終了",
-    "backupModulePlayback": "再生位置"
+    "backupModulePlayback": "再生位置",
+    "backupModuleProfile": "プロフィール",
+    "profileTitle": "プロフィール",
+    "profileName": "名前",
+    "profileNamePlaceholder": "名前を設定",
+    "profileEditHint": "名前とアバターはデバイス間で同期されます",
+    "profileChangeAvatar": "アバターを選択",
+    "profileRemoveAvatar": "削除",
+    "profileAvatarError": "この画像は使用できません",
+    "profileOpenSettings": "プロフィールと設定"
 }

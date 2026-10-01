@@ -382,7 +382,8 @@ migrates data files, backups, and images.
 | Anime records | `anime_data.json` | Yes | Per-record by `id` and `modifiedAt`; unknown fields preserved |
 | Recommendation trash bins and related lists | `recommendations.json` | Yes | Since 1.6.2: the global trash, trashed missing-sequel cards, and each record's persisted Related list with its own trash; since 1.6.3 also pins and each missing sequel's synopsis and cover thumbnail; conflict-free set merge; created only when first needed |
 | Playback progress | `playback_progress.json` | Yes | Since 1.6.5: the resume point of each episode played in the app; newer position wins per key, finished episodes stay deleted; conflict-free; created only when first needed |
-| Cover images | `images/` | Yes | Referenced-only additive sync by filename |
+| Profile (display name and avatar) | `profile.json` | Yes | Since 1.7.0: the user's display name and avatar path, each with its own timestamp; last writer wins per field; conflict-free; created only when first set |
+| Cover images and avatar | `images/` | Yes | Referenced-only additive sync by filename; since 1.7.0 also the profile avatar (`images/avatar_<uuid>.jpg`) |
 | Theme mode | `storage_config.json` | No | Device-specific preference |
 | Locale | `storage_config.json` | No | Device-specific preference |
 | Calendar week start day | `storage_config.json` | No | Device-specific preference, default Sunday, ignored while Japanese home calendar layout is active |
@@ -398,11 +399,12 @@ migrates data files, backups, and images.
 | API server enabled/listen address/port/credentials | `storage_config.json` | No | Local desktop config; credentials must not be committed |
 | Tray and launch-at-startup preferences | `storage_config.json` | No | Local desktop config |
 | Kana tab shown | `storage_config.json` | No | Device-specific `kanaTabEnabled`; absent means hidden (1.6.0) |
+| Bottom navigation bar style | `storage_config.json` | No | Device-specific `classicNavBar` (1.7.0); written only as `true` when the classic full-width bar is chosen; absent means the floating island (the default, also for existing installs) |
 | On-device AI switch and model-size preference | `storage_config.json` | No | Device-specific `onDeviceAiEnabled` and `onDeviceAiPreferFast` (Android); absent means off (1.6.0) |
 | Automatic categories | `storage_config.json` | No | Device-specific `autoCategoriesEnabled`; absent means off (1.6.0) |
 | Recommendations | `storage_config.json` | No | Device-specific `recommendationsEnabled`; absent means off (1.6.0) |
 | WebDAV configuration | `webdav_config.json` | No | Local secret/config only |
-| Sync base snapshots | `.sync_base/anime_data.json`, `.sync_base/recommendations.json`, `.sync_base/playback_progress.json` | No | Local merge tracking, one per module |
+| Sync base snapshots | `.sync_base/anime_data.json`, `.sync_base/recommendations.json`, `.sync_base/playback_progress.json`, `.sync_base/profile.json` | No | Local merge tracking, one per module |
 | Local backups | `backups/backup_*.json` | No | Local recovery; v2 bundles reference deduplicated image blobs |
 | Backup image blobs | `backups/blobs/` | No | Content-addressed (`sha256`), shared across backups, reference-counted GC |
 | Background update queue | `metadata_updates.json` | No | Per-device attempt/backoff state plus downloaded update candidates; rebuildable cache |
@@ -466,6 +468,36 @@ position past 95% deletes the entry (see
 no media address or credential; `pageUrl` is the public episode page. It is not part of
 `.myanimeitem` share files.
 
+`profile.json` (1.7.0) is the fourth registered module, so it also syncs, is backed up, is included in
+ZIP export, and has its own `.sync_base/profile.json`. It holds the user's display name and avatar
+(see [`features/profile.md`](features/profile.md)):
+
+```json
+{
+  "version": 1,
+  "displayName": "Yuan",
+  "displayNameUpdatedAt": "2026-10-01T14:06:42.530801Z",
+  "avatar": "images/avatar_2953ac52-337e-4271-a8e1-bcd97ee416ba.jpg",
+  "avatarUpdatedAt": "2026-10-01T14:08:59.163627Z"
+}
+```
+
+- `displayName` / `displayNameUpdatedAt` — the name and when it last changed (UTC). Trimmed on save;
+  clearing it writes `"displayName": null` with a new timestamp.
+- `avatar` / `avatarUpdatedAt` — the avatar as a path relative to the data directory
+  (`images/avatar_<uuid>.jpg`, a 512 x 512 JPEG) and when it last changed (UTC). A removed avatar is
+  written as an explicit `"avatar": null` with its timestamp, so the removal syncs.
+- A field is written only once it has a timestamp; a field with no timestamp means "never set" and
+  always loses a merge to one that was set. Each field merges by last writer wins, independently of
+  the other — see [`sync.md`](sync.md#the-profile-file). Unknown keys survive. `version` is `1`.
+- The avatar image is an ordinary file in `images/`, so it syncs through the engine's referenced-only
+  additive image phase (the module reports it through `profileReferencedImages`), and is backed up and
+  exported with the other images. Each new avatar gets a fresh file name, because image sync never
+  overwrites an existing file; replaced avatars are deleted locally only, so old ones remain on the
+  WebDAV server and other devices.
+- Builds older than 1.7.0 never request `profile.json`, so it does not affect them.
+- It is not part of `.myanimeitem` share files.
+
 ### `storage_config.json`
 
 Holds every device-local preference from the table above that isn't WebDAV configuration: theme
@@ -479,7 +511,7 @@ faster model" preference (`onDeviceAiEnabled`, `onDeviceAiPreferFast`, each writ
 see [`on-device-ai.md`](on-device-ai.md)), and whether automatic categories are on
 (`autoCategoriesEnabled`, written only when on), and whether recommendations are on
 (`recommendationsEnabled`, written only when on), and since 1.6.2 the Manage tab's view and
-series sort (`manageViewMode`, `manageSeriesSort`, each written only when not the default). None of this file is
+series sort (`manageViewMode`, `manageSeriesSort`, each written only when not the default). Since 1.7.0 it also holds the bottom navigation bar style (`classicNavBar`, written only as `true` when the classic bar is chosen; absent means the floating island). None of this file is
 synced — it is intentionally device-specific, which is the right home for a network policy that
 should differ between a desktop on Ethernet and a phone on a data plan.
 
@@ -493,7 +525,7 @@ synced itself — it's the configuration that drives sync, not data sync would t
 
 Holds `.sync_base/anime_data.json`, the last-known-merged snapshot used as the three-way merge
 base on the next sync — and since 1.6.2 `.sync_base/recommendations.json` and since 1.6.5
-`.sync_base/playback_progress.json`, the same for those modules — and `.sync_base/upload_lock.json`, which lets the next launch detect an
+`.sync_base/playback_progress.json` and since 1.7.0 `.sync_base/profile.json`, the same for those modules — and `.sync_base/upload_lock.json`, which lets the next launch detect an
 upload that was interrupted mid-flight. See [`sync.md`](sync.md) for how both are used.
 
 ### `backups/`

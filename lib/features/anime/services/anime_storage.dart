@@ -761,6 +761,33 @@ class AnimeStorage {
     });
   }
 
+  /// Purpose: Return whether the bottom navigation bar floats as an island.
+  /// Inputs: None.
+  /// Returns: `Future<bool>` — defaults to true.
+  /// Side effects: Reads `storage_config.json`.
+  /// Notes: Stored inverted as `classicNavBar` so the default (floating, since
+  /// 1.7.0) needs no key and existing installs get it too.
+  static Future<bool> getFloatingNavBar() async {
+    final config = await readConfig();
+    return config['classicNavBar'] != true;
+  }
+
+  /// Purpose: Persist whether the bottom navigation bar floats as an island.
+  /// Inputs: `floating`.
+  /// Returns: None.
+  /// Side effects: Writes `storage_config.json`.
+  /// Notes: Only the non-default classic bar is stored, as
+  /// `classicNavBar: true`; choosing floating removes the key.
+  static Future<void> setFloatingNavBar(bool floating) async {
+    await updateConfig((config) {
+      if (floating) {
+        config.remove('classicNavBar');
+      } else {
+        config['classicNavBar'] = true;
+      }
+    });
+  }
+
   /// Purpose: Return whether on-device AI is turned on.
   /// Inputs: None.
   /// Returns: `Future<bool>` — defaults to false.

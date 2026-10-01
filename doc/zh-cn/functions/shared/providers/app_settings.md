@@ -24,6 +24,7 @@
 | `AppSettingsNotifier.setManageSeriesSort` | 方法（`AppSettingsNotifier`） | B | 更新并持久化记住的管理页系列视图排序（1.6.2）；`latest` 会删除该键。 |
 | `AppSettingsNotifier.setStatsListColumns` | 方法（`AppSettingsNotifier`） | B | 更新并持久化记住的统计列表列数偏好。 |
 | `AppSettingsNotifier.setKanaTabEnabled` | 方法（`AppSettingsNotifier`） | B | 显示或隐藏假名标签并持久化该选择。 |
+| `AppSettingsNotifier.setFloatingNavBar` | 方法（`AppSettingsNotifier`） | B | 选择悬浮岛（默认）或经典底部导航栏并持久化该选择（1.7.0）。 |
 | [`AppSettingsNotifier.setOnDeviceAiEnabled`](#appsettingsnotifier-setondeviceaienabled) | 方法（`AppSettingsNotifier`） | A | 开启或关闭端侧 AI，持久化该选择，并切换 `OnDeviceAiService`。 |
 | `AppSettingsNotifier.setOnDeviceAiPreferFast` | 方法（`AppSettingsNotifier`） | B | 在设备同时提供两种尺寸时优先使用更快的端侧模型；持久化该选择并告知 `OnDeviceAiService`。 |
 | [`AppSettingsNotifier.setAutoCategoriesEnabled`](#appsettingsnotifier-setautocategoriesenabled) | 方法（`AppSettingsNotifier`） | A | 开启或关闭自动分类，持久化该选择并切换 `CategoryClassifier`。 |
@@ -367,6 +368,10 @@
 同时新增的 `AppSettingsNotifier.fixed(settings)` 从给定设置开始并跳过 `_loadPersisted`，因此组件测试可以用
 `overrideWithValue(AppSettingsNotifier.fixed(...))` 覆盖 `appSettingsProvider` 而不触及存储。它的 setter 仍会
 持久化。
+
+## 悬浮导航栏偏好
+
+1.7.0 新增 `floatingNavBar`，一个默认 `true` 的 `bool`，出现在构造函数、`copyWith` 和 `_loadPersisted` 中（通过 `AnimeStorage.getFloatingNavBar()` 加载）。`setFloatingNavBar(bool floating)` 更新 `state` 并通过 `AnimeStorage.setFloatingNavBar` 持久化，后者只把非默认的经典栏存为 `storage_config.json` 中的 `classicNavBar: true`。`ShellScaffold` 监听 `appSettingsProvider.select((s) => s.floatingNavBar)`，构建 `_FloatingNavBar` 或原版 `NavigationBar`；显示侧边导航栏时该设置没有可见效果。唯一的界面是设置 › 通用中的“悬浮导航栏”开关。见 [`../widgets/shell_scaffold.md`](../widgets/shell_scaffold.md)。
 
 ## 端侧 AI 偏好
 

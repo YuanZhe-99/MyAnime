@@ -33,6 +33,15 @@ void main() {
   const longTitle = '与奔驰于透明之夜的你，谈一场看不见的恋爱，并且这个标题长到列表行里绝对放不下。';
 
   setUpAll(() async {
+    // The page opens on the current quarter, so the fixture must air in it
+    // whenever the test runs: a Monday in the second week of the quarter.
+    final now = DateTime.now().toUtc();
+    var firstAir = DateTime.utc(now.year, ((now.month - 1) ~/ 3) * 3 + 1, 8, 3);
+    while (firstAir.weekday != DateTime.monday) {
+      firstAir = firstAir.add(const Duration(days: 1));
+    }
+    final firstAirIso = firstAir.toIso8601String();
+
     tempDir = await Directory.systemTemp.createTemp('myanime_columns_ui');
     final docsDir = Directory(p.join(tempDir.path, 'docs'))
       ..createSync(recursive: true);
@@ -52,7 +61,7 @@ void main() {
               'startEpisode': 1,
               'endEpisode': 12,
               'airDayOfWeek': 1,
-              'firstAirDate': '2026-07-06T00:00:00.000Z',
+              'firstAirDate': firstAirIso,
               'episodeStatuses': {'1': 'watched'},
               'createdAt': '2026-07-01T00:00:00.000Z',
               'modifiedAt': '2026-07-01T00:00:00.000Z',

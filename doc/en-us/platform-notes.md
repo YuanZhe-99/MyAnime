@@ -84,6 +84,21 @@ reuses the shared search service.
 - `FileProvider` and `FLAG_ACTIVITY_NEW_TASK` support share/import flows (see
   [`features/share-and-import.md`](features/share-and-import.md)).
 
+## Dynamic color (1.7.0)
+
+The app uses stock Material 3 colors generated from one seed color (deep purple, `AppTheme.seedColor`).
+On **Android 12 and newer** the `dynamic_color` plugin supplies the wallpaper-derived (Material You)
+scheme and the app uses it instead of the seed, in light and dark. On **Android 11 and older**, **iOS**,
+**Windows**, **macOS** and any other platform the seed scheme applies.
+
+Desktop is excluded on purpose. On Windows and macOS the plugin does not return a wallpaper palette; it
+returns the system **accent color**, and using that would replace the app's own seed color, so each app
+in the series would look like whatever accent the user picked instead of keeping its identity.
+`MyAnimeApp.build` therefore passes the plugin's schemes to `AppTheme` only when
+`!kIsWeb && defaultTargetPlatform == TargetPlatform.android` (see
+[`functions/app/app.md`](functions/app/app.md) and [`functions/app/theme.md`](functions/app/theme.md)).
+Android dynamic color has not been verified on a device yet.
+
 ## Desktop API server, tray, and launch-at-startup
 
 `local_api_server.dart` is a **desktop-only** Shelf server. It is disabled by default and

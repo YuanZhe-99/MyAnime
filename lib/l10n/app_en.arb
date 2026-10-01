@@ -366,6 +366,8 @@
   "settingsReminderTime": "Reminder Time",
   "settingsKanaTab": "Kana quick reference",
   "settingsKanaTabDesc": "Show the Kana tab. For kana practice and more, see MyNihongo!!!!!, a separate app.",
+  "settingsFloatingNavBar": "Floating navigation bar",
+  "settingsFloatingNavBarDesc": "Show the bottom navigation bar as a floating island. Turn off for the classic full-width bar.",
   "settingsGeneral": "General",
   "settingsData": "Data",
   "settingsSelectItem": "Select an item from the list",
@@ -733,5 +735,14 @@
     "episodeSpeed": "Playback speed",
     "episodeFullscreen": "Full screen",
     "episodeExitFullscreen": "Exit full screen",
-    "backupModulePlayback": "Playback progress"
+    "backupModulePlayback": "Playback progress",
+    "backupModuleProfile": "Profile",
+    "profileTitle": "Profile",
+    "profileName": "Name",
+    "profileNamePlaceholder": "Set your name",
+    "profileEditHint": "Name and avatar sync across your devices",
+    "profileChangeAvatar": "Choose avatar",
+    "profileRemoveAvatar": "Remove",
+    "profileAvatarError": "This image could not be used",
+    "profileOpenSettings": "Profile and settings"
 }

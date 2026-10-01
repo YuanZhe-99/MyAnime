@@ -26,6 +26,7 @@ model/quarter logic and [`../architecture.md`](../architecture.md) for how these
   short viewports the row height shrinks (down to 34 from the usual 52), with tighter cell margins
   and smaller airing markers, so a six-week month still fits above the episode list.
 - Unwatched aired episodes are surfaced directly on the calendar.
+- Since 1.7.0 the profile avatar sits at the left of the app-bar title and opens Settings when tapped (see [`profile.md`](profile.md)).
 - While recommendations are on (1.6.0), a recommendations action in the app bar, before the column
   button, opens "What to watch next" (`/recommendations`), which lays its cards out with Home's column
   preference. With recommendations off (the default) the action is absent. See
@@ -66,6 +67,7 @@ model/quarter logic and [`../architecture.md`](../architecture.md) for how these
 - Full-range scrollable trend charts with focused quarter/year selection; quarter/year granularity
   is selectable for all-scope trends.
 - Expandable lists grouped by derived status (completed/watching/dropped/not-started).
+- Since 1.7.0 the *Completed* and *Dropped* colors (summary cards, trend legend and bars) are derived from the active theme through `StatusColors` — green harmonized toward the primary color, and the scheme's error color — instead of fixed green and red, so they follow dark mode and dynamic color. Share images keep their own fixed light palette.
 - A separate **Ranking** view for rating-based ranking, supporting:
   - all/quarter/year/custom-quarter-range filters
   - type filtering

@@ -1,10 +1,10 @@
 # lib/shared/widgets/shell_scaffold.dart
 
 `ShellScaffold` is the persistent shell widget rendered by `router.dart`'s `ShellRoute` — it wraps
-the current tab (`child`) in a `Scaffold` whose navigation is either a bottom `NavigationBar` or a
-side `NavigationRail`, for the main tabs: Home, Manage, Stats and Settings, with Kana between Stats
+the current tab (`child`) in a `Scaffold` whose navigation is either a bottom bar (a floating island by
+default since 1.7.0, or the classic full-width `NavigationBar`) or a side `NavigationRail`, for the main tabs: Home, Manage, Stats and Settings, with Kana between Stats
 and Settings while the Kana tab is turned on. It is a `ConsumerWidget` so that it can watch that
-preference. See [../../../architecture.md](../../../architecture.md#app-shell) and
+preference and the bottom-bar style. See [../../../architecture.md](../../../architecture.md#app-shell) and
 [../../app/router.md](../../app/router.md) for the route table this widget sits inside, and
 [../../../adaptive-layout.md](../../../adaptive-layout.md) for the rule that picks between the two.
 
@@ -16,6 +16,9 @@ preference. See [../../../architecture.md](../../../architecture.md#app-shell) a
 | [`ShellScaffold._currentIndex`](#shellscaffold_currentindex) | method (`ShellScaffold`) | A | Determine which navigation destination is selected for the current route. |
 | [`ShellScaffold._destinations`](#shellscaffold_destinations) | method (`ShellScaffold`) | A | Describe the shell's visible destinations once, paths and icons included. |
 | [`ShellScaffold.build`](#shellscaffold_build) | method (`ShellScaffold`, widget build) | A | Build the `Scaffold` with a rail or a bottom bar around `child`. |
+| [`_FloatingNavBar`](#floatingnavbar) | class (private) | A | The bottom bar drawn as a floating pill-shaped island (1.7.0, default). |
+| `_FloatingNavBar.new` | constructor (`_FloatingNavBar`) | B | Create a `_FloatingNavBar` instance. |
+| `_FloatingNavBar.build` | method (`_FloatingNavBar`, widget build) | B | Build the island: margins, rounded surface, inner bar. |
 | `_ShellDestination.new` | constructor (`_ShellDestination`) | B | Create a `_ShellDestination` instance. |
 
 ## Documentation
@@ -82,10 +85,13 @@ preference. See [../../../architecture.md](../../../architecture.md#app-shell) a
 - **Returns:** The shell's widget tree.
 - **Side effects:** Navigating on a destination tap, via `context.go(destinations[i].path)`.
 - **Algorithm:**
-  1. Watch `appSettingsProvider.select((s) => s.kanaTabEnabled)`, then build the destinations and
-     the selected index.
-  2. When `useNavigationRail(MediaQuery.sizeOf(context).width)` is false, return the original
-     `Scaffold` with a bottom `NavigationBar`.
+  1. Watch `appSettingsProvider.select((s) => s.kanaTabEnabled)` and
+     `appSettingsProvider.select((s) => s.floatingNavBar)`, then build the destinations and the
+     selected index.
+  2. When `useNavigationRail(MediaQuery.sizeOf(context).width)` is false, build one shared
+     `navDestinations` list of `NavigationDestination`s and return a `Scaffold` whose
+     `bottomNavigationBar` is `_FloatingNavBar` when `floatingNavBar` is true (the default), or the
+     stock `NavigationBar` (classic) otherwise.
   3. Otherwise return a `Scaffold` whose body is a `Row` of the rail, a `VerticalDivider(width: 1)`
      and `Expanded(child: child)`.
 - **Usage:**
@@ -111,3 +117,29 @@ preference. See [../../../architecture.md](../../../architecture.md#app-shell) a
   with labels run to roughly 370 logical pixels, which fits every window wide enough to earn a rail
   today — but a rail can appear at compact heights (a phone in landscape is 412), so it is allowed
   to scroll rather than overflow.
+
+### `class _FloatingNavBar` <a id="floatingnavbar"></a>
+- **Kind:** private `StatelessWidget` in `lib/shared/widgets/shell_scaffold.dart` (added in 1.7.0)
+- **Source:** `lib/shared/widgets/shell_scaffold.dart` (approx. line 181)
+- **Purpose:** Draw the narrow-window bottom navigation bar as a floating, pill-shaped island with
+  side and bottom margins, instead of the classic full-width bar.
+- **Inputs:** `selectedIndex`, `onDestinationSelected`, `destinations` — passed through unchanged to
+  the inner `NavigationBar`. `static const islandKey = ValueKey('floatingNavBarIsland')` is the key
+  on the island surface so tests can tell the floating bar from the classic one.
+- **Returns:** The widget tree for the floating bar.
+- **Side effects:** None.
+- **Algorithm:** `SafeArea(top: false, minimum: EdgeInsets.fromLTRB(16, 0, 16, 12))` →
+  `Padding(top: 8)` → `Center(heightFactor: 1)` → `ConstrainedBox(maxWidth: 480)` →
+  `Material(key: islandKey, color: surfaceContainer, surfaceTintColor: transparent, elevation: 3,
+  shadowColor: shadow, shape: StadiumBorder, clipBehavior: antiAlias)` →
+  `MediaQuery.removePadding(removeLeft/Right/Bottom)` → `NavigationBar(height: 68, transparent
+  background, elevation: 0, ...)`.
+- **Notes:** Flutter ships no floating navigation bar (it belongs to Material 3 Expressive), hence
+  the custom widget. It sits in the `Scaffold`'s `bottomNavigationBar` slot, **not** over the body
+  (no `extendBody`), so pages never draw underneath it and FAB positions and page layout are
+  unchanged. The bottom system inset (gesture bar) is applied once, outside the island, and removed
+  for the inner `NavigationBar` so it is not padded twice. The island is capped at 480 dp wide so it
+  stays a compact pill on wide phones and small tablets in portrait. The style is chosen by
+  `AppSettings.floatingNavBar` (default true; Settings switch "Floating navigation bar"); the rail
+  branch ignores the setting. The private constructor and `build` are Tier B and not documented
+  separately.

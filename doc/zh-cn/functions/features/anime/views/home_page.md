@@ -225,6 +225,10 @@
 [`showAnimeActionsSheet`](../../../shared/widgets/anime_actions_sheet.md)，它完整、不截断地展示每一个已存储的
 标题，并提供编辑与删除。行本身仍然截断为单行，而这正是该面板存在的原因。
 
+## 个人资料头像
+
+自 1.7.0 起，`build` 把应用栏的 `leading` 设为一个 `IconButton`（提示文字 `profileOpenSettings`），其中放着 `ProfileAvatar(radius: 16)`，因此头像位于“MyAnime!!!!!”标题左侧；点击它会调用 `context.go('/settings')`，其头部可编辑名称和头像。未设置个人资料时头像显示占位图。见 [`../../profile/views/profile_avatar.md`](../../profile/views/profile_avatar.md) 和 [`../../../../features/profile.md`](../../../../features/profile.md)。
+
 ## 推荐操作
 
 自 1.6.0（M5）起，当 `AppSettings.recommendationsEnabled` 开启时，`build` 会在应用栏最前面、`listColumnsButton`

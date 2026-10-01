@@ -72,7 +72,9 @@ void main() {
 
   Future<void> settle(WidgetTester tester) async {
     await tester.runAsync(() async {
-      for (var i = 0; i < 6; i++) {
+      // About a second of real time: the I/O is fast alone but can take
+      // several hundred milliseconds when the whole suite runs in parallel.
+      for (var i = 0; i < 20; i++) {
         await Future<void>.delayed(const Duration(milliseconds: 50));
         await tester.pump();
       }

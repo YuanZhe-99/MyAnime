@@ -25,6 +25,7 @@ void main() {
     double width,
     double height, {
     bool kanaTabEnabled = false,
+    bool floatingNavBar = true,
     String initialLocation = '/home',
   }) async {
     tester.view.devicePixelRatio = 1.0;
@@ -63,7 +64,10 @@ void main() {
         overrides: [
           appSettingsProvider.overrideWithValue(
             AppSettingsNotifier.fixed(
-              AppSettings(kanaTabEnabled: kanaTabEnabled),
+              AppSettings(
+                kanaTabEnabled: kanaTabEnabled,
+                floatingNavBar: floatingNavBar,
+              ),
             ),
           ),
         ],
@@ -103,6 +107,41 @@ void main() {
     await pumpAt(tester, 915, 412);
     expect(find.byType(NavigationRail), findsOneWidget);
     expect(find.byType(NavigationBar), findsNothing);
+  });
+
+  group('bottom bar style', () {
+    const island = ValueKey('floatingNavBarIsland');
+
+    testWidgets('floats as an island by default', (tester) async {
+      await pumpAt(tester, 412, 915);
+      expect(find.byKey(island), findsOneWidget);
+      expect(
+        find.descendant(
+          of: find.byKey(island),
+          matching: find.byType(NavigationBar),
+        ),
+        findsOneWidget,
+      );
+    });
+
+    testWidgets('the classic bar has no island', (tester) async {
+      await pumpAt(tester, 412, 915, floatingNavBar: false);
+      expect(find.byType(NavigationBar), findsOneWidget);
+      expect(find.byKey(island), findsNothing);
+    });
+
+    testWidgets('the rail ignores the setting', (tester) async {
+      await pumpAt(tester, 933, 704);
+      expect(find.byType(NavigationRail), findsOneWidget);
+      expect(find.byKey(island), findsNothing);
+    });
+
+    testWidgets('tapping an island destination navigates', (tester) async {
+      await pumpAt(tester, 412, 915);
+      await tester.tap(find.byIcon(Icons.settings_outlined));
+      await tester.pumpAndSettle();
+      expect(find.text('page /settings'), findsOneWidget);
+    });
   });
 
   group('Kana tab off (the default)', () {

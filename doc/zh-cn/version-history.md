@@ -2,6 +2,15 @@
 
 MyAnime!!!!! 的逐版本摘要。在改动一个行为之前理解它*为什么*存在很有用——多条记录记录的是刻意的安全修复，否则看起来像怪癖。
 
+## 1.7.0 — Material 3、悬浮导航栏与同步的个人资料
+
+- **原版 Google Material 3 取代 `flex_color_scheme`。** `AppTheme` 现在由 `seedColor`（深紫色）、`scheme`、`build` 以及 `light([dynamicScheme])` / `dark([dynamicScheme])` 组成——后两者由 getter 改成了方法。颜色来自 `ColorScheme.fromSeed`；唯一的组件覆盖是描边文本框，因此表单外观如前。其余全部是 Flutter 默认值：没有着染表面，使用 Material 3 分隔线，底栏始终显示所有标签（旧的 `onlyShowSelected` 已不复存在）。`MyAnimeApp.build` 把应用包在 `DynamicColorBuilder` 中；**壁纸（Material You）取色仅在 Android 上生效**，因为在 Windows 和 macOS 上该插件返回的是系统强调色，会取代应用的种子色。Android 11 及更早版本和其他所有平台使用种子色。Android 动态取色尚未在真机上验证。
+- **状态颜色和分享图配色由主题派生。** 新的 `StatusColors` 给「已完成」一个向主色协调的绿色，给「已弃番」配色方案的 error 色，用于统计页的摘要卡片、趋势图例和柱形。分享图保持由种子色生成的固定**浅色**配色（从不动态），因此卡片在每台设备上看起来都一样。
+- **悬浮导航栏，默认开启。**在窄窗口上，底栏是一个悬浮的胶囊形岛（`_FloatingNavBar`，宽度上限 480 dp，位于 `Scaffold` 的底栏槽位，因此不改变任何页面布局或 FAB 位置）。**设置 › 通用 › 悬浮导航栏**可恢复经典的通栏。该选择仅限设备本地：`storage_config.json` 只为经典栏存储 `classicNavBar: true`，因此已有安装得到的是悬浮栏。宽窗口的侧边导航栏不变。
+- **同步的个人资料。**名称和头像，显示在首页标题左侧和新的设置页头部，在对话框中编辑（头像经选择、EXIF 校正、裁剪为 512 px 的正方形 JPEG；名称最多 40 个字符）。它是**第四个数据模块** `profile.json`：每个字段有自己的时间戳，按后写者胜合并，移除用显式 `null`，因此永远不会冲突。头像是 `images/avatar_<uuid>.jpg`，每次都用全新的名称，因为图像同步从不覆盖也从不删除——旧头像会留在服务器和其他设备上（已知限制）。旧构建从不请求该文件；每次同步多**一次 `GET profile.json`**，因此 WebDAV 黄金文件 `sync_first` 和 `sync_conflict_finalize` 已重新录制（只多了这一个请求）。它会被备份并包含在 ZIP 导出中，恢复对话框中有*个人资料*一项。见 [`features/profile.md`](features/profile.md) 和 [`sync.md`](sync.md#个人资料文件)。
+- **修复的既有问题。**`list_columns_ui_test` 在当前季度不是 2026 年 7–9 月时就会失败（它的夹具日期是固定的）；现在它在当前季度第二周的某个周一播出。`related_card_ui_test` 和 `series_navigation_ui_test` 在并行负载下不稳定，原因是固定的 200–300 ms 真实时间等待；现在它们以 50 ms 为步长等待约 1 秒。`flutter analyze` 从 25 条 info 降到零（`tool/` 下两个命令行脚本加上 `// ignore_for_file: avoid_print`，`duplicate_service_test` 使用 null-aware 的 map 元素）。
+- 测试从 611 增至 631 个通过（3 个跳过）；新的 `profile_test` 覆盖模型、合并、模块、存储和裁剪，`shell_nav_ui_test` 新增了*底栏样式*分组。版本 1.7.0+69；安装器/MSIX 版本 1.7.0.0。
+
 ## 1.6.7 — 串行化写入、更安全的导入与仅限本地的 API
 
 - **写入不再竞争。** `anime_data.json` 与 `storage_config.json` 的写入经 `AnimeStorage` 中两个静态写入队列，并新增在队列内重新读取的 `updateRecord`、`updateLibrary` 和 `updateConfig`；临时文件名唯一（`atomicWriteString`，`metadata_updates.json` 与 `playback_progress.json` 也使用）。详情页切换、编辑表单、`markWatched`、导入以及所有设置 setter 都基于已存数据而不是过期快照计算，详情页在同步改变本地数据时会重新加载。

@@ -97,6 +97,8 @@ concurrently. Heartbeat failures are swallowed and never abort the in-flight tra
 - Images sync **additively** and only for cover images actually **referenced** by a local or
   remote anime record.
 - The referenced set is the **union** of `coverImage` basenames from local and remote anime data.
+  Since 1.7.0 it also includes the profile avatar's basename, which the profile module reports
+  through its `referencedImages` hook (see [The profile file](#the-profile-file)).
 - Orphaned images (no longer referenced by either side) are **not** uploaded or downloaded, but
   they are also **not automatically deleted.**
 - Remote image directory listings return `null` on any failure; `_syncImages` then skips the image
@@ -148,7 +150,8 @@ next background sync cycle.
 
 - `anime_data.json` merges `Anime` records by `id` and `modifiedAt`; `recommendations.json` (1.6.2)
   merges without conflicts — see [The recommendations file](#the-recommendations-file), and
-  `playback_progress.json` (1.6.5) likewise — see [The playback progress file](#the-playback-progress-file).
+  `playback_progress.json` (1.6.5) likewise — see [The playback progress file](#the-playback-progress-file),
+  and so does `profile.json` (1.7.0) — see [The profile file](#the-profile-file).
 - Unknown top-level and per-anime JSON fields must survive parsing, editing, importing, exporting,
   and sync merging (see the `extraJson` pattern in [`data-formats.md`](data-formats.md)).
 - `_syncing` prevents concurrent sync runs.
@@ -249,6 +252,37 @@ the same engine steps, after the other two, under the same `.lock`, with its own
   never touch it.
 - The player writes about every five seconds of media while playing, and each write calls
   `AutoSyncService.notifySaved`, so the debounced sync runs shortly after playback stops.
+
+## The profile file
+
+Since 1.7.0 the registry holds a fourth module, `profile.json` — the user's display name and avatar
+(schema in [`data-formats.md`](data-formats.md#profilejson), feature in
+[`features/profile.md`](features/profile.md)). It goes through the same engine steps, after the other
+three, under the same `.lock`, with its own `.sync_base/profile.json`.
+
+- **The merge never produces a conflict, and needs no base.** Each field merges independently by last
+  writer wins on its own timestamp: the name by `displayNameUpdatedAt`, the avatar by
+  `avatarUpdatedAt`. A strictly later remote timestamp wins, a tie keeps local, and a side that never
+  set the field always loses to one that did. A name changed on one device and an avatar changed on
+  another therefore both survive. Unknown keys are unioned with local winning, and the higher
+  `version` is kept.
+- **Removal is explicit.** Clearing the avatar writes `"avatar": null` with a new timestamp (and
+  clearing the name writes `"displayName": null`), so the removal wins the merge like any other edit
+  instead of being mistaken for a field that was never set.
+- **Avatar names are unique.** The avatar is an ordinary file in `images/` and travels through the
+  additive image phase (the module's `referencedImages` returns its basename). Image sync never
+  overwrites a file that already exists on the other side and never deletes, so every new avatar gets
+  a fresh `images/avatar_<uuid>.jpg` name; re-using one name would leave other devices showing the old
+  picture. The replaced avatar is deleted on the device that changed it only: **old avatars remain on
+  the WebDAV server and on other devices** (a known limitation).
+- **Older builds ignore it.** The engine only requests the file names it has registered and never
+  lists the remote root, so a build older than 1.7.0 never fetches `profile.json`; the avatar file
+  sits harmlessly in `images/`.
+- **Cost.** One extra `GET profile.json` per sync (a 404 for a library that never set a profile); the
+  recorded WebDAV transcripts `sync_first` and `sync_conflict_finalize` were re-recorded and gained
+  only that request.
+- Every profile save calls `AutoSyncService.notifySaved`, so the debounced sync runs shortly after an
+  edit; after a sync or restore rewrites local data the profile provider reloads.
 
 ## Episode corrections (1.6.4)
 

@@ -789,3 +789,7 @@
 ## 1.6.7 变更
 
 排行行的封面缩略图（`_buildCoverThumbnail`）传入 `cacheHeight`（62 逻辑像素乘以设备像素比），不再为 44 x 62 的缩略图解码整张封面。
+
+## 1.7.0 变更
+
+「已完成」和「已弃番」的颜色现在由主题派生，而不再是固定的 `Colors.green` 和 `Colors.red`：摘要卡片（`_buildSummaryCards`）、趋势图的图例圆点（`_buildTrendChart` 中对 `_legendDot` 的调用）以及它的柱形都使用 `StatusColors.completed(theme.colorScheme)` 和 `StatusColors.dropped(theme.colorScheme)`（[`../../../shared/utils/status_colors.md`](../../../shared/utils/status_colors.md)）。已完成是向当前主色协调过的绿色，已弃番是配色方案的 `error` 颜色，因此两者都会跟随动态取色和深色模式。「在看」卡片和「已追踪」柱形仍使用 `colorScheme.primary`。分享图保持自己固定的浅色配色（[`../../../shared/services/share_service.md`](../../../shared/services/share_service.md)）。

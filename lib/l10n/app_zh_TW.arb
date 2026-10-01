@@ -352,6 +352,8 @@
   "settingsReminderTime": "提醒時間",
   "settingsKanaTab": "五十音速查",
   "settingsKanaTabDesc": "顯示五十音分頁。如需練習假名等更多功能，請使用獨立應用程式 MyNihongo!!!!!。",
+  "settingsFloatingNavBar": "懸浮導覽列",
+  "settingsFloatingNavBarDesc": "以懸浮島樣式顯示底部導覽列。關閉後恢復為經典的通欄樣式。",
   "settingsGeneral": "一般",
   "settingsData": "資料",
   "settingsSelectItem": "從左側清單中選擇一項",
@@ -701,5 +703,14 @@
     "episodeSpeed": "播放速度",
     "episodeFullscreen": "全螢幕",
     "episodeExitFullscreen": "結束全螢幕",
-    "backupModulePlayback": "播放進度"
+    "backupModulePlayback": "播放進度",
+    "backupModuleProfile": "個人資料",
+    "profileTitle": "個人資料",
+    "profileName": "名稱",
+    "profileNamePlaceholder": "設定你的名稱",
+    "profileEditHint": "名稱和頭像會在你的裝置間同步",
+    "profileChangeAvatar": "選擇頭像",
+    "profileRemoveAvatar": "移除",
+    "profileAvatarError": "無法使用此圖片",
+    "profileOpenSettings": "個人資料與設定"
 }
