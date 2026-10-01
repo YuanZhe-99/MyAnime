@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import '../../features/anime/models/anime.dart';
 import '../../l10n/app_localizations.dart';
 import '../services/auto_sync_service.dart';
+import '../utils/adaptive_layout.dart';
 import '../services/sync_merge.dart';
 import '../services/sync_progress.dart';
 import '../services/sync_wake_lock.dart';
@@ -512,7 +513,7 @@ class _WebDAVConfigPageState extends State<WebDAVConfigPage> {
       body: _loading
           ? const Center(child: CircularProgressIndicator())
           : ListView(
-              padding: const EdgeInsets.all(16),
+              padding: navBarAwarePadding(context, const EdgeInsets.all(16)),
               children: [
                 Row(
                   children: [

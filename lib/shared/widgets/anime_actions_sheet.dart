@@ -32,6 +32,9 @@ Future<bool> showAnimeActionsSheet(BuildContext context, Anime anime) async {
 
   final action = await showModalBottomSheet<_AnimeQuickAction>(
     context: context,
+    // Root navigator, so the sheet covers the floating nav bar instead of
+    // opening beneath it inside the shell.
+    useRootNavigator: true,
     showDragHandle: true,
     builder: (sheetContext) => SafeArea(
       child: Column(

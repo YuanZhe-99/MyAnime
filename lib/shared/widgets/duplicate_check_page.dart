@@ -7,6 +7,7 @@ import '../../features/anime/models/anime.dart';
 import '../../features/anime/services/anime_storage.dart';
 import '../../l10n/app_localizations.dart';
 import '../services/duplicate_service.dart';
+import '../utils/adaptive_layout.dart';
 import '../services/file_open_service.dart';
 import '../services/image_service.dart';
 
@@ -122,7 +123,10 @@ class _DuplicateCheckPageState extends State<DuplicateCheckPage> {
               ),
             )
           : ListView(
-              padding: const EdgeInsets.only(bottom: 80),
+              padding: navBarAwarePadding(
+                context,
+                const EdgeInsets.only(bottom: 80),
+              ),
               children: [
                 Padding(
                   padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),

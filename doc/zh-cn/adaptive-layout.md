@@ -178,7 +178,7 @@ bool useNavigationRail(double screenWidth) => screenWidth >= navRailMinWidth; //
 
 底栏随界面风格而定。**Expressive**（默认）显示*紧凑悬浮栏*（`_ExpressiveNavBar`，1.7.2 重新设计）：宽度就是各项的宽度、居中、与屏幕边缘留有边距的胶囊，选中的目的地在色调胶囊里并排显示图标与标签，其余只显示带提示的轮廓图标。它**悬浮在页面之上**：此时外壳使用 `Scaffold(extendBody: true)`，页面因此绘制到底栏之后，最后的内容可以滚到它的下面。当**设置 › 通用 › 界面风格**为 **Material 3** 时，底栏是经典的通栏 `NavigationBar`，内容停在其上方。显示侧边导航栏时该样式设置没有效果。
 
-**在悬浮栏之下滚动的页面必须为它留出空间。** `navBarAwarePadding(context, padding)` 把 `MediaQuery.paddingOf(context).bottom` 加到页面自己的内边距上：有悬浮栏时那就是底栏的高度（`extendBody` 上报的值），其他情形则只是系统内边距，因此调用无害。每个应用 `shellListBottomInset` 的列表都用它包住自己的内边距（管理页的四个列表、统计页的主列表、假名页的主列表）；首页与设置不设显式内边距，它们的列表会自动获得这份内边距。外壳还把传给其子级的 `viewPadding.bottom` 抬到同一个值，因为页面自己的 `Scaffold` 按 `viewPadding` 摆放 FAB；没有这一步，FAB 会落在底栏后面。
+**在悬浮栏之下滚动的页面必须为它留出空间。** `navBarAwarePadding(context, padding)` 把 `MediaQuery.paddingOf(context).bottom` 加到页面自己的内边距上：有悬浮栏时那就是底栏的高度（`extendBody` 上报的值），其他情形则只是系统内边距，因此调用无害。每个应用 `shellListBottomInset` 的列表都用它包住自己的内边距（管理页的四个列表、统计页的主列表、假名页的主列表）；首页与设置不设显式内边距，它们的列表会自动获得这份内边距。外壳还把传给其子级的 `viewPadding.bottom` 抬到同一个值，因为页面自己的 `Scaffold` 按 `viewPadding` 摆放 FAB；没有这一步，FAB 会落在底栏后面。这对外壳导航器里的每个页面都成立，不只是五个标签页：设置页双栏的详情页（许可、隐私政策、WebDAV、重复检查）同样包住自己的内边距，`SingleChildScrollView` 则把 `EdgeInsets.zero` 经由它传入，因为只有内边距为 null 的 `ListView` 才会自己加上这份内边距。位于 `ShellRoute` 之外的路由与 `rootNavigator: true` 的推入处于底栏之上。从外壳页面打开的模态底部面板（动漫操作面板）使用 `useRootNavigator: true`，因此会盖住底栏，而不是在它下面打开。
 
 两者都由
 [`shell_scaffold.dart`](functions/shared/widgets/shell_scaffold.md) 中同一份目的地列表（四个，开启假名标签时为五个）构建，

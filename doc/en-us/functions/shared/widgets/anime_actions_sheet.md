@@ -37,7 +37,7 @@ caller and has no logic of its own, so it is described here rather than indexed 
 - **Algorithm:**
   1. Collect the titles to show: `anime.title` when non-empty, then `anime.titleJa` when non-empty
      and different from `anime.title`.
-  2. `showModalBottomSheet<_AnimeQuickAction>` with `showDragHandle: true`, rendering each title as
+  2. `showModalBottomSheet<_AnimeQuickAction>` with `useRootNavigator: true` (the sheet covers the floating nav bar instead of opening beneath it in the shell) and `showDragHandle: true`, rendering each title as
      a `SelectableText` with **no `maxLines`**, then a divider, then an edit row (`l10n.animeEdit`)
      and a delete row (`l10n.delete`, in the error colour).
   3. Return `false` when nothing was picked or the caller's context is gone.

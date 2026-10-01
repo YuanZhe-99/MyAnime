@@ -219,7 +219,12 @@ style setting has no effect while the rail is shown.
 `shellListBottomInset` wraps its padding in it (Manage's four lists, Stats' main list, Kana's main list); Home and
 Settings set no explicit padding, so their lists get the inset automatically. The shell also raises
 `viewPadding.bottom` for its child to the same value, because a page's own `Scaffold` places its FAB from
-`viewPadding`; without that, the FAB sat behind the bar.
+`viewPadding`; without that, the FAB sat behind the bar. The same holds for every page in the shell's navigator,
+not only the five tabs: Settings' two-pane detail pages (License, Privacy policy, WebDAV, Duplicate check) wrap their
+padding too, and a `SingleChildScrollView` passes `EdgeInsets.zero` through it, because only a `ListView` with null
+padding adds the inset itself. Routes outside the `ShellRoute` and `rootNavigator: true` pushes sit above the bar.
+Modal bottom sheets opened from shell pages (the anime actions sheet) use `useRootNavigator: true`, so they cover the
+bar instead of opening beneath it.
 
 Both are built from one list of destinations — four, or five while the Kana tab is
 on — in

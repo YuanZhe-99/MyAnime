@@ -32,7 +32,7 @@
 - **副作用：** 展示一个模态底部面板。可能跳转到 `/anime/edit/{id}`、展示删除确认对话框，并从存储中删除该动画。
 - **算法：**
   1. 收集要展示的标题：非空时取 `anime.title`，随后在非空且与 `anime.title` 不同时取 `anime.titleJa`。
-  2. `showModalBottomSheet<_AnimeQuickAction>`，`showDragHandle: true`，把每个标题渲染为**不带 `maxLines`** 的
+  2. `showModalBottomSheet<_AnimeQuickAction>`，`useRootNavigator: true`（面板盖住悬浮导航栏，而不是在外壳里于其下方打开）与 `showDragHandle: true`，把每个标题渲染为**不带 `maxLines`** 的
      `SelectableText`，随后是一条分隔线，再是编辑行（`l10n.animeEdit`）与删除行（`l10n.delete`，使用错误色）。
   3. 未选择任何项、或调用方的 context 已消失时返回 `false`。
   4. `edit`——`await context.push('/anime/edit/${anime.id}')`，返回 `true`。

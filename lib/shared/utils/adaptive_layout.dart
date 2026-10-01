@@ -286,8 +286,15 @@ bool useRankingSortRow(double contentWidth) =>
 /// draw behind the bar and the Scaffold reports the bar's height as
 /// `MediaQuery.padding.bottom`. Scroll views with an explicit padding do not
 /// apply that inset themselves; passing their padding through here leaves room
-/// to scroll the last content above the bar. Elsewhere (classic bar, rail,
-/// pushed routes) the inset is just the system's, so this is harmless.
+/// to scroll the last content above the bar. This covers every page that lives
+/// in the shell's navigator: the five tabs, anything pushed with a plain
+/// `Navigator.push` from them, and the nested `Navigator` of Settings' two-pane
+/// detail. `ScrollView`s that never add the inset themselves
+/// (`SingleChildScrollView`, `CustomScrollView`) pass `EdgeInsets.zero`
+/// through here too. Routes declared outside the `ShellRoute` and pushes with
+/// `rootNavigator: true` sit above the bar, and with the classic bar or a rail
+/// the inset is just the system's, so the call is harmless there. Modal bottom
+/// sheets opened from shell pages must set `useRootNavigator: true` instead.
 EdgeInsets navBarAwarePadding(BuildContext context, EdgeInsets padding) =>
     padding.copyWith(
       bottom: padding.bottom + MediaQuery.paddingOf(context).bottom,

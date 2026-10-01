@@ -149,7 +149,7 @@
   ),
   ```
   （每个设置了 `shellListBottomInset` 的列表都采用这一写法：管理页的四个列表、统计页的主列表与假名页的主列表）
-- **备注：** 使用 Expressive 底栏时，外壳启用 `extendBody`，页面因此绘制到底栏之后，`Scaffold` 把底栏高度作为 `MediaQuery.padding.bottom` 上报。没有显式内边距的滚动视图（首页、设置）会自己应用这份内边距；设置了显式 `padding` 的滚动视图则不会，所以必须把内边距经由这里传入，才能留出空间，让最后的内容可以滚到底栏上方。在其他情形（经典栏、侧边导航栏、被推入的路由）里，这份内边距只是系统的，调用无害。这是每个外壳页面的规则：任何带显式内边距的列表都要用 `navBarAwarePadding` 包住它。
+- **备注：** 使用 Expressive 底栏时，外壳启用 `extendBody`，页面因此绘制到底栏之后，`Scaffold` 把底栏高度作为 `MediaQuery.padding.bottom` 上报。没有显式内边距的滚动视图（首页、设置）会自己应用这份内边距；设置了显式 `padding` 的滚动视图则不会，所以必须把内边距经由这里传入，才能留出空间，让最后的内容可以滚到底栏上方。`SingleChildScrollView` 与 `CustomScrollView` 从不自己应用这份内边距，所以它们也把 `EdgeInsets.zero` 经由这里传入（或在末尾追加底部占位）。这条规则适用于外壳导航器里的每个页面：五个标签页、从它们用普通 `Navigator.push` 推入的页面，以及设置页双栏详情的嵌套 `Navigator`（许可、隐私政策、WebDAV、重复检查）。声明在 `ShellRoute` 之外的路由（详情、编辑、推荐、元数据更新）与 `rootNavigator: true` 的推入位于底栏之上；在经典栏或侧边导航栏下这份内边距只是系统的，调用无害。从外壳页面打开的模态底部面板必须传 `useRootNavigator: true`（见 `showAnimeActionsSheet`），否则它们会在悬浮栏之下打开。这是每个外壳页面的规则：任何带显式内边距的列表都要用 `navBarAwarePadding` 包住它。
 
 ### `int columnCapacity(double contentWidth, {required double minItemWidth, double gap = listTileGap, int maxColumns = listMaxColumns})` <a id="columncapacity"></a>
 - **种类：** 顶层函数
