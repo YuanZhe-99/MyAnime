@@ -2,6 +2,12 @@
 
 MyAnime!!!!! 的逐版本摘要。在改动一个行为之前理解它*为什么*存在很有用——多条记录记录的是刻意的安全修复，否则看起来像怪癖。
 
+## 1.7.3 — 外壳页面与面板不再被悬浮导航栏遮挡
+
+- **对 1.7.2 `navBarAwarePadding` 排查的补充，那次排查并不完整。** 1.7.2 的条目只覆盖了五个标签页的列表，但外壳导航器中的每个页面同样会绘制到 Expressive 底栏之后。设置页双栏布局的详情页（许可、隐私政策、WebDAV、重复检查）会把最后的内容滚到底栏下面；它们现在用 `navBarAwarePadding` 包住内边距，而 `SingleChildScrollView` 会把 `EdgeInsets.zero` 传入其中，因为只有内边距为 null 的 `ListView` 才会自己加上这份内边距。`ShellRoute` 之外的路由与 `rootNavigator: true` 的推入本来就位于底栏之上。
+- **动漫操作面板覆盖底栏。** 它现在以 `useRootNavigator: true` 打开，不再在底栏下方打开。`navBarAwarePadding` 的文档也已更正：它适用于外壳导航器中的每个页面，而不只是各标签页。
+- 测试从 655 个增至 656 个通过（3 个跳过）；`pushed_page_nav_inset_test` 是新的回归测试。`flutter analyze` 无任何问题。版本 1.7.3+72；安装包/MSIX 版本 1.7.3.0。
+
 ## 1.7.2 — 紧凑的 Expressive 导航、导航位置与头像编辑器
 
 - **紧凑的 Expressive 导航栏。** `shell_scaffold.dart` 中的 `_FloatingNavBar` 被 `_ExpressiveNavBar`（以及 `_ExpressiveNavItem`）取代：宽度就是各项的宽度、居中、elevation 为 3、与屏幕边缘留有边距的胶囊，而不再是宽度上限 480 dp 的 `NavigationBar` 岛。选中的目的地在一个 48 dp 高的 `secondaryContainer` 胶囊里并排显示图标与标签；其余只显示轮廓图标，带提示与语义标签；选中切换带 250 ms 动画。`floatingNavBarIsland` 这个 key 不变。该栏现在**悬浮在页面之上**：Expressive 底栏下外壳使用 `Scaffold(extendBody: true)`，页面因此绘制到它之后，外壳还把传给其子级的 `viewPadding.bottom` 抬到底栏的高度。Material 3 保持经典栏，内容仍停在其上方。

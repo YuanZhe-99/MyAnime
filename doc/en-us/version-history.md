@@ -3,6 +3,12 @@
 Release-by-release summary of MyAnime!!!!!. Useful for understanding *why* a behavior exists before
 changing it — several entries record deliberate safety fixes that look like quirks otherwise.
 
+## 1.7.3 — Shell pages and sheets stay clear of the floating nav bar
+
+- **A follow-up to 1.7.2's `navBarAwarePadding` audit, which was incomplete.** The 1.7.2 entry covered the five tab lists, but every page in the shell's navigator also draws behind the Expressive bar. Settings' two-pane detail pages (License, Privacy policy, WebDAV, Duplicate check) scrolled their last content under it; they now wrap their padding in `navBarAwarePadding`, and a `SingleChildScrollView` passes `EdgeInsets.zero` through it because only a `ListView` with null padding adds the inset itself. Routes outside the `ShellRoute` and `rootNavigator: true` pushes already sit above the bar.
+- **The anime actions sheet covers the bar.** It now opens with `useRootNavigator: true`, so it no longer opens beneath the bar. The `navBarAwarePadding` documentation was corrected to say it applies to every shell-navigator page, not just the tabs.
+- Tests grew from 655 to 656 passing (3 skipped); `pushed_page_nav_inset_test` is the new regression test. `flutter analyze` reports no issues. Version 1.7.3+72; installer/MSIX version 1.7.3.0.
+
 ## 1.7.2 — Compact Expressive navigation, navigation placement and an avatar editor
 
 - **A compact Expressive navigation bar.** `_FloatingNavBar` is replaced by `_ExpressiveNavBar` (and `_ExpressiveNavItem`) in `shell_scaffold.dart`: a pill as wide as its items, centred, with an elevation of 3 and margins from the screen edges, instead of a 480 dp-capped `NavigationBar` island. The selected destination shows its icon and label side by side in a 48 dp high `secondaryContainer` pill; the others show an outlined icon only, with a tooltip and a semantic label; selection animates over 250 ms. The `floatingNavBarIsland` key is unchanged. The bar now **floats over the page**: for the Expressive bottom bar the shell uses `Scaffold(extendBody: true)`, so pages draw behind it, and the shell raises `viewPadding.bottom` for its child to the bar's height. Material 3 keeps the classic bar and keeps content above it.
