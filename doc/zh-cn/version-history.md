@@ -11,7 +11,7 @@ MyAnime!!!!! 的逐版本摘要。在改动一个行为之前理解它*为什么
 - **头像编辑器。** 所选图片不再被自动居中裁剪：它会在全屏编辑器（`showAvatarEditor` / `AvatarEditorPage`）中打开，在圆形遮罩内拖动与缩放（1 倍到 8 倍）、按四分之一圈旋转与重置，*保存*会把恰好取景的正方形存为 512 px 的 JPEG。个人资料对话框新增了*调整头像*按钮，并让头像可点按，二者都会在已存储的头像上重新打开编辑器。图像操作移到新的 `avatar_image.dart`（`prepareAvatarSource`、`cropAvatarJpeg`、`squareAvatarJpeg` 与各个 `...InBackground` 包装函数）；`ProfileStore.pickAvatar()` 被 `pickAvatarSource()`、`readAvatarBytes()` 与 `setAvatarJpeg(jpeg)` 取代，`ProfileNotifier.pickAvatar()` 被 `setAvatarJpeg(Uint8List)` 取代。
 - **GUI 测试中发现并修复的 isolate 缺陷。** 第一版把图像处理写成在 `State` 方法里创建的闭包，而它会同时捕获该 `State` 及其控制器，无法发送到另一个 isolate。`prepareAvatarSourceInBackground` 与 `cropAvatarJpegInBackground` 现在是顶层函数，其闭包只捕获各自的参数。
 - **一处既有的不稳定测试修复。** 十四个 UI 测试文件用 150–300 ms 的真实时间循环（3–6 × 50 ms）等待界面稳定，在并行负载下会失败；全部加宽为 20 × 50 ms。
-- 测试从 639 个增至 659 个通过（3 个跳过）；`shell_nav_ui_test` 覆盖紧凑栏的标签与提示、内容滚动到底栏之后且最后一行与 FAB 高于底栏、Material 3 保持内容在其底栏之上、两种风格下的每种导航位置，以及右侧的侧边导航栏；`profile_test` 覆盖 `prepareAvatarSource`、`cropAvatarJpeg`（区域与限制）、在 isolate 中运行的后台辅助函数，以及 `setAvatarJpeg` / `readAvatarBytes`。`flutter analyze` 无任何问题。已在 Windows 调试版上验证，包括编辑器的完整流程（选择、旋转、保存）。版本 1.7.2+71；安装包/MSIX 版本 1.7.2.0。
+- 测试从 639 个增至 655 个通过（3 个跳过）；`shell_nav_ui_test` 覆盖紧凑栏的标签与提示、内容滚动到底栏之后且最后一行与 FAB 高于底栏、Material 3 保持内容在其底栏之上、两种风格下的每种导航位置，以及右侧的侧边导航栏；`profile_test` 覆盖 `prepareAvatarSource`、`cropAvatarJpeg`（区域与限制）、在 isolate 中运行的后台辅助函数，以及 `setAvatarJpeg` / `readAvatarBytes`。`flutter analyze` 无任何问题。已在 Windows 调试版上验证，包括编辑器的完整流程（选择、旋转、保存）。版本 1.7.2+71；安装包/MSIX 版本 1.7.2.0。
 
 ## 1.7.1 — Material 3 或 Expressive
 
