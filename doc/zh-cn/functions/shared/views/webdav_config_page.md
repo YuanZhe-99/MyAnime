@@ -1,5 +1,8 @@
 # lib/shared/views/webdav_config_page.dart
 
+MyApps-DATA 呈现连接字段、保存与测试、手动与强制同步、自动同步和断开控件。
+控制器、校验、确认、冲突解决和操作回调留在应用。凭据和线上格式不变。
+
 `WebDAVConfigPage` 是设置 -> WebDAV 同步屏：它编辑 `WebDAVConfig`（`lib/shared/services/webdav_service.dart`，[`../services/webdav_service.md`](../services/webdav_service.md)）、测试连接、运行手动同步、强制上传/强制下载，并且——文件中最重要的逻辑——通过私有 `_ConflictDialog` 组件引导用户逐个解决逐记录同步冲突。本页是 [`../../sync.md`](../../../sync.md) 文档化的十步同步流程、冲突处理、唤醒锁和强制操作规则的 UI 半边，具体冲突演练场景见 [`../../examples/sync-walkthrough.md`](../../../examples/sync-walkthrough.md)。这里几乎每个非 `build` 方法都做真实工作（忙碌标志和屏幕唤醒锁下的服务调用，或实际冲突解决分支），而不是纯组件组合，符合本文件预期的"真实状态/冲突解决逻辑"。
 
 ## 声明

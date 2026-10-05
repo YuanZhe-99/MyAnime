@@ -1,5 +1,8 @@
 # MyAnime `lib/` 函数索引
 
+WebDAVConfigPage.build 将通用设置控件委托给 myapps_data。声明数量不变，
+应用操作回调留在此处。
+
 设置显示委托公共界面组件，见 [shared-ui.md](../shared-ui.md)。
 
 资料条目现在描述公共导出和应用适配，实现归属见 [shared-ui.md](../shared-ui.md)。

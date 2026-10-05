@@ -1,6 +1,13 @@
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
+import 'package:myapps_data/myapps_data.dart'
+    show
+        MyAppsWebDavSettings,
+        MyAppsWebDavAutoSync,
+        MyAppsWebDavConnectionActions,
+        MyAppsWebDavSyncActions,
+        MyAppsWebDavDisconnect;
 
 import '../../features/anime/models/anime.dart';
 import '../../l10n/app_localizations.dart';
@@ -525,62 +532,24 @@ class _WebDAVConfigPageState extends State<WebDAVConfigPage> {
                   ],
                 ),
                 const SizedBox(height: 16),
-                TextField(
-                  controller: _urlController,
-                  decoration: InputDecoration(
-                    labelText: l10n.settingsWebDAVServerURL,
-                    hintText: 'https://example.com/remote.php/dav/files/user',
-                  ),
-                  keyboardType: TextInputType.url,
-                ),
-                const SizedBox(height: 12),
-                TextField(
-                  controller: _userController,
-                  decoration: InputDecoration(
-                    labelText: l10n.settingsWebDAVUsername,
-                  ),
-                ),
-                const SizedBox(height: 12),
-                TextField(
-                  controller: _passController,
-                  decoration: InputDecoration(
-                    labelText: l10n.settingsWebDAVPassword,
-                  ),
-                  obscureText: true,
-                ),
-                const SizedBox(height: 12),
-                TextField(
-                  controller: _pathController,
-                  decoration: InputDecoration(
-                    labelText: l10n.settingsWebDAVRemotePath,
-                    hintText: '/MyAnime',
-                  ),
+                MyAppsWebDavSettings(
+                  urlController: _urlController,
+                  usernameController: _userController,
+                  passwordController: _passController,
+                  pathController: _pathController,
+                  urlLabel: l10n.settingsWebDAVServerURL,
+                  usernameLabel: l10n.settingsWebDAVUsername,
+                  passwordLabel: l10n.settingsWebDAVPassword,
+                  pathLabel: l10n.settingsWebDAVRemotePath,
+                  pathHint: '/MyAnime',
                 ),
                 const SizedBox(height: 24),
-                Row(
-                  children: [
-                    Expanded(
-                      child: FilledButton(
-                        onPressed: _saveConfig,
-                        child: Text(l10n.save),
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: OutlinedButton(
-                        onPressed: _testing ? null : _testConnection,
-                        child: _testing
-                            ? const SizedBox(
-                                width: 18,
-                                height: 18,
-                                child: CircularProgressIndicator(
-                                  strokeWidth: 2,
-                                ),
-                              )
-                            : Text(l10n.settingsWebDAVTestConnection),
-                      ),
-                    ),
-                  ],
+                MyAppsWebDavConnectionActions(
+                  saveLabel: l10n.save,
+                  testLabel: l10n.settingsWebDAVTestConnection,
+                  onSave: _saveConfig,
+                  onTest: _testConnection,
+                  testing: _testing,
                 ),
                 const SizedBox(height: 12),
                 if (_isConfigured) ...[
@@ -623,46 +592,20 @@ class _WebDAVConfigPageState extends State<WebDAVConfigPage> {
                       );
                     },
                   ),
-                  FilledButton.icon(
-                    onPressed: _syncing ? null : () => _syncNow(),
-                    icon: _syncing
-                        ? const SizedBox(
-                            width: 18,
-                            height: 18,
-                            child: CircularProgressIndicator(strokeWidth: 2),
-                          )
-                        : const Icon(Icons.sync),
-                    label: Text(
-                      _syncing
-                          ? l10n.settingsWebDAVSyncing
-                          : l10n.settingsWebDAVSyncNow,
-                    ),
+                  MyAppsWebDavSyncActions(
+                    syncing: _syncing,
+                    syncLabel: l10n.settingsWebDAVSyncNow,
+                    syncingLabel: l10n.settingsWebDAVSyncing,
+                    uploadLabel: l10n.settingsWebDAVForceUpload,
+                    downloadLabel: l10n.settingsWebDAVForceDownload,
+                    onSync: _syncNow,
+                    onUpload: _forceUpload,
+                    onDownload: _forceDownload,
                   ),
                   const SizedBox(height: 12),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: OutlinedButton.icon(
-                          onPressed: _syncing ? null : _forceUpload,
-                          icon: const Icon(Icons.upload, size: 18),
-                          label: Text(l10n.settingsWebDAVForceUpload),
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: OutlinedButton.icon(
-                          onPressed: _syncing ? null : _forceDownload,
-                          icon: const Icon(Icons.download, size: 18),
-                          label: Text(l10n.settingsWebDAVForceDownload),
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 12),
-                  SwitchListTile(
-                    contentPadding: EdgeInsets.zero,
-                    title: Text(l10n.settingsWebDAVAutoSync),
-                    subtitle: Text(l10n.settingsWebDAVAutoSyncDesc),
+                  MyAppsWebDavAutoSync(
+                    title: l10n.settingsWebDAVAutoSync,
+                    description: l10n.settingsWebDAVAutoSyncDesc,
                     value: _autoSync,
                     onChanged: (v) {
                       setState(() => _autoSync = v);
@@ -670,13 +613,9 @@ class _WebDAVConfigPageState extends State<WebDAVConfigPage> {
                     },
                   ),
                   const SizedBox(height: 12),
-                  OutlinedButton.icon(
+                  MyAppsWebDavDisconnect(
                     onPressed: _disconnect,
-                    icon: const Icon(Icons.link_off),
-                    label: Text(l10n.settingsWebDAVDisconnect),
-                    style: OutlinedButton.styleFrom(
-                      foregroundColor: theme.colorScheme.error,
-                    ),
+                    label: l10n.settingsWebDAVDisconnect,
                   ),
                 ],
               ],

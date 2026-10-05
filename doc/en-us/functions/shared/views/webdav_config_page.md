@@ -1,5 +1,9 @@
 # lib/shared/views/webdav_config_page.dart
 
+MyApps-DATA renders connection fields and save/test, manual/force sync, automatic
+sync and disconnect controls. Controllers, validation, confirmations, conflict
+resolution and operation callbacks stay here. No credential or wire format changes.
+
 `WebDAVConfigPage` is the Settings -> WebDAV Sync screen: it edits a `WebDAVConfig`
 (`lib/shared/services/webdav_service.dart`,
 [`../services/webdav_service.md`](../services/webdav_service.md)), tests the connection, runs

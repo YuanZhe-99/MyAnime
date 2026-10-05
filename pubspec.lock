@@ -664,28 +664,28 @@ packages:
       path: "packages/myapps_ai/packages/myapps_ai"
       relative: true
     source: path
-    version: "0.4.2"
+    version: "0.4.3"
   myapps_ai_platform:
     dependency: transitive
     description:
       path: "packages/myapps_ai/packages/myapps_ai_platform"
       relative: true
     source: path
-    version: "0.4.2"
+    version: "0.4.3"
   myapps_ai_ui:
     dependency: "direct main"
     description:
       path: "packages/myapps_ai/packages/myapps_ai_ui"
       relative: true
     source: path
-    version: "0.4.2"
+    version: "0.4.3"
   myapps_data:
     dependency: "direct main"
     description:
       path: "packages/myapps_data"
       relative: true
     source: path
-    version: "1.0.4"
+    version: "1.0.5"
   myapps_profile:
     dependency: "direct main"
     description:
