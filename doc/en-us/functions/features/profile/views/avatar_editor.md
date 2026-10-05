@@ -1,5 +1,9 @@
 # lib/features/profile/views/avatar_editor.dart
 
+P3: shared declarations described below live in `myapps_profile`; this app
+file is a re-export or adapter preserving its public import and constructor shape.
+See [../../../../shared-ui.md](../../../../shared-ui.md).
+
 The full-screen avatar editor (1.7.2): the user frames an image inside a circle, rotates it in quarter turns,
 and saves. `showAvatarEditor` opens it and returns the framed square JPEG, which the profile dialog stores
 through `ProfileNotifier.setAvatarJpeg`. The framed square is exactly what is stored, so the avatar always

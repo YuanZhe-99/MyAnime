@@ -1,5 +1,10 @@
 # Version history
 
+## 1.8.2 — P3 shared profile and avatar
+
+- Adopt MyApps-UI v0.1.2 through app storage, sync and localization adapters.
+- Share profile model, merge, repository, avatar processing, rendering and editor.
+
 ## 1.8.1 — P2 navigation
 
 P2 adopts MyApps-UI `v0.1.1`, published to both remotes before app pointer updates. Shared navigation preserves app routes, optional destinations, badges and callbacks. Pages read actual shell content constraints; full-window routes subtract no rail. A stable content slot retains page state during resize, style and left/right rail changes. Split thresholds and data formats remain unchanged. Version `1.8.1+74`.

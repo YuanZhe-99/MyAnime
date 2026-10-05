@@ -1,5 +1,9 @@
 # lib/features/profile/views/profile_header.dart
 
+P3：下文公共声明位于 `myapps_profile`；应用文件为重新导出或适配，
+保留公开导入路径和构造器形式。
+见 [../../../../shared-ui.md](../../../../shared-ui.md)。
+
 设置页顶部的头像加名称行（1.7.0），以及它打开的用于编辑二者的对话框。`SettingsPage` 把 `const ProfileHeader()` 放在列表的第一个子项，因此它在单窗格和双窗格布局中都会出现（[`../../settings/views/settings_page.md`](../../settings/views/settings_page.md)）。见 [`profile_avatar.md`](profile_avatar.md)、[`../providers/profile_provider.md`](../providers/profile_provider.md) 和 [`../../../../features/profile.md`](../../../../features/profile.md)。
 
 ## 声明

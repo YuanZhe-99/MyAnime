@@ -1,5 +1,7 @@
 # Architecture
 
+P3 shared profile ownership and adapters: [shared-ui.md](shared-ui.md). Existing formats and module order are retained.
+
 P2 uses shared navigation and measured content constraints; see [shared-ui.md](shared-ui.md).
 
 Shared theme and adaptive foundations now come from MyApps-UI; see

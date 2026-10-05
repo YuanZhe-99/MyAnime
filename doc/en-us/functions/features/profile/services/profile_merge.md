@@ -1,5 +1,9 @@
 # lib/features/profile/services/profile_merge.dart
 
+P3: shared declarations described below live in `myapps_profile`; this app
+file is a re-export or adapter preserving its public import and constructor shape.
+See [../../../../shared-ui.md](../../../../shared-ui.md).
+
 The merge for `profile.json` (1.7.0). It never produces a conflict: the name and the avatar are
 merged independently, each keeping the side with the later timestamp, and no base is needed. See
 [`../../../../sync.md`](../../../../sync.md#the-profile-file) and

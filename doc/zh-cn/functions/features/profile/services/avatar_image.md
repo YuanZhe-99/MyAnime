@@ -1,5 +1,9 @@
 # lib/features/profile/services/avatar_image.dart
 
+P3：下文公共声明位于 `myapps_profile`；应用文件为重新导出或适配，
+保留公开导入路径和构造器形式。
+见 [../../../../shared-ui.md](../../../../shared-ui.md)。
+
 头像编辑器背后的纯图像操作（1.7.2）。每个函数都是同步的、只做内存分配，因此调用方会在另一个 isolate 中运行它们以保持界面响应：两个 `...InBackground` 包装函数用 `Isolate.run` 完成这件事。`squareAvatarJpeg` 从 `profile_store.dart` 移到了这里，它在 1.7.0 与 1.7.1 中位于那里。见 [`../views/avatar_editor.md`](../views/avatar_editor.md)、[`profile_store.md`](profile_store.md) 和 [`../../../../features/profile.md`](../../../../features/profile.md)。
 
 ## 声明

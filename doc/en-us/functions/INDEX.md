@@ -1,5 +1,7 @@
 # MyAnime `lib/` Function Index
 
+Profile rows now document shared exports and app adapters; implementation ownership is in [shared-ui.md](../shared-ui.md).
+
 Vendored platform repair (outside `lib/` totals): [macOS WebView](packages/flutter_inappwebview_macos.md).
 
 This is the top-level index of the hand-written Function Explanation Layer documentation for

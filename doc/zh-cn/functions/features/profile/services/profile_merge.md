@@ -1,5 +1,9 @@
 # lib/features/profile/services/profile_merge.dart
 
+P3：下文公共声明位于 `myapps_profile`；应用文件为重新导出或适配，
+保留公开导入路径和构造器形式。
+见 [../../../../shared-ui.md](../../../../shared-ui.md)。
+
 `profile.json`（1.7.0）的合并。它从不产生冲突：名称和头像各自独立合并，都保留时间戳较晚的一侧，也不需要基线。见 [`../../../../sync.md`](../../../../sync.md#个人资料文件) 和 [`../../../app/data_modules.md`](../../../app/data_modules.md)。
 
 ## 声明

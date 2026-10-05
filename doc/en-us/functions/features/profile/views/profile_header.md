@@ -1,5 +1,9 @@
 # lib/features/profile/views/profile_header.dart
 
+P3: shared declarations described below live in `myapps_profile`; this app
+file is a re-export or adapter preserving its public import and constructor shape.
+See [../../../../shared-ui.md](../../../../shared-ui.md).
+
 The avatar-and-name row at the top of Settings (1.7.0), and the dialog it opens to edit them.
 `SettingsPage` places `const ProfileHeader()` as the first child of its list, so it appears in both
 the one-pane and the two-pane layout

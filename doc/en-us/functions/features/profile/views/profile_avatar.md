@@ -1,5 +1,9 @@
 # lib/features/profile/views/profile_avatar.dart
 
+P3: shared declarations described below live in `myapps_profile`; this app
+file is a re-export or adapter preserving its public import and constructor shape.
+See [../../../../shared-ui.md](../../../../shared-ui.md).
+
 The user's avatar drawn in a circle (1.7.0), as shown on the Home app bar, at the top of Settings and
 in the profile edit dialog. `ProfileAvatar` watches the profile provider; `ProfileAvatarView` is the
 stateless rendering behind it, taking the profile as an argument so tests and previews need no

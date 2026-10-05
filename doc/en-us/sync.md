@@ -1,5 +1,7 @@
 # WebDAV Sync
 
+P3 shared profile ownership and adapters: [shared-ui.md](shared-ui.md). Existing formats and module order are retained.
+
 Sync lives in `lib/shared/services/webdav_service.dart` (client id, locking, upload/download,
 retries, heartbeat, force operations) and `lib/shared/services/sync_merge.dart` (the generic
 per-record three-way merge engine, detailed separately in

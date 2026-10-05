@@ -1,5 +1,7 @@
 # WebDAV 同步
 
+P3 公共资料实现与适配见 [shared-ui.md](shared-ui.md)，格式和模块顺序保持不变。
+
 同步位于 `lib/shared/services/webdav_service.dart`（客户端 id、加锁、上传/下载、重试、心跳、强制操作）和 `lib/shared/services/sync_merge.dart`（泛型逐记录三方合并引擎，详细说明见 [`algorithms/three-way-merge.md`](algorithms/three-way-merge.md)）。同步进度状态位于 `sync_progress.dart`，前台同步操作使用的唤醒锁位于 `sync_wake_lock.dart`。后台触发位于 `auto_sync_service.dart`。同步在磁盘上触碰的文件见 [`data-formats.md`](data-formats.md)，具体实例演练见 [`examples/sync-walkthrough.md`](examples/sync-walkthrough.md)。
 
 WebDAV 同步是**逐记录三方合并，不是整文件替换。**

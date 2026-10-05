@@ -1,6 +1,7 @@
 import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
+import 'package:myapps_profile/myapps_profile.dart' show MyAppsProfileHeader;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../l10n/app_localizations.dart';
@@ -27,20 +28,13 @@ class ProfileHeader extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context)!;
-    final theme = Theme.of(context);
     final name = ref.watch(profileProvider.select((p) => p.name));
-    return ListTile(
-      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-      leading: const ProfileAvatar(radius: 28),
-      title: Text(
-        name ?? l10n.profileNamePlaceholder,
-        style: theme.textTheme.titleLarge?.copyWith(
-          color: name == null ? theme.colorScheme.onSurfaceVariant : null,
-        ),
-      ),
-      subtitle: Text(l10n.profileEditHint),
-      trailing: const Icon(Icons.edit_outlined),
-      onTap: () => showProfileEditDialog(context),
+    return MyAppsProfileHeader(
+      avatar: const ProfileAvatar(radius: 28),
+      name: name,
+      namePlaceholder: l10n.profileNamePlaceholder,
+      editHint: l10n.profileEditHint,
+      onEdit: () => showProfileEditDialog(context),
     );
   }
 }

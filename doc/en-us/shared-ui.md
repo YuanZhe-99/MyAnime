@@ -1,6 +1,6 @@
 # Shared UI foundations
 
-MyApps-UI `v0.1.1` is embedded at `packages/myapps_ui`, with relative URL
+MyApps-UI `v0.1.2` is embedded at `packages/myapps_ui`, with relative URL
 `../MyApps-UI.git`. Initialize submodules recursively after cloning.
 
 `lib/app/theme.dart` delegates to `myapps_ui` while retaining the existing API
@@ -27,4 +27,13 @@ context-free helper remains for callers that explicitly request the old calculat
 The stable content slot preserves page state across resize, style and rail-side changes.
 MyVidComp retains classic navigation, extended rails and review badges.
 
-Profile extraction remains P3; data formats are unchanged.
+Profile extraction is complete in P3; data formats are unchanged.
+
+## P3 profile and avatar
+
+The five profile-bearing apps consume `myapps_profile`. Profile model, merge,
+image processing, repository, avatar rendering, editor and header view are shared.
+App ProfileStore supplies active storage root, atomic writer and sync notification;
+image-service resolution/deletion remains injected. Existing imports are re-export
+shims. App Riverpod providers, data-module registry, picker and localized edit dialog
+remain adapters. JSON, module order, image naming and field-merge behavior are unchanged.

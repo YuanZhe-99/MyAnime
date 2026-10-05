@@ -1,5 +1,9 @@
 # Profile (name and avatar)
 
+P3 delegates model, merge, storage coordination and avatar components to
+`myapps_profile`; app providers, picker, module registration and edit dialog retain
+the behaviors below. See [../shared-ui.md](../shared-ui.md).
+
 Since 1.7.0 the app has a small user profile: a **display name** and an **avatar**. Both are
 optional, and both sync to every device through WebDAV and are included in backups. Per-file detail
 is in [`../functions/features/profile/`](../functions/features/profile/services/profile_store.md);

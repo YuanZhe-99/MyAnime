@@ -1,5 +1,9 @@
 # lib/features/profile/models/profile_data.dart
 
+P3：下文公共声明位于 `myapps_profile`；应用文件为重新导出或适配，
+保留公开导入路径和构造器形式。
+见 [../../../../shared-ui.md](../../../../shared-ui.md)。
+
 `profile.json`（1.7.0）的内容：用户的名称和头像，同步到每台设备。每个字段都带自己的 UTC 时间戳，因此两台设备分别编辑不同字段时各自的更改都会保留，同一字段则以较新的编辑为准。未知键保存在 `extraJson` 中，因此旧构建不会删除新构建的数据。该文件是自己独立的同步模块——见 [`../../../app/data_modules.md`](../../../app/data_modules.md)、[`../../../../data-formats.md`](../../../../data-formats.md#profilejson) 和 [`../../../../features/profile.md`](../../../../features/profile.md)。
 
 ```json

@@ -1,5 +1,9 @@
 # 个人资料（名称和头像）
 
+P3 将模型、合并、存储协调和头像组件交给 `myapps_profile`；
+应用状态、选择器、模块注册和编辑对话框保留下方行为。
+见 [../shared-ui.md](../shared-ui.md)。
+
 自 1.7.0 起，应用有了一个小小的用户个人资料：**名称**和**头像**。两者都是可选的，都会通过 WebDAV 同步到每台设备，并包含在备份中。逐文件的细节见 [`../functions/features/profile/`](../functions/features/profile/services/profile_store.md)；文件格式见 [`../data-formats.md`](../data-formats.md#profilejson)，同步规则见 [`../sync.md`](../sync.md#个人资料文件)。
 
 ## 出现的位置

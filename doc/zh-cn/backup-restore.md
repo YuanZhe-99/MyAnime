@@ -1,5 +1,7 @@
 # 备份、恢复、导出和导入
 
+P3 公共资料实现与适配见 [shared-ui.md](shared-ui.md)，格式和模块顺序保持不变。
+
 备份逻辑位于 `lib/shared/services/backup_service.dart`；安全关键的恢复/自动同步交互由调用方在 `lib/features/settings/views/backup_page.dart` 中编排。ZIP 和 Markdown 导出/导入位于 `lib/shared/services/import_export_service.dart`。备份在持久化数据清单中的位置见 [`data-formats.md`](data-formats.md)，包含 WebDAV 交互的具体实例演练见 [`examples/backup-restore-walkthrough.md`](examples/backup-restore-walkthrough.md)。
 
 ## 备份格式 v2

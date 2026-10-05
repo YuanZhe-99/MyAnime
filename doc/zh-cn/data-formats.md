@@ -1,5 +1,7 @@
 # 数据格式
 
+P3 公共资料实现与适配见 [shared-ui.md](shared-ui.md)，格式和模块顺序保持不变。
+
 本页描述 `Anime` 数据模型（`lib/features/anime/models/anime.dart`）、所有遇到未知 JSON 处使用的向前兼容模式，以及应用持久化到磁盘的完整文件清单。这些记录如何跨设备合并见 [`sync.md`](sync.md) 和 [`algorithms/three-way-merge.md`](algorithms/three-way-merge.md)。构建在这些字段之上的季度归属逻辑见 [`features/anime-tracking.md`](features/anime-tracking.md)。
 
 ## `Anime` 模型

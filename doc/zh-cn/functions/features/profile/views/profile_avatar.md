@@ -1,5 +1,9 @@
 # lib/features/profile/views/profile_avatar.dart
 
+P3：下文公共声明位于 `myapps_profile`；应用文件为重新导出或适配，
+保留公开导入路径和构造器形式。
+见 [../../../../shared-ui.md](../../../../shared-ui.md)。
+
 绘制在圆形中的用户头像（1.7.0），显示在首页应用栏、设置页顶部和个人资料编辑对话框中。`ProfileAvatar` 监听个人资料 provider；`ProfileAvatarView` 是其背后的无状态渲染，以个人资料为参数，使测试和预览无需 provider。见 [`../providers/profile_provider.md`](../providers/profile_provider.md)、[`profile_header.md`](profile_header.md) 和 [`../../../../features/profile.md`](../../../../features/profile.md)。
 
 ## 声明

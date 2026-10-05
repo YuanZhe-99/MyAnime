@@ -1,5 +1,7 @@
 # MyAnime `lib/` 函数索引
 
+资料条目现在描述公共导出和应用适配，实现归属见 [shared-ui.md](../shared-ui.md)。
+
 第三方平台修复（不计入 `lib/` 总数）：[macOS WebView](packages/flutter_inappwebview_macos.md)。
 
 这是 MyAnime 仓库中 `lib/` 手写函数解释层文档的顶层索引。每行链接到 `doc/en-us/functions/` 下镜像 `lib/` 树的逐源文件页面（`.dart` 换成 `.md`）。

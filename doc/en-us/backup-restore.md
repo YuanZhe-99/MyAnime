@@ -1,5 +1,7 @@
 # Backup, Restore, Export, and Import
 
+P3 shared profile ownership and adapters: [shared-ui.md](shared-ui.md). Existing formats and module order are retained.
+
 Backup logic lives in `lib/shared/services/backup_service.dart`; the safety-critical
 restore/auto-sync interplay is orchestrated by the caller in
 `lib/features/settings/views/backup_page.dart`. ZIP and Markdown export/import live in

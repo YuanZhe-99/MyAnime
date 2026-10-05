@@ -1,5 +1,9 @@
 # lib/features/profile/services/profile_store.dart
 
+P3：下文公共声明位于 `myapps_profile`；应用文件为重新导出或适配，
+保留公开导入路径和构造器形式。
+见 [../../../../shared-ui.md](../../../../shared-ui.md)。
+
 `ProfileStore`（1.7.0）负责 `AnimeStorage.getAppDir()` 下的 `profile.json`：用户的名称和头像。它遵循与播放进度存储相同的模式：读取-修改-写入队列、原子写入、字节未变时不写入，并在每次实际写入后调用 `AutoSyncService.notifySaved`。头像图片本身位于 `images/` 中，与封面放在一起，这就是它到达其他设备的方式。见 [`../../../app/data_modules.md`](../../../app/data_modules.md) 和 [`../../../../features/profile.md`](../../../../features/profile.md)。
 
 ## 声明
@@ -7,16 +11,14 @@
 | 声明 | 种类 | Tier | 用途 |
 |---|---|---|---|
 | `ProfileStore._` | 构造函数 | B | 禁止实例化。 |
-| `_file` | 静态方法 | B | 解析应用目录下的该文件。 |
+| `resolveImage` | 静态方法 | A | 通过应用适配解析图片。 |
 | [`load`](#load) | 静态方法 | A | 加载个人资料；不存在或无法读取时为空。 |
 | [`update`](#update) | 静态方法 | A | 应用一个排队的更改并保存。 |
-| `_apply` | 静态方法 | B | 执行一个排队的更新。 |
 | [`setName`](#setname) | 静态方法 | A | 设置或清除名称。 |
 | [`pickAvatarSource`](#pickavatarsource) | 静态方法 | A | 让用户选择一张图片以编辑成头像（1.7.2；取代 `pickAvatar`）。 |
 | [`readAvatarBytes`](#readavatarbytes) | 静态方法 | A | 读取当前头像图片，以便再次调整（1.7.2）。 |
 | [`setAvatarJpeg`](#setavatarjpeg) | 静态方法 | A | 把编辑后的头像存为全新文件并更新个人资料（1.7.2）。 |
 | [`removeAvatar`](#removeavatar) | 静态方法 | A | 以带时间戳的移除方式移除头像。 |
-| `_deleteQuietly` | 静态方法 | B | 删除被替换的头像文件，忽略失败。 |
 
 `fileName`（`profile.json`，必须与 `data_modules.dart` 中的 `profileFileName` 一致）、`avatarSize`（`512`）和队列 `_tail` 没有 `/// Purpose:` 注释。
 
@@ -62,4 +64,3 @@
 ## _deleteQuietly
 
 - **备注：** 只会删除基名以 `avatar_` 开头的文件，因此这条路径永远不会删除封面。失败被忽略。
-
