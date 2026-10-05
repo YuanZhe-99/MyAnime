@@ -657,7 +657,7 @@ packages:
       path: "packages/myapps_ui/packages/myapps_adaptive"
       relative: true
     source: path
-    version: "0.1.6"
+    version: "0.1.7"
   myapps_ai:
     dependency: "direct main"
     description:
@@ -692,14 +692,14 @@ packages:
       path: "packages/myapps_ui/packages/myapps_profile"
       relative: true
     source: path
-    version: "0.1.6"
+    version: "0.1.7"
   myapps_ui:
     dependency: "direct main"
     description:
       path: "packages/myapps_ui/packages/myapps_ui"
       relative: true
     source: path
-    version: "0.1.6"
+    version: "0.1.7"
   native_toolchain_c:
     dependency: transitive
     description:
