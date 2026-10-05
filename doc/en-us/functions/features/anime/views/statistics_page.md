@@ -1,5 +1,8 @@
 # lib/features/anime/views/statistics_page.dart
 
+P2: layout helpers now receive this page context and use actual shell constraints;
+full-window routes do not subtract navigation they do not contain.
+
 `StatisticsPage` is the third of the app's three main data-browsing tabs (Home / Management /
 Statistics — see [`../../../../features/home-management-statistics.md`](../../../../features/home-management-statistics.md)
 and [`../../../../architecture.md`](../../../../architecture.md) for the `go_router` shell). It has

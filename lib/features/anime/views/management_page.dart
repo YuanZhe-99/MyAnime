@@ -463,7 +463,7 @@ class _ManagementPageState extends ConsumerState<ManagementPage> {
     final screen = MediaQuery.sizeOf(context);
     // The shell's navigation rail, when it is showing, is not part of the
     // width this list gets, so the capacity must be measured without it.
-    final contentWidth = shellContentWidth(screen.width);
+    final contentWidth = shellContentWidth(screen.width, context: context);
     final capacity = canSplitLayout(screen.width, screen.height)
         ? listColumnCapacity(contentWidth)
         : 1;
@@ -624,7 +624,10 @@ class _ManagementPageState extends ConsumerState<ManagementPage> {
       padding: navBarAwarePadding(
         context,
         EdgeInsets.only(
-          bottom: shellListBottomInset(MediaQuery.sizeOf(context).width),
+          bottom: shellListBottomInset(
+            MediaQuery.sizeOf(context).width,
+            context: context,
+          ),
         ),
       ),
       itemCount: listRowCount(results.length, columns),
@@ -731,6 +734,7 @@ class _ManagementPageState extends ConsumerState<ManagementPage> {
                     EdgeInsets.only(
                       bottom: shellListBottomInset(
                         MediaQuery.sizeOf(context).width,
+                        context: context,
                       ),
                     ),
                   ),
@@ -765,6 +769,7 @@ class _ManagementPageState extends ConsumerState<ManagementPage> {
                   EdgeInsets.only(
                     bottom: shellListBottomInset(
                       MediaQuery.sizeOf(context).width,
+                      context: context,
                     ),
                   ),
                 ),
@@ -856,7 +861,10 @@ class _ManagementPageState extends ConsumerState<ManagementPage> {
       padding: navBarAwarePadding(
         context,
         EdgeInsets.only(
-          bottom: shellListBottomInset(MediaQuery.sizeOf(context).width),
+          bottom: shellListBottomInset(
+            MediaQuery.sizeOf(context).width,
+            context: context,
+          ),
         ),
       ),
       itemCount: groups.length,

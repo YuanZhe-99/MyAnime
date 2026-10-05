@@ -1,5 +1,8 @@
 # lib/features/anime/views/home_page.dart
 
+P2：布局函数传入页面上下文并使用实际导航内容约束；
+全窗口路由不扣除不存在的导航。
+
 `HomePage` 是应用的默认标签：一个感知 JST 的日历（`table_calendar`），显示所选日期播出哪些剧集，外加跨每部被跟踪动画的已播出但未看剧集的滚动列表。它读取 `AppSettings`（经 `flutter_riverpod`，[`../../../shared/providers/app_settings.md`](../../../shared/providers/app_settings.md)）决定日历布局/时间基准以及要恢复哪种视图格式（整月、两周或单周）——本页自己不保留任何日历格式状态，因此所选视图能同时挺过标签切换和应用重启。它用 `JstTime`（[`../../../shared/utils/jst_time.md`](../../../shared/utils/jst_time.md)）和 `calendar_preferences.dart`（[`../../../shared/utils/calendar_preferences.md`](../../../shared/utils/calendar_preferences.md)）做日期数学，并经 `AnimeStorage`（[`../services/anime_storage.md`](../services/anime_storage.md)）持久化剧集状态变更。日历/时间基准功能描述见 [`../../../../features/home-management-statistics.md`](../../../../features/home-management-statistics.md)，本页消费的底层剧集播出日期逻辑见 [`../../../../features/anime-tracking.md`](../../../../features/anime-tracking.md)。
 
 ## 声明

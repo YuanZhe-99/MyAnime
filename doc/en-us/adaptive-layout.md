@@ -1,5 +1,7 @@
 # Adaptive layout
 
+P2 uses shared navigation and measured content constraints; see [shared-ui.md](shared-ui.md).
+
 Shared implementation ownership and fresh-clone instructions: [shared-ui.md](shared-ui.md).
 
 This is the app-wide rule for **when a layout may split** — into two panes on the anime detail page

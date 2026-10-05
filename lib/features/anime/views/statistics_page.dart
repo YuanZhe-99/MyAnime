@@ -1567,7 +1567,7 @@ class _StatisticsPageState extends ConsumerState<StatisticsPage> {
     final screen = MediaQuery.sizeOf(context);
     // The lists sit inside the page's 16dp horizontal padding, and inside
     // whatever the shell's navigation rail leaves behind.
-    final contentWidth = shellContentWidth(screen.width) - 32;
+    final contentWidth = shellContentWidth(screen.width, context: context) - 32;
     final capacity = canSplitLayout(screen.width, screen.height)
         ? listColumnCapacity(contentWidth)
         : 1;
@@ -1617,7 +1617,10 @@ class _StatisticsPageState extends ConsumerState<StatisticsPage> {
           padding: navBarAwarePadding(
             context,
             EdgeInsets.only(
-              bottom: shellListBottomInset(MediaQuery.sizeOf(context).width),
+              bottom: shellListBottomInset(
+                MediaQuery.sizeOf(context).width,
+                context: context,
+              ),
             ),
           ),
           children: [

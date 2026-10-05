@@ -1,5 +1,9 @@
 # lib/shared/utils/adaptive_layout.dart
 
+P2: `shellContentWidth`, `shellListBottomInset` and reference-width helpers accept
+optional page `context` to read measured shell space; outside the shell they use full
+window width. Context-free callers retain legacy behavior. See [../../../shared-ui.md](../../../shared-ui.md).
+
 Common thresholds and `canSplitLayout`, `useNavigationRail`, `columnCapacity`,
 `listRowCount` below are now re-exports from `myapps_adaptive`, not locally
 implemented declarations. Business constraints and Flutter padding remain here.

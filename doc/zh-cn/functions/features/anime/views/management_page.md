@@ -1,5 +1,8 @@
 # lib/features/anime/views/management_page.dart
 
+P2：布局函数传入页面上下文并使用实际导航内容约束；
+全窗口路由不扣除不存在的导航。
+
 `ManagementPage` 是季浏览器：一个可滑动的季度 `PageView`（2000–2040）外加一个为没有 `firstAirDate` 的动画准备的末尾"其他"页、跳转季度选择器（[`quarter_picker_dialog.md`](quarter_picker_dialog.md)）、全局标题搜索，以及一个收窄本页每个列表的 AppBar 本地存档筛选器（全部 / 已存档 / 未存档），自动分类开启时（1.6.0 M4）旁边还有一个行为相同的分类筛选器。它通过 `AnimeStorage`（[`../services/anime_storage.md`](../services/anime_storage.md)）读写，并用 [`Anime.airsInQuarter`](../models/anime.md#airsinquarter) 把动画放进季度。功能概览见 [`../../../../features/home-management-statistics.md`](../../../../features/home-management-statistics.md)，本页分组依赖的季度归属规则见 [`../../../../features/anime-tracking.md`](../../../../features/anime-tracking.md#quarter-placement)。
 
 自 1.6.2 起本页有第二种布局，即**系列视图**：每个有两条或更多记录的系列占一个可展开的行，其他每条记录各占一个普通行，并有一个排序菜单（最新首播在前、标题、最近编辑）。应用栏上的切换按钮在两者之间切换，视图和排序都在本设备的 `storage_config.json` 中记住（`manageViewMode`、`manageSeriesSort`）。分组本身是纯函数 [`groupForSeriesView`](../services/manage_grouping.md#groupforseriesview)。

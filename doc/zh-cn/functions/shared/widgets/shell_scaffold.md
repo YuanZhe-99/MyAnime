@@ -1,5 +1,9 @@
 # lib/shared/widgets/shell_scaffold.dart
 
+P2：本文件将导航绘制交给 `MyAppsNavigationShell`。
+下文的悬浮底栏和条目实现在 MyApps-UI 中，应用只保留路由、过滤和回调。
+见 [../../../shared-ui.md](../../../shared-ui.md)。
+
 `ShellScaffold` 是由 `router.dart` 的 `ShellRoute` 渲染的常驻外壳控件——它把当前标签页（`child`）包进一个
 `Scaffold`，其导航要么是底栏（Expressive 界面风格的紧凑悬浮栏，自 1.7.1 起为默认、1.7.2 重新设计；Material 3 风格则使用经典的通栏 `NavigationBar`），要么是侧边的 `NavigationRail`（位于左侧，自 1.7.2 起也可在右侧），服务于主标签页：首页、管理、
 统计与设置，开启假名标签时在统计与设置之间多出假名。它是一个 `ConsumerWidget`，以便监听这项偏好以及底栏样式。该控件所处的
@@ -15,12 +19,6 @@
 | [`ShellScaffold._currentIndex`](#shellscaffold_currentindex) | 方法（`ShellScaffold`） | A | 判定当前路由对应哪一个导航目的地被选中。 |
 | [`ShellScaffold._destinations`](#shellscaffold_destinations) | 方法（`ShellScaffold`） | A | 把外壳当前可见的目的地连同路径与图标一次性描述清楚。 |
 | [`ShellScaffold.build`](#shellscaffold_build) | 方法（`ShellScaffold`，控件构建） | A | 围绕 `child` 构建带侧边导航栏或底栏的 `Scaffold`。 |
-| [`_ExpressiveNavBar`](#expressivenavbar) | 类（私有） | A | Expressive 底栏：紧贴各项的紧凑悬浮胶囊（1.7.2；取代 `_FloatingNavBar`）。 |
-| `_ExpressiveNavBar.new` | 构造函数（`_ExpressiveNavBar`） | B | 创建一个 `_ExpressiveNavBar` 实例。 |
-| `_ExpressiveNavBar.build` | 方法（`_ExpressiveNavBar`，控件构建） | B | 构建岛及其各项。 |
-| [`_ExpressiveNavItem`](#expressivenavitem) | 类（私有） | A | 底栏的一个目的地：图标，选中时附带标签（1.7.2）。 |
-| `_ExpressiveNavItem.new` | 构造函数（`_ExpressiveNavItem`） | B | 创建一个 `_ExpressiveNavItem` 实例。 |
-| `_ExpressiveNavItem.build` | 方法（`_ExpressiveNavItem`，控件构建） | B | 构建带动画的胶囊、提示与语义。 |
 | `_ShellDestination.new` | 构造函数（`_ShellDestination`） | B | 创建一个 `_ShellDestination` 实例。 |
 
 ## 文档

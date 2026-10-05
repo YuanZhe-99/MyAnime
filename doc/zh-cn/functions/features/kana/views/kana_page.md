@@ -1,5 +1,8 @@
 # lib/features/kana/views/kana_page.dart
 
+P2：布局函数传入页面上下文并使用实际导航内容约束；
+全窗口路由不扣除不存在的导航。
+
 `KanaPage` 是第四个底部导航标签：一个纯 UI 的平假名/片假名速查。它不读任何动画数据、没有持久化状态、不属于同步——功能概览见 [`../../../../features/kana-reference.md`](../../../../features/kana-reference.md)，它如何落在 `go_router` 外壳中见 [`../../../../architecture.md`](../../../../architecture.md)。本文件定义了一个私有 `_KanaScript` 枚举（hiragana/katakana）和三个小型数据类（`_KanaEntry`、`_KanaRow`、`_KanaRule`），支撑三个顶层 `const` 表——`_basicRows`、`_voicedRows`、`_yoonRows`——它们保存实际的五十音/浊音/拗音假名数据。文件其余部分是 `_KanaPageState`，它渲染假名切换、搜索字段、三个静态表（搜索查询为空时）、搜索结果网格（非空时）和一组发音规则卡片。
 
 自 1.5.4 起本页是自适应的：在全应用拆分规则允许、且宽到足以放下两张表的窗口上，它把各节排成两列，并把假名

@@ -1,5 +1,8 @@
 # lib/features/kana/views/kana_page.dart
 
+P2: layout helpers now receive this page context and use actual shell constraints;
+full-window routes do not subtract navigation they do not contain.
+
 `KanaPage` is the fourth bottom-navigation tab: a UI-only hiragana/katakana quick reference. It
 reads no anime data, has no persisted state, and is not part of sync — see
 [`../../../../features/kana-reference.md`](../../../../features/kana-reference.md) for the feature

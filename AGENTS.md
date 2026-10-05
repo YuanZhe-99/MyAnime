@@ -219,3 +219,9 @@ Never write the underlying Tailscale host or port anywhere in the repo, includin
 
 **Never commit:** secrets, credentials, WebDAV configuration, signing keys, private personal anime
 data, generated app data, or local-only machine addresses.
+
+## MyApps milestone releases
+
+For each completed P milestone, increment the application patch version by 0.0.1.
+Publish the shared dependency first. Add accurate co-author trailers for materially
+participating agents; do not invent participation or an agent identity.

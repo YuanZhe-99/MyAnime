@@ -1,5 +1,9 @@
 # lib/shared/utils/adaptive_layout.dart
 
+P2：`shellContentWidth`、`shellListBottomInset` 和参考宽度函数接受可选
+页面 `context` 以读取实际导航内容空间，壳外使用完整窗口宽度。
+无上下文调用保留兼容行为。见 [../../../shared-ui.md](../../../shared-ui.md)。
+
 下文的公共阈值和 `canSplitLayout`、`useNavigationRail`、`columnCapacity`、
 `listRowCount` 现在重新导出自 `myapps_adaptive`，不再是本地实现的声明。
 业务约束和 Flutter 避让仍保留在此文件。

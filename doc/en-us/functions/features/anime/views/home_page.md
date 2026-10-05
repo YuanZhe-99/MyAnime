@@ -1,5 +1,8 @@
 # lib/features/anime/views/home_page.dart
 
+P2: layout helpers now receive this page context and use actual shell constraints;
+full-window routes do not subtract navigation they do not contain.
+
 `HomePage` is the app's default tab: a JST-aware calendar (`table_calendar`) showing which episodes
 air on a selected day, plus a rolling list of aired-but-unwatched episodes across every tracked
 anime. It reads `AppSettings` (via `flutter_riverpod`,

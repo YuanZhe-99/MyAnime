@@ -1,5 +1,7 @@
 # Architecture
 
+P2 uses shared navigation and measured content constraints; see [shared-ui.md](shared-ui.md).
+
 Shared theme and adaptive foundations now come from MyApps-UI; see
 [shared-ui.md](shared-ui.md) for ownership, integration and update order.
 

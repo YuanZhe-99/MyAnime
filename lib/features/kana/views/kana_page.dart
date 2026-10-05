@@ -67,7 +67,7 @@ class _KanaPageState extends State<KanaPage> {
     final matches = query.isEmpty ? <_KanaEntry>[] : _matchingEntries(query);
 
     final screen = MediaQuery.sizeOf(context);
-    final available = shellContentWidth(screen.width) - 32;
+    final available = shellContentWidth(screen.width, context: context) - 32;
     final contentWidth = available > 1080 ? 1080.0 : available;
     final twoColumn =
         canSplitLayout(screen.width, screen.height) &&
@@ -141,7 +141,12 @@ class _KanaPageState extends State<KanaPage> {
       body: ListView(
         padding: navBarAwarePadding(
           context,
-          EdgeInsets.fromLTRB(16, 8, 16, shellListBottomInset(screen.width)),
+          EdgeInsets.fromLTRB(
+            16,
+            8,
+            16,
+            shellListBottomInset(screen.width, context: context),
+          ),
         ),
         children: [
           Center(

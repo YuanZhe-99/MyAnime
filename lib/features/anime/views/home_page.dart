@@ -299,7 +299,7 @@ class _HomePageState extends ConsumerState<HomePage> {
     final screen = MediaQuery.sizeOf(context);
     // The shell's navigation rail, when it is showing, is not part of the
     // width this list gets, so the capacity must be measured without it.
-    final contentWidth = shellContentWidth(screen.width);
+    final contentWidth = shellContentWidth(screen.width, context: context);
     final capacity = canSplitLayout(screen.width, screen.height)
         ? listColumnCapacity(contentWidth)
         : 1;

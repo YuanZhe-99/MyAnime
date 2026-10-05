@@ -1,5 +1,9 @@
 # lib/shared/widgets/shell_scaffold.dart
 
+P2: this file delegates all navigation rendering to `MyAppsNavigationShell`.
+Floating bar/item implementations described below now live only in MyApps-UI.
+App routes, filters and callbacks remain here. See [../../../shared-ui.md](../../../shared-ui.md).
+
 `ShellScaffold` is the persistent shell widget rendered by `router.dart`'s `ShellRoute` — it wraps
 the current tab (`child`) in a `Scaffold` whose navigation is either a bottom bar (the compact floating bar
 of the Expressive interface style, the default since 1.7.1 and redesigned in 1.7.2, or the classic
@@ -17,12 +21,6 @@ preference and the bottom-bar style. See [../../../architecture.md](../../../arc
 | [`ShellScaffold._currentIndex`](#shellscaffold_currentindex) | method (`ShellScaffold`) | A | Determine which navigation destination is selected for the current route. |
 | [`ShellScaffold._destinations`](#shellscaffold_destinations) | method (`ShellScaffold`) | A | Describe the shell's visible destinations once, paths and icons included. |
 | [`ShellScaffold.build`](#shellscaffold_build) | method (`ShellScaffold`, widget build) | A | Build the `Scaffold` with a rail or a bottom bar around `child`. |
-| [`_ExpressiveNavBar`](#expressivenavbar) | class (private) | A | The Expressive bottom bar: a compact floating pill that hugs its items (1.7.2; replaces `_FloatingNavBar`). |
-| `_ExpressiveNavBar.new` | constructor (`_ExpressiveNavBar`) | B | Create a `_ExpressiveNavBar` instance. |
-| `_ExpressiveNavBar.build` | method (`_ExpressiveNavBar`, widget build) | B | Build the island and its items. |
-| [`_ExpressiveNavItem`](#expressivenavitem) | class (private) | A | One destination of the bar: icon, plus the label while selected (1.7.2). |
-| `_ExpressiveNavItem.new` | constructor (`_ExpressiveNavItem`) | B | Create a `_ExpressiveNavItem` instance. |
-| `_ExpressiveNavItem.build` | method (`_ExpressiveNavItem`, widget build) | B | Build the animated pill, tooltip and semantics. |
 | `_ShellDestination.new` | constructor (`_ShellDestination`) | B | Create a `_ShellDestination` instance. |
 
 ## Documentation

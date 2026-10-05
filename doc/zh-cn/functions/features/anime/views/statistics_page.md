@@ -1,5 +1,8 @@
 # lib/features/anime/views/statistics_page.dart
 
+P2：布局函数传入页面上下文并使用实际导航内容约束；
+全窗口路由不扣除不存在的导航。
+
 `StatisticsPage` 是应用三个主要数据浏览标签中的第三个（主页 / 管理 / 统计——见 [`../../../../features/home-management-statistics.md`](../../../../features/home-management-statistics.md) 和 `go_router` 外壳的 [`../../../../architecture.md`](../../../../architecture.md)）。它有两个由 `_StatsView` 选择的子视图：**摘要**视图（季度/年/全范围、摘要计数卡片、可滚动季度/年趋势条形图，以及可展开的 completed/watching/dropped/not-started 列表）和**排名**视图（基于评分的排名，带时间/类型过滤器和升序/降序排序，带封面缩略图）。两个视图都可以分享/导出为图像、`.myanimeitem` 数据文件或纯文本名称列表——实际字节生成和平台分享机制位于 `ShareService`（`shared/services/share_service.dart`，文档见 [`../../../../features/share-and-import.md`](../../../../features/share-and-import.md)）；本文件拥有供给该服务的过滤、分组、排名、趋势计算和行数限制逻辑。季度归属（`airsInQuarter`、`startQuarter`）来自 `Anime`（`lib/features/anime/models/anime.dart`，[`../../../../features/anime-tracking.md`](../../../../features/anime-tracking.md)）；本文件还定义了自己的紧凑 `year * 4 + quarter` 索引约定（`_quarterIndex`/`_quarterFromIndex`）用于迭代和比较季度。数据重载来自 `AnimeStorage.load()`，并经 `AutoSyncService` 的"本地数据变更"回调自动重新触发。
 
 本文件还声明了五个无自身逻辑的私有枚举（`_StatsView`、`_TimeScope`、`_TrendGranularity`、`_RankingTimeFilter`、`_SummarySharePriority`）和一个小型私有数据类 `_TrendEntry`（一个趋势图条目的年/季度/已跟踪/已完成/弃看计数）——这里用散文而不是 `Declarations` 行描述它们，与本文档集其他地方处理普通枚举/字段声明的方式一致。

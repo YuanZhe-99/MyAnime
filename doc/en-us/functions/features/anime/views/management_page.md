@@ -1,5 +1,8 @@
 # lib/features/anime/views/management_page.dart
 
+P2: layout helpers now receive this page context and use actual shell constraints;
+full-window routes do not subtract navigation they do not contain.
+
 `ManagementPage` is the seasonal quarter browser: a swipeable `PageView` of quarters (2000–2040)
 plus a final "Other" page for anime with no `firstAirDate`, a jump-to-quarter picker
 ([`quarter_picker_dialog.md`](quarter_picker_dialog.md)), a global title search, and an AppBar

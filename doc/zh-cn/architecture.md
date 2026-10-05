@@ -1,5 +1,7 @@
 # 架构
 
+P2 使用公共导航和实际内容约束，见 [shared-ui.md](shared-ui.md)。
+
 公共主题和布局基础现在由 MyApps-UI 提供；职责划分、接入方式和升级顺序见
 [shared-ui.md](shared-ui.md)。
 
