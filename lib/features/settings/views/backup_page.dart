@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:myapps_data/myapps_data.dart' show MyAppsBackupSettings;
 import 'package:intl/intl.dart';
 
 import '../../../app/data_modules.dart';
@@ -364,34 +365,18 @@ class _BackupPageState extends State<BackupPage> {
                   ),
                 ),
                 _buildSection(context, l10n.settingsGeneral, [
-                  SwitchListTile(
-                    secondary: const Icon(Icons.schedule_outlined),
-                    title: Text(l10n.backupAutoBackup),
-                    subtitle: Text(l10n.backupAutoBackupDesc),
-                    value: _autoBackup,
-                    onChanged: _toggleAutoBackup,
-                  ),
-                  ListTile(
-                    leading: const Icon(Icons.auto_delete),
-                    title: Text(l10n.backupRetention),
-                    trailing: DropdownButton<int>(
-                      alignment: AlignmentDirectional.centerEnd,
-                      value: _retentionDays,
-                      underline: const SizedBox.shrink(),
-                      items: _retentionOptions.map((d) {
-                        final label = d == 0
-                            ? l10n.backupKeepForever
-                            : l10n.backupKeepDays(d);
-                        return DropdownMenuItem(
-                          alignment: AlignmentDirectional.centerEnd,
-                          value: d,
-                          child: Text(label),
-                        );
-                      }).toList(),
-                      onChanged: (v) {
-                        if (v != null) _setRetention(v);
-                      },
-                    ),
+                  MyAppsBackupSettings(
+                    autoBackupTitle: l10n.backupAutoBackup,
+                    autoBackupDescription: l10n.backupAutoBackupDesc,
+                    autoBackup: _autoBackup,
+                    onAutoBackupChanged: _toggleAutoBackup,
+                    retentionTitle: l10n.backupRetention,
+                    retentionDays: _retentionDays,
+                    retentionOptions: _retentionOptions,
+                    retentionLabel: (d) => d == 0
+                        ? l10n.backupKeepForever
+                        : l10n.backupKeepDays(d),
+                    onRetentionChanged: _setRetention,
                   ),
                 ]),
                 _buildSection(context, l10n.backupCreate, [

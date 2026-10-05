@@ -1,5 +1,8 @@
 # lib/features/settings/views/settings_page.dart
 
+Appearance rows use MyAppsSettingsSegmentRow with shared geometry and spacing.
+DATA renders common data action tiles. Application state, callbacks and routes remain here.
+
 P5 body delegates designed partitioning to MyAppsPaneBody; actual split mode
 updates the routing cache. Width policy remains app-owned.
 

@@ -1,5 +1,10 @@
 # Shared UI foundations
 
+MyApps-UI v0.1.6 owns appearance/navigation row layout, full-width choices and
+scaled-text fallback. MyApps-DATA v1.0.4 owns common data actions and backup
+preferences; MyApps-AI v0.4.2 owns AI presentation. Values, labels and callbacks
+remain application-owned.
+
 ## P5 region policies and attribution
 
 MyApps-UI v0.1.5 provides automatic and selected column resolution and designed

@@ -657,49 +657,49 @@ packages:
       path: "packages/myapps_ui/packages/myapps_adaptive"
       relative: true
     source: path
-    version: "0.1.5"
+    version: "0.1.6"
   myapps_ai:
     dependency: "direct main"
     description:
       path: "packages/myapps_ai/packages/myapps_ai"
       relative: true
     source: path
-    version: "0.4.1"
+    version: "0.4.2"
   myapps_ai_platform:
     dependency: transitive
     description:
       path: "packages/myapps_ai/packages/myapps_ai_platform"
       relative: true
     source: path
-    version: "0.4.1"
+    version: "0.4.2"
   myapps_ai_ui:
     dependency: "direct main"
     description:
       path: "packages/myapps_ai/packages/myapps_ai_ui"
       relative: true
     source: path
-    version: "0.4.1"
+    version: "0.4.2"
   myapps_data:
     dependency: "direct main"
     description:
       path: "packages/myapps_data"
       relative: true
     source: path
-    version: "1.0.3"
+    version: "1.0.4"
   myapps_profile:
     dependency: "direct main"
     description:
       path: "packages/myapps_ui/packages/myapps_profile"
       relative: true
     source: path
-    version: "0.1.5"
+    version: "0.1.6"
   myapps_ui:
     dependency: "direct main"
     description:
       path: "packages/myapps_ui/packages/myapps_ui"
       relative: true
     source: path
-    version: "0.1.5"
+    version: "0.1.6"
   native_toolchain_c:
     dependency: transitive
     description:

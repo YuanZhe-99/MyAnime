@@ -1,5 +1,11 @@
 # Version history
 
+## 1.8.7 — Unified settings presentation
+
+Use MyApps-UI v0.1.6 full-width appearance/navigation rows, MyApps-DATA v1.0.4
+data actions and backup controls, and MyApps-AI v0.4.2. Keep application settings,
+routes and domain workflows independent.
+
 ## 1.8.6 — Shared AI settings presentation
 
 Use MyApps-AI v0.4.1 shared prompt settings, preserving app feature-switch gates,

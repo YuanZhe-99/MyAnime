@@ -1,5 +1,8 @@
 # lib/features/settings/views/settings_page.dart
 
+外观设置行使用 MyAppsSettingsSegmentRow 的共享几何和间距。DATA 呈现通用数据
+操作行。应用状态、回调和路由留在此处。
+
 P5 内容委托 MyAppsPaneBody 做设计分区，实际分栏模式更新路由缓存。
 宽度策略仍由应用负责。
 
