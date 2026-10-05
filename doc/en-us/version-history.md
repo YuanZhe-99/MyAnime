@@ -1,5 +1,10 @@
 # Version history
 
+## 1.8.6 — Shared AI settings presentation
+
+Use MyApps-AI v0.4.1 shared prompt settings, preserving app feature-switch gates,
+localization, classification and recommendation workflows. Add UI package notice.
+
 ## 1.8.5 — Shared system AI
 
 Use MyApps-AI v0.2.0 for request execution, output utilities and Android/Apple
@@ -128,7 +133,7 @@ content after an early `git commit --amend`, and tag `v0.1.0` points to the late
 - `v0.2.2`: Higher-resolution share card, truncation indicator, add-anime validation, desktop preview dialog.
 - `v0.3.0`: AniList source, `infoUrl`, share URL options.
 - `v0.3.1`: Android share target opens in its own task.
-- `v0.4.0`: Statistics page, management global search, quarter jump picker.
+- `v0.4.1`: Statistics page, management global search, quarter jump picker.
 - `v0.4.1`: Navigate to detail after creation and return to the anime quarter.
 - `v0.4.2`: Redesigned quarter picker and scrollable statistics trend chart.
 - `v0.4.3`: Year-by-quarter grid picker, wider quarter range, sticky Y-axis, default scroll to latest stats.

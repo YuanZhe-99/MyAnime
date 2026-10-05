@@ -59,7 +59,7 @@ find lib -name "*.dart" -not -path "lib/l10n/*" | xargs grep -h '/// Purpose:' |
 | `lib/features/ai/services/on_device_ai_service.dart` | [features/ai/services/on_device_ai_service.md](features/ai/services/on_device_ai_service.md) | 4 | 0 |
 | `lib/features/ai/services/output_validation.dart` | [features/ai/services/output_validation.md](features/ai/services/output_validation.md) | 0 | 0 |
 | `lib/features/ai/services/prompt_templates.dart` | [features/ai/services/prompt_templates.md](features/ai/services/prompt_templates.md) | 4 | 3 |
-| `lib/features/ai/widgets/ai_settings_tiles.dart` | [features/ai/widgets/ai_settings_tiles.md](features/ai/widgets/ai_settings_tiles.md) | 6 | 2 |
+| `lib/features/ai/widgets/ai_settings_tiles.dart` | [features/ai/widgets/ai_settings_tiles.md](features/ai/widgets/ai_settings_tiles.md) | 6 | 0 |
 
 端侧 AI 层（1.6.0，M3）。`prompt_templates.dart` 和 `ai_insights_cache.dart` 随自动分类（M4）加入。各行包括带 `/// Purpose:` 注释的私有 `_AiJob` 辅助方法和状态类方法。见
 [../on-device-ai.md](../on-device-ai.md)。

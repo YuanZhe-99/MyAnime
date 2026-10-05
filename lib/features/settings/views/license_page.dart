@@ -45,7 +45,7 @@ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
 GNU General Public License for more details.
 
 MyApps-UI (myapps_ui, myapps_adaptive, myapps_profile)
-MyApps-AI (myapps_ai, myapps_ai_platform)
+MyApps-AI (myapps_ai, myapps_ai_platform, myapps_ai_ui)
 GNU GPL version 3. Source: https://github.com/YuanZhe-99/MyApps-AI
 
 Copyright (C) 2026 yuanzhe and contributors. GNU GPL version 3.
