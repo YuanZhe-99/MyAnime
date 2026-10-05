@@ -1,5 +1,7 @@
 # lib/features/settings/views/license_page.dart
 
+The notice includes MyApps-UI, all three consumed packages, source and GPL v3 URLs.
+
 `LicensePage` is a tiny, fully static settings sub-page reached from Settings -> About -> License
 (see `functions/features/settings/views/settings_page.md`). It has no state and no service
 dependencies: the entire page is a `StatelessWidget` that renders a single hard-coded

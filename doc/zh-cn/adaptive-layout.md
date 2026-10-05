@@ -1,5 +1,7 @@
 # 自适应布局
 
+P5 共享自动或用户选择列数及设置设计分栏，见 [shared-ui.md](shared-ui.md)。
+
 P2 使用公共导航和实际内容约束，见 [shared-ui.md](shared-ui.md)。
 
 公共实现归属及全新克隆的接入说明见 [shared-ui.md](shared-ui.md)。

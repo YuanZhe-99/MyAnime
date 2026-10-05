@@ -95,10 +95,12 @@ int listColumnCount({
   required double contentWidth,
   required int preference,
 }) {
-  if (!canSplitLayout(screenWidth, screenHeight)) return 1;
-  final capacity = listColumnCapacity(contentWidth);
-  if (preference == listColumnsAuto) return capacity;
-  return preference.clamp(1, capacity);
+  return resolveLayoutColumns(
+    allowSplit: canSplitLayout(screenWidth, screenHeight),
+    contentWidth: contentWidth,
+    minItemWidth: listTileMinWidth,
+    preference: preference,
+  );
 }
 
 /// Purpose: Return the width of the settings page's fixed left pane.

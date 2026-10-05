@@ -1,5 +1,13 @@
 # Shared UI foundations
 
+## P5 region policies and attribution
+
+MyApps-UI v0.1.5 provides automatic and selected column resolution and designed
+pane layouts. Existing list preferences remain app-owned and capacity-clamped.
+Settings uses MyAppsPaneBody to avoid separating features while retaining the
+window split gate and primary-width policy. LicensePage explicitly names all three
+consumed packages, source URL and GNU GPL v3. Other page designs remain app-owned.
+
 ## Settings and common catalogs
 
 The app pins MyApps-UI v0.1.4. Settings sections and segmented controls delegate

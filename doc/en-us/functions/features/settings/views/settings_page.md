@@ -1,5 +1,8 @@
 # lib/features/settings/views/settings_page.dart
 
+P5 body delegates designed partitioning to MyAppsPaneBody; actual split mode
+updates the routing cache. Width policy remains app-owned.
+
 Settings group rendering and single-choice segments delegate to myapps_ui.
 The app retains labels, state callbacks, routes and storage. Common ARB values
 are validated by shared_l10n_test; see [../../../../shared-ui.md](../../../../shared-ui.md).

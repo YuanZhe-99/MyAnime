@@ -1,5 +1,7 @@
 # lib/shared/utils/adaptive_layout.dart
 
+P5 listColumnCount delegates automatic/selected capacity to resolveLayoutColumns.
+
 P2: `shellContentWidth`, `shellListBottomInset` and reference-width helpers accept
 optional page `context` to read measured shell space; outside the shell they use full
 window width. Context-free callers retain legacy behavior. See [../../../shared-ui.md](../../../shared-ui.md).
