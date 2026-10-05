@@ -1,2 +1,0 @@
-# The plugin has no Dart API beyond a library comment; the app's own lints
-# cover everything that calls it.

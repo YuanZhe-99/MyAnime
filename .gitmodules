@@ -4,3 +4,6 @@
 [submodule "packages/myapps_ui"]
 	path = packages/myapps_ui
 	url = ../MyApps-UI.git
+[submodule "packages/myapps_ai"]
+	path = packages/myapps_ai
+	url = ../MyApps-AI.git

@@ -157,9 +157,9 @@ lib/
 `tool/check_weak_link.sh`，iOS 和 macOS 的 CI 任务会运行它（见 [`ci-cd.md`](ci-cd.md)）。
 
 在 `lib/` 之外，仓库在 `packages/` 下带有两个本地 Dart 包，都是 `pubspec.yaml` 中的路径依赖：
-`packages/myapps_data`，即下文所述的共享引擎子模块；以及 `packages/on_device_ai_apple`（1.6.0），一个纳入版本
+`packages/myapps_data`，即下文所述的共享引擎子模块；以及 `packages/myapps_ai/packages/myapps_ai_platform`（1.6.0），一个纳入版本
 控制的本地 Flutter 插件，在 iOS 和 macOS 上桥接 Apple 的 Foundation Models 框架。Android 上的对应部分是
-`android/app/src/main/kotlin/com/yuanzhe/my_anime/GenAiChannel.kt`。见 [`on-device-ai.md`](on-device-ai.md) 和
+`packages/myapps_ai/packages/myapps_ai_platform/android/src/main/kotlin/com/yuanzhe/myapps_ai/GenAiChannel.kt`。见 [`on-device-ai.md`](on-device-ai.md) 和
 [`platform-notes.md`](platform-notes.md)。
 
 ## 共享包（`myapps_data`）

@@ -73,7 +73,7 @@ git submodule update --init
 
 `tool/check_weak_link.sh <path/to/App.app>`（1.6.0）是 CI 唯一运行的脚本。它用 `otool -l` 遍历应用包中的每个
 Mach-O 文件，只要有任何二进制以 `LC_LOAD_DYLIB` 而不是 `LC_LOAD_WEAK_DYLIB` 链接 FoundationModels，或者没有
-任何二进制链接它（`on_device_ai_apple` 插件没有进入构建），就失败。强链接会让应用无法在 iOS 18 和 macOS 15
+任何二进制链接它（`myapps_ai_platform` 插件没有进入构建），就失败。强链接会让应用无法在 iOS 18 和 macOS 15
 及更早版本上启动。它需要 macOS（`otool`）；路径要加引号。见 [`on-device-ai.md`](on-device-ai.md)。
 
 生产行为优先用聚焦测试，除非用户要求，否则把工具脚本留在发布关键路径之外。

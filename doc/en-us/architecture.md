@@ -191,9 +191,9 @@ jobs run (see [`ci-cd.md`](ci-cd.md)).
 
 Outside `lib/`, the repo carries two local Dart packages under `packages/`, both path dependencies
 in `pubspec.yaml`: `packages/myapps_data`, the shared engine submodule described below, and
-`packages/on_device_ai_apple` (1.6.0), a tracked local Flutter plugin that bridges Apple's
+`packages/myapps_ai/packages/myapps_ai_platform` (1.6.0), a tracked local Flutter plugin that bridges Apple's
 Foundation Models framework on iOS and macOS. The Android counterpart is
-`android/app/src/main/kotlin/com/yuanzhe/my_anime/GenAiChannel.kt`. See
+`packages/myapps_ai/packages/myapps_ai_platform/android/src/main/kotlin/com/yuanzhe/myapps_ai/GenAiChannel.kt`. See
 [`on-device-ai.md`](on-device-ai.md) and [`platform-notes.md`](platform-notes.md).
 
 ## Shared package (`myapps_data`)

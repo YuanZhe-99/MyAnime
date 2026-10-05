@@ -100,7 +100,7 @@ produces no diff. Regenerate only when bumping OpenCC — refresh the two dictio
 `tool/check_weak_link.sh <path/to/App.app>` (1.6.0) is the one script CI runs. It walks every
 Mach-O file in the bundle with `otool -l` and fails if any binary links FoundationModels with
 `LC_LOAD_DYLIB` instead of `LC_LOAD_WEAK_DYLIB`, or if no binary links it at all (the
-`on_device_ai_apple` plugin did not make it into the build). A strong link would stop the app
+`myapps_ai_platform` plugin did not make it into the build). A strong link would stop the app
 launching on iOS 18 and macOS 15 and earlier. It needs macOS (`otool`); quote the path. See
 [`on-device-ai.md`](on-device-ai.md).
 

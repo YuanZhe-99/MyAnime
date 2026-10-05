@@ -1,5 +1,12 @@
 # Version history
 
+## 1.8.5 — Shared system AI
+
+Use MyApps-AI v0.2.0 for request execution, output utilities and Android/Apple
+native plugins. Preserve classification, recommendation ranking, prompts and
+cache policies. Add package license notices. Analysis and 657 tests passed
+(3 skipped) before release.
+
 ## 1.8.4 — P5 regions and shared-license attribution
 
 Shared automatic/selected column decisions and feature-aware designed settings

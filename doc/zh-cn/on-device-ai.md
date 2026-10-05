@@ -1,5 +1,8 @@
 # 端侧 AI
 
+共享运行时和原生所有权见 [shared-ai.md](shared-ai.md)。当前原生实现位于
+MyApps-AI v0.2.0，注册 com.yuanzhe.myapps_ai/genai 通道。
+
 MyAnime!!!!! 可以使用设备自带的语言模型——通过 Android AICore 使用 Gemini Nano，或通过 Foundation Models 框架使用
 Apple Intelligence 的模型——为自动分类补缺，并为推荐写简短的理由。本页记录其背后的平台事实、代码的布局，以及
 仍需在设备上检查的内容。
@@ -43,14 +46,14 @@ Apple Intelligence 的模型——为自动分类补缺，并为推荐写简短�
 | `lib/features/ai/widgets/ai_settings_tiles.dart` | `AiSettingsTiles`：开关、状态行、尺寸偏好、说明和技术详情 |
 | `lib/features/categories/services/category_service.dart` | `CategoryClassifier`：每次会话的细流（至多 20 条记录）与*立即分类*（1.6.0 M4） |
 | `lib/features/recommendations/services/ai_reason_service.dart` | 推荐理由：排名前八的候选、回复解析、请求语言与中文变体转换（1.6.0 M5）；提示词在 `reason_prompt.dart` 中 |
-| `android/app/src/main/kotlin/com/yuanzhe/my_anime/GenAiChannel.kt` | 通往 ML Kit GenAI 的 Android 桥接 |
-| `packages/on_device_ai_apple/` | 一个本地 Flutter 插件，iOS 和 macOS 共用一份 Darwin 源码 |
+| `packages/myapps_ai/packages/myapps_ai_platform/android/src/main/kotlin/com/yuanzhe/myapps_ai/GenAiChannel.kt` | 通往 ML Kit GenAI 的 Android 桥接 |
+| `packages/myapps_ai/packages/myapps_ai_platform/` | 一个本地 Flutter 插件，iOS 和 macOS 共用一份 Darwin 源码 |
 
 自 1.6.0（M4）起，设置中的各行显示在通用之后的「分类与推荐」分区中：先是*自动分类*开关，然后是 `AiSettingsTiles`，
 自动分类开启时再加上*立即分类*；自 M5 起*推荐*开关位于前两者之间。只有自动分类或推荐开启时才能打开 AI 开关，关闭其中最后一个开着的功能也会关闭它。这两个 AI 开关以 `onDeviceAiEnabled` 和
 `onDeviceAiPreferFast` 存放在 `storage_config.json` 中（见 [`data-formats.md`](data-formats.md)）。
 
-三个平台上的通道都是 `com.yuanzhe.my_anime/genai`。它的方法有 `status`（`force`、`preferFast`）、`info`
+三个平台上的通道都是 `com.yuanzhe.myapps_ai/genai`。它的方法有 `status`（`force`、`preferFast`）、`info`
 （`locale`）、`download`（仅 Android）、`generate`（`instructions`、`prompt`、`maxOutputTokens`、`temperature`、
 `topK`）、`choose`（`instructions`、`prompt`、`options`、`maxItems`；仅 Apple——在 Android 上由 Dart 后端运行
 `generate` 并逐行解析）、`prewarm` 和 `cancel`。`platformMayHaveOnDeviceModel` 在 Android、iOS 和 macOS 上为

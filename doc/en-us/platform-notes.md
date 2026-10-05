@@ -34,9 +34,9 @@ reuses the shared search service.
 - `.myanimeitem` file association uses the same UTI declarations as macOS.
 - App Store IPA requires signing/provisioning and is not built by CI.
 - **On-device AI (1.6.0):** Apple's Foundation Models framework is bridged by the local Flutter
-  plugin `packages/on_device_ai_apple/` (a tracked directory, not a submodule), declared with
+  plugin `packages/myapps_ai/packages/myapps_ai_platform/` (a tracked directory, not a submodule), declared with
   `sharedDarwinSource: true` so one Swift source serves iOS and macOS. It registers the
-  `com.yuanzhe.my_anime/genai` channel and exposes no Dart API; the Flutter tool integrates it like
+  `com.yuanzhe.myapps_ai/genai` channel and exposes no Dart API; the Flutter tool integrates it like
   any other plugin, so no `project.pbxproj` was edited. FoundationModels is **weak-linked**
   (`s.weak_frameworks` in the podspec; under Swift Package Manager the `@available` guards make the
   linker weak-link it) and every use sits behind `#if canImport(FoundationModels)` and
@@ -77,7 +77,7 @@ reuses the shared search service.
   build fails at run time in a way that looks like an unsupported device, while debug builds work.
 - `AndroidManifest.xml` has `<package android:name="com.google.android.aicore"/>` in `<queries>`, so
   the AICore version is visible on API 30 and later.
-- `GenAiChannel` (`android/app/src/main/kotlin/com/yuanzhe/my_anime/GenAiChannel.kt`) is attached in
+- `GenAiChannel` (`packages/myapps_ai/packages/myapps_ai_platform/android/src/main/kotlin/com/yuanzhe/myapps_ai/GenAiChannel.kt`) is attached in
   `MainActivity.configureFlutterEngine` next to the share and file-open channels and detached in
   `onDestroy`, which closes the AICore client. See [`on-device-ai.md`](on-device-ai.md).
 - Signing is optional locally via `key.properties`; CI uses GitHub Secrets.

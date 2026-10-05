@@ -1,5 +1,8 @@
 # On-device AI
 
+Shared runtime and native ownership: [shared-ai.md](shared-ai.md). Current native
+implementation is in MyApps-AI v0.2.0, registered on com.yuanzhe.myapps_ai/genai.
+
 MyAnime!!!!! can use the device's own language model — Gemini Nano through Android AICore, or Apple
 Intelligence's model through the Foundation Models framework — to fill gaps in automatic
 categories and to write short reasons for recommendations. This page holds the platform
@@ -54,8 +57,8 @@ Both flavors ship the feature: it makes no network call of its own.
 | `lib/features/ai/widgets/ai_settings_tiles.dart` | `AiSettingsTiles`: the switch, the status row, the size preference, the notes and the technical details |
 | `lib/features/categories/services/category_service.dart` | `CategoryClassifier`: the per-session trickle (at most 20 records) and *Categorise now* (1.6.0 M4) |
 | `lib/features/recommendations/services/ai_reason_service.dart` | Recommendation reasons: the top eight candidates, the reply parser, the request language and Chinese variant conversion (1.6.0 M5); the prompt is in `reason_prompt.dart` |
-| `android/app/src/main/kotlin/com/yuanzhe/my_anime/GenAiChannel.kt` | The Android bridge to ML Kit GenAI |
-| `packages/on_device_ai_apple/` | A local Flutter plugin with one shared Darwin source for iOS and macOS |
+| `packages/myapps_ai/packages/myapps_ai_platform/android/src/main/kotlin/com/yuanzhe/myapps_ai/GenAiChannel.kt` | The Android bridge to ML Kit GenAI |
+| `packages/myapps_ai/packages/myapps_ai_platform/` | A local Flutter plugin with one shared Darwin source for iOS and macOS |
 
 Since 1.6.0 (M4) the Settings rows are shown in the *Categories & recommendations* section after
 General: the *Automatic categories* switch, then `AiSettingsTiles`, then *Categorise now* while
@@ -65,7 +68,7 @@ last of them off turns it off too. The AI switches are stored as
 `onDeviceAiEnabled` and `onDeviceAiPreferFast` in `storage_config.json` (see
 [`data-formats.md`](data-formats.md)).
 
-The channel is `com.yuanzhe.my_anime/genai` on all three platforms. Its methods are `status`
+The channel is `com.yuanzhe.myapps_ai/genai` on all three platforms. Its methods are `status`
 (`force`, `preferFast`), `info` (`locale`), `download` (Android only), `generate` (`instructions`,
 `prompt`, `maxOutputTokens`, `temperature`, `topK`), `choose` (`instructions`, `prompt`, `options`,
 `maxItems`; Apple only — on Android the Dart backend runs `generate` and parses the lines),

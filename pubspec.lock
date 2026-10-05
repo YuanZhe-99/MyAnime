@@ -658,6 +658,20 @@ packages:
       relative: true
     source: path
     version: "0.1.5"
+  myapps_ai:
+    dependency: "direct main"
+    description:
+      path: "packages/myapps_ai/packages/myapps_ai"
+      relative: true
+    source: path
+    version: "0.2.0"
+  myapps_ai_platform:
+    dependency: transitive
+    description:
+      path: "packages/myapps_ai/packages/myapps_ai_platform"
+      relative: true
+    source: path
+    version: "0.2.0"
   myapps_data:
     dependency: "direct main"
     description:
@@ -711,13 +725,6 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "9.3.0"
-  on_device_ai_apple:
-    dependency: "direct main"
-    description:
-      path: "packages/on_device_ai_apple"
-      relative: true
-    source: path
-    version: "1.0.0"
   package_config:
     dependency: transitive
     description:

@@ -25,9 +25,9 @@
 - iOS 应用图标对默认、深色和着色模式使用专门的带内边距来源：`assets/icon/app_icon_ios.png`、`assets/icon/app_icon_ios_dark.png`、`assets/icon/app_icon_ios_tinted.png`。
 - `.myanimeitem` 文件关联与 macOS 使用相同的 UTI 声明。
 - App Store IPA 需要签名/预置描述文件，不由 CI 构建。
-- **端侧 AI（1.6.0）：** Apple 的 Foundation Models 框架由本地 Flutter 插件 `packages/on_device_ai_apple/`
+- **端侧 AI（1.6.0）：** Apple 的 Foundation Models 框架由本地 Flutter 插件 `packages/myapps_ai/packages/myapps_ai_platform/`
   桥接（纳入版本控制的目录，不是子模块），以 `sharedDarwinSource: true` 声明，一份 Swift 源码同时服务 iOS 和
-  macOS。它注册 `com.yuanzhe.my_anime/genai` 通道，不暴露任何 Dart API；Flutter 工具像集成其他插件一样集成它，
+  macOS。它注册 `com.yuanzhe.myapps_ai/genai` 通道，不暴露任何 Dart API；Flutter 工具像集成其他插件一样集成它，
   因此没有编辑任何 `project.pbxproj`。FoundationModels 是**弱链接**的（podspec 中的 `s.weak_frameworks`；在
   Swift Package Manager 下由 `@available` 守卫让链接器弱链接它），每处使用都位于
   `#if canImport(FoundationModels)` 和 `@available(iOS 26.0, macOS 26.0, *)` 之后，因此部署目标仍为 iOS 13.0，
@@ -52,7 +52,7 @@
   release 构建会在运行时失败，看起来像是设备不受支持，而 debug 构建一切正常。
 - `AndroidManifest.xml` 在 `<queries>` 中有 `<package android:name="com.google.android.aicore"/>`，使 AICore 版本
   在 API 30 及以上可见。
-- `GenAiChannel`（`android/app/src/main/kotlin/com/yuanzhe/my_anime/GenAiChannel.kt`）在
+- `GenAiChannel`（`packages/myapps_ai/packages/myapps_ai_platform/android/src/main/kotlin/com/yuanzhe/myapps_ai/GenAiChannel.kt`）在
   `MainActivity.configureFlutterEngine` 中与分享和文件打开通道一起挂接，并在 `onDestroy` 中解除挂接，同时关闭
   AICore 客户端。见 [`on-device-ai.md`](on-device-ai.md)。
 - 本地可通过 `key.properties` 可选签名；CI 使用 GitHub Secrets。
