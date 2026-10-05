@@ -1,5 +1,7 @@
 # MyAnime `lib/` 函数索引
 
+设置显示委托公共界面组件，见 [shared-ui.md](../shared-ui.md)。
+
 资料条目现在描述公共导出和应用适配，实现归属见 [shared-ui.md](../shared-ui.md)。
 
 第三方平台修复（不计入 `lib/` 总数）：[macOS WebView](packages/flutter_inappwebview_macos.md)。

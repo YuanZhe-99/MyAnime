@@ -1,5 +1,9 @@
 # lib/features/settings/views/settings_page.dart
 
+Settings group rendering and single-choice segments delegate to myapps_ui.
+The app retains labels, state callbacks, routes and storage. Common ARB values
+are validated by shared_l10n_test; see [../../../../shared-ui.md](../../../../shared-ui.md).
+
 `SettingsPage` is the app's main Settings screen: the profile header (display name and avatar, 1.7.0), theme/interface-style/locale/calendar preferences (backed by
 `shared/providers/app_settings.dart`), the reminder toggle, the Kana-tab switch, the *Categories & recommendations* section (automatic
 categories, recommendations and on-device AI), data actions (WebDAV sync entry point,

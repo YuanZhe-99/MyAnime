@@ -1,5 +1,7 @@
 # MyAnime `lib/` Function Index
 
+Settings rendering delegates to the shared UI components; see [shared-ui.md](../shared-ui.md).
+
 Profile rows now document shared exports and app adapters; implementation ownership is in [shared-ui.md](../shared-ui.md).
 
 Vendored platform repair (outside `lib/` totals): [macOS WebView](packages/flutter_inappwebview_macos.md).

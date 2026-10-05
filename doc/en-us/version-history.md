@@ -1,5 +1,11 @@
 # Version history
 
+## 1.8.3 — Shared settings and catalogs
+
+- Adopt MyApps-UI v0.1.4 settings components and common ARB checks.
+- Complete the extraction and remove the library's completed roadmap.
+- Align the anime-search user agent with the application version.
+
 ## 1.8.2 — P3 shared profile and avatar
 
 - Adopt MyApps-UI v0.1.2 through app storage, sync and localization adapters.

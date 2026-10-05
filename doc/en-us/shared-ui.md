@@ -1,5 +1,13 @@
 # Shared UI foundations
 
+## Settings and common catalogs
+
+The app pins MyApps-UI v0.1.4. Settings sections and segmented controls delegate
+to shared widgets; callbacks still use AppSettingsNotifier. Common appearance and
+navigation ARB values are maintained in the library and checked by shared_l10n_test.
+App-specific strings, localization delegates, routes and persistence remain here.
+The extraction is complete; library concept docs replace the completed roadmap.
+
 MyApps-UI `v0.1.2` is embedded at `packages/myapps_ui`, with relative URL
 `../MyApps-UI.git`. Initialize submodules recursively after cloning.
 

@@ -3,6 +3,8 @@ import 'dart:io';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:myapps_ui/myapps_ui.dart'
+    show MyAppsSettingsSection, MyAppsSettingsSegments;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:launch_at_startup/launch_at_startup.dart';
 import 'package:package_info_plus/package_info_plus.dart';
@@ -218,23 +220,8 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
   /// Returns: `Widget`.
   /// Side effects: None.
   /// Notes: Internal helper used within this file only.
-  Widget _buildSection(String title, List<Widget> children) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Padding(
-          padding: const EdgeInsets.fromLTRB(16, 16, 16, 4),
-          child: Text(
-            title,
-            style: Theme.of(context).textTheme.titleSmall?.copyWith(
-              color: Theme.of(context).colorScheme.primary,
-            ),
-          ),
-        ),
-        ...children,
-      ],
-    );
-  }
+  Widget _buildSection(String title, List<Widget> children) =>
+      MyAppsSettingsSection(title: title, children: children);
 
   /// Purpose: Return the localized label for a home calendar layout option.
   /// Inputs: `layout`, `l10n`.
@@ -833,7 +820,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
           ),
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16),
-            child: SegmentedButton<ThemeMode>(
+            child: MyAppsSettingsSegments<ThemeMode>(
               segments: [
                 ButtonSegment(
                   value: ThemeMode.system,
@@ -865,7 +852,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
           ),
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16),
-            child: SegmentedButton<AppUiStyle>(
+            child: MyAppsSettingsSegments<AppUiStyle>(
               segments: [
                 ButtonSegment(
                   value: AppUiStyle.material3,
@@ -891,7 +878,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
           ),
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16),
-            child: SegmentedButton<NavPlacement>(
+            child: MyAppsSettingsSegments<NavPlacement>(
               segments: [
                 ButtonSegment(
                   value: NavPlacement.bottom,
@@ -918,7 +905,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
             ),
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16),
-              child: SegmentedButton<bool>(
+              child: MyAppsSettingsSegments<bool>(
                 segments: [
                   ButtonSegment(
                     value: false,

@@ -1,5 +1,8 @@
 # lib/features/settings/views/settings_page.dart
 
+设置分组显示及单选分段委托 myapps_ui，应用保留文案、状态回调、路由和存储。
+shared_l10n_test 验证公共 ARB 值，见 [../../../../shared-ui.md](../../../../shared-ui.md)。
+
 `SettingsPage` 是应用的主设置屏：个人资料头部（名称与头像，1.7.0）、主题/界面风格/语言区域/日历偏好（由 `shared/providers/app_settings.dart` 支撑）、提醒开关、假名标签开关、「分类与推荐」分区（自动分类、推荐与端侧 AI）、数据操作（WebDAV 同步入口、备份入口、ZIP/Markdown 导出/导入、重复检查、存储位置）、纯桌面托盘/开机自启/本地 API 服务器控件，以及关于小节（版本、隐私政策、许可证）。它是一个 `ConsumerStatefulWidget`（Riverpod），也监听 `AutoSyncService.addOnStatusChanged`，使 WebDAV 行的错误/冲突副标题无需导航离开就保持实时。与 `license_page.dart`/`privacy_policy_page.dart` 不同，它大多数非 `build` 方法都是真实操作处理器——读写 `AnimeStorage` 的 JSON 配置、调用 `ImportExportService`、`LocalApiServer`、`ReminderService`、`TrayService` 和 `launch_at_startup`——因此这个"视图"文件有巨大的 Tier A 表面。
 
 自 1.5.4 起它同时也是一个列表-详情布局。在全应用拆分规则允许的窗口上，一级列表留在左边，它所通向的二级
