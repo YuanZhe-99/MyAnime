@@ -1,5 +1,10 @@
 # lib/shared/utils/adaptive_layout.dart
 
+Common thresholds and `canSplitLayout`, `useNavigationRail`, `columnCapacity`,
+`listRowCount` below are now re-exports from `myapps_adaptive`, not locally
+implemented declarations. Business constraints and Flutter padding remain here.
+See [../../../shared-ui.md](../../../shared-ui.md).
+
 The app-wide adaptive-layout policy: the `splitMinWidth`, `splitMinHeight` and `splitMinAspect`
 thresholds that decide whether a layout may split at all, and the `listTileMinWidth`,
 `listTileGap`, `listMaxColumns` and `listColumnsAuto` constants that decide how many columns a list

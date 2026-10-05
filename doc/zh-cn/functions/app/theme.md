@@ -1,5 +1,10 @@
 # lib/app/theme.dart
 
+本文件现在调用 MyApps-UI `v0.1.0`。公共枚举通过重新导出提供；
+原品牌色和 `scheme`、`build`、`light`、`dark` 接口保持不变。
+下文的内部主题函数只在共享包中实现。
+见 [../../shared-ui.md](../../shared-ui.md)。
+
 定义 `AppUiStyle`（两种界面风格）、`NavPlacement`（外壳把导航放在哪里，1.7.2）与 `AppTheme`——一个纯静态类，用单个种子色构建应用的 `ThemeData`。自 1.7.0 起，视觉体系是纯 Flutter Material 3（`ThemeData` + `ColorScheme.fromSeed`）；`flex_color_scheme` 已移除。自 1.7.1 起，主题在相同配色之上提供两种风格：原版 **Material 3**，以及 **Expressive**（默认）——在其之上叠加的、主题层面的 Material 3 Expressive 近似。平台动态取色（Material You）**不**在此处读取——由调用方决定是否传入动态配色方案。被 [`../app/app.md`](app.md) 中的 `MyAnimeApp.build()` 作为 `theme:`/`darkTheme:` 消费；`ShareService` 也由 `AppTheme.seedColor` 派生分享图配色。视觉体系在应用外壳中的位置见 [../../architecture.md](../../architecture.md#app-shell)。
 
 ## 声明
@@ -10,12 +15,8 @@
 | [`NavPlacement`](#navplacement) | 枚举 | A | 外壳把导航放在哪里，两种风格通用：`bottom`、`sideOnWide` 或 `side`（1.7.2）。 |
 | `AppTheme._` | 构造函数（`AppTheme`） | B | 阻止直接实例化，只暴露静态成员。 |
 | [`AppTheme.seedColor`](#apptheme-seedcolor) | 静态常量（`AppTheme`） | A | 应用的品牌色，也是视觉体系中唯一的每应用旋钮。 |
-| [`AppTheme._morphDuration`](#apptheme-morphduration) | 静态常量（`AppTheme`，私有） | A | Expressive 按钮在静止与按下形状之间变形所用的时长（1.7.1）。 |
 | [`AppTheme.scheme`](#apptheme-scheme) | 静态方法（`AppTheme`） | A | 解析某一亮度的 `ColorScheme`：给定动态配色方案则用之，否则用种子色方案。 |
 | [`AppTheme.build`](#apptheme-build) | 静态方法（`AppTheme`） | A | 为某一亮度与界面风格构建 `ThemeData`。 |
-| [`AppTheme._morphingButtonStyle`](#apptheme-morphingbuttonstyle) | 静态方法（`AppTheme`，私有） | A | 返回按下时形状从胶囊形变为圆角方形的按钮样式（1.7.1）。 |
-| [`AppTheme._emphasized`](#apptheme-emphasized) | 静态方法（`AppTheme`，私有） | A | 加重 display、headline 与 title 文字样式的字重（1.7.1）。 |
-| [`AppTheme._expressive`](#apptheme-expressive) | 静态方法（`AppTheme`，私有） | A | 在原版 Material 3 主题之上叠加主题层面的 Material 3 Expressive 近似（1.7.1）。 |
 | [`AppTheme.light`](#apptheme-light) | 静态方法（`AppTheme`） | A | 返回应用使用的浅色 Material 主题。 |
 | [`AppTheme.dark`](#apptheme-dark) | 静态方法（`AppTheme`） | A | 返回应用使用的深色 Material 主题。 |
 

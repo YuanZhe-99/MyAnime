@@ -1,126 +1,34 @@
 import 'package:flutter/widgets.dart';
+import 'package:myapps_adaptive/myapps_adaptive.dart';
 
-/// Minimum viewport width, in logical pixels, before a layout may split.
-///
-/// Material's *medium* width class and Android's `sw600dp` tablet threshold.
-const splitMinWidth = 600.0;
+export 'package:myapps_adaptive/myapps_adaptive.dart';
 
-/// Minimum viewport height, in logical pixels, before a layout may split.
-///
-/// Matches the boundary between Android's compact and medium height classes.
-/// Google's own guidance is that a window whose height is compact — a phone or
-/// an open flippable held in landscape — cannot practically carry two panes.
-const splitMinHeight = 480.0;
-
-/// Minimum viewport width-to-height ratio before a layout may split.
-const splitMinAspect = 0.82;
-
-/// Minimum width, in logical pixels, one list column may occupy.
-///
-/// The list tiles carry a 40x56 cover, two lines of text and up to two trailing
-/// icon buttons, so a column narrower than this truncates the title to nothing.
+/// Minimum width for a cover, title and trailing actions in an anime tile.
 const listTileMinWidth = 320.0;
 
-/// Horizontal gap, in logical pixels, between columns of a multi-column list.
-const listTileGap = 12.0;
-
-/// Largest number of columns a list will use, however wide the window is.
-const listMaxColumns = 4;
-
-/// Column preference meaning "use whatever the width can fit".
-const listColumnsAuto = 0;
-
-/// Minimum viewport width, in logical pixels, before the shell shows its
-/// navigation rail instead of a bottom navigation bar.
-///
-/// Material's *medium* width class, which is where Google's guidance moves
-/// navigation to the side. This is a width-only threshold on purpose; see
-/// [useNavigationRail].
-const navRailMinWidth = 600.0;
-
-/// Logical pixels the navigation rail takes from the content when it is shown.
-///
-/// An 80 dp `NavigationRail` plus the 1 dp `VerticalDivider` beside it.
-const navRailWidth = 81.0;
-
-/// Smallest width, in logical pixels, the settings detail pane may be given.
+/// Minimum usable settings detail pane width.
 const settingsRightPaneMinWidth = 280.0;
 
-/// Smallest width, in logical pixels, the statistics summary cards may occupy
-/// when they sit beside the trend chart rather than above it.
-///
-/// The four cards become a 2x2 grid there, so this leaves each card about 124
-/// logical pixels — enough for a two-digit count above a wrapped label.
+/// Minimum width for the statistics summary's two-column card grid.
 const statsSummaryPaneMinWidth = 260.0;
 
-/// Smallest width, in logical pixels, the trend chart may be given before the
-/// statistics summary stops sitting beside it.
-///
-/// The chart reserves 32 for its sticky y-axis and draws one bar group every 50
-/// logical pixels, so this shows roughly seven periods before scrolling.
+/// Minimum width for the chart axis and approximately seven periods.
 const statsChartMinWidth = 380.0;
 
-/// Minimum width, in logical pixels, one ranking filter dropdown may occupy.
-///
-/// Each is an `OutlineInputBorder` dropdown whose longest localized label is
-/// Japanese; below this the label truncates before the arrow.
+/// Minimum width for localized ranking dropdown labels.
 const rankingFilterMinWidth = 280.0;
 
-/// Width, in logical pixels, the ranking score-source segmented button needs.
+/// Width reserved for ranking score-source controls.
 const rankingScoreSourceWidth = 200.0;
 
-/// Width, in logical pixels, the ranking sort-direction segmented button needs.
+/// Width reserved for ranking sort-direction controls.
 const rankingDirectionWidth = 170.0;
 
-/// Minimum width, in logical pixels, one metadata-update proposal card may
-/// occupy.
-///
-/// A card spends 24 on its own padding, and every change row inside it spends
-/// 24 on a checkbox, 8 on a gap and a fixed 84 on the field label. 360 leaves
-/// roughly 220 for the struck-through old value, the arrow and the new one,
-/// which keeps a typical pair on one line — the comparison is the whole point
-/// of the row, and a value that wraps costs more than a column gains.
+/// Minimum proposal width for checkbox, field label and compared values.
 const metaUpdateCardMinWidth = 360.0;
 
-/// Minimum width, in logical pixels, one episode tile on the episode page may
-/// occupy (1.6.5).
-///
-/// Each tile carries a play button, an edit button and a subtitle whose
-/// second line is the page address, plus a resume bar when playback stopped
-/// part-way. Narrower than this the address truncates to its scheme and host.
+/// Minimum episode tile width for playback, editing and page address.
 const episodeTileMinWidth = 360.0;
-
-/// Purpose: Report whether a layout may split into panes or columns.
-/// Inputs: `width`, `height` — the viewport size in logical pixels.
-/// Returns: `bool`.
-/// Side effects: None.
-/// Notes: Three independent conditions, because none of them alone is enough.
-/// The aspect test is the load-bearing one: it keeps a viewport that is
-/// meaningfully taller than it is wide on the original single-column layout, so
-/// a Galaxy Z Fold 8 splits in landscape (4:3) but not in portrait (3:4), while
-/// the near-square Fold 7 and Fold 8 Ultra split in both orientations. The width
-/// floor is the usual `sw600dp` tablet threshold. The height floor exists
-/// because the aspect test alone admits wide, short viewports — a folded cover
-/// screen or an ordinary phone held in landscape would otherwise split into two
-/// cramped panes. See `doc/en-us/adaptive-layout.md` for the full derivation.
-bool canSplitLayout(double width, double height) {
-  if (width < splitMinWidth) return false;
-  if (height < splitMinHeight) return false;
-  if (height <= 0) return false;
-  return width / height >= splitMinAspect;
-}
-
-/// Purpose: Report whether the shell should show a navigation rail.
-/// Inputs: `screenWidth` — the whole screen width in logical pixels.
-/// Returns: `bool`.
-/// Side effects: None.
-/// Notes: **Width only, deliberately** — this is not [canSplitLayout] and must
-/// not be routed through it. A rail is not a split; it trades width, which is
-/// abundant whenever this returns true, for height, which is not. The case it
-/// helps most is the one the split rule rejects on purpose: an ordinary phone
-/// held in landscape at 915 x 412, where a bottom bar spends 19% of the height
-/// on navigation while 915 logical pixels of width sit unused.
-bool useNavigationRail(double screenWidth) => screenWidth >= navRailMinWidth;
 
 /// Purpose: Return the width a shell page's content actually receives.
 /// Inputs: `screenWidth` — the whole screen width in logical pixels.
@@ -149,29 +57,6 @@ double shellContentWidth(double screenWidth) {
 /// this value by [navBarAwarePadding], which every caller wraps around it.
 double shellListBottomInset(double screenWidth) =>
     useNavigationRail(screenWidth) ? 16.0 : 80.0;
-
-/// Purpose: Return how many columns of a given minimum width fit a content box.
-/// Inputs: `contentWidth` — the width available, in logical pixels;
-/// `minItemWidth` — the narrowest one column may be; `gap` — spacing between
-/// columns; `maxColumns` — a ceiling however wide the box is.
-/// Returns: `int`, at least 1 and at most `maxColumns`.
-/// Side effects: None.
-/// Notes: The adaptive-minimum-width approach Google recommends for feeds and
-/// grids, rather than a hardcoded count per breakpoint. One gap is added to the
-/// numerator so the arithmetic pays for the gaps *between* columns rather than
-/// one after every column. Non-positive widths return 1.
-int columnCapacity(
-  double contentWidth, {
-  required double minItemWidth,
-  double gap = listTileGap,
-  int maxColumns = listMaxColumns,
-}) {
-  final ceiling = maxColumns < 1 ? 1 : maxColumns;
-  if (contentWidth <= 0) return 1;
-  if (minItemWidth <= 0) return ceiling;
-  final fit = ((contentWidth + gap) / (minItemWidth + gap)).floor();
-  return fit.clamp(1, ceiling);
-}
 
 /// Purpose: Return how many list columns a given content width can carry.
 /// Inputs: `contentWidth` — the width available to the list, in logical pixels.
@@ -205,18 +90,6 @@ int listColumnCount({
   final capacity = listColumnCapacity(contentWidth);
   if (preference == listColumnsAuto) return capacity;
   return preference.clamp(1, capacity);
-}
-
-/// Purpose: Return how many rows a list of items needs at a column count.
-/// Inputs: `itemCount`, `columns`.
-/// Returns: `int`.
-/// Side effects: None.
-/// Notes: The last row may be short; callers pad it so the remaining tiles keep
-/// their width instead of stretching across the row.
-int listRowCount(int itemCount, int columns) {
-  if (itemCount <= 0) return 0;
-  final perRow = columns < 1 ? 1 : columns;
-  return (itemCount + perRow - 1) ~/ perRow;
 }
 
 /// Purpose: Return the width of the settings page's fixed left pane.

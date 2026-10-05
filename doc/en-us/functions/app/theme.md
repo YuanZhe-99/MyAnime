@@ -1,5 +1,10 @@
 # lib/app/theme.dart
 
+This file now delegates to MyApps-UI `v0.1.0`. Shared enums are re-exported;
+the original seed and `scheme`, `build`, `light`, `dark` APIs are retained.
+Private theme helpers described below are implemented only in the shared package.
+See [../../shared-ui.md](../../shared-ui.md).
+
 Defines `AppUiStyle` (the two interface styles), `NavPlacement` (where the shell puts its navigation, 1.7.2) and `AppTheme`, a static-only class that builds the app's
 `ThemeData` from a single seed color. Since 1.7.0 the visual system is plain Flutter Material 3
 (`ThemeData` + `ColorScheme.fromSeed`); `flex_color_scheme` is gone. Since 1.7.1 the theme comes in two
@@ -19,12 +24,8 @@ app shell.
 | [`NavPlacement`](#navplacement) | enum | A | Where the shell puts its navigation, for both styles: `bottom`, `sideOnWide` or `side` (1.7.2). |
 | `AppTheme._` | constructor (`AppTheme`) | B | Prevent direct instantiation and expose only static members. |
 | [`AppTheme.seedColor`](#apptheme-seedcolor) | static constant (`AppTheme`) | A | The app's brand color and the only per-app knob of the visual system. |
-| [`AppTheme._morphDuration`](#apptheme-morphduration) | static constant (`AppTheme`, private) | A | How long Expressive buttons take to morph between resting and pressed shapes (1.7.1). |
 | [`AppTheme.scheme`](#apptheme-scheme) | static method (`AppTheme`) | A | Resolve the `ColorScheme` for one brightness: the dynamic scheme if given, else the seed scheme. |
 | [`AppTheme.build`](#apptheme-build) | static method (`AppTheme`) | A | Build the `ThemeData` for one brightness and interface style. |
-| [`AppTheme._morphingButtonStyle`](#apptheme-morphingbuttonstyle) | static method (`AppTheme`, private) | A | Return a button style whose shape morphs from a pill to a rounded square while pressed (1.7.1). |
-| [`AppTheme._emphasized`](#apptheme-emphasized) | static method (`AppTheme`, private) | A | Make display, headline and title text styles heavier (1.7.1). |
-| [`AppTheme._expressive`](#apptheme-expressive) | static method (`AppTheme`, private) | A | Layer the theme-level Material 3 Expressive approximation onto a stock Material 3 theme (1.7.1). |
 | [`AppTheme.light`](#apptheme-light) | static method (`AppTheme`) | A | Return the light Material theme used by the app. |
 | [`AppTheme.dark`](#apptheme-dark) | static method (`AppTheme`) | A | Return the dark Material theme used by the app. |
 

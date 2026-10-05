@@ -1,5 +1,7 @@
 # lib/features/anime/services/metadata_update_service.dart
 
+Prefetched-cover promotion now awaits the image copy inside its try block, so asynchronous copy failures return null through the existing catch.
+
 `MetadataUpdateService` is the singleton that keeps anime metadata current while the app is open. It
 runs two queues — a silent **refresh** of cached `externalMeta` for records that already know their
 source, and a **discovery** search for records that are incomplete, which produces proposals rather

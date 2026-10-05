@@ -1,3 +1,6 @@
 [submodule "packages/myapps_data"]
 	path = packages/myapps_data
 	url = ../MyApps-DATA.git
+[submodule "packages/myapps_ui"]
+	path = packages/myapps_ui
+	url = ../MyApps-UI.git

@@ -1,5 +1,7 @@
 # lib/features/anime/services/metadata_update_service.dart
 
+预取封面提升时在 try 内等待图片复制，异步复制失败会通过原有 catch 返回 null。
+
 `MetadataUpdateService` 是在应用打开期间保持番剧元数据最新的单例。它运行两条队列 —— 对已经知道来源的
 记录静默**刷新**缓存的 `externalMeta`，以及对资料不全的记录进行**探索**搜索，后者产出建议而不是直接写入。
 

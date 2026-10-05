@@ -1000,13 +1000,13 @@ class MetadataUpdateService {
   /// Side effects: Copies a file.
   /// Notes: Internal helper used within this file only. The prefetch cache is
   /// not synced, so an accepted cover has to be copied into `images/` to reach
-  /// the user's other devices.
+  /// the user's other devices. Copy failures return null through the catch below.
   Future<String?> _promotePrefetchedCover(String relativePath) async {
     try {
       final appDir = await AnimeStorage.getAppDir();
       final source = File(p.join(appDir.path, relativePath));
       if (!await source.exists()) return null;
-      return ImageService.saveImageFromFile(source);
+      return await ImageService.saveImageFromFile(source);
     } catch (_) {
       return null;
     }

@@ -1,5 +1,7 @@
 # 自适应布局
 
+公共实现归属及全新克隆的接入说明见 [shared-ui.md](shared-ui.md)。
+
 这是全应用范围内关于**布局何时可以拆分**的规则——拆成动画详情页与设置页的两栏，或拆成三个数据浏览模块、
 假名页与资料库更新审阅页的多列——以及一旦可以拆分后**分几列**。另有一条更窄的规则决定**导航放在哪里**。两者都位于
 [`lib/shared/utils/adaptive_layout.dart`](functions/shared/utils/adaptive_layout.md)，该模块刻意只导入

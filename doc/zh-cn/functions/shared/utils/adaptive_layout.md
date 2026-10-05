@@ -1,5 +1,10 @@
 # lib/shared/utils/adaptive_layout.dart
 
+下文的公共阈值和 `canSplitLayout`、`useNavigationRail`、`columnCapacity`、
+`listRowCount` 现在重新导出自 `myapps_adaptive`，不再是本地实现的声明。
+业务约束和 Flutter 避让仍保留在此文件。
+见 [../../../shared-ui.md](../../../shared-ui.md)。
+
 全应用范围的自适应布局策略：决定布局是否可以拆分的 `splitMinWidth`、`splitMinHeight`、`splitMinAspect` 三个
 阈值，以及一旦可以拆分后决定列表分成几列的 `listTileMinWidth`、`listTileGap`、`listMaxColumns`、
 `listColumnsAuto` 四个常量，外加为外壳侧边导航栏与设置详情栏而设的 `navRailMinWidth`、`navRailWidth`

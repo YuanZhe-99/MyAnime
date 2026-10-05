@@ -1,5 +1,7 @@
 # Adaptive layout
 
+Shared implementation ownership and fresh-clone instructions: [shared-ui.md](shared-ui.md).
+
 This is the app-wide rule for **when a layout may split** — into two panes on the anime detail page
 and the settings page, or into multiple columns in the three data-browsing modules, on the kana page
 and on the metadata review page — and, once it may, **how many columns** it gets. A second,

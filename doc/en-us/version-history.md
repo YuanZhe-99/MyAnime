@@ -1,5 +1,14 @@
 # Version history
 
+## 1.8.0 — Shared UI foundations
+
+2026-10-04. Adopt MyApps-UI `v0.1.0`, published to both remotes before app adoption.
+Shared themes and adaptive rules replace duplicated implementations while retaining
+the purple brand, facade APIs, navigation, settings and data formats. Await prefetched
+cover copying inside its try/catch so asynchronous failures use the intended fallback.
+Full Flutter suite: 656 passed, 3 skipped. Version `1.8.0+73`; MSIX `1.8.0.0`;
+installer `1.8.0`; search User-Agent `MyAnime/1.8.0`.
+
 Release-by-release summary of MyAnime!!!!!. Useful for understanding *why* a behavior exists before
 changing it — several entries record deliberate safety fixes that look like quirks otherwise.
 
@@ -77,6 +86,9 @@ content after an early `git commit --amend`, and tag `v0.1.0` points to the late
 `git commit --amend` on root commits.**
 
 ## Releases
+
+- `v1.8.0` — 2026-10-04. Adopt MyApps-UI `v0.1.0` after publishing the shared commit and tag to both remotes. Shared Material 3 / Expressive construction replaces duplicated theme code; common split and packing rules are re-exported through the existing layout entry point. Brand colors, public APIs, navigation and data formats remain compatible. Local full Flutter suite: 656 passed, 3 skipped. Version `1.8.0+73`. Await prefetched-cover copying inside its existing try/catch so asynchronous failures use the intended null fallback.
+
 
 - `v0.1.0`: Initial anime tracker.
 - `v0.1.1`: Store/full flavors, daily reminders, JST calendar note, macOS support, CI/CD, platform naming and icons.

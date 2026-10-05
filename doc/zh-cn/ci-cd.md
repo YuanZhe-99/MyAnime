@@ -1,5 +1,7 @@
 # CI/CD 与构建命令
 
+公共实现归属及全新克隆的接入说明见 [shared-ui.md](shared-ui.md)。
+
 ## 工作流
 
 `.github/workflows/build.yml` 在 `v*` 标签推送和 `workflow_dispatch` 时运行。

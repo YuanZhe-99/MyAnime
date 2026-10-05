@@ -1,5 +1,7 @@
 # CI/CD and build commands
 
+Shared implementation ownership and fresh-clone instructions: [shared-ui.md](shared-ui.md).
+
 ## Workflow
 
 `.github/workflows/build.yml` runs on `v*` tag pushes and `workflow_dispatch`.

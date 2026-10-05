@@ -1,5 +1,8 @@
 # 架构
 
+公共主题和布局基础现在由 MyApps-UI 提供；职责划分、接入方式和升级顺序见
+[shared-ui.md](shared-ui.md)。
+
 本页描述应用外壳、状态管理方式、导航、本地化和仓库布局，外加 `AGENTS.md` 的"核心架构"一节中跨领域架构规则。数据模型见 [`data-formats.md`](data-formats.md)，构建在此外壳之上的同步子系统见 [`sync.md`](sync.md)。
 
 ## 应用外壳

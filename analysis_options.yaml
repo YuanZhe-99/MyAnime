@@ -7,6 +7,17 @@
 
 # The following line activates a set of recommended lints for Flutter apps,
 # packages, and plugins designed to encourage good coding practices.
+analyzer:
+  exclude:
+    # Shared packages have their own dependency resolution and CI checks.
+    - packages/myapps_ui/**
+    # Vendored platform repair; upstream style is documented in packages/VENDORED.md.
+    - packages/flutter_inappwebview_macos/**
+    - build/**
+    - android/**
+    - ios/**
+    - windows/**
+    - macos/**
 include: package:flutter_lints/flutter.yaml
 
 linter:
