@@ -566,3 +566,11 @@ incoming record collides with a local one, offering keep-local/use-imported/merg
 ## Episode directory and corrections (1.6.4)
 
 Optional externalMeta.episodeCatalog stores sourceUrl, categoryUrl, title, catId, indexTitle, indexEpisodes, UTC checkedAt, complete and pages (url/title/label/group). Optional Anime.episodeMapping stores sourceUrl, group, first, last and overrides keyed by local episode number. Bounds are inclusive site numbers; an empty override leaves an episode unmapped. Derived links are recomputed from the current record and these inputs. Unknown fields survive JSON round trips; existing records need no migration. Cache writes preserve modifiedAt; manual corrections update it. Both fields travel through existing sync, backup and item-import paths; no media URL, token or cookie is serialized.
+
+## AI sources and WebDAV privacy
+
+MyApps-AI v0.5.2 is explicitly split into runtime, platform, models, local UI and llama.cpp packages. Settings uses the unified section skeleton. Global source selection is device-local (`aiSourceSelection`), defaults to system AI, and never chooses online as fallback. Qwen3.5 0.8B/2B Q4_K_M and Gemma 4 E2B Q4_0 run on CPU. Downloads require explicit actions, use pinned URLs and SHA-256, and live under `ai_models/` outside data modules, sync, backup and ZIP. Model leases prevent removal during use. Source switches cancel old work and release model resources. System proofreading remains independent in MyNihongo.
+
+WebDAV notice version 1 must be acknowledged on each device before connection testing, manual/force sync or background sync. The record is in device-local storage_config.json. Existing configurations stay intact while sync is paused; the WebDAV page displays a review banner. Declining saves no configuration and makes no request. JSON/images have no application-level encryption; HTTPS protects transit, HTTP does not. Wire format, locks and conflict policy remain unchanged.
+
+Online sources use shared online UI/backend and MyApps-UI inputs. Provider records and plaintext API keys are device-local; keys use SecretStore and never enter sync/backup/ZIP. Explicit selection and host-specific privacy acknowledgement are required. Prompts contain category/recommendation inputs; no online fallback.

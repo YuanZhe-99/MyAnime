@@ -17,6 +17,9 @@ import '../services/sync_merge.dart';
 import '../services/sync_progress.dart';
 import '../services/sync_wake_lock.dart';
 import '../services/webdav_service.dart';
+import '../services/webdav_privacy.dart';
+import 'package:myapps_data/myapps_data.dart'
+    show MyAppsWebDavSyncPausedBanner, WebDavPrivacyStatus;
 
 class WebDAVConfigPage extends StatefulWidget {
   /// Purpose: Create a web davconfig page instance.
@@ -45,6 +48,7 @@ class _WebDAVConfigPageState extends State<WebDAVConfigPage> {
   bool _syncing = false;
   bool _isConfigured = false;
   bool _autoSync = false;
+  WebDavPrivacyStatus _privacyStatus = WebDavPrivacyStatus.firstEnable;
 
   /// Purpose: Initialize listeners, controllers, and first-load work for this state object.
   /// Inputs: None.
@@ -74,6 +78,7 @@ class _WebDAVConfigPageState extends State<WebDAVConfigPage> {
   /// Notes: Internal helper used within this file only.
   Future<void> _loadConfig() async {
     final config = await WebDAVService.loadConfig();
+    _privacyStatus = await WebDavPrivacy.status(config?.isConfigured ?? false);
     if (config != null) {
       _urlController.text = config.serverUrl;
       _userController.text = config.username;
@@ -121,7 +126,9 @@ class _WebDAVConfigPageState extends State<WebDAVConfigPage> {
   /// Returns without touching state when the page is unmounted after the awaited save.
   Future<void> _saveConfig() async {
     final config = _currentConfig;
+    if (!await WebDavPrivacy.ensure(context, config)) return;
     await WebDAVService.saveConfig(config);
+    _privacyStatus = await WebDavPrivacy.status(config.isConfigured);
     if (config.isConfigured && config.autoSync) {
       AutoSyncService.instance.requestSyncNow();
     }
@@ -140,6 +147,8 @@ class _WebDAVConfigPageState extends State<WebDAVConfigPage> {
   /// Side effects: May perform network or file-system operations.
   /// Notes: Internal helper used within this file only.
   Future<void> _testConnection() async {
+    if (!await WebDavPrivacy.ensure(context, _currentConfig)) return;
+    if (!mounted) return;
     setState(() => _testing = true);
     final ok = await WebDAVService.testConnection(_currentConfig);
     if (mounted) {
@@ -166,6 +175,8 @@ class _WebDAVConfigPageState extends State<WebDAVConfigPage> {
   /// `_syncing` busy flag are both reset in `finally` so failures and
   /// exceptions cannot leak them.
   Future<void> _syncNow() async {
+    if (!await WebDavPrivacy.ensure(context, _currentConfig)) return;
+    if (!mounted) return;
     setState(() => _syncing = true);
     await SyncWakeLock.acquire();
     SyncResult result;
@@ -263,6 +274,8 @@ class _WebDAVConfigPageState extends State<WebDAVConfigPage> {
   /// acquired only after the user confirms; it and the `_syncing` busy flag
   /// are both reset in `finally`.
   Future<void> _forceUpload() async {
+    if (!await WebDavPrivacy.ensure(context, _currentConfig)) return;
+    if (!mounted) return;
     final l10n = AppLocalizations.of(context)!;
     final confirmed = await _confirmForceAction(
       title: l10n.settingsWebDAVForceUploadConfirmTitle,
@@ -294,6 +307,8 @@ class _WebDAVConfigPageState extends State<WebDAVConfigPage> {
   /// acquired only after the user confirms; it and the `_syncing` busy flag
   /// are both reset in `finally`.
   Future<void> _forceDownload() async {
+    if (!await WebDavPrivacy.ensure(context, _currentConfig)) return;
+    if (!mounted) return;
     final l10n = AppLocalizations.of(context)!;
     final confirmed = await _confirmForceAction(
       title: l10n.settingsWebDAVForceDownloadConfirmTitle,
@@ -532,6 +547,12 @@ class _WebDAVConfigPageState extends State<WebDAVConfigPage> {
                   ],
                 ),
                 const SizedBox(height: 16),
+                if (_privacyStatus == WebDavPrivacyStatus.syncPaused)
+                  MyAppsWebDavSyncPausedBanner(
+                    message: l10n.webdavPrivacyPaused,
+                    reviewLabel: l10n.webdavPrivacyReview,
+                    onReview: _saveConfig,
+                  ),
                 MyAppsWebDavSettings(
                   urlController: _urlController,
                   usernameController: _userController,

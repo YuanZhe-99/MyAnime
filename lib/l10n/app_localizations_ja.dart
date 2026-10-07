@@ -9,6 +9,173 @@ class AppLocalizationsJa extends AppLocalizations {
   AppLocalizationsJa([String locale = 'ja']) : super(locale);
 
   @override
+  String get aiLocalPrivacyPolicy =>
+      'ローカル AI モデル：Qwen3.5 0.8B/2B または Gemma 4 E2B（4bit）を Hugging Face から明示的にダウンロードできます。配信元には IP アドレスが伝わりますが、アプリの記録は送信しません。固定の SHA-256 で検証したファイルはこの端末にのみ保存し、同期、バックアップ、ZIP エクスポートから除外します。推論は端末の CPU で実行し、プロンプトをサーバーへ送りません。ファイルを削除しても生成済みの内容は残ります。自動ダウンロードは行いません。';
+
+  @override
+  String get aiOnlineSources => 'オンライン AI ソース';
+
+  @override
+  String get aiOnlineEmpty => 'オンラインソースは未設定です';
+
+  @override
+  String get aiOnlineAdd => 'ソースを追加';
+
+  @override
+  String get aiOnlineRemoveBody => 'このソースと端末に保存した API キーを削除しますか？';
+
+  @override
+  String get aiOnlineName => '名前';
+
+  @override
+  String get aiOnlineModel => 'モデル ID';
+
+  @override
+  String get aiOnlineSave => '保存';
+
+  @override
+  String get aiOnlineInvalidEndpoint => '完全な HTTP または HTTPS URL を入力してください';
+
+  @override
+  String get aiOnlineTestSuccess => '接続に成功しました';
+
+  @override
+  String get aiOnlineTestFailed => '接続に失敗しました';
+
+  @override
+  String get aiOnlinePrivacyTitle => 'オンライン AI のプライバシー通知';
+
+  @override
+  String get aiOnlineRecipient => '送信先サーバー';
+
+  @override
+  String get aiOnlineSentData =>
+      '分類のプロンプトには作品名、タグ、説明とカテゴリ名が含まれる場合があります。推薦には視聴済み・好きな作品名と候補作品名が含まれる場合があります。選択したソースにのみこれらのプロンプトを送ります。';
+
+  @override
+  String get aiOnlineKeyLocal =>
+      'API キーはこの端末にのみ平文で保存し、WebDAV 同期、バックアップ、ZIP エクスポートには含めません。';
+
+  @override
+  String get aiOnlineSelectedOnly =>
+      'このソースを明示的に選んだ場合のみオンライン AI を使います。自動フォールバックには使いません。HTTP 接続は暗号化されません。';
+
+  @override
+  String get aiOnlineEndpoint => 'API エンドポイント';
+
+  @override
+  String get aiOnlineShowKey => 'キーを表示';
+
+  @override
+  String get aiOnlineHideKey => 'キーを隠す';
+
+  @override
+  String get aiOnlineSavedKey => 'キーはこの端末に保存済み';
+
+  @override
+  String get aiOnlineTest => '接続をテスト';
+
+  @override
+  String get webdavPrivacyTitle => 'WebDAV のプライバシー通知';
+
+  @override
+  String get webdavPrivacyIntro => '同期を有効にする前に、送信されるデータを確認してください。';
+
+  @override
+  String get webdavPrivacyData => '同期されるデータ';
+
+  @override
+  String get webdavPrivacyOptional => '参照される画像';
+
+  @override
+  String get webdavPrivacyDestination => '設定したサーバー';
+
+  @override
+  String get webdavPrivacyEncryption => 'サーバー上の保存';
+
+  @override
+  String get webdavPrivacyTransport => '接続の安全性';
+
+  @override
+  String get webdavPrivacyHttps =>
+      'HTTPS は転送中のデータを暗号化します。サーバー管理者は保存されたデータを読めます。';
+
+  @override
+  String get webdavPrivacyHttp =>
+      'HTTP は接続を暗号化しません。データと認証情報が漏れる可能性があります。プライベートネットワークだけでは暗号化されません。';
+
+  @override
+  String get webdavPrivacyNoThirdParties => '同期データは設定した WebDAV サーバーにのみ送信されます。';
+
+  @override
+  String get webdavPrivacyConfirm => '理解して続行';
+
+  @override
+  String get webdavPrivacyInventory => 'アニメ一覧、カテゴリ、履歴とプロフィール';
+
+  @override
+  String get webdavPrivacyImages => '参照される写真とプロフィール画像';
+
+  @override
+  String get webdavPrivacyPlaintext =>
+      'JSON 記録と画像はアプリによって暗号化されません。サーバーのアクセス権が閲覧できる人を決めます。';
+
+  @override
+  String get webdavPrivacyPaused => 'この端末でプライバシー通知を確認するまで同期は一時停止します。';
+
+  @override
+  String get webdavPrivacyReview => '通知を確認';
+
+  @override
+  String get aiSourceTitle => 'AI のソースとモデル';
+
+  @override
+  String get aiSourceAuto => '自動（システム AI）';
+
+  @override
+  String get aiSourceSystem => 'システム AI';
+
+  @override
+  String get aiSourceNeedsPreparation => '使用前にモデルを準備してください';
+
+  @override
+  String get aiLocalModels => 'ローカルモデル';
+
+  @override
+  String get aiModelInstalled => 'インストール済み';
+
+  @override
+  String get aiModelDownloading => 'ダウンロード中';
+
+  @override
+  String get aiModelVerifying => '検証中';
+
+  @override
+  String get aiModelFailed => 'モデル操作に失敗しました。空き容量と接続を確認して再試行してください。';
+
+  @override
+  String get aiModelNotInstalled => '未インストール';
+
+  @override
+  String get aiModelVerify => '検証';
+
+  @override
+  String get aiModelRemove => 'モデルファイルを削除';
+
+  @override
+  String get aiModelRemoveBody => 'ダウンロードしたモデルファイルのみ削除します。モデルの記録と生成履歴は残ります。';
+
+  @override
+  String get aiSourceClearBody =>
+      'AI ソースが変更されました。以前のソースで生成した内容を削除しますか？保持すると既存の内容が残ります。';
+
+  @override
+  String get aiSourceKeep => '既存の内容を保持';
+
+  @override
+  String get aiActionCancel => 'キャンセル';
+
+  @override
   String get appTitle => 'MyAnime!!!!!';
 
   @override

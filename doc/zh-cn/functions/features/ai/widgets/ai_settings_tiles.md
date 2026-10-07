@@ -56,3 +56,6 @@
   `test/ai_settings_tiles_ui_test.dart`（用 `debugDefaultTargetPlatformOverride` 按平台测试）。
 - **备注：** `unsupported` 表述为需要支持 Apple Intelligence 的 iOS 26 或 macOS 26。这正是 Apple 插件在
   26 之前的 iOS 和 macOS 上报告的状态。
+
+
+当前接入 MyApps-AI v0.5.2，显式注入平台后端，使用应用所属来源路由与统一设置骨架。WebDAV 入口在任何网络请求前要求设备本地提醒确认；具体见同步概念文档。

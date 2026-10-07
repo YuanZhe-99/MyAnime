@@ -64,3 +64,7 @@ App ProfileStore supplies active storage root, atomic writer and sync notificati
 image-service resolution/deletion remains injected. Existing imports are re-export
 shims. App Riverpod providers, data-module registry, picker and localized edit dialog
 remain adapters. JSON, module order, image naming and field-merge behavior are unchanged.
+
+## Unified AI settings
+
+The app pins MyApps-UI v0.1.8, MyApps-DATA v1.1.0 and MyApps-AI v0.5.2. AI settings use MyAppsAiSettingsSkeleton, MyAppsAiSourcePicker and shared model management. Existing enabled and fast-model settings keep their serialized keys. Local CPU inference is available beyond the system-AI platform gate. WebDAV operations require this device’s notice acknowledgement.

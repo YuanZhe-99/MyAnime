@@ -16,3 +16,5 @@ MyApps-AI 授权声明包含 myapps_ai_ui。
 ## 文档
 
 本文件没有 Tier A 声明——两个成员都是 Tier B（平凡构造函数和一个只在静态 `_licenseText` 字段周围布局 `Scaffold`/`SelectableText` 的 `build` 方法）。完整成员列表见上方声明表。
+
+包含 llama.cpp MIT 署名及用户主动下载的 Qwen3.5/Gemma 4 模型 Apache-2.0 来源说明。

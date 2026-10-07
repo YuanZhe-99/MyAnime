@@ -196,3 +196,5 @@ WebDAV 同步引擎、备份引擎、ZIP 传输引擎和自动同步调度器**�
 完整版观看入口共用分集对应页与播放器页。映射为纯计算并绑定来源，媒体凭据仅存于会话。Windows 媒体库本地补丁在 ARM64 上禁用 x64 二进制，改用 WebView 播放。
 
 自 1.6.5 起，原生路由在 media_kit 的视频之上绘制应用自己的控件（`anime_player_controls.dart`），并通过 `PlaybackProgressService` 把同步的续播位置记录到 `playback_progress.json`，即第三个已注册的数据模块。播放超过一集的 95% 即标记为已看。分集对应页在折叠屏和宽窗口上遵循共享的分栏规则。
+
+AI 来源路由与 WebDAV 设备确认：见 [shared-ai.md](shared-ai.md) 与 [sync.md](sync.md)。

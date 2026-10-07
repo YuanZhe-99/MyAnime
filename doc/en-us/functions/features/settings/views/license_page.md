@@ -27,3 +27,5 @@ purely to display static text, distinct from the generated third-party license p
 No Tier A declarations in this file — both members are Tier B (a trivial constructor and a
 `build` method that only lays out a `Scaffold`/`SelectableText` around the static
 `_licenseText` field). See the Declarations table above for the full member list.
+
+Includes llama.cpp MIT attribution and Apache-2.0 model provenance for explicitly downloaded Qwen3.5/Gemma 4 artifacts.

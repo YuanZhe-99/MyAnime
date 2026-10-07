@@ -1,5 +1,11 @@
 # Version history
 
+## 1.8.11 — AI sources and WebDAV consent (2026-10-07)
+
+Complete P0/P1 (+0.0.2): explicit platform backend dependency, unified settings, local CPU models (Qwen3.5 0.8B/2B, Gemma 4 E2B, 4-bit), explicit downloads and device-local source persistence. D1 requires privacy acknowledgement before all WebDAV requests and visibly pauses existing configurations. Pin AI v0.5.2, UI v0.1.8, DATA v1.1.0.
+
+Online provider management is opt-in; prompts are sent only to an explicitly selected, acknowledged host. Keys stay device-local.
+
 ## 1.8.9 — Compact horizontal settings choices
 
 Pin MyApps-UI v0.1.7 for centered wrapped labels and horizontal fold-pane choices.
@@ -154,7 +160,7 @@ content after an early `git commit --amend`, and tag `v0.1.0` points to the late
 - `v0.4.3`: Year-by-quarter grid picker, wider quarter range, sticky Y-axis, default scroll to latest stats.
 - `v0.4.4`: Quarter jump fix, optional `firstAirDate`, Japanese title fallback, Other page.
 - `v0.5.0`: Comprehensive i18n cleanup for day names, season names, notifications, sync conflicts, and search labels.
-- `v0.5.1`: Share as `.myanimeitem` data file and file-open support on all platforms.
+- `v0.5.2`: Share as `.myanimeitem` data file and file-open support on all platforms.
 - `v0.5.2`: Import `.myanimeitem` from add menus, strip personal viewing data from export, better filenames, manual type override fix, installer metadata.
 - `v0.5.3`: `airsInQuarter()` respects `manualType` and episode week offsets.
 - `v0.5.4`: Markdown export option for LLM personalization.

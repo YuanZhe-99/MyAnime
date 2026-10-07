@@ -11,3 +11,5 @@
 
 重新导出 AiPriority 和 GenAiDownload。继承执行包含开关门控、生命周期、优先队列、
 超时取消、晚到结果失效和配额节奏。见 [shared-ai](../../../../shared-ai.md)。
+
+`sourceBackend` 是应用所属来源路由单例；默认构造注入它，测试仍可注入后端。

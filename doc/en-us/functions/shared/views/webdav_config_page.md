@@ -453,3 +453,6 @@ state/conflict-resolution logic" expected of this file.
 ## Changes in 1.6.7
 
 `_saveConfig` and `_disconnect` return when the page is no longer mounted after their awaited work, before touching `setState`, the text controllers or the `ScaffoldMessenger`.
+
+
+Current integration uses MyApps-AI v0.5.2, explicit platform injection, app-owned source routing and the unified settings skeleton. WebDAV entry points require device-local notice acknowledgement before any network request; see [sync.md](../../../sync.md).

@@ -396,3 +396,7 @@ to roughly two and a half times its real width. That is why `settings_two_pane_u
 in Simplified Chinese: the English option labels would overflow their rows in the test environment
 and nowhere else, and short Chinese labels let the test measure the real layout rather than filter
 errors around a fake one.
+
+## Model management
+
+Local model management is a pushed, scrollable route without a split breakpoint. Shared model tiles use the available content width; the parent settings pane retains its existing geometry. Online source management in MyAnime uses the shared scrollable editor.

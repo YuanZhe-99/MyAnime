@@ -55,10 +55,10 @@ void main() {
     await tester.pumpAndSettle();
   }
 
-  testWidgets('Windows shows no AI rows at all', (tester) async {
+  testWidgets('Windows offers local AI without probing while disabled', (tester) async {
     debugDefaultTargetPlatformOverride = TargetPlatform.windows;
     await pump(tester);
-    expect(find.byType(SwitchListTile), findsNothing);
+    expect(find.byType(SwitchListTile), findsOneWidget);
     expect(backend.calls, isEmpty);
     debugDefaultTargetPlatformOverride = null;
   });

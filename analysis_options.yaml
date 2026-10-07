@@ -11,6 +11,8 @@ analyzer:
   exclude:
     # Shared packages have their own dependency resolution and CI checks.
     - packages/myapps_ui/**
+    - packages/myapps_ai/**
+    - packages/myapps_data/**
     # Vendored platform repair; upstream style is documented in packages/VENDORED.md.
     - packages/flutter_inappwebview_macos/**
     - build/**

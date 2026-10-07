@@ -57,3 +57,7 @@ P3 资料抽取已完成，数据格式不变。
 和同步通知，图片解析和删除通过适配注入。原导入文件成为重新导出包装。
 Riverpod 状态、数据模块注册、选择器和本地化编辑对话框仍由应用负责。
 JSON、模块顺序、图片命名和字段合并行为不变。
+
+## 统一 AI 设置
+
+应用固定 MyApps-UI v0.1.8、MyApps-DATA v1.1.0 与 MyApps-AI v0.5.2。AI 设置使用 MyAppsAiSettingsSkeleton、MyAppsAiSourcePicker 与共享模型管理。已有开关和快速模型设置保持序列化键名。本地 CPU 推理不再受系统 AI 平台限制。WebDAV 操作要求本设备确认提醒。

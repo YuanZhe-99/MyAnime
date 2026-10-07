@@ -138,6 +138,14 @@ which one it belongs in — see the rule in Section 1.
 | dynamic color | 动态取色 | 仅 Android 12 及以上：界面颜色取自壁纸（Material You）；其他平台使用种子色 |
 | seed color | 种子色 | `AppTheme.seedColor`，生成整套 Material 3 配色的品牌色；每个 App 各不相同 |
 
+| privacy notice | 隐私提醒 | Notice before enabling data transfer / 启用数据传输前的提醒 |
+| acknowledgement | 确认记录 | Device-local consent / 设备本地确认 |
+| secure endpoint | 安全端点 | HTTPS or permitted private destination / HTTPS 或允许的私有目标 |
+| trusted host | 受信任主机 | Explicit user override / 用户明确放行 |
+| sync paused | 同步已暂停 | Waiting for acknowledgement / 等待确认 |
+| tombstone | 墓碑 | Explicit deletion record / 明确删除记录 |
+| secret namespace | 密钥命名空间 | Owned id prefix / 所属 ID 前缀 |
+
 ### 5.2 MyAnime-specific terms
 
 Not copied to the other repos — no other app has these.

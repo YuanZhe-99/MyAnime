@@ -6,6 +6,8 @@ import '../../../l10n/app_localizations.dart';
 import '../../../shared/providers/app_settings.dart';
 import '../services/genai_backend.dart';
 import '../services/on_device_ai_service.dart';
+import 'ai_source_controls.dart';
+import '../services/ai_insights_cache.dart';
 
 /// The on-device AI rows of the *Categories & recommendations* Settings
 /// section: the switch, the model status with its actions, the size
@@ -88,45 +90,113 @@ class _AiSettingsTilesState extends ConsumerState<AiSettingsTiles> {
   /// Notes: Rebuilds whenever the service notifies.
   @override
   Widget build(BuildContext context) {
-    if (!platformMayHaveOnDeviceModel) return const SizedBox.shrink();
     final l10n = AppLocalizations.of(context)!;
     final settings = ref.watch(appSettingsProvider);
     final notifier = ref.read(appSettingsProvider.notifier);
     final ai = ref.watch(onDeviceAiServiceProvider);
 
-    return MyAppsAiSettings(
-      ai: ai,
-      enabled: settings.onDeviceAiEnabled,
-      preferFast: settings.onDeviceAiPreferFast,
-      onEnabledChanged: widget.featuresOn || settings.onDeviceAiEnabled
-          ? notifier.setOnDeviceAiEnabled
-          : null,
-      onPreferFastChanged: notifier.setOnDeviceAiPreferFast,
-      localeTag: _localeTag(),
-      statusLabel: (status) => _statusLabel(status, l10n),
-      label: (key) => switch (key) {
-        'aiUseOnDevice' => l10n.aiUseOnDevice,
-        'aiUseOnDeviceDesc' =>
-          widget.featuresOn
+    return ListenableBuilder(
+      listenable: ai,
+      builder: (context, _) => MyAppsAiSettingsSkeleton(
+        enabled: settings.onDeviceAiEnabled,
+        master: MyAppsAiPreference(
+          title: l10n.aiUseOnDevice,
+          description: widget.featuresOn
               ? l10n.aiUseOnDeviceDesc
               : '${l10n.aiUseOnDeviceDesc}\n${l10n.aiNeedsFeature}',
-        'aiTurnOnAppleIntelligence' => l10n.aiTurnOnAppleIntelligence,
-        'aiDownload' => l10n.aiDownload,
-        'aiCheckAgain' => l10n.aiCheckAgain,
-        'aiPreferFast' => l10n.aiPreferFast,
-        'aiPreferFastBody' => l10n.aiPreferFastBody,
-        'aiDownloadNote' => l10n.aiDownloadNote,
-        'aiModelStorageNote' => l10n.aiModelStorageNote,
-        'aiModelAppleNote' => l10n.aiModelAppleNote,
-        'aiTechnicalDetails' => l10n.aiTechnicalDetails,
-        'aiCoreMissing' => l10n.aiCoreMissing,
-        _ => throw ArgumentError.value(key),
-      },
-      format: (key, value) => switch (key) {
-        'aiDownloadedBytes' => l10n.aiDownloadedBytes(value),
-        'aiCoreVersion' => l10n.aiCoreVersion(value),
-        _ => throw ArgumentError.value(key),
-      },
+          value: settings.onDeviceAiEnabled,
+          onChanged: widget.featuresOn || settings.onDeviceAiEnabled
+              ? notifier.setOnDeviceAiEnabled
+              : null,
+        ),
+        source: [
+          AiSourceControls(
+            backend: OnDeviceAiService.sourceBackend,
+            onSelected: (id) async {
+              if (id == OnDeviceAiService.sourceBackend.selection.global) {
+                return;
+              }
+              await ai.setEnabled(false);
+              await OnDeviceAiService.sourceBackend.select(id);
+              await ai.setEnabled(settings.onDeviceAiEnabled);
+              final cache = await AiInsightsCache.load();
+              if (cache.categories.isEmpty || !context.mounted) return;
+              if (await confirmClearAfterSourceChange(
+                context,
+                AiClearAfterSwitchLabels(
+                  title: l10n.aiSourceTitle,
+                  body: l10n.aiSourceClearBody,
+                  clear: l10n.aiModelRemove,
+                  keep: l10n.aiSourceKeep,
+                ),
+              )) {
+                cache.categories.clear();
+                await AiInsightsCache.save(cache);
+              }
+            },
+          ),
+          if (ai.report.hasSizeChoice)
+            MyAppsAiPreference(
+              title: l10n.aiPreferFast,
+              description: l10n.aiPreferFastBody,
+              value: settings.onDeviceAiPreferFast,
+              onChanged: notifier.setOnDeviceAiPreferFast,
+            ),
+        ],
+        features: [
+          MyAppsAiCapabilityTile(
+            title: l10n.aiUseOnDevice,
+            statusText: _statusLabel(ai.report.status, l10n),
+            icon: Icons.auto_awesome_outlined,
+            action: ai.report.status == GenAiStatus.downloadable
+                ? FilledButton(
+                    onPressed: ai.downloading ? null : ai.download,
+                    child: Text(l10n.aiDownload),
+                  )
+                : TextButton(
+                    onPressed: () => ai.refreshStatus(localeTag: _localeTag()),
+                    child: Text(l10n.aiCheckAgain),
+                  ),
+          ),
+          if (ai.report.status == GenAiStatus.notEnabled)
+            ListTile(subtitle: Text(l10n.aiTurnOnAppleIntelligence)),
+          if (ai.downloading && ai.downloadProgress != null)
+            ListTile(
+              subtitle: Text(
+                l10n.aiDownloadedBytes(
+                  (ai.downloadProgress!.bytes / (1024 * 1024)).toStringAsFixed(
+                    1,
+                  ),
+                ),
+              ),
+            ),
+          if (OnDeviceAiService.sourceBackend.selection.global == 'auto' ||
+              OnDeviceAiService.sourceBackend.selection.global == 'system')
+            MyAppsAiModelNotes(
+              downloadNote: l10n.aiDownloadNote,
+              storageNote: l10n.aiModelStorageNote,
+            ),
+        ],
+        diagnostics: MyAppsAiDiagnostics(
+          title: l10n.aiTechnicalDetails,
+          groups: [
+            AiDiagnosticGroup(
+              OnDeviceAiService.sourceBackend.selection.global,
+              [
+                'status: ${ai.report.status.name}',
+                if (ai.report.detail != null) 'detail: ${ai.report.detail}',
+                if (ai.report.served != null) 'served: ${ai.report.served}',
+                if (ai.report.refused != null) 'refused: ${ai.report.refused}',
+                if (ai.report.variant != null) 'variant: ${ai.report.variant}',
+                if (ai.report.tokenLimit != null)
+                  'tokenLimit: ${ai.report.tokenLimit}',
+                if (ai.coreInfo?.versionName != null)
+                  l10n.aiCoreVersion(ai.coreInfo!.versionName!),
+              ],
+            ),
+          ],
+        ),
+      ),
     );
   }
 }

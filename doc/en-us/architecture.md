@@ -254,3 +254,5 @@ feature area:
 Full-build watch actions use a shared episode-directory route and native-player route. Episode mapping is pure and source-bound; media credentials are session-only. The local Windows media library override disables x64 binaries on ARM64, which uses WebView playback.
 
 Since 1.6.5 the native route draws the app's own controls over media_kit's video (`anime_player_controls.dart`) and records a synced resume point through `PlaybackProgressService` into `playback_progress.json`, the third registered data module. Passing 95% of an episode marks it watched. The episode-directory route follows the shared split rule on foldables and wide windows.
+
+AI source routing and WebDAV device consent: see [shared-ai.md](shared-ai.md) and [sync.md](sync.md).

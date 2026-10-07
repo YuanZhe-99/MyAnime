@@ -12,3 +12,5 @@
 AiPriority and GenAiDownload are re-exported. Inherited execution includes enabled
 gate, lifecycle, priority queue, timeout cancellation, late-result invalidation and
 quota pacing. See [shared-ai](../../../../shared-ai.md).
+
+`sourceBackend` is the app-owned routing singleton; default construction injects it while test backend injection remains unchanged.

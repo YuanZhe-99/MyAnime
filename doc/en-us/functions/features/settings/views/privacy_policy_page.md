@@ -55,3 +55,6 @@ see [`../../../backup-restore.md`](../../../../backup-restore.md) and
 ## Changes in 1.6.4
 
 All four policy texts disclose directory fetching, video host requests, temporary native credentials and the embedded website profile/third-party resources.
+
+
+Current integration uses MyApps-AI v0.5.2, explicit platform injection, app-owned source routing and the unified settings skeleton. WebDAV entry points require device-local notice acknowledgement before any network request; see [sync.md](../../../sync.md).

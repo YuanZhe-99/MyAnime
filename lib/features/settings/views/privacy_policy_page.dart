@@ -20,7 +20,8 @@ class PrivacyPolicyPage extends StatelessWidget {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
     final locale = Localizations.localeOf(context);
-    final text = _getText(locale);
+    final text =
+        '${_getText(locale)}\n\n${l10n.aiLocalPrivacyPolicy}\n\n${l10n.aiOnlinePrivacyTitle}\n${l10n.aiOnlineSentData}\n${l10n.aiOnlineKeyLocal}\n${l10n.aiOnlineSelectedOnly}\n\n${l10n.webdavPrivacyPlaintext}\n${l10n.webdavPrivacyHttp}\n${l10n.webdavPrivacyPaused}';
 
     return Scaffold(
       appBar: AppBar(title: Text(l10n.settingsPrivacyPolicy)),
@@ -59,7 +60,7 @@ Thank you for using MyAnime!!!!!. We take your privacy seriously. This privacy p
 
 Data Collection
 
-MyAnime!!!!! does not collect, upload, or share any personal information. The app contains no analytics, advertising trackers, or data collection of any kind.
+MyAnime!!!!! contains no analytics or advertising trackers. User-configured WebDAV sync and explicitly selected online AI send the data described below to the chosen server.
 
 Data Storage
 
@@ -83,7 +84,7 @@ On desktop this is on by default. On Android and iOS it defaults to "don't use c
 
 • WebDAV sync: If you enable WebDAV cloud sync, the app sends your data to a WebDAV server that you configure yourself. The app does not send data to any other server.
 
-No other network communication takes place.
+The optional local-model downloads and online AI requests described below also use the network.
 
 Third-Party Services
 
@@ -123,7 +124,7 @@ This privacy policy may be updated from time to time. Updated versions will be p
 
 数据收集
 
-MyAnime!!!!! 不收集、上传或共享任何个人信息。应用不包含任何分析工具、广告追踪器或数据收集功能。
+MyAnime!!!!! 不包含分析工具或广告追踪器。用户配置的 WebDAV 同步和明确选择的在线 AI 会向所选服务器发送下文说明的数据。
 
 数据存储
 
@@ -187,7 +188,7 @@ MyAnime!!!!! 仅在以下情况下访问互联网：
 
 資料收集
 
-MyAnime!!!!! 不收集、上傳或分享任何個人資訊。應用程式不包含任何分析工具、廣告追蹤器或資料收集功能。
+MyAnime!!!!! 不包含分析工具或廣告追蹤器。使用者設定的 WebDAV 同步和明確選擇的線上 AI 會向所選伺服器傳送下文說明的資料。
 
 資料儲存
 
@@ -245,7 +246,7 @@ MyAnime!!!!! をご利用いただきありがとうございます。私たち�
 
 データ収集
 
-MyAnime!!!!! は個人情報の収集、アップロード、共有を一切行いません。アプリにはアナリティクス、広告トラッカー、データ収集機能は含まれていません。
+MyAnime!!!!! にアナリティクスや広告トラッカーはありません。設定した WebDAV 同期と明示的に選んだオンライン AI は、以下に記載するデータを選択したサーバーへ送ります。
 
 データ保存
 

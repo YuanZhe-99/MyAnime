@@ -326,3 +326,6 @@ MyApps-DATA 呈现连接字段、保存与测试、手动与强制同步、自�
 ## 1.6.7 变更
 
 `_saveConfig` 和 `_disconnect` 在 await 之后若页面已不在树中就直接返回，不再触碰 `setState`、文本控制器或 `ScaffoldMessenger`。
+
+
+当前接入 MyApps-AI v0.5.2，显式注入平台后端，使用应用所属来源路由与统一设置骨架。WebDAV 入口在任何网络请求前要求设备本地提醒确认；具体见同步概念文档。

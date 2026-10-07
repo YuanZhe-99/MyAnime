@@ -315,12 +315,12 @@ void main() {
       expect(service.report.status, GenAiStatus.unsupported);
     });
 
-    test('Windows never touches the backend even when enabled', () async {
+    test('Windows queries the injected backend when enabled', () async {
       debugDefaultTargetPlatformOverride = TargetPlatform.windows;
       addTearDown(() => debugDefaultTargetPlatformOverride = null);
       await service.setEnabled(true);
-      expect(backend.calls, isEmpty);
-      expect(service.report.status, GenAiStatus.unsupported);
+      expect(backend.calls, contains('status'));
+      expect(service.report.status, backend.status.status);
     });
 
     test('download reports progress and re-reads the status', () async {

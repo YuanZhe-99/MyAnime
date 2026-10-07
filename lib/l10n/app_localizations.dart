@@ -101,6 +101,324 @@ abstract class AppLocalizations {
     Locale('zh', 'TW'),
   ];
 
+  /// No description provided for @aiLocalPrivacyPolicy.
+  ///
+  /// In en, this message translates to:
+  /// **'Local AI models: You can explicitly download Qwen3.5 0.8B/2B or Gemma 4 E2B (4-bit) from Hugging Face. Downloads reveal your IP address to the host, but send no app records. Files are checked against a pinned SHA-256 and remain on this device, excluded from sync, backups and ZIP exports. Inference uses the CPU on your device and sends no prompts to a server. Removing files keeps existing generated content. Models are not downloaded automatically.'**
+  String get aiLocalPrivacyPolicy;
+
+  /// No description provided for @aiOnlineSources.
+  ///
+  /// In en, this message translates to:
+  /// **'Online AI sources'**
+  String get aiOnlineSources;
+
+  /// No description provided for @aiOnlineEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'No online source configured'**
+  String get aiOnlineEmpty;
+
+  /// No description provided for @aiOnlineAdd.
+  ///
+  /// In en, this message translates to:
+  /// **'Add source'**
+  String get aiOnlineAdd;
+
+  /// No description provided for @aiOnlineRemoveBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Remove this source and its locally stored API key?'**
+  String get aiOnlineRemoveBody;
+
+  /// No description provided for @aiOnlineName.
+  ///
+  /// In en, this message translates to:
+  /// **'Name'**
+  String get aiOnlineName;
+
+  /// No description provided for @aiOnlineModel.
+  ///
+  /// In en, this message translates to:
+  /// **'Model ID'**
+  String get aiOnlineModel;
+
+  /// No description provided for @aiOnlineSave.
+  ///
+  /// In en, this message translates to:
+  /// **'Save'**
+  String get aiOnlineSave;
+
+  /// No description provided for @aiOnlineInvalidEndpoint.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter an absolute HTTP or HTTPS URL'**
+  String get aiOnlineInvalidEndpoint;
+
+  /// No description provided for @aiOnlineTestSuccess.
+  ///
+  /// In en, this message translates to:
+  /// **'Connection succeeded'**
+  String get aiOnlineTestSuccess;
+
+  /// No description provided for @aiOnlineTestFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Connection failed'**
+  String get aiOnlineTestFailed;
+
+  /// No description provided for @aiOnlinePrivacyTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Online AI privacy notice'**
+  String get aiOnlinePrivacyTitle;
+
+  /// No description provided for @aiOnlineRecipient.
+  ///
+  /// In en, this message translates to:
+  /// **'Recipient server'**
+  String get aiOnlineRecipient;
+
+  /// No description provided for @aiOnlineSentData.
+  ///
+  /// In en, this message translates to:
+  /// **'Category prompts may contain anime titles, tags, descriptions and your category names. Recommendations may contain the titles of anime you have watched or liked and candidate titles. The provider receives these prompts when selected.'**
+  String get aiOnlineSentData;
+
+  /// No description provided for @aiOnlineKeyLocal.
+  ///
+  /// In en, this message translates to:
+  /// **'API keys are stored as plaintext on this device only and are excluded from WebDAV sync, backups and ZIP exports.'**
+  String get aiOnlineKeyLocal;
+
+  /// No description provided for @aiOnlineSelectedOnly.
+  ///
+  /// In en, this message translates to:
+  /// **'Online AI runs only when you explicitly select this source. It is never an automatic fallback. HTTP connections are not encrypted.'**
+  String get aiOnlineSelectedOnly;
+
+  /// No description provided for @aiOnlineEndpoint.
+  ///
+  /// In en, this message translates to:
+  /// **'API endpoint'**
+  String get aiOnlineEndpoint;
+
+  /// No description provided for @aiOnlineShowKey.
+  ///
+  /// In en, this message translates to:
+  /// **'Show key'**
+  String get aiOnlineShowKey;
+
+  /// No description provided for @aiOnlineHideKey.
+  ///
+  /// In en, this message translates to:
+  /// **'Hide key'**
+  String get aiOnlineHideKey;
+
+  /// No description provided for @aiOnlineSavedKey.
+  ///
+  /// In en, this message translates to:
+  /// **'Key saved on this device'**
+  String get aiOnlineSavedKey;
+
+  /// No description provided for @aiOnlineTest.
+  ///
+  /// In en, this message translates to:
+  /// **'Test connection'**
+  String get aiOnlineTest;
+
+  /// No description provided for @webdavPrivacyTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'WebDAV privacy notice'**
+  String get webdavPrivacyTitle;
+
+  /// No description provided for @webdavPrivacyIntro.
+  ///
+  /// In en, this message translates to:
+  /// **'Review what will be sent before enabling synchronization.'**
+  String get webdavPrivacyIntro;
+
+  /// No description provided for @webdavPrivacyData.
+  ///
+  /// In en, this message translates to:
+  /// **'Synchronized data'**
+  String get webdavPrivacyData;
+
+  /// No description provided for @webdavPrivacyOptional.
+  ///
+  /// In en, this message translates to:
+  /// **'Referenced images'**
+  String get webdavPrivacyOptional;
+
+  /// No description provided for @webdavPrivacyDestination.
+  ///
+  /// In en, this message translates to:
+  /// **'Your configured server'**
+  String get webdavPrivacyDestination;
+
+  /// No description provided for @webdavPrivacyEncryption.
+  ///
+  /// In en, this message translates to:
+  /// **'Storage on the server'**
+  String get webdavPrivacyEncryption;
+
+  /// No description provided for @webdavPrivacyTransport.
+  ///
+  /// In en, this message translates to:
+  /// **'Connection security'**
+  String get webdavPrivacyTransport;
+
+  /// No description provided for @webdavPrivacyHttps.
+  ///
+  /// In en, this message translates to:
+  /// **'HTTPS encrypts data in transit. Server administrators can still read stored data.'**
+  String get webdavPrivacyHttps;
+
+  /// No description provided for @webdavPrivacyHttp.
+  ///
+  /// In en, this message translates to:
+  /// **'HTTP does not encrypt the connection. Data and credentials may be exposed; a private network alone does not provide encryption.'**
+  String get webdavPrivacyHttp;
+
+  /// No description provided for @webdavPrivacyNoThirdParties.
+  ///
+  /// In en, this message translates to:
+  /// **'Sync sends data only to your configured WebDAV server.'**
+  String get webdavPrivacyNoThirdParties;
+
+  /// No description provided for @webdavPrivacyConfirm.
+  ///
+  /// In en, this message translates to:
+  /// **'I understand; continue'**
+  String get webdavPrivacyConfirm;
+
+  /// No description provided for @webdavPrivacyInventory.
+  ///
+  /// In en, this message translates to:
+  /// **'Anime library, categories, history and profile'**
+  String get webdavPrivacyInventory;
+
+  /// No description provided for @webdavPrivacyImages.
+  ///
+  /// In en, this message translates to:
+  /// **'Referenced photos and profile avatar'**
+  String get webdavPrivacyImages;
+
+  /// No description provided for @webdavPrivacyPlaintext.
+  ///
+  /// In en, this message translates to:
+  /// **'JSON records and images are stored without application-level encryption. Server access determines who can read them.'**
+  String get webdavPrivacyPlaintext;
+
+  /// No description provided for @webdavPrivacyPaused.
+  ///
+  /// In en, this message translates to:
+  /// **'Sync is paused until you review the privacy notice on this device.'**
+  String get webdavPrivacyPaused;
+
+  /// No description provided for @webdavPrivacyReview.
+  ///
+  /// In en, this message translates to:
+  /// **'Review notice'**
+  String get webdavPrivacyReview;
+
+  /// No description provided for @aiSourceTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'AI source and model'**
+  String get aiSourceTitle;
+
+  /// No description provided for @aiSourceAuto.
+  ///
+  /// In en, this message translates to:
+  /// **'Automatic (system AI)'**
+  String get aiSourceAuto;
+
+  /// No description provided for @aiSourceSystem.
+  ///
+  /// In en, this message translates to:
+  /// **'System AI'**
+  String get aiSourceSystem;
+
+  /// No description provided for @aiSourceNeedsPreparation.
+  ///
+  /// In en, this message translates to:
+  /// **'Prepare the model before use'**
+  String get aiSourceNeedsPreparation;
+
+  /// No description provided for @aiLocalModels.
+  ///
+  /// In en, this message translates to:
+  /// **'Local models'**
+  String get aiLocalModels;
+
+  /// No description provided for @aiModelInstalled.
+  ///
+  /// In en, this message translates to:
+  /// **'Installed'**
+  String get aiModelInstalled;
+
+  /// No description provided for @aiModelDownloading.
+  ///
+  /// In en, this message translates to:
+  /// **'Downloading'**
+  String get aiModelDownloading;
+
+  /// No description provided for @aiModelVerifying.
+  ///
+  /// In en, this message translates to:
+  /// **'Verifying'**
+  String get aiModelVerifying;
+
+  /// No description provided for @aiModelFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Model operation failed. Check storage and connection, then retry.'**
+  String get aiModelFailed;
+
+  /// No description provided for @aiModelNotInstalled.
+  ///
+  /// In en, this message translates to:
+  /// **'Not installed'**
+  String get aiModelNotInstalled;
+
+  /// No description provided for @aiModelVerify.
+  ///
+  /// In en, this message translates to:
+  /// **'Verify'**
+  String get aiModelVerify;
+
+  /// No description provided for @aiModelRemove.
+  ///
+  /// In en, this message translates to:
+  /// **'Remove model files'**
+  String get aiModelRemove;
+
+  /// No description provided for @aiModelRemoveBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Only downloaded model files are removed. Model records and generated history are kept.'**
+  String get aiModelRemoveBody;
+
+  /// No description provided for @aiSourceClearBody.
+  ///
+  /// In en, this message translates to:
+  /// **'The AI source has changed. Clear content generated by the previous source? Keeping it preserves existing content.'**
+  String get aiSourceClearBody;
+
+  /// No description provided for @aiSourceKeep.
+  ///
+  /// In en, this message translates to:
+  /// **'Keep existing content'**
+  String get aiSourceKeep;
+
+  /// No description provided for @aiActionCancel.
+  ///
+  /// In en, this message translates to:
+  /// **'Cancel'**
+  String get aiActionCancel;
+
   /// No description provided for @appTitle.
   ///
   /// In en, this message translates to:

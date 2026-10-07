@@ -9,6 +9,180 @@ class AppLocalizationsEn extends AppLocalizations {
   AppLocalizationsEn([String locale = 'en']) : super(locale);
 
   @override
+  String get aiLocalPrivacyPolicy =>
+      'Local AI models: You can explicitly download Qwen3.5 0.8B/2B or Gemma 4 E2B (4-bit) from Hugging Face. Downloads reveal your IP address to the host, but send no app records. Files are checked against a pinned SHA-256 and remain on this device, excluded from sync, backups and ZIP exports. Inference uses the CPU on your device and sends no prompts to a server. Removing files keeps existing generated content. Models are not downloaded automatically.';
+
+  @override
+  String get aiOnlineSources => 'Online AI sources';
+
+  @override
+  String get aiOnlineEmpty => 'No online source configured';
+
+  @override
+  String get aiOnlineAdd => 'Add source';
+
+  @override
+  String get aiOnlineRemoveBody =>
+      'Remove this source and its locally stored API key?';
+
+  @override
+  String get aiOnlineName => 'Name';
+
+  @override
+  String get aiOnlineModel => 'Model ID';
+
+  @override
+  String get aiOnlineSave => 'Save';
+
+  @override
+  String get aiOnlineInvalidEndpoint => 'Enter an absolute HTTP or HTTPS URL';
+
+  @override
+  String get aiOnlineTestSuccess => 'Connection succeeded';
+
+  @override
+  String get aiOnlineTestFailed => 'Connection failed';
+
+  @override
+  String get aiOnlinePrivacyTitle => 'Online AI privacy notice';
+
+  @override
+  String get aiOnlineRecipient => 'Recipient server';
+
+  @override
+  String get aiOnlineSentData =>
+      'Category prompts may contain anime titles, tags, descriptions and your category names. Recommendations may contain the titles of anime you have watched or liked and candidate titles. The provider receives these prompts when selected.';
+
+  @override
+  String get aiOnlineKeyLocal =>
+      'API keys are stored as plaintext on this device only and are excluded from WebDAV sync, backups and ZIP exports.';
+
+  @override
+  String get aiOnlineSelectedOnly =>
+      'Online AI runs only when you explicitly select this source. It is never an automatic fallback. HTTP connections are not encrypted.';
+
+  @override
+  String get aiOnlineEndpoint => 'API endpoint';
+
+  @override
+  String get aiOnlineShowKey => 'Show key';
+
+  @override
+  String get aiOnlineHideKey => 'Hide key';
+
+  @override
+  String get aiOnlineSavedKey => 'Key saved on this device';
+
+  @override
+  String get aiOnlineTest => 'Test connection';
+
+  @override
+  String get webdavPrivacyTitle => 'WebDAV privacy notice';
+
+  @override
+  String get webdavPrivacyIntro =>
+      'Review what will be sent before enabling synchronization.';
+
+  @override
+  String get webdavPrivacyData => 'Synchronized data';
+
+  @override
+  String get webdavPrivacyOptional => 'Referenced images';
+
+  @override
+  String get webdavPrivacyDestination => 'Your configured server';
+
+  @override
+  String get webdavPrivacyEncryption => 'Storage on the server';
+
+  @override
+  String get webdavPrivacyTransport => 'Connection security';
+
+  @override
+  String get webdavPrivacyHttps =>
+      'HTTPS encrypts data in transit. Server administrators can still read stored data.';
+
+  @override
+  String get webdavPrivacyHttp =>
+      'HTTP does not encrypt the connection. Data and credentials may be exposed; a private network alone does not provide encryption.';
+
+  @override
+  String get webdavPrivacyNoThirdParties =>
+      'Sync sends data only to your configured WebDAV server.';
+
+  @override
+  String get webdavPrivacyConfirm => 'I understand; continue';
+
+  @override
+  String get webdavPrivacyInventory =>
+      'Anime library, categories, history and profile';
+
+  @override
+  String get webdavPrivacyImages => 'Referenced photos and profile avatar';
+
+  @override
+  String get webdavPrivacyPlaintext =>
+      'JSON records and images are stored without application-level encryption. Server access determines who can read them.';
+
+  @override
+  String get webdavPrivacyPaused =>
+      'Sync is paused until you review the privacy notice on this device.';
+
+  @override
+  String get webdavPrivacyReview => 'Review notice';
+
+  @override
+  String get aiSourceTitle => 'AI source and model';
+
+  @override
+  String get aiSourceAuto => 'Automatic (system AI)';
+
+  @override
+  String get aiSourceSystem => 'System AI';
+
+  @override
+  String get aiSourceNeedsPreparation => 'Prepare the model before use';
+
+  @override
+  String get aiLocalModels => 'Local models';
+
+  @override
+  String get aiModelInstalled => 'Installed';
+
+  @override
+  String get aiModelDownloading => 'Downloading';
+
+  @override
+  String get aiModelVerifying => 'Verifying';
+
+  @override
+  String get aiModelFailed =>
+      'Model operation failed. Check storage and connection, then retry.';
+
+  @override
+  String get aiModelNotInstalled => 'Not installed';
+
+  @override
+  String get aiModelVerify => 'Verify';
+
+  @override
+  String get aiModelRemove => 'Remove model files';
+
+  @override
+  String get aiModelRemoveBody =>
+      'Only downloaded model files are removed. Model records and generated history are kept.';
+
+  @override
+  String get aiSourceClearBody =>
+      'The AI source has changed. Clear content generated by the previous source? Keeping it preserves existing content.';
+
+  @override
+  String get aiSourceKeep => 'Keep existing content';
+
+  @override
+  String get aiActionCancel => 'Cancel';
+
+  @override
   String get appTitle => 'MyAnime!!!!!';
 
   @override

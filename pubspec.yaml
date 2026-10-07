@@ -2,7 +2,7 @@ name: my_anime
 description: "MyAnime!!!!! — Your anime tracking companion"
 publish_to: 'none'
 
-version: 1.8.9+82
+version: 1.8.11+84
 
 dependency_overrides:
   # Xcode 26.6 protocol availability fix; upstream PR #2870, macOS only.
@@ -20,6 +20,20 @@ dependencies:
     path: packages/myapps_ai/packages/myapps_ai_ui
   myapps_ai:
     path: packages/myapps_ai/packages/myapps_ai
+  myapps_ai_platform:
+    path: packages/myapps_ai/packages/myapps_ai_platform
+  myapps_ai_llm:
+    path: packages/myapps_ai/packages/myapps_ai_llm
+  myapps_ai_llm_llama:
+    path: packages/myapps_ai/packages/myapps_ai_llm_llama
+  myapps_ai_models:
+    path: packages/myapps_ai/packages/myapps_ai_models
+  myapps_ai_local_ui:
+    path: packages/myapps_ai/packages/myapps_ai_local_ui
+  myapps_ai_online:
+    path: packages/myapps_ai/packages/myapps_ai_online
+  myapps_ai_online_ui:
+    path: packages/myapps_ai/packages/myapps_ai_online_ui
   myapps_profile:
     path: packages/myapps_ui/packages/myapps_profile
   # Shared theme and adaptive foundation, pinned by the MyApps-UI submodule.
@@ -138,7 +152,7 @@ msix_config:
   display_name: MyAnime!!!!!
   publisher_display_name: yuanzhe
   identity_name: com.yuanzhe.myanime
-  msix_version: 1.8.9.0
+  msix_version: 1.8.11.0
   logo_path: assets/icon/app_icon.png
   capabilities: internetClient
   install_certificate: false
