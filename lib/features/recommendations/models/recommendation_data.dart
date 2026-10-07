@@ -362,6 +362,10 @@ class RelatedItem {
   /// The generated reason, when the on-device model wrote one.
   final String? aiReason;
 
+  /// Model identity that wrote [aiReason]; null for reasons stored before
+  /// 1.8.12, which were all written on this device.
+  final String? aiReasonModel;
+
   /// JSON keys this build does not know.
   final Map<String, dynamic> extraJson;
 
@@ -374,6 +378,7 @@ class RelatedItem {
     this.id, {
     this.reasons = const [],
     this.aiReason,
+    this.aiReasonModel,
     this.extraJson = const {},
   });
 
@@ -393,7 +398,15 @@ class RelatedItem {
             if (r is String) r,
       ],
       aiReason: json['aiReason'] is String ? json['aiReason'] as String : null,
-      extraJson: _unknown(json, const {'id', 'reasons', 'aiReason'}),
+      aiReasonModel: json['aiReasonModel'] is String
+          ? json['aiReasonModel'] as String
+          : null,
+      extraJson: _unknown(json, const {
+        'id',
+        'reasons',
+        'aiReason',
+        'aiReasonModel',
+      }),
     );
   }
 
@@ -407,17 +420,19 @@ class RelatedItem {
     'id': id,
     if (reasons.isNotEmpty) 'reasons': reasons,
     'aiReason': ?aiReason,
+    if (aiReason != null) 'aiReasonModel': ?aiReasonModel,
   };
 
   /// Purpose: Copy the item with a generated reason.
-  /// Inputs: `aiReason`.
+  /// Inputs: `aiReason`; `model`, the identity that wrote it.
   /// Returns: `RelatedItem`.
   /// Side effects: None.
   /// Notes: None.
-  RelatedItem withAiReason(String? aiReason) => RelatedItem(
+  RelatedItem withAiReason(String? aiReason, {String? model}) => RelatedItem(
     id,
     reasons: reasons,
     aiReason: aiReason,
+    aiReasonModel: aiReason == null ? null : model,
     extraJson: extraJson,
   );
 }

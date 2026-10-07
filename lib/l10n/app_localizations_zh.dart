@@ -1033,11 +1033,11 @@ class AppLocalizationsZh extends AppLocalizations {
   String get aiSectionTitle => '分类与推荐';
 
   @override
-  String get aiUseOnDevice => '使用端侧 AI';
+  String get aiUseOnDevice => '使用 AI 功能';
 
   @override
   String get aiUseOnDeviceDesc =>
-      '默认关闭。借助本设备内置的模型，为资料库没有给出分类的番剧补上分类，并为推荐写一句简短理由。任何内容都不会离开本设备。';
+      '默认关闭。使用下方选择的 AI 来源，为资料库没有给出分类的番剧补上分类，并为推荐写一句简短理由。端侧来源的内容不会离开本设备；在线来源会把请求发送给该服务商。';
 
   @override
   String get aiNeedsFeature => '请先开启自动分类或推荐。';
@@ -1049,7 +1049,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get aiStatusUnavailable => '本设备不支持';
 
   @override
-  String get aiStatusUnreachable => '无法访问端侧模型';
+  String get aiStatusUnreachable => '无法访问 AI 来源';
 
   @override
   String get aiStatusUnknown => '设备返回了本版本无法识别的状态';
@@ -1110,6 +1110,14 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get aiGeneratedLabel => '在本设备上生成——可能有误';
+
+  @override
+  String get aiGeneratedOnlineUnknownLabel => '在线生成——可能有误';
+
+  @override
+  String aiGeneratedOnlineLabel(String provider) {
+    return '由在线来源 $provider 生成——可能有误';
+  }
 
   @override
   String get save => '保存';
@@ -3333,11 +3341,11 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
   String get aiSectionTitle => '分類與推薦';
 
   @override
-  String get aiUseOnDevice => '使用裝置端 AI';
+  String get aiUseOnDevice => '使用 AI 功能';
 
   @override
   String get aiUseOnDeviceDesc =>
-      '預設關閉。借助本裝置內建的模型，為資料庫沒有提供分類的番劇補上分類，並為推薦寫一句簡短理由。任何內容都不會離開本裝置。';
+      '預設關閉。使用下方選擇的 AI 來源，為資料庫沒有提供分類的番劇補上分類，並為推薦寫一句簡短理由。裝置端來源的內容不會離開本裝置；線上來源會把請求傳送給該服務商。';
 
   @override
   String get aiNeedsFeature => '請先開啟自動分類或推薦。';
@@ -3349,7 +3357,7 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
   String get aiStatusUnavailable => '本裝置不支援';
 
   @override
-  String get aiStatusUnreachable => '無法存取裝置端模型';
+  String get aiStatusUnreachable => '無法存取 AI 來源';
 
   @override
   String get aiStatusUnknown => '裝置回報了本版本無法辨識的狀態';
@@ -3410,6 +3418,14 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
 
   @override
   String get aiGeneratedLabel => '在本裝置上生成——可能有誤';
+
+  @override
+  String get aiGeneratedOnlineUnknownLabel => '線上生成——可能有誤';
+
+  @override
+  String aiGeneratedOnlineLabel(String provider) {
+    return '由線上來源 $provider 生成——可能有誤';
+  }
 
   @override
   String get save => '儲存';

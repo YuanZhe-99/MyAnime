@@ -33,10 +33,10 @@
 | `SequelInfo.fromJson` | 静态方法（`SequelInfo`） | B | 读取资料；不是对象时为 null。 |
 | `SequelInfo.toJson` | 方法（`SequelInfo`） | B | 序列化；缺失的字段省略。 |
 | [`SequelInfo.mergedWith`](#sequelinfo-mergedwith) | 方法（`SequelInfo`） | A | 把两侧合二为一：较晚的抓取胜出。 |
-| `RelatedItem.new` | 构造函数（`RelatedItem`） | B | 创建一个相关推荐项：一个动画 id、理由代码，以及可选的 AI 理由。 |
+| `RelatedItem.new` | 构造函数（`RelatedItem`） | B | 创建一个相关推荐项：一个动画 id、理由代码，可选的 AI 理由，以及写出该理由的模型标识（`aiReasonModel`，1.8.12）。 |
 | `RelatedItem.fromJson` | 静态方法（`RelatedItem`） | B | 读取一个项；没有字符串 `id` 时为 null。 |
-| `RelatedItem.toJson` | 方法（`RelatedItem`） | B | 序列化；空的 `reasons` 省略。 |
-| `RelatedItem.withAiReason` | 方法（`RelatedItem`） | B | 复制该项并带上生成的理由。 |
+| `RelatedItem.toJson` | 方法（`RelatedItem`） | B | 序列化；空的 `reasons` 省略；`aiReasonModel` 仅在有 AI 理由时写出。 |
+| `RelatedItem.withAiReason` | 方法（`RelatedItem`） | B | 复制该项并带上生成的理由及写出它的 `model` 标识。 |
 | `RelatedSnapshot.new` | 构造函数（`RelatedSnapshot`） | B | 创建一个快照：`generatedAt`、项目、垃圾箱、钉选（1.6.3）。 |
 | `RelatedSnapshot.isGenerated` | getter（`RelatedSnapshot`） | B | 是否曾生成过列表（`generatedAt` 已设置）。 |
 | `RelatedSnapshot.isEmpty` | getter（`RelatedSnapshot`） | B | 是否没有值得写入的内容；空快照会被丢弃。 |

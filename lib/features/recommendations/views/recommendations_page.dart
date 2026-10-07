@@ -16,7 +16,9 @@ import '../../../shared/utils/adaptive_layout.dart';
 import '../../../shared/utils/jst_time.dart';
 import '../../../shared/widgets/adaptive_tile_grid.dart';
 import '../../ai/services/ai_insights_cache.dart';
+import '../../ai/services/ai_origin.dart';
 import '../../ai/services/on_device_ai_service.dart';
+import '../../categories/services/category_service.dart';
 import '../../anime/models/anime.dart';
 import '../../anime/services/anime_storage.dart';
 import '../../anime/services/series_service.dart';
@@ -63,6 +65,9 @@ class _RecommendationsPageState extends ConsumerState<RecommendationsPage> {
   bool _fetchingInfo = false;
   AiInsights _insights = AiInsights();
   Map<String, String> _aiReasons = const {};
+
+  /// Model identity that wrote [_aiReasons].
+  String? _aiReasonsModel;
   bool _loading = true;
   bool _aiPending = false;
 
@@ -255,6 +260,7 @@ class _RecommendationsPageState extends ConsumerState<RecommendationsPage> {
     );
     if (language == null) return;
     setState(() => _aiPending = true);
+    final model = modelIdentityOf(ai.report);
     final reasons = await writeAiReasons(
       ai,
       ranked: _ranked,
@@ -265,6 +271,7 @@ class _RecommendationsPageState extends ConsumerState<RecommendationsPage> {
     if (!mounted) return;
     setState(() {
       _aiReasons = reasons;
+      _aiReasonsModel = model;
       _aiPending = false;
     });
   }
@@ -489,7 +496,7 @@ class _RecommendationsPageState extends ConsumerState<RecommendationsPage> {
                           const SizedBox(width: 4),
                           Expanded(
                             child: Text(
-                              l10n.aiGeneratedLabel,
+                              aiGeneratedLabelFor(l10n, _aiReasonsModel),
                               style: theme.textTheme.labelSmall,
                             ),
                           ),

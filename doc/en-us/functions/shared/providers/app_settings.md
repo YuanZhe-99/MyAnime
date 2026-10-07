@@ -315,7 +315,7 @@ separate rows.
       ? notifier.setOnDeviceAiEnabled
       : null,
   ```
-  (from `lib/features/ai/widgets/ai_settings_tiles.dart`, the "Use on-device AI" switch)
+  (from `lib/features/ai/widgets/ai_settings_tiles.dart`, the "Use AI features" switch)
 - **Notes:** Off by default. `setOnDeviceAiPreferFast` has the same shape and makes the service
   re-probe while it is on.
 

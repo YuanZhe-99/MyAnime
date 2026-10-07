@@ -2,7 +2,7 @@
 
 共享实现现位于 MyApps-AI v0.4.1，本页描述应用适配器。
 
-`AiSettingsTiles` 于 1.6.0（M3）新增，构建「分类与推荐」设置分区里的端侧 AI 行：「使用端侧 AI」开关、
+`AiSettingsTiles` 于 1.6.0（M3）新增，构建「分类与推荐」设置分区里的端侧 AI 行：「使用 AI 功能」开关（1.8.12 前名为「使用端侧 AI」）、
 带操作的模型状态行、「使用更快的模型」（Android，仅当两种尺寸都有提供时）、关于模型归属的说明，以及一个折叠的
 「技术详情」。在 Windows、Linux 和 Web 上它什么也不渲染。自 1.6.0（M4）起，`settings_page.dart` 把它放在功能开关之后；自 M5 起传入
 `featuresOn: autoCategoriesEnabled || recommendationsEnabled`，因此只有在自动分类或推荐开启时才能打开 AI 开关，关闭其中最后一个开着的功能也会关闭 AI。见 [`../services/on_device_ai_service.md`](../services/on_device_ai_service.md)

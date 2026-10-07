@@ -1100,11 +1100,11 @@ class AppLocalizationsEn extends AppLocalizations {
   String get aiSectionTitle => 'Categories & recommendations';
 
   @override
-  String get aiUseOnDevice => 'Use on-device AI';
+  String get aiUseOnDevice => 'Use AI features';
 
   @override
   String get aiUseOnDeviceDesc =>
-      'Off by default. Fills in categories the databases did not provide and writes short reasons for recommendations, with the model built into this device. Nothing leaves the device.';
+      'Off by default. Fills in categories the databases did not provide and writes short reasons for recommendations, with the AI source chosen below. On-device sources keep everything on this device; an online source sends the request to that provider.';
 
   @override
   String get aiNeedsFeature =>
@@ -1117,7 +1117,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get aiStatusUnavailable => 'Not available on this device';
 
   @override
-  String get aiStatusUnreachable => 'The on-device model could not be reached';
+  String get aiStatusUnreachable => 'The AI source could not be reached';
 
   @override
   String get aiStatusUnknown =>
@@ -1183,6 +1183,14 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get aiGeneratedLabel => 'Generated on this device — may be wrong';
+
+  @override
+  String get aiGeneratedOnlineUnknownLabel => 'Generated online — may be wrong';
+
+  @override
+  String aiGeneratedOnlineLabel(String provider) {
+    return 'Generated online by $provider — may be wrong';
+  }
 
   @override
   String get save => 'Save';

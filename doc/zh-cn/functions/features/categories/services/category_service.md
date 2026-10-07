@@ -10,7 +10,7 @@
 
 | 声明 | 种类 | Tier | 用途 |
 |---|---|---|---|
-| `EffectiveCategories.new` | 构造函数（`EffectiveCategories`） | B | 创建生效的分类（`ids`、`origin`）。 |
+| `EffectiveCategories.new` | 构造函数（`EffectiveCategories`） | B | 创建生效的分类（`ids`、`origin`，AI 结果还有 `model` 标识，1.8.12）。 |
 | [`resolveCategories`](#resolvecategories) | 顶层函数 | A | 解析一条记录的分类。 |
 | [`classificationInputOf`](#classificationinputof) | 顶层函数 | A | 收集模型可以知道的关于一部作品的信息。 |
 | [`modelIdentityOf`](#modelidentityof) | 顶层函数 | A | 为指纹和缓存命名将要回答的模型。 |
@@ -35,7 +35,7 @@
 - **来源：** `lib/features/categories/services/category_service.dart`（约第 59 行）
 - **用途：** 解析一条记录的分类。
 - **输入：** `anime`；`insights` — AI 缓存，为 `null` 时忽略它。
-- **返回：** `EffectiveCategories` — id 加 `CategoryOrigin`，或 `EffectiveCategories.empty`。
+- **返回：** `EffectiveCategories` — id 加 `CategoryOrigin`（AI 结果还带条目的 `model`），或 `EffectiveCategories.empty`。
 - **副作用：** 无。
 - **算法：** 第一个给出结果的来源胜出：
   1. **用户** — 只要 `anime.categories` 非 null，*即使为空*；未知 id 从结果中去掉（仍留在记录上）。

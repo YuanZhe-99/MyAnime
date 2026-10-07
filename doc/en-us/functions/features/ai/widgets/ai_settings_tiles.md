@@ -3,7 +3,7 @@
 Shared implementation now lives in MyApps-AI v0.4.1; this page describes the app adapter.
 
 `AiSettingsTiles`, added in 1.6.0 (M3), builds the on-device AI rows of the *Categories & recommendations*
-Settings section: the "Use on-device AI" switch, the model status row with its
+Settings section: the "Use AI features" switch (titled "Use on-device AI" before 1.8.12), the model status row with its
 action, "Prefer the faster model" (Android, only when both sizes are served), the notes on who owns
 the model, and a collapsed *Technical details* tile. On Windows, Linux and the web it renders
 nothing. Since 1.6.0 (M4) `settings_page.dart` places it after the feature switches; since M5 it passes

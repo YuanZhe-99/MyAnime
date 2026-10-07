@@ -162,10 +162,10 @@
 - **返回：** `Widget`。
 - **副作用：** 无；点击压栈 `/anime/detail/<id>`。
 - **算法：** 封面、标题（两行）、由 [`reasonLabel`](reason_labels.md) 生成文字的理由标签组成的 `Wrap`，
-  然后——有 AI 理由时——闪光图标加 `aiGeneratedLabel` 和该理由，以及 `_cardActions`：钉选开关（`push_pin_outlined` /
+  然后——有 AI 理由时——闪光图标加由 [`aiGeneratedLabelFor`](../../ai/services/ai_origin.md) 给出的标注和该理由，以及 `_cardActions`：钉选开关（`push_pin_outlined` /
   `push_pin`，提示文字 `recommendationsPin` / `recommendationsUnpin`，1.6.3）和*不感兴趣*。
 - **用法：** `build`。
-- **备注：** AI 理由总会标注为在本设备上生成。
+- **备注：** 自 1.8.12 起，标注依据 `_aiReasonsModel`（请求理由时记录的模型标识）；此前总是写「在本设备上」。
 
 ### `Widget _missingCard(Anime source, AnimeExternalRelation sequel, AppLocalizations l10n)` <a id="_recommendationspagestate-_missingcard"></a>
 - **种类：** `_RecommendationsPageState` 的方法

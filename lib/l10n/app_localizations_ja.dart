@@ -1045,11 +1045,11 @@ class AppLocalizationsJa extends AppLocalizations {
   String get aiSectionTitle => '分類とおすすめ';
 
   @override
-  String get aiUseOnDevice => 'オンデバイスAIを使う';
+  String get aiUseOnDevice => 'AI機能を使う';
 
   @override
   String get aiUseOnDeviceDesc =>
-      '初期状態ではオフです。データベースに分類がない作品の分類を補い、おすすめの短い理由を、この端末に内蔵されたモデルで書きます。何も端末の外に送信されません。';
+      '初期状態ではオフです。下で選んだAIソースで、データベースに分類がない作品の分類を補い、おすすめの短い理由を書きます。端末内のソースでは何も端末の外に送信されません。オンラインソースはリクエストをその提供元に送信します。';
 
   @override
   String get aiNeedsFeature => '先に自動分類かおすすめをオンにしてください。';
@@ -1061,7 +1061,7 @@ class AppLocalizationsJa extends AppLocalizations {
   String get aiStatusUnavailable => 'この端末では利用できません';
 
   @override
-  String get aiStatusUnreachable => 'オンデバイスモデルに接続できませんでした';
+  String get aiStatusUnreachable => 'AIソースに接続できませんでした';
 
   @override
   String get aiStatusUnknown => 'このバージョンでは認識できない状態が端末から返されました';
@@ -1124,6 +1124,14 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get aiGeneratedLabel => 'この端末で生成 — 誤りを含む可能性があります';
+
+  @override
+  String get aiGeneratedOnlineUnknownLabel => 'オンラインで生成 — 誤りを含む可能性があります';
+
+  @override
+  String aiGeneratedOnlineLabel(String provider) {
+    return 'オンラインの $provider で生成 — 誤りを含む可能性があります';
+  }
 
   @override
   String get save => '保存';

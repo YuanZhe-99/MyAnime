@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../l10n/app_localizations.dart';
+import '../../ai/services/ai_origin.dart';
 import '../../../shared/utils/adaptive_layout.dart';
 import '../../categories/services/category_service.dart';
 import '../models/anime_category.dart';
@@ -70,7 +71,10 @@ class CategoryChips extends StatelessWidget {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
     final (icon, tip) = switch (categories.origin) {
-      CategoryOrigin.ai => (Icons.auto_awesome, l10n.aiGeneratedLabel),
+      CategoryOrigin.ai => (
+        Icons.auto_awesome,
+        aiGeneratedLabelFor(l10n, categories.model),
+      ),
       CategoryOrigin.user => (Icons.person_outline, l10n.categoriesYours),
       _ => (null, null),
     };

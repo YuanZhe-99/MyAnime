@@ -81,7 +81,7 @@ taxonomy re-queues classification.
 3. **AI** — a cached classification with status `ok`, only for records where the first two give
    nothing.
 
-AI-suggested chips carry a sparkle icon and the tooltip "Generated on this device — may be wrong".
+AI-suggested chips carry a sparkle icon and a tooltip saying where they were generated: "Generated on this device — may be wrong", or "Generated online by <provider> — may be wrong" when an online source wrote them (1.8.12, from the model identity stored with the entry).
 
 ### The `categories` field
 
@@ -259,7 +259,7 @@ reasons fill in when they arrive.
   with the locale before deciding.
 - **Memory only:** reasons are kept for one visit to the page, never written to disk.
 
-Each AI reason sits under the "Generated on this device — may be wrong" label.
+Each AI reason sits under a label saying where it was generated, as for categories.
 
 ### The page
 
@@ -385,7 +385,8 @@ Owned by `RecommendationStore`, under `AnimeStorage.getAppDir()`, registered as 
         {
           "id": "<animeId>",
           "reasons": ["categories:romance,school", "studio:Madhouse"],
-          "aiReason": "Both follow a slow-burn school romance."
+          "aiReason": "Both follow a slow-burn school romance.",
+          "aiReasonModel": "local:qwen3.5-0.8b|local:qwen3.5-0.8b"
         }
       ],
       "hidden": [{ "id": "<animeId>", "hiddenAt": "2026-09-24T03:00:00.000Z" }],
@@ -458,8 +459,8 @@ the databases", "Similar title" — at most three, largest first.
   generation with the same privacy rules as the global page — titles, categories, studios and
   relation facts; never notes, ratings or history — through `relatedReasonPrompt`
   (`relatedReasonPromptVersion = 1`). The model picks up to three of the numbered candidates. Unlike
-  the global page's reasons they are **saved with the list**, under the same "Generated on this
-  device — may be wrong" label.
+  the global page's reasons they are **saved with the list**, under the same label saying where they
+  were generated; the model identity that wrote them is saved as `aiReasonModel` (1.8.12).
 - **Refresh** (the card's refresh button, or *Show others* in its menu) puts every item on screen into
   **this record's trash**, then generates the next five. With nothing on screen it trashes nothing and
   simply regenerates, which is how newly added records get in. Since 1.6.3 pinned rows are not

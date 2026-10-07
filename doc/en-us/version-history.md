@@ -1,5 +1,14 @@
 # Version history
 
+## 1.8.12 — Source-aware AI labels and Android local models (2026-10-07)
+
+AI categories and recommendation reasons now say where they were generated: "Generated on this
+device", or "Generated online by <provider>" for an online source, from the model identity stored
+with each result (`aiGeneratedLabelFor`). Related-list reasons store that identity as
+`aiReasonModel`; reasons stored earlier count as on-device. The master switch is now "Use AI
+features" and its description and unreachable status no longer assume an on-device model. Pin
+MyApps-AI v0.5.3, which makes local models load on Android.
+
 ## 1.8.11 — AI sources and WebDAV consent (2026-10-07)
 
 Complete P0/P1 (+0.0.2): explicit platform backend dependency, unified settings, local CPU models (Qwen3.5 0.8B/2B, Gemma 4 E2B, 4-bit), explicit downloads and device-local source persistence. D1 requires privacy acknowledgement before all WebDAV requests and visibly pauses existing configurations. Pin AI v0.5.2, UI v0.1.8, DATA v1.1.0.

@@ -33,7 +33,7 @@ model fails or its reply is invalid, and reasons are kept in memory only — not
    status.
 3. **Status is re-checked before every request.** The system can remove a model between two
    requests.
-4. **Generated output is labelled** "Generated on this device — may be wrong".
+4. **Generated output is labelled** with where it was generated: "Generated on this device — may be wrong", or, since 1.8.12, "Generated online by <provider> — may be wrong" for results of an online source.
 5. **The fallback is the app.** Categories and recommendations are deterministic first; the model
    only fills gaps and adds reasons.
 6. **Nothing generated is synced or backed up.** Results live in `ai_insights.json`, which is not

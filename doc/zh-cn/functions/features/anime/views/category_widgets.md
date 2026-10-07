@@ -38,8 +38,9 @@
 - **输入：** `context`。
 - **返回：** 一个 `Wrap`。
 - **副作用：** 无。
-- **算法：** 每个生效 id 一个 `Chip`；来源为 `ai` 时，每个标签带 `auto_awesome` 闪光图标和 `aiGeneratedLabel` 提示
-  （「在本设备上生成——可能有误」）；来源为 `user` 时，带 `person_outline` 图标和 `categoriesYours` 提示（「由你选择」）；映射得到的标签两者都没有，也没有提示。没有 id → 一个 `categoriesNone` 标签。每个标签都使用
+- **算法：** 每个生效 id 一个 `Chip`；来源为 `ai` 时，每个标签带 `auto_awesome` 闪光图标和由
+  [`aiGeneratedLabelFor`](../../ai/services/ai_origin.md) 依 `EffectiveCategories.model` 给出的提示
+  （「在本设备上生成——可能有误」，自 1.8.12 起在线来源会写明服务商）；来源为 `user` 时，带 `person_outline` 图标和 `categoriesYours` 提示（「由你选择」）；映射得到的标签两者都没有，也没有提示。没有 id → 一个 `categoriesNone` 标签。每个标签都使用
   `VisualDensity.compact`。最后总有一个 `edit_outlined` `IconButton`，提示为 `categoriesEdit`（「编辑分类」），调用 `onEdit`。
 - **用法：** [`anime_detail_page.md`](anime_detail_page.md) 中的 `_buildHeaderChildren`，仅在自动分类开启时。
 - **备注：** 用户的分类和映射得出的分类外观相同。1.6.2 及之前，编辑操作是一个带文字的

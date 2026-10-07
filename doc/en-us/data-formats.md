@@ -382,7 +382,7 @@ migrates data files, backups, and images.
 | Data | File | Synced | Notes |
 | --- | --- | --- | --- |
 | Anime records | `anime_data.json` | Yes | Per-record by `id` and `modifiedAt`; unknown fields preserved |
-| Recommendation trash bins and related lists | `recommendations.json` | Yes | Since 1.6.2: the global trash, trashed missing-sequel cards, and each record's persisted Related list with its own trash; since 1.6.3 also pins and each missing sequel's synopsis and cover thumbnail; conflict-free set merge; created only when first needed |
+| Recommendation trash bins and related lists | `recommendations.json` | Yes | Since 1.6.2: the global trash, trashed missing-sequel cards, and each record's persisted Related list with its own trash; since 1.6.3 also pins and each missing sequel's synopsis and cover thumbnail; since 1.8.12 each related AI reason records the model identity that wrote it (`aiReasonModel`); conflict-free set merge; created only when first needed |
 | Playback progress | `playback_progress.json` | Yes | Since 1.6.5: the resume point of each episode played in the app; newer position wins per key, finished episodes stay deleted; conflict-free; created only when first needed |
 | Profile (display name and avatar) | `profile.json` | Yes | Since 1.7.0: the user's display name and avatar path, each with its own timestamp; last writer wins per field; conflict-free; created only when first set |
 | Cover images and avatar | `images/` | Yes | Referenced-only additive sync by filename; since 1.7.0 also the profile avatar (`images/avatar_<uuid>.jpg`) |

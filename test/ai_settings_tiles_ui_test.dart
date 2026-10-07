@@ -68,7 +68,7 @@ void main() {
   ) async {
     debugDefaultTargetPlatformOverride = TargetPlatform.android;
     await pump(tester);
-    expect(find.text('Use on-device AI'), findsOneWidget);
+    expect(find.text('Use AI features'), findsOneWidget);
     expect(find.text('Technical details'), findsNothing);
     expect(backend.calls, isEmpty);
     debugDefaultTargetPlatformOverride = null;

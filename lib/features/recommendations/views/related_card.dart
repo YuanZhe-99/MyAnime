@@ -6,7 +6,9 @@ import 'package:go_router/go_router.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../../shared/services/auto_sync_service.dart';
 import '../../ai/services/ai_insights_cache.dart';
+import '../../ai/services/ai_origin.dart';
 import '../../ai/services/on_device_ai_service.dart';
+import '../../categories/services/category_service.dart';
 import '../../anime/models/anime.dart';
 import '../models/recommendation_data.dart';
 import '../services/ai_reason_service.dart';
@@ -159,9 +161,10 @@ class _RelatedRecommendationsCardState
 
       final reasons = await _aiReasons(ranked, insights);
       if (reasons.isEmpty || !mounted) return;
+      final model = modelIdentityOf(ref.read(onDeviceAiServiceProvider).report);
       data = await RecommendationStore.putRelated(widget.anime.id, [
         ...kept,
-        for (final i in fresh) i.withAiReason(reasons[i.id]),
+        for (final i in fresh) i.withAiReason(reasons[i.id], model: model),
       ], generatedAt: at);
       if (!mounted) return;
       setState(() => _snapshot = data.related[widget.anime.id]);
@@ -398,7 +401,7 @@ class _RelatedRecommendationsCardState
                         const SizedBox(width: 4),
                         Expanded(
                           child: Text(
-                            l10n.aiGeneratedLabel,
+                            aiGeneratedLabelFor(l10n, item.aiReasonModel),
                             style: theme.textTheme.labelSmall,
                           ),
                         ),

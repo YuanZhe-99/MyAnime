@@ -1940,13 +1940,13 @@ abstract class AppLocalizations {
   /// No description provided for @aiUseOnDevice.
   ///
   /// In en, this message translates to:
-  /// **'Use on-device AI'**
+  /// **'Use AI features'**
   String get aiUseOnDevice;
 
   /// No description provided for @aiUseOnDeviceDesc.
   ///
   /// In en, this message translates to:
-  /// **'Off by default. Fills in categories the databases did not provide and writes short reasons for recommendations, with the model built into this device. Nothing leaves the device.'**
+  /// **'Off by default. Fills in categories the databases did not provide and writes short reasons for recommendations, with the AI source chosen below. On-device sources keep everything on this device; an online source sends the request to that provider.'**
   String get aiUseOnDeviceDesc;
 
   /// No description provided for @aiNeedsFeature.
@@ -1970,7 +1970,7 @@ abstract class AppLocalizations {
   /// No description provided for @aiStatusUnreachable.
   ///
   /// In en, this message translates to:
-  /// **'The on-device model could not be reached'**
+  /// **'The AI source could not be reached'**
   String get aiStatusUnreachable;
 
   /// No description provided for @aiStatusUnknown.
@@ -2080,6 +2080,18 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Generated on this device — may be wrong'**
   String get aiGeneratedLabel;
+
+  /// No description provided for @aiGeneratedOnlineUnknownLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Generated online — may be wrong'**
+  String get aiGeneratedOnlineUnknownLabel;
+
+  /// No description provided for @aiGeneratedOnlineLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Generated online by {provider} — may be wrong'**
+  String aiGeneratedOnlineLabel(String provider);
 
   /// No description provided for @save.
   ///

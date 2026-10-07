@@ -2,7 +2,7 @@ name: my_anime
 description: "MyAnime!!!!! — Your anime tracking companion"
 publish_to: 'none'
 
-version: 1.8.11+84
+version: 1.8.12+85
 
 dependency_overrides:
   # Xcode 26.6 protocol availability fix; upstream PR #2870, macOS only.

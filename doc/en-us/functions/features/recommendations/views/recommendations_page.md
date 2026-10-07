@@ -180,10 +180,10 @@ Through 1.6.1 this page also held `_reasonLabel`; since 1.6.2 chips are worded b
 - **Side effects:** None; a tap pushes `/anime/detail/<id>`.
 - **Algorithm:** Cover, title (two lines), a `Wrap` of chips worded by
   [`reasonLabel`](reason_labels.md), then — when there is an AI reason — the sparkle icon with
-  `aiGeneratedLabel` and the reason, and `_cardActions`: the pin toggle (`push_pin_outlined` /
+  the label from [`aiGeneratedLabelFor`](../../ai/services/ai_origin.md) and the reason, and `_cardActions`: the pin toggle (`push_pin_outlined` /
   `push_pin`, tooltip `recommendationsPin` / `recommendationsUnpin`, 1.6.3) and *Not interested*.
 - **Usage:** `build`.
-- **Notes:** The AI reason is always labelled as generated on this device.
+- **Notes:** Since 1.8.12 the label follows `_aiReasonsModel`, the model identity recorded when the reasons were requested; before, it always said "on this device".
 
 ### `Widget _missingCard(Anime source, AnimeExternalRelation sequel, AppLocalizations l10n)` <a id="_recommendationspagestate-_missingcard"></a>
 - **Kind:** method of `_RecommendationsPageState`

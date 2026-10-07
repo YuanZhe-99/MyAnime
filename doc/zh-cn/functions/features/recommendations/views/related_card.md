@@ -55,7 +55,7 @@
   [`keptPinnedItems`](#keptpinneditems)。2) `AiInsightsCache.load()` 取得 AI 分类。3)
   `RecommendationService.related(anime, library, insights:, exclude: trash ∪ pinned ids, limit: 5 −
   pinned count)`，钉选已占满列表时跳过。4) 用 `encodeRelatedReason` 编码每条理由，以同一个 `generatedAt` 对钉选条目
-  加新条目调用 `putRelated`；显示它。5) 只对新条目调用 `_aiReasons`；有理由返回时，填好 `aiReason`、以相同的
+  加新条目调用 `putRelated`；显示它。5) 只对新条目调用 `_aiReasons`；有理由返回时，填好 `aiReason`、把 `aiReasonModel` 设为当前状态的 `modelIdentityOf`（1.8.12）、以相同的
   `generatedAt` 再次调用 `putRelated`。
 - **用法：** `_load`、`_refresh`。
 - **备注：** 由 `_busy` 保护，因此生成期间的同步重新加载不会再启动一次生成。

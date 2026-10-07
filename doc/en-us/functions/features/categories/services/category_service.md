@@ -13,7 +13,7 @@ and [`../../../../on-device-ai.md`](../../../../on-device-ai.md).
 
 | Declaration | Kind | Tier | Purpose |
 |---|---|---|---|
-| `EffectiveCategories.new` | constructor (`EffectiveCategories`) | B | Create the effective categories (`ids`, `origin`). |
+| `EffectiveCategories.new` | constructor (`EffectiveCategories`) | B | Create the effective categories (`ids`, `origin`, and for AI results the `model` identity, 1.8.12). |
 | [`resolveCategories`](#resolvecategories) | top-level function | A | Resolve a record's categories. |
 | [`classificationInputOf`](#classificationinputof) | top-level function | A | Collect what the model may know about a work. |
 | [`modelIdentityOf`](#modelidentityof) | top-level function | A | Name the model that would answer, for fingerprints and the cache. |
@@ -39,7 +39,7 @@ not rows.
 - **Source:** `lib/features/categories/services/category_service.dart` (approx. line 59)
 - **Purpose:** Resolve a record's categories.
 - **Inputs:** `anime`; `insights` — the AI cache, or `null` to ignore it.
-- **Returns:** `EffectiveCategories` — ids plus the `CategoryOrigin`, or `EffectiveCategories.empty`.
+- **Returns:** `EffectiveCategories` — ids plus the `CategoryOrigin` (and, for AI results, the entry's `model`), or `EffectiveCategories.empty`.
 - **Side effects:** None.
 - **Algorithm:** The first source that gives something wins:
   1. **User** — `anime.categories` whenever it is non-null, *even empty*; unknown ids are dropped

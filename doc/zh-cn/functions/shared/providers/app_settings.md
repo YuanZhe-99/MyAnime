@@ -241,7 +241,7 @@
       ? notifier.setOnDeviceAiEnabled
       : null,
   ```
-  （来自 `lib/features/ai/widgets/ai_settings_tiles.dart` 的「使用端侧 AI」开关）
+  （来自 `lib/features/ai/widgets/ai_settings_tiles.dart` 的「使用 AI 功能」开关）
 - **备注：** 默认关闭。`setOnDeviceAiPreferFast` 形态相同，并在开启期间让服务重新探测。
 
 ### `void setAutoCategoriesEnabled(bool enabled)` <a id="appsettingsnotifier-setautocategoriesenabled"></a>

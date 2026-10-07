@@ -43,8 +43,9 @@ for the feature.
 - **Returns:** A `Wrap`.
 - **Side effects:** None.
 - **Algorithm:** One `Chip` per effective id; when the origin is `ai`, each chip carries the
-  `auto_awesome` sparkle and the `aiGeneratedLabel` tooltip ("Generated on this device — may be
-  wrong"); when it is `user`, a `person_outline` icon and the `categoriesYours` tooltip ("Chosen by
+  `auto_awesome` sparkle and the tooltip from
+  [`aiGeneratedLabelFor`](../../ai/services/ai_origin.md) for `EffectiveCategories.model`
+  ("Generated on this device — may be wrong", or the online provider since 1.8.12); when it is `user`, a `person_outline` icon and the `categoriesYours` tooltip ("Chosen by
   you"); mapped chips carry neither and no tooltip. No ids → a `categoriesNone` chip. Every chip
   uses `VisualDensity.compact`. Always ends with an `edit_outlined` `IconButton` whose tooltip is
   `categoriesEdit` ("Edit categories"), calling `onEdit`.

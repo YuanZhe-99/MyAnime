@@ -34,10 +34,10 @@ refuses a file that is not ours. The schema is in
 | `SequelInfo.fromJson` | static method (`SequelInfo`) | B | Read the info; null when not an object. |
 | `SequelInfo.toJson` | method (`SequelInfo`) | B | Serialize; absent fields omitted. |
 | [`SequelInfo.mergedWith`](#sequelinfo-mergedwith) | method (`SequelInfo`) | A | Combine both sides: the later fetch wins. |
-| `RelatedItem.new` | constructor (`RelatedItem`) | B | Create a related item: an anime id, reason codes, an optional AI reason. |
+| `RelatedItem.new` | constructor (`RelatedItem`) | B | Create a related item: an anime id, reason codes, an optional AI reason and the model identity that wrote it (`aiReasonModel`, 1.8.12). |
 | `RelatedItem.fromJson` | static method (`RelatedItem`) | B | Read an item; null without a string `id`. |
-| `RelatedItem.toJson` | method (`RelatedItem`) | B | Serialize; empty `reasons` omitted. |
-| `RelatedItem.withAiReason` | method (`RelatedItem`) | B | Copy the item with a generated reason. |
+| `RelatedItem.toJson` | method (`RelatedItem`) | B | Serialize; empty `reasons` omitted; `aiReasonModel` only with an AI reason. |
+| `RelatedItem.withAiReason` | method (`RelatedItem`) | B | Copy the item with a generated reason and the `model` identity that wrote it. |
 | `RelatedSnapshot.new` | constructor (`RelatedSnapshot`) | B | Create a snapshot: `generatedAt`, items, trash, pins (1.6.3). |
 | `RelatedSnapshot.isGenerated` | getter (`RelatedSnapshot`) | B | Whether a list was ever generated (`generatedAt` set). |
 | `RelatedSnapshot.isEmpty` | getter (`RelatedSnapshot`) | B | Whether nothing is worth writing; empty snapshots are dropped. |

@@ -63,7 +63,8 @@ shows the card only while recommendations are on. See
   pinned count)`, skipped when the pins already fill the list. 4) Encode each reason with
   `encodeRelatedReason` and `putRelated` the pinned items followed by the new ones, with one
   `generatedAt`; show it. 5) `_aiReasons` for the new ones only; when any arrive, `putRelated` again
-  with `aiReason` filled and the same `generatedAt`.
+  with `aiReason` filled, `aiReasonModel` set to `modelIdentityOf` the current report (1.8.12), and the
+  same `generatedAt`.
 - **Usage:** `_load`, `_refresh`.
 - **Notes:** Guarded by `_busy`, so a sync reload during a generation does not start another.
   Pinned items keep their stored reasons and AI reason.

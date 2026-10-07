@@ -23,7 +23,7 @@ enum CategoryOrigin {
   /// Mapped from the source databases' genres.
   mapped,
 
-  /// Suggested by the on-device model.
+  /// Suggested by the selected AI source.
   ai,
 }
 
@@ -37,12 +37,15 @@ class EffectiveCategories {
   /// Where they came from, or null when there are none.
   final CategoryOrigin? origin;
 
+  /// The model identity that generated AI categories, or null.
+  final String? model;
+
   /// Purpose: Create the effective categories.
-  /// Inputs: `ids`, `origin`.
+  /// Inputs: `ids`, `origin`, and for AI results the `model` identity.
   /// Returns: A new `EffectiveCategories`.
   /// Side effects: None.
   /// Notes: None.
-  const EffectiveCategories(this.ids, this.origin);
+  const EffectiveCategories(this.ids, this.origin, [this.model]);
 
   /// No categories.
   static const empty = EffectiveCategories([], null);
@@ -82,7 +85,9 @@ EffectiveCategories resolveCategories(Anime anime, {AiInsights? insights}) {
       for (final c in animeCategories)
         if (entry.ids.contains(c.id)) c.id,
     ];
-    if (ids.isNotEmpty) return EffectiveCategories(ids, CategoryOrigin.ai);
+    if (ids.isNotEmpty) {
+      return EffectiveCategories(ids, CategoryOrigin.ai, entry.model);
+    }
   }
   return EffectiveCategories.empty;
 }
