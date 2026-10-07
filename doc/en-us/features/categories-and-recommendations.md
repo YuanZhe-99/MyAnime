@@ -386,7 +386,7 @@ Owned by `RecommendationStore`, under `AnimeStorage.getAppDir()`, registered as 
           "id": "<animeId>",
           "reasons": ["categories:romance,school", "studio:Madhouse"],
           "aiReason": "Both follow a slow-burn school romance.",
-          "aiReasonModel": "local:qwen3.5-0.8b|local:qwen3.5-0.8b"
+          "aiReasonModel": "local:qwen3.5-0.8b · local:qwen3.5-0.8b"
         }
       ],
       "hidden": [{ "id": "<animeId>", "hiddenAt": "2026-09-24T03:00:00.000Z" }],

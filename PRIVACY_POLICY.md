@@ -4,7 +4,7 @@ Thank you for using MyAnime!!!!!. We take your privacy seriously. This privacy p
 
 ## Data Collection
 
-MyAnime!!!!! does not collect, upload, or share any personal information. The app contains no analytics, advertising trackers, or data collection of any kind.
+MyAnime!!!!! contains no analytics or advertising trackers. User-configured WebDAV sync and an explicitly selected online AI source send the data described below to the server you chose.
 
 ## Data Storage
 
@@ -24,6 +24,8 @@ MyAnime!!!!! accesses the internet only in the following situations:
 
 - **Anime1 episode playback (full version, since 1.6.4): Opening an anime detail page can fetch its public episode directory. Playing an episode contacts Anime1 and its video hosts (v.anime1.me and subdomains) with the page address and temporary playback credentials. Native credentials stay in memory and are not synced or backed up. The embedded website may load its own third-party resources and keep cookies in the local WebView profile; that profile is not part of app sync or backups. Personal ratings, notes and watch history are not sent.**
 
+- **AI features** *(optional)*: downloading a local model, and requests to an online AI source you selected, as described under AI Features below.
+
 No other network communication takes place.
 
 ## Third-Party Services
@@ -41,15 +43,19 @@ These services have their own privacy policies, which we encourage you to review
 
 **Note:** Versions distributed through the App Store and Google Play (store flavor) do not include the online search feature and do not connect to these third-party services.
 
-## On-Device AI (optional, since 1.6.0)
+## AI Features (optional, since 1.6.0)
 
-Automatic categories and recommendations can optionally use the language model built into your device — Gemini Nano through Android AICore, or the model that is part of Apple Intelligence on iOS 26 and macOS 26 or later. This is off by default and runs only after you turn on "Use AI features" (formerly "Use on-device AI") in Settings.
+Automatic categories and short reasons for recommendations can optionally be written by an AI source. This is off by default and runs only after you turn on "Use AI features" in Settings and choose a source under "AI source and model". The app never switches to an online source by itself: "Automatic (system AI)" uses only the AI built into your system.
 
-- Everything the model does happens on your device. For categories it is given an anime's titles, format, year, studios and genres. For recommendation reasons it is also given the suggested titles, your ratings of a few recently finished anime, and which studios and categories you tend to like. Your notes are never given to it.
+**What a source is given.** For categories: an anime's titles, format, year, type, episode count, studios and genres. For recommendation reasons, also the suggested titles, your ratings of a few recently finished anime, and which studios and categories you tend to like. Your notes and watch history are never given to it.
 
-- On Android, the model is downloaded by the AICore system service from Google, and only when you tap Download in Settings. On Apple devices the model is part of Apple Intelligence and is managed by the system.
+**The three kinds of source:**
 
-- Generated results stay on your device: they are neither synced nor backed up. No cloud model is used, including Apple's Private Cloud Compute.
+- **System AI** (since 1.6.0): Gemini Nano through Android AICore, or the model that is part of Apple Intelligence on iOS 26 and macOS 26 or later. It runs on your device. On Android, AICore downloads the model from Google, and only when you tap Download in Settings; on Apple devices the model is managed by the system. Apple's Private Cloud Compute is never used.
+- **Local models** (since 1.8.11): Qwen3.5 0.8B or 2B, or Gemma 4 E2B (4-bit), downloaded from Hugging Face only when you tap Download. The download reveals your IP address to Hugging Face but sends none of your app data. The files are checked against a pinned SHA-256, stay on this device, and are excluded from sync, backups and ZIP exports. They run on your device's processor; no prompt leaves the device.
+- **Online sources** (since 1.8.11): providers you add yourself, with a server address and API key you enter. Only while you have selected one, and only after you accept its privacy notice for that server on this device, the prompts described above are sent to that provider, which handles them under its own privacy policy. An online source is never used as a fallback. API keys are stored as plaintext on this device only and are excluded from sync, backups and ZIP exports. Connections to an `http://` address are not encrypted.
+
+**Where results are kept.** AI categories are cached on this device only; they are neither synced nor backed up. Reasons on the Recommendations page are kept in memory only. Reasons on a detail page's Related list are saved with that list in your recommendations file, which syncs to your own WebDAV server if you set one up and is included in backups. Each result is labelled with where it was generated: on this device, or online with the provider's name.
 
 ## Data Backup
 

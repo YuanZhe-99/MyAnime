@@ -664,70 +664,70 @@ packages:
       path: "packages/myapps_ai/packages/myapps_ai"
       relative: true
     source: path
-    version: "0.5.2"
+    version: "0.5.3"
   myapps_ai_core:
     dependency: transitive
     description:
       path: "packages/myapps_ai/packages/myapps_ai_core"
       relative: true
     source: path
-    version: "0.5.2"
+    version: "0.5.3"
   myapps_ai_llm:
     dependency: "direct main"
     description:
       path: "packages/myapps_ai/packages/myapps_ai_llm"
       relative: true
     source: path
-    version: "0.5.2"
+    version: "0.5.3"
   myapps_ai_llm_llama:
     dependency: "direct main"
     description:
       path: "packages/myapps_ai/packages/myapps_ai_llm_llama"
       relative: true
     source: path
-    version: "0.5.2"
+    version: "0.5.3"
   myapps_ai_local_ui:
     dependency: "direct main"
     description:
       path: "packages/myapps_ai/packages/myapps_ai_local_ui"
       relative: true
     source: path
-    version: "0.5.2"
+    version: "0.5.3"
   myapps_ai_models:
     dependency: "direct main"
     description:
       path: "packages/myapps_ai/packages/myapps_ai_models"
       relative: true
     source: path
-    version: "0.5.2"
+    version: "0.5.3"
   myapps_ai_online:
     dependency: "direct main"
     description:
       path: "packages/myapps_ai/packages/myapps_ai_online"
       relative: true
     source: path
-    version: "0.5.2"
+    version: "0.5.3"
   myapps_ai_online_ui:
     dependency: "direct main"
     description:
       path: "packages/myapps_ai/packages/myapps_ai_online_ui"
       relative: true
     source: path
-    version: "0.5.2"
+    version: "0.5.3"
   myapps_ai_platform:
     dependency: "direct main"
     description:
       path: "packages/myapps_ai/packages/myapps_ai_platform"
       relative: true
     source: path
-    version: "0.5.2"
+    version: "0.5.3"
   myapps_ai_ui:
     dependency: "direct main"
     description:
       path: "packages/myapps_ai/packages/myapps_ai_ui"
       relative: true
     source: path
-    version: "0.5.2"
+    version: "0.5.3"
   myapps_data:
     dependency: "direct main"
     description:

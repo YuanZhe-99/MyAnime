@@ -1,5 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:my_anime/features/ai/services/ai_origin.dart';
+import 'package:my_anime/features/categories/services/category_service.dart';
+import 'package:myapps_ai/myapps_ai.dart';
 import 'package:my_anime/features/recommendations/models/recommendation_data.dart';
 import 'package:my_anime/l10n/app_localizations_en.dart';
 
@@ -7,13 +9,22 @@ void main() {
   test('online results are told apart from on-device ones', () {
     expect(onlineProviderOf(null), isNull);
     expect(onlineProviderOf(''), isNull);
-    expect(onlineProviderOf('local:qwen3.5-0.8b|local:qwen3.5-0.8b'), isNull);
-    expect(onlineProviderOf('gemini-nano|v2'), isNull);
+    expect(onlineProviderOf('local:qwen3.5-0.8b · local:qwen3.5-0.8b'), isNull);
+    expect(onlineProviderOf('gemini-nano · v2'), isNull);
     expect(
-      onlineProviderOf('provider:openai|provider:openai'),
+      onlineProviderOf('provider:openai · provider:openai'),
       'provider:openai',
     );
     expect(onlineProviderOf('provider:1f2e-3d'), 'provider:1f2e-3d');
+  });
+
+  test('the identity of an online report names its provider', () {
+    const report = GenAiStatusReport(
+      GenAiStatus.available,
+      variant: 'provider:abc',
+      baseModelName: 'provider:abc',
+    );
+    expect(onlineProviderOf(modelIdentityOf(report)), 'provider:abc');
   });
 
   test('labels name the online provider, or fall back without one', () {

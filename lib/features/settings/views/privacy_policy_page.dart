@@ -21,7 +21,7 @@ class PrivacyPolicyPage extends StatelessWidget {
     final l10n = AppLocalizations.of(context)!;
     final locale = Localizations.localeOf(context);
     final text =
-        '${_getText(locale)}\n\n${l10n.aiLocalPrivacyPolicy}\n\n${l10n.aiOnlinePrivacyTitle}\n${l10n.aiOnlineSentData}\n${l10n.aiOnlineKeyLocal}\n${l10n.aiOnlineSelectedOnly}\n\n${l10n.webdavPrivacyPlaintext}\n${l10n.webdavPrivacyHttp}\n${l10n.webdavPrivacyPaused}';
+        '${_getText(locale)}\n\n${l10n.webdavPrivacyPlaintext}\n${l10n.webdavPrivacyHttp}\n${l10n.webdavPrivacyPaused}';
 
     return Scaffold(
       appBar: AppBar(title: Text(l10n.settingsPrivacyPolicy)),
@@ -100,15 +100,19 @@ These services have their own privacy policies, which we encourage you to review
 
 Note: Versions distributed through the App Store and Google Play do not include the online search feature and do not connect to these third-party services.
 
-On-Device AI (optional, since 1.6.0)
+AI Features (optional, since 1.6.0)
 
-Automatic categories and recommendations can optionally use the language model built into your device — Gemini Nano through Android AICore, or the model that is part of Apple Intelligence on iOS 26 and macOS 26 or later. This is off by default and runs only after you turn on "Use on-device AI" in Settings.
+Automatic categories and short reasons for recommendations can optionally be written by an AI source. This is off by default and runs only after you turn on "Use AI features" in Settings and choose a source under "AI source and model". The app never switches to an online source by itself: "Automatic (system AI)" uses only the AI built into your system.
 
-• Everything the model does happens on your device. For categories it is given an anime's titles, format, year, studios and genres. For recommendation reasons it is also given the suggested titles, your ratings of a few recently finished anime, and which studios and categories you tend to like. Your notes are never given to it.
+What a source is given: for categories, an anime's titles, format, year, type, episode count, studios and genres. For recommendation reasons, also the suggested titles, your ratings of a few recently finished anime, and which studios and categories you tend to like. Your notes and watch history are never given to it.
 
-• On Android, the model is downloaded by the AICore system service from Google, and only when you tap Download in Settings. On Apple devices the model is part of Apple Intelligence and is managed by the system.
+• System AI (since 1.6.0): Gemini Nano through Android AICore, or the model that is part of Apple Intelligence on iOS 26 and macOS 26 or later. It runs on your device. On Android, AICore downloads the model from Google, and only when you tap Download in Settings; on Apple devices the model is managed by the system. Apple's Private Cloud Compute is never used.
 
-• Generated results stay on your device: they are neither synced nor backed up. No cloud model is used, including Apple's Private Cloud Compute.
+• Local models (since 1.8.11): Qwen3.5 0.8B or 2B, or Gemma 4 E2B (4-bit), downloaded from Hugging Face only when you tap Download. The download reveals your IP address to Hugging Face but sends none of your app data. The files are checked against a pinned SHA-256, stay on this device, and are excluded from sync, backups and ZIP exports. They run on your device's processor; no prompt leaves the device.
+
+• Online sources (since 1.8.11): providers you add yourself, with a server address and API key you enter. Only while you have selected one, and only after you accept its privacy notice for that server on this device, the prompts described above are sent to that provider, which handles them under its own privacy policy. An online source is never used as a fallback. API keys are stored as plaintext on this device only and are excluded from sync, backups and ZIP exports. Connections to an http:// address are not encrypted.
+
+Where results are kept: AI categories are cached on this device only; they are neither synced nor backed up. Reasons on the Recommendations page are kept in memory only. Reasons on a detail page's Related list are saved with that list in your recommendations file, which syncs to your own WebDAV server if you set one up and is included in backups. Each result is labelled with where it was generated: on this device, or online with the provider's name.
 
 Data Backup
 
@@ -164,15 +168,19 @@ MyAnime!!!!! 仅在以下情况下访问互联网：
 
 注意：通过 App Store 和 Google Play 分发的版本不包含在线搜索功能，不会连接到上述第三方服务。
 
-端侧 AI（可选，1.6.0 起）
+AI 功能（可选，1.6.0 起）
 
-自动分类与推荐可以选择使用设备内置的语言模型——Android 上通过 AICore 使用 Gemini Nano，iOS 26 与 macOS 26 及以上则使用 Apple Intelligence 自带的模型。此功能默认关闭，只有在您于设置中开启"使用端侧 AI"后才会运行。
+自动分类与推荐的简短理由可以选择由某个 AI 来源生成。此功能默认关闭，只有在您于设置中开启"使用 AI 功能"并在"AI 来源与模型"中选择来源后才会运行。应用绝不会自行切换到在线来源："自动（系统 AI）"只使用系统内置的 AI。
 
-• 模型的所有处理都在您的设备上完成。用于分类时，它只会获得番剧的标题、形式、年份、制作公司和类型标签。用于撰写推荐理由时，它还会获得被推荐的标题、您对最近看完的几部番剧的评分，以及您偏好的制作公司和分类。您的备注永远不会提供给它。
+来源会收到的内容：分类时为番剧的标题、格式、年份、类型、集数、制作公司和类型标签。写推荐理由时，还有推荐的标题、您对最近看完的几部番剧的评分，以及您偏好的制作公司和分类。您的备注和观看记录永远不会提供给它。
 
-• 在 Android 上，模型由系统服务 AICore 从 Google 下载，且仅在您于设置中点击"下载"时进行。在 Apple 设备上，模型属于 Apple Intelligence，由系统管理。
+• 系统 AI（1.6.0 起）：Android 上通过 AICore 使用 Gemini Nano，iOS 26 与 macOS 26 及以上使用 Apple Intelligence 自带的模型。在您的设备上运行。在 Android 上，模型由 AICore 从 Google 下载，且仅在您于设置中点击"下载"时进行；在 Apple 设备上，模型由系统管理。绝不使用 Apple 的 Private Cloud Compute。
 
-• 生成的结果只保存在您的设备上：既不同步，也不备份。不使用任何云端模型，包括 Apple 的私有云计算（Private Cloud Compute）。
+• 本地模型（1.8.11 起）：Qwen3.5 0.8B 或 2B，或 Gemma 4 E2B（4 位），仅在您点击"下载"时从 Hugging Face 下载。下载会向 Hugging Face 暴露您的 IP 地址，但不发送任何应用数据。文件会按固定的 SHA-256 校验，只保存在本设备上，不参与同步、备份和 ZIP 导出。模型在您设备的处理器上运行，提示不会离开设备。
+
+• 在线来源（1.8.11 起）：由您自己添加的服务商，服务器地址和 API Key 均由您填写。只有在您选中某个在线来源，并在本设备上接受该服务器的隐私提醒之后，上述提示才会发送给该服务商，由其按自身的隐私政策处理。在线来源绝不会作为后备自动使用。API Key 以明文只保存在本设备上，不参与同步、备份和 ZIP 导出。连接 http:// 地址时不加密。
+
+结果保存在哪里：AI 分类只缓存在本设备上，既不同步也不备份。推荐页上的理由只保存在内存中。详情页"相关推荐"列表中的理由随该列表保存在推荐文件中；如果您设置了 WebDAV，该文件会同步到您自己的服务器，并包含在备份中。每条结果都会标注生成位置：本设备，或写明服务商名称的在线来源。
 
 数据备份
 
@@ -222,15 +230,19 @@ MyAnime!!!!! 僅在以下情況下存取網際網路：
 
 注意：透過 App Store 和 Google Play 分發的版本不包含線上搜尋功能，不會連線到上述第三方服務。
 
-裝置端 AI（可選，1.6.0 起）
+AI 功能（可選，1.6.0 起）
 
-自動分類與推薦可以選擇使用裝置內建的語言模型——Android 上透過 AICore 使用 Gemini Nano，iOS 26 與 macOS 26 及以上則使用 Apple Intelligence 內建的模型。此功能預設關閉，只有在您於設定中開啟「使用裝置端 AI」後才會執行。
+自動分類與推薦的簡短理由可以選擇由某個 AI 來源產生。此功能預設關閉，只有在您於設定中開啟「使用 AI 功能」並在「AI 來源與模型」中選擇來源後才會執行。應用程式絕不會自行切換到線上來源：「自動（系統 AI）」只使用系統內建的 AI。
 
-• 模型的所有處理都在您的裝置上完成。用於分類時，它只會取得番劇的標題、形式、年份、製作公司和類型標籤。用於撰寫推薦理由時，它還會取得被推薦的標題、您對最近看完的幾部番劇的評分，以及您偏好的製作公司和分類。您的備註永遠不會提供給它。
+來源會收到的內容：分類時為番劇的標題、格式、年份、類型、集數、製作公司和類型標籤。撰寫推薦理由時，還有推薦的標題、您對最近看完的幾部番劇的評分，以及您偏好的製作公司和分類。您的備註和觀看紀錄永遠不會提供給它。
 
-• 在 Android 上，模型由系統服務 AICore 從 Google 下載，且僅在您於設定中點選「下載」時進行。在 Apple 裝置上，模型屬於 Apple Intelligence，由系統管理。
+• 系統 AI（1.6.0 起）：Android 上透過 AICore 使用 Gemini Nano，iOS 26 與 macOS 26 及以上使用 Apple Intelligence 內建的模型。在您的裝置上執行。在 Android 上，模型由 AICore 從 Google 下載，且僅在您於設定中點選「下載」時進行；在 Apple 裝置上，模型由系統管理。絕不使用 Apple 的 Private Cloud Compute。
 
-• 生成的結果只儲存在您的裝置上：既不同步，也不備份。不使用任何雲端模型，包括 Apple 的私有雲端運算（Private Cloud Compute）。
+• 本機模型（1.8.11 起）：Qwen3.5 0.8B 或 2B，或 Gemma 4 E2B（4 位元），僅在您點選「下載」時從 Hugging Face 下載。下載會向 Hugging Face 揭露您的 IP 位址，但不傳送任何應用程式資料。檔案會依固定的 SHA-256 驗證，只儲存在本裝置上，不參與同步、備份和 ZIP 匯出。模型在您裝置的處理器上執行，提示不會離開裝置。
+
+• 線上來源（1.8.11 起）：由您自行新增的服務商，伺服器位址和 API Key 均由您填寫。只有在您選中某個線上來源，並在本裝置上接受該伺服器的隱私提醒之後，上述提示才會傳送給該服務商，由其依自身的隱私政策處理。線上來源絕不會作為備援自動使用。API Key 以明文只儲存在本裝置上，不參與同步、備份和 ZIP 匯出。連線至 http:// 位址時不加密。
+
+結果儲存在哪裡：AI 分類只快取在本裝置上，既不同步也不備份。推薦頁上的理由只保存在記憶體中。詳情頁「相關推薦」清單中的理由隨該清單儲存在推薦檔案中；如果您設定了 WebDAV，該檔案會同步到您自己的伺服器，並包含在備份中。每條結果都會標註產生位置：本裝置，或寫明服務商名稱的線上來源。
 
 資料備份
 
@@ -286,15 +298,19 @@ MyAnime!!!!! は以下の場合にのみインターネットにアクセスし�
 
 注意：App Store および Google Play で配信されるバージョンにはオンライン検索機能は含まれておらず、上記のサードパーティサービスに接続しません。
 
-オンデバイスAI（任意、1.6.0 以降）
+AI機能（任意、1.6.0 以降）
 
-自動分類とおすすめでは、端末に内蔵された言語モデル（Android では AICore 経由の Gemini Nano、iOS 26・macOS 26 以降では Apple Intelligence のモデル）を任意で利用できます。初期状態ではオフで、設定で「オンデバイスAIを使う」をオンにした場合にのみ動作します。
+自動分類とおすすめの短い理由は、任意で AI ソースに書かせることができます。初期状態ではオフで、設定で「AI機能を使う」をオンにし、「AI のソースとモデル」でソースを選んだ場合にのみ動作します。アプリが自分からオンラインソースに切り替えることはありません。「自動（システム AI）」はシステム内蔵の AI だけを使います。
 
-• モデルの処理はすべて端末内で行われます。分類では、アニメのタイトル、形式、年、制作会社、ジャンルだけを渡します。おすすめの理由を書く際は、候補のタイトル、最近観終えた数作品へのあなたの評価、好みの制作会社と分類も渡します。メモが渡されることはありません。
+ソースに渡す内容：分類では、作品のタイトル、形式、年、種類、話数、制作会社、ジャンル。おすすめの理由では、それに加えておすすめ作品のタイトル、最近見終えた数作品へのあなたの評価、よく好む制作会社と分類。メモと視聴履歴は渡しません。
 
-• Android では、モデルはシステムサービスの AICore が Google からダウンロードします。ダウンロードは設定で「ダウンロード」をタップしたときだけ行われます。Apple 製デバイスでは、モデルは Apple Intelligence の一部としてシステムが管理します。
+• システムAI（1.6.0 以降）：Android では AICore 経由の Gemini Nano、iOS 26・macOS 26 以降では Apple Intelligence のモデル。端末内で動作します。Android ではモデルを AICore が Google からダウンロードし、それは設定で「ダウンロード」をタップしたときだけです。Apple 製デバイスではシステムがモデルを管理します。Apple の Private Cloud Compute は使いません。
 
-• 生成された結果は端末内にのみ保存され、同期もバックアップもされません。Apple の Private Cloud Compute を含め、クラウドのモデルは一切使用しません。
+• ローカルモデル（1.8.11 以降）：Qwen3.5 0.8B・2B、または Gemma 4 E2B（4bit）。「ダウンロード」をタップしたときだけ Hugging Face からダウンロードします。ダウンロードにより IP アドレスが Hugging Face に伝わりますが、アプリのデータは送りません。ファイルは固定の SHA-256 で検証され、この端末にのみ保存され、同期・バックアップ・ZIP エクスポートの対象外です。端末のプロセッサで動作し、プロンプトは端末の外に出ません。
+
+• オンラインソース（1.8.11 以降）：あなたが自分で追加する提供元で、サーバーのアドレスと API キーはあなたが入力します。それを選択している間だけ、かつこの端末でそのサーバーのプライバシー通知を承認した後にだけ、上記のプロンプトがその提供元に送られ、提供元自身のプライバシーポリシーに従って扱われます。オンラインソースが代替として自動的に使われることはありません。API キーは平文でこの端末にのみ保存され、同期・バックアップ・ZIP エクスポートの対象外です。http:// のアドレスへの接続は暗号化されません。
+
+結果の保存先：AI の分類はこの端末にのみキャッシュされ、同期もバックアップもされません。おすすめページの理由はメモリ上にのみ保持されます。詳細ページの「関連」リストの理由はそのリストと一緒におすすめファイルに保存され、WebDAV を設定していればあなたのサーバーと同期され、バックアップにも含まれます。各結果には生成場所が表示されます：この端末、またはオンラインの提供元の名前。
 
 データバックアップ
 

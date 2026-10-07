@@ -593,4 +593,4 @@ lead to (`../../../shared/views/webdav_config_page.md`, `backup_page.md` in this
 The API dialog save, the reminder switch and time picker, and the API-enabled switch write through `AnimeStorage.updateConfig`, so several settings changed in quick succession all persist (each used to read the whole config, change a key and write it back). The API dialog save, the auto-start switch and the API-enabled switch check `mounted` after their awaited work before calling `setState`.
 
 
-Current integration uses MyApps-AI v0.5.2, explicit platform injection, app-owned source routing and the unified settings skeleton. WebDAV entry points require device-local notice acknowledgement before any network request; see [sync.md](../../../sync.md).
+Current integration uses MyApps-AI v0.5.3, explicit platform injection, app-owned source routing and the unified settings skeleton. WebDAV entry points require device-local notice acknowledgement before any network request; see [sync.md](../../../sync.md).

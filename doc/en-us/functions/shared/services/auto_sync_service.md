@@ -46,4 +46,4 @@ periodic timer, in-flight guard, and status bookkeeping moved to the `myapps_dat
 `packages/myapps_data/doc/en-us/functions/src/sync/auto_sync_scheduler.md`.
 
 
-Current integration uses MyApps-AI v0.5.2, explicit platform injection, app-owned source routing and the unified settings skeleton. WebDAV entry points require device-local notice acknowledgement before any network request; see [sync.md](../../../sync.md).
+Current integration uses MyApps-AI v0.5.3, explicit platform injection, app-owned source routing and the unified settings skeleton. WebDAV entry points require device-local notice acknowledgement before any network request; see [sync.md](../../../sync.md).

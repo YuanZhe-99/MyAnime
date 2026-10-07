@@ -84,4 +84,4 @@
 `packages/myapps_data/doc/en-us/functions/src/webdav/` — `sync_engine.md`、`webdav_client.md`、`webdav_config.md`、`upload_lock.md`。
 
 
-当前接入 MyApps-AI v0.5.2，显式注入平台后端，使用应用所属来源路由与统一设置骨架。WebDAV 入口在任何网络请求前要求设备本地提醒确认；具体见同步概念文档。
+当前接入 MyApps-AI v0.5.3，显式注入平台后端，使用应用所属来源路由与统一设置骨架。WebDAV 入口在任何网络请求前要求设备本地提醒确认；具体见同步概念文档。

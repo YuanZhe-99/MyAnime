@@ -6,8 +6,9 @@ AI categories and recommendation reasons now say where they were generated: "Gen
 device", or "Generated online by <provider>" for an online source, from the model identity stored
 with each result (`aiGeneratedLabelFor`). Related-list reasons store that identity as
 `aiReasonModel`; reasons stored earlier count as on-device. The master switch is now "Use AI
-features" and its description and unreachable status no longer assume an on-device model. Pin
-MyApps-AI v0.5.3, which makes local models load on Android.
+features" and its description and unreachable status no longer assume an on-device model. The privacy policy's AI section, in the app and `PRIVACY_POLICY.md`, is rewritten to cover system
+AI, local models and online sources and where each kind of result is kept. Pin MyApps-AI v0.5.3,
+which makes local models load on Android.
 
 ## 1.8.11 — AI sources and WebDAV consent (2026-10-07)
 

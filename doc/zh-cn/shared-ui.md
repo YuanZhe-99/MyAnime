@@ -60,4 +60,4 @@ JSON、模块顺序、图片命名和字段合并行为不变。
 
 ## 统一 AI 设置
 
-应用固定 MyApps-UI v0.1.8、MyApps-DATA v1.1.0 与 MyApps-AI v0.5.2。AI 设置使用 MyAppsAiSettingsSkeleton、MyAppsAiSourcePicker 与共享模型管理。已有开关和快速模型设置保持序列化键名。本地 CPU 推理不再受系统 AI 平台限制。WebDAV 操作要求本设备确认提醒。
+应用固定 MyApps-UI v0.1.8、MyApps-DATA v1.1.0 与 MyApps-AI v0.5.3。AI 设置使用 MyAppsAiSettingsSkeleton、MyAppsAiSourcePicker 与共享模型管理。已有开关和快速模型设置保持序列化键名。本地 CPU 推理不再受系统 AI 平台限制。WebDAV 操作要求本设备确认提醒。
