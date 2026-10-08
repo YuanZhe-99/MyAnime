@@ -22,7 +22,7 @@ The rows below sum to **1549** documented declarations.
 |---|---|
 | Tier A (full entry: Purpose/Inputs/Returns/Side effects/Algorithm/Usage/Notes) | 820 |
 | Tier B (index row only) | 729 |
-| **Total** | **107** | **1542** | **799** | **743** |
+| **Total** | **106** | **1513** | **799** | **714** |
 
 **Known gap.** These two numbers do not match: 18 declarations carry a `/// Purpose:` comment in
 source but have no row here, so the index under-covers `lib/` by that much. The 1.5.7 recount found
@@ -112,10 +112,9 @@ find lib -name "*.dart" -not -path "lib/l10n/*" | xargs grep -h '/// Purpose:' |
 | Source file | Page | Declarations | Tier A count |
 |---|---|---|---|
 | `lib/features/ai/services/ai_origin.dart` | [features/ai/services/ai_origin.md](features/ai/services/ai_origin.md) | 2 | 0 |
-| `lib/features/ai/services/ai_source_backend.dart` | [features/ai/services/ai_source_backend.md](features/ai/services/ai_source_backend.md) | 21 | 0 |
-| `lib/features/ai/widgets/ai_source_controls.dart` | [features/ai/widgets/ai_source_controls.md](features/ai/widgets/ai_source_controls.md) | 4 | 0 |
+| `lib/features/ai/services/ai_source_backend.dart` | [features/ai/services/ai_source_backend.md](features/ai/services/ai_source_backend.md) | 2 | 0 |
+| `lib/features/ai/widgets/ai_source_controls.dart` | [features/ai/widgets/ai_source_controls.md](features/ai/widgets/ai_source_controls.md) | 8 | 0 |
 | `lib/shared/services/webdav_privacy.dart` | [shared/services/webdav_privacy.md](shared/services/webdav_privacy.md) | 3 | 0 |
-| `lib/features/ai/services/online_sources.dart` | [features/ai/services/online_sources.md](features/ai/services/online_sources.md) | 14 | 0 |
 | `lib/features/ai/widgets/online_sources_page.dart` | [features/ai/widgets/online_sources_page.md](features/ai/widgets/online_sources_page.md) | 1 | 0 |
 | `lib/main.dart` | [main.md](main.md) | 1 | 1 |
 
@@ -288,7 +287,7 @@ the 771 hand-documented declarations above).
 |---|---|---|---|---|
 | Root (`lib/`) | 1 | 1 | 1 | 0 |
 | `app/` | 5 | 33 | 25 | 8 |
-| `features/ai/` | 10 | 67 | 7 | 60 |
+| `features/ai/` | 9 | 38 | 7 | 31 |
 | `features/anime/` | 33 | 813 | 387 | 426 |
 | `features/categories/` | 2 | 18 | 11 | 7 |
 | `features/kana/` | 1 | 19 | 3 | 16 |
@@ -296,7 +295,7 @@ the 771 hand-documented declarations above).
 | `features/recommendations/` | 11 | 153 | 63 | 90 |
 | `features/settings/` | 4 | 49 | 28 | 21 |
 | `shared/` (utils, widgets, providers, services, views) | 31 | 322 | 241 | 81 |
-| **Total** | **107** | **1542** | **799** | **743** |
+| **Total** | **106** | **1513** | **799** | **714** |
 
 
 ## Anime1 episode playback (1.6.4)
@@ -320,4 +319,4 @@ the 771 hand-documented declarations above).
 | `lib/features/anime/services/playback_progress_service.dart` | [features/anime/services/playback_progress_service.md](features/anime/services/playback_progress_service.md) | 6 | 2 |
 | `lib/features/anime/views/anime_player_controls.dart` | [features/anime/views/anime_player_controls.md](features/anime/views/anime_player_controls.md) | 25 | 2 |
 | `lib/shared/utils/playback_time.dart` | [shared/utils/playback_time.md](shared/utils/playback_time.md) | 1 | 0 |
-Current per-file table sum: 107 files, 1542 declarations (799 Tier A, 743 Tier B).
+Current per-file table sum: 106 files, 1513 declarations (799 Tier A, 714 Tier B).

@@ -54,7 +54,7 @@ Both flavors ship the feature: it makes no network call of its own.
 | `lib/features/ai/services/output_validation.dart` | Parsing a choice reply, stripping Markdown, the script check, cleaning one sentence |
 | `lib/features/ai/services/prompt_templates.dart` | The versioned classification instructions and prompt (1.6.0 M4) |
 | `lib/features/ai/services/ai_insights_cache.dart` | `AiInsightsCache`: `ai_insights.json`, the per-device cache of generated results (1.6.0 M4) |
-| `lib/features/ai/widgets/ai_settings_tiles.dart` | `AiSettingsTiles`: the switch, the status row, the size preference, the notes and the technical details |
+| `lib/features/ai/widgets/ai_settings_tiles.dart` | `AiSettingsTiles`: the switch, the status row, the size preference, the notes and the complete, copyable technical details (1.9.0) |
 | `lib/features/categories/services/category_service.dart` | `CategoryClassifier`: the per-session trickle (at most 20 records) and *Categorise now* (1.6.0 M4) |
 | `lib/features/recommendations/services/ai_reason_service.dart` | Recommendation reasons: the top eight candidates, the reply parser, the request language and Chinese variant conversion (1.6.0 M5); the prompt is in `reason_prompt.dart` |
 | `packages/myapps_ai/packages/myapps_ai_platform/android/src/main/kotlin/com/yuanzhe/myapps_ai/GenAiChannel.kt` | The Android bridge to ML Kit GenAI |

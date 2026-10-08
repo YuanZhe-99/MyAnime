@@ -43,7 +43,7 @@ Apple Intelligence 的模型——为自动分类补缺，并为推荐写简短�
 | `lib/features/ai/services/output_validation.dart` | 解析选择应答、去除 Markdown、文字系统检查、清理单句 |
 | `lib/features/ai/services/prompt_templates.dart` | 带版本的分类指令与提示词（1.6.0 M4） |
 | `lib/features/ai/services/ai_insights_cache.dart` | `AiInsightsCache`：`ai_insights.json`，本设备的生成结果缓存（1.6.0 M4） |
-| `lib/features/ai/widgets/ai_settings_tiles.dart` | `AiSettingsTiles`：开关、状态行、尺寸偏好、说明和技术详情 |
+| `lib/features/ai/widgets/ai_settings_tiles.dart` | `AiSettingsTiles`：开关、状态行、尺寸偏好、说明和完整、可复制的技术详情（1.9.0） |
 | `lib/features/categories/services/category_service.dart` | `CategoryClassifier`：每次会话的细流（至多 20 条记录）与*立即分类*（1.6.0 M4） |
 | `lib/features/recommendations/services/ai_reason_service.dart` | 推荐理由：排名前八的候选、回复解析、请求语言与中文变体转换（1.6.0 M5）；提示词在 `reason_prompt.dart` 中 |
 | `packages/myapps_ai/packages/myapps_ai_platform/android/src/main/kotlin/com/yuanzhe/myapps_ai/GenAiChannel.kt` | 通往 ML Kit GenAI 的 Android 桥接 |

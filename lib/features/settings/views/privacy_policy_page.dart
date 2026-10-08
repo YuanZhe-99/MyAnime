@@ -108,7 +108,7 @@ What a source is given: for categories, an anime's titles, format, year, type, e
 
 • System AI (since 1.6.0): Gemini Nano through Android AICore, or the model that is part of Apple Intelligence on iOS 26 and macOS 26 or later. It runs on your device. On Android, AICore downloads the model from Google, and only when you tap Download in Settings; on Apple devices the model is managed by the system. Apple's Private Cloud Compute is never used.
 
-• Local models (since 1.8.11): Qwen3.5 0.8B or 2B, or Gemma 4 E2B (4-bit), downloaded from Hugging Face only when you tap Download. The download reveals your IP address to Hugging Face but sends none of your app data. The files are checked against a pinned SHA-256, stay on this device, and are excluded from sync, backups and ZIP exports. They run on your device's processor; no prompt leaves the device.
+• Local models (since 1.8.11): Qwen3.5 0.8B or 2B, or Gemma 4 E2B (4-bit), downloaded from Hugging Face only when you tap Download; since 1.9.0 also a GGUF model you choose from a Hugging Face repository, after a warning that it is unverified. Listing a repository, reading the start of a file and downloading reveal your IP address to Hugging Face but send none of your app data. The files are checked against a pinned SHA-256, stay on this device, and are excluded from sync, backups and ZIP exports. They run on your device's processor, on its GPU only if you turn that on; no prompt leaves the device.
 
 • Online sources (since 1.8.11): providers you add yourself, with a server address and API key you enter. Only while you have selected one, and only after you accept its privacy notice for that server on this device, the prompts described above are sent to that provider, which handles them under its own privacy policy. An online source is never used as a fallback. API keys are stored as plaintext on this device only and are excluded from sync, backups and ZIP exports. Connections to an http:// address are not encrypted.
 
@@ -176,7 +176,7 @@ AI 功能（可选，1.6.0 起）
 
 • 系统 AI（1.6.0 起）：Android 上通过 AICore 使用 Gemini Nano，iOS 26 与 macOS 26 及以上使用 Apple Intelligence 自带的模型。在您的设备上运行。在 Android 上，模型由 AICore 从 Google 下载，且仅在您于设置中点击"下载"时进行；在 Apple 设备上，模型由系统管理。绝不使用 Apple 的 Private Cloud Compute。
 
-• 本地模型（1.8.11 起）：Qwen3.5 0.8B 或 2B，或 Gemma 4 E2B（4 位），仅在您点击"下载"时从 Hugging Face 下载。下载会向 Hugging Face 暴露您的 IP 地址，但不发送任何应用数据。文件会按固定的 SHA-256 校验，只保存在本设备上，不参与同步、备份和 ZIP 导出。模型在您设备的处理器上运行，提示不会离开设备。
+• 本地模型（1.8.11 起）：Qwen3.5 0.8B 或 2B，或 Gemma 4 E2B（4 位），仅在您点击"下载"时从 Hugging Face 下载；自 1.9.0 起，也可以在确认“未经验证”警告后从 Hugging Face 仓库选择一个 GGUF 模型。列出仓库、读取文件开头和下载时，Hugging Face 会获知您的 IP 地址，但不发送任何应用数据。文件会按固定的 SHA-256 校验，只保存在本设备上，不参与同步、备份和 ZIP 导出。模型在您设备的处理器上运行，只有您开启时才使用 GPU，提示不会离开设备。
 
 • 在线来源（1.8.11 起）：由您自己添加的服务商，服务器地址和 API Key 均由您填写。只有在您选中某个在线来源，并在本设备上接受该服务器的隐私提醒之后，上述提示才会发送给该服务商，由其按自身的隐私政策处理。在线来源绝不会作为后备自动使用。API Key 以明文只保存在本设备上，不参与同步、备份和 ZIP 导出。连接 http:// 地址时不加密。
 
@@ -238,7 +238,7 @@ AI 功能（可選，1.6.0 起）
 
 • 系統 AI（1.6.0 起）：Android 上透過 AICore 使用 Gemini Nano，iOS 26 與 macOS 26 及以上使用 Apple Intelligence 內建的模型。在您的裝置上執行。在 Android 上，模型由 AICore 從 Google 下載，且僅在您於設定中點選「下載」時進行；在 Apple 裝置上，模型由系統管理。絕不使用 Apple 的 Private Cloud Compute。
 
-• 本機模型（1.8.11 起）：Qwen3.5 0.8B 或 2B，或 Gemma 4 E2B（4 位元），僅在您點選「下載」時從 Hugging Face 下載。下載會向 Hugging Face 揭露您的 IP 位址，但不傳送任何應用程式資料。檔案會依固定的 SHA-256 驗證，只儲存在本裝置上，不參與同步、備份和 ZIP 匯出。模型在您裝置的處理器上執行，提示不會離開裝置。
+• 本機模型（1.8.11 起）：Qwen3.5 0.8B 或 2B，或 Gemma 4 E2B（4 位元），僅在您點選「下載」時從 Hugging Face 下載；自 1.9.0 起，也可以在確認「未經驗證」警告後從 Hugging Face 儲存庫選擇一個 GGUF 模型。列出儲存庫、讀取檔案開頭和下載時，Hugging Face 會得知您的 IP 位址，但不傳送任何應用程式資料。檔案會依固定的 SHA-256 驗證，只儲存在本裝置上，不參與同步、備份和 ZIP 匯出。模型在您裝置的處理器上執行，只有您開啟時才使用 GPU，提示不會離開裝置。
 
 • 線上來源（1.8.11 起）：由您自行新增的服務商，伺服器位址和 API Key 均由您填寫。只有在您選中某個線上來源，並在本裝置上接受該伺服器的隱私提醒之後，上述提示才會傳送給該服務商，由其依自身的隱私政策處理。線上來源絕不會作為備援自動使用。API Key 以明文只儲存在本裝置上，不參與同步、備份和 ZIP 匯出。連線至 http:// 位址時不加密。
 
@@ -306,7 +306,7 @@ AI機能（任意、1.6.0 以降）
 
 • システムAI（1.6.0 以降）：Android では AICore 経由の Gemini Nano、iOS 26・macOS 26 以降では Apple Intelligence のモデル。端末内で動作します。Android ではモデルを AICore が Google からダウンロードし、それは設定で「ダウンロード」をタップしたときだけです。Apple 製デバイスではシステムがモデルを管理します。Apple の Private Cloud Compute は使いません。
 
-• ローカルモデル（1.8.11 以降）：Qwen3.5 0.8B・2B、または Gemma 4 E2B（4bit）。「ダウンロード」をタップしたときだけ Hugging Face からダウンロードします。ダウンロードにより IP アドレスが Hugging Face に伝わりますが、アプリのデータは送りません。ファイルは固定の SHA-256 で検証され、この端末にのみ保存され、同期・バックアップ・ZIP エクスポートの対象外です。端末のプロセッサで動作し、プロンプトは端末の外に出ません。
+• ローカルモデル（1.8.11 以降）：Qwen3.5 0.8B・2B、または Gemma 4 E2B（4bit）。「ダウンロード」をタップしたときだけ Hugging Face からダウンロードします。1.9.0 以降は、未検証である旨の警告を確認したうえで、Hugging Face のリポジトリから GGUF モデルを選ぶこともできます。リポジトリの一覧表示、ファイル冒頭の読み取り、ダウンロードにより IP アドレスが Hugging Face に伝わりますが、アプリのデータは送りません。ファイルは固定の SHA-256 で検証され、この端末にのみ保存され、同期・バックアップ・ZIP エクスポートの対象外です。端末のプロセッサで動作し、GPU はオンにした場合だけ使います。プロンプトは端末の外に出ません。
 
 • オンラインソース（1.8.11 以降）：あなたが自分で追加する提供元で、サーバーのアドレスと API キーはあなたが入力します。それを選択している間だけ、かつこの端末でそのサーバーのプライバシー通知を承認した後にだけ、上記のプロンプトがその提供元に送られ、提供元自身のプライバシーポリシーに従って扱われます。オンラインソースが代替として自動的に使われることはありません。API キーは平文でこの端末にのみ保存され、同期・バックアップ・ZIP エクスポートの対象外です。http:// のアドレスへの接続は暗号化されません。
 

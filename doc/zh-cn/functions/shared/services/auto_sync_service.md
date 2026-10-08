@@ -41,4 +41,4 @@
 `packages/myapps_data/doc/en-us/functions/src/sync/auto_sync_scheduler.md`。
 
 
-当前接入 MyApps-AI v0.5.3，显式注入平台后端，使用应用所属来源路由与统一设置骨架。WebDAV 入口在任何网络请求前要求设备本地提醒确认；具体见同步概念文档。
+当前接入 MyApps-AI v0.6.0，显式注入平台后端，使用共享来源路由（`createAiSourceRouter`）与统一设置骨架。WebDAV 入口在任何网络请求前要求设备本地提醒确认；具体见同步概念文档。

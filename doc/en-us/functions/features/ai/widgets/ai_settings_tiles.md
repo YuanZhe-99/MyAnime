@@ -58,9 +58,10 @@ The `featuresOn` field carries no `/// Purpose:` comment and is not a row.
   3. "Prefer the faster model", on Android only when `report.hasSizeChoice`.
   4. The notes: on Android, who downloads the model and why it cannot be removed here; on Apple,
      that the system manages it.
-  5. A collapsed *Technical details* tile with selectable text: status name and code, detail,
-     variant, served and refused variants, model name, token limit, AICore version (or "not
-     installed"), SDK, device, compatibility, OS version and locale support, each only when known.
+  5. A collapsed *Technical details* tile (since 1.9.0 `MyAppsAiDiagnosticsView` over
+     `router.diagnostics()`), copyable: every included backend (app and platform, selection, system
+     AI, the llama.cpp library and devices, each local model, the online sources), each item only
+     when known.
 - **Usage:** `settings_page.dart`, the *Categories & recommendations* section
   (`AiSettingsTiles(featuresOn: settings.autoCategoriesEnabled || settings.recommendationsEnabled)`); `test/ai_settings_tiles_ui_test.dart`
   (per platform with `debugDefaultTargetPlatformOverride`).
@@ -68,4 +69,4 @@ The `featuresOn` field carries no `/// Purpose:` comment and is not a row.
   what the Apple plugin reports on iOS and macOS older than 26.
 
 
-Current integration uses MyApps-AI v0.5.3, explicit platform injection, app-owned source routing and the unified settings skeleton. WebDAV entry points require device-local notice acknowledgement before any network request; see [sync.md](../../../sync.md).
+Current integration uses MyApps-AI v0.6.0, explicit platform injection, the shared source router (`createAiSourceRouter`) and the unified settings skeleton. WebDAV entry points require device-local notice acknowledgement before any network request; see [sync.md](../../../sync.md).

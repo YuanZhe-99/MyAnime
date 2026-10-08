@@ -10,7 +10,7 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get aiLocalPrivacyPolicy =>
-      'ローカル AI モデル：Qwen3.5 0.8B/2B または Gemma 4 E2B（4bit）を Hugging Face から明示的にダウンロードできます。配信元には IP アドレスが伝わりますが、アプリの記録は送信しません。固定の SHA-256 で検証したファイルはこの端末にのみ保存し、同期、バックアップ、ZIP エクスポートから除外します。推論は端末の CPU で実行し、プロンプトをサーバーへ送りません。ファイルを削除しても生成済みの内容は残ります。自動ダウンロードは行いません。';
+      'ローカル AI モデル：Qwen3.5 0.8B/2B または Gemma 4 E2B（4bit）を Hugging Face から明示的にダウンロードできます。警告を確認したうえで、Hugging Face のリポジトリから GGUF モデルを選ぶこともできます。リポジトリの一覧表示、ファイル冒頭の読み取り、ダウンロードの際に IP アドレスが Hugging Face に伝わりますが、アプリの記録は送信されません。ファイルはリポジトリのコミットに固定された SHA-256 で検証され、この端末にのみ保存され、同期・バックアップ・ZIP エクスポートの対象外です。推論は端末のプロセッサで行われ、GPU はオンにした場合だけ使います。プロンプトはサーバーに送信されません。ファイルを削除しても生成済みの内容は残ります。モデルが自動でダウンロードされることはありません。';
 
   @override
   String get aiOnlineSources => 'オンライン AI ソース';
@@ -2332,4 +2332,170 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get profileAvatarEditorHint => 'ドラッグで移動、ピンチまたはスクロールで拡大縮小します。';
+
+  @override
+  String get aiGpuTitle => 'ローカルモデルで GPU を使う';
+
+  @override
+  String get aiGpuDescription =>
+      '対応する端末では高速になります。GPU でモデルを読み込めない・実行できない場合は CPU に切り替え、そのことを記憶します。';
+
+  @override
+  String get aiGpuUnavailable =>
+      'この端末では検証済みの GPU サポートがありません。ローカルモデルは CPU で動作します。';
+
+  @override
+  String get aiDiagnosticsCopy => 'コピー';
+
+  @override
+  String get aiDiagnosticsCopied => '技術的な詳細をコピーしました';
+
+  @override
+  String get aiDiagnosticsNotIncluded => 'このバージョンには含まれていません';
+
+  @override
+  String get aiCustomModelAdd => 'カスタムモデルを追加';
+
+  @override
+  String get aiCustomModelRepository => 'Hugging Face リポジトリ';
+
+  @override
+  String get aiCustomModelRepositoryHint =>
+      'owner/name または huggingface.co のリンク';
+
+  @override
+  String get aiCustomModelList => 'ファイルを表示';
+
+  @override
+  String get aiCustomModelNoFiles => 'このリポジトリには GGUF ファイルがありません。';
+
+  @override
+  String get aiCustomModelSplit => '複数ファイルに分割 — 非対応';
+
+  @override
+  String aiCustomModelListFailed(String reason) {
+    return 'リポジトリを表示できませんでした（$reason）';
+  }
+
+  @override
+  String get aiCustomModelWarningTitle => '未検証のモデル';
+
+  @override
+  String get aiCustomModelWarningBody =>
+      'このモデルはこのアプリで検証されていません。読み込めない、遅い、メモリ不足になる、回答の質が低い・誤っている可能性があります。';
+
+  @override
+  String aiCustomModelArchSupported(String architecture) {
+    return 'アーキテクチャ：$architecture — 内蔵の llama.cpp が対応';
+  }
+
+  @override
+  String aiCustomModelArchUnsupported(String architecture) {
+    return 'アーキテクチャ：$architecture — 内蔵の llama.cpp は非対応のため、おそらく読み込めません';
+  }
+
+  @override
+  String get aiCustomModelArchUnknown => 'アーキテクチャ：不明 — ファイルのヘッダーを読み取れませんでした';
+
+  @override
+  String aiCustomModelStorage(String size) {
+    return '約 $size の空き容量と、実行時にほぼ同じ量の空きメモリが必要です';
+  }
+
+  @override
+  String aiCustomModelLicense(String license) {
+    return 'ライセンス：$license。ライセンスの遵守はご自身の責任です。';
+  }
+
+  @override
+  String get aiCustomModelLicenseUnknown => 'ライセンス：記載なし。ご自身で確認してください。';
+
+  @override
+  String get aiCustomModelAccept => 'このモデルがサポート対象外であることを理解しました';
+
+  @override
+  String get aiCustomModelBadge => '未検証';
+
+  @override
+  String get aiCustomModelRemove => '一覧から削除';
+
+  @override
+  String get aiModelRename => '名前を変更';
+
+  @override
+  String get aiModelAliasHint => '空欄にすると自動生成の名前を使います';
+
+  @override
+  String get aiModelSave => '保存';
+
+  @override
+  String get aiOnlineAddTitle => 'オンラインソースを追加';
+
+  @override
+  String get aiOnlineSearch => '検索';
+
+  @override
+  String get aiOnlineEndpointChoice => 'サービスエンドポイント';
+
+  @override
+  String get aiOnlineCustomEndpoint => 'その他のアドレス';
+
+  @override
+  String get aiOnlineDocs => 'ドキュメント';
+
+  @override
+  String get aiOnlineModels => 'モデル';
+
+  @override
+  String get aiOnlineNoModels =>
+      'モデルがまだありません。ソースのモデル一覧を取得するか、モデル ID を追加してください。';
+
+  @override
+  String get aiOnlineFetchModels => 'モデルを取得';
+
+  @override
+  String aiOnlineFetchFailed(String detail) {
+    return 'ソースのモデル一覧を取得できませんでした（$detail）';
+  }
+
+  @override
+  String get aiOnlineFromCatalog =>
+      '代わりに内蔵カタログのモデルを表示しています。ソースがすべてを提供しているとは限りません。';
+
+  @override
+  String get aiOnlineAddModelId => 'モデル ID を追加';
+
+  @override
+  String get aiOnlineModelIdHint => '例：gpt-4o-mini';
+
+  @override
+  String get aiOnlineAlias => '名前';
+
+  @override
+  String get aiOnlineAliasHint => '空欄にすると自動生成の名前を使います';
+
+  @override
+  String aiOnlineOriginalId(String id) {
+    return 'モデル ID：$id';
+  }
+
+  @override
+  String get aiOnlineShowAll => 'チャット以外のモデルも表示';
+
+  @override
+  String aiOnlineContext(String size) {
+    return 'コンテキスト $size';
+  }
+
+  @override
+  String get aiOnlineSelectModels => 'モデルを選択';
+
+  @override
+  String get aiOnlineDone => '完了';
+
+  @override
+  String get aiOnlineRemoveModel => 'モデルを削除';
+
+  @override
+  String get aiOnlineLocalServer => '自分の端末で動作';
 }

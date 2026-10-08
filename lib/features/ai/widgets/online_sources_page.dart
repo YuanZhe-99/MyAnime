@@ -4,23 +4,28 @@ import 'package:myapps_ai_online_ui/myapps_ai_online_ui.dart';
 import 'package:myapps_ui/myapps_ui.dart';
 
 import '../../../l10n/app_localizations.dart';
-import '../services/online_sources.dart';
+import '../../../shared/utils/adaptive_layout.dart';
 
 /// Purpose: Build online provider management with app-owned wording.
 /// Inputs: context/controller. Returns: Page. Side effects: Explicit editor operations.
 /// Notes: Privacy consent precedes saving; only selected providers receive prompts.
-Widget onlineSourcesPage(BuildContext context, OnlineSources controller) {
+Widget onlineSourcesPage(
+  BuildContext context,
+  OnlineSourcesController controller,
+) {
   final l = AppLocalizations.of(context)!;
   return MyAppsOnlineSourcesPage(
     title: l.aiOnlineSources,
     editorTitle: l.aiOnlineSources,
     controller: controller,
+    bottomPadding: navBarAwarePadding(context, EdgeInsets.zero).bottom,
     labels: MyAppsOnlineLabels(
       empty: l.aiOnlineEmpty,
       add: l.aiOnlineAdd,
-      templateName: (t) => t.id,
-      status: (p, gaps) =>
-          gaps.isEmpty ? p.modelId ?? '' : l.aiSourceNeedsPreparation,
+      templateName: (t) => t.name,
+      status: (p, gaps) => gaps.isEmpty
+          ? '${p.models.length} · ${l.aiOnlineModels}'
+          : l.aiSourceNeedsPreparation,
       remove: l.aiModelRemove,
       removeTitle: (_) => l.aiModelRemove,
       removeBody: l.aiOnlineRemoveBody,
@@ -40,6 +45,28 @@ Widget onlineSourcesPage(BuildContext context, OnlineSources controller) {
       keySync: (_) => l.aiOnlineKeyLocal,
       onlyWhenSelected: l.aiOnlineSelectedOnly,
       privacyConfirm: l.webdavPrivacyConfirm,
+      addSourceTitle: l.aiOnlineAddTitle,
+      searchHint: l.aiOnlineSearch,
+      endpointLabel: l.aiOnlineEndpointChoice,
+      customEndpoint: l.aiOnlineCustomEndpoint,
+      docs: l.aiOnlineDocs,
+      models: l.aiOnlineModels,
+      noModels: l.aiOnlineNoModels,
+      fetchModels: l.aiOnlineFetchModels,
+      fetchFailed: l.aiOnlineFetchFailed,
+      fromCatalog: l.aiOnlineFromCatalog,
+      addModelId: l.aiOnlineAddModelId,
+      modelIdHint: l.aiOnlineModelIdHint,
+      alias: l.aiOnlineAlias,
+      aliasHint: l.aiOnlineAliasHint,
+      originalId: l.aiOnlineOriginalId,
+      showAllModels: l.aiOnlineShowAll,
+      contextTokens: (t) =>
+          l.aiOnlineContext(t >= 1000 ? '${(t / 1000).round()}K' : '$t'),
+      selectModels: l.aiOnlineSelectModels,
+      done: l.aiOnlineDone,
+      removeModel: l.aiOnlineRemoveModel,
+      localServer: l.aiOnlineLocalServer,
     ),
     fields: MyAppsOnlineFieldBuilders(
       endpoint: (_, c, error) => MyAppsEndpointField(
@@ -53,8 +80,8 @@ Widget onlineSourcesPage(BuildContext context, OnlineSources controller) {
         showTooltip: l.aiOnlineShowKey,
         hideTooltip: l.aiOnlineHideKey,
         controller: c,
-          hasSavedValue: saved,
-          clearTooltip: l.aiModelRemove,
+        hasSavedValue: saved,
+        clearTooltip: l.aiModelRemove,
         savedPlaceholder: l.aiOnlineSavedKey,
         onClear: clear,
       ),

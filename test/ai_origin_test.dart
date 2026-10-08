@@ -7,15 +7,21 @@ import 'package:my_anime/l10n/app_localizations_en.dart';
 
 void main() {
   test('online results are told apart from on-device ones', () {
-    expect(onlineProviderOf(null), isNull);
-    expect(onlineProviderOf(''), isNull);
-    expect(onlineProviderOf('local:qwen3.5-0.8b · local:qwen3.5-0.8b'), isNull);
-    expect(onlineProviderOf('gemini-nano · v2'), isNull);
+    expect(onlineSourceOf(null), isNull);
+    expect(onlineSourceOf(''), isNull);
+    expect(onlineSourceOf('local:qwen3.5-0.8b · local:qwen3.5-0.8b'), isNull);
+    expect(onlineSourceOf('gemini-nano · v2'), isNull);
     expect(
-      onlineProviderOf('provider:openai · provider:openai'),
+      onlineSourceOf('provider:openai · provider:openai'),
       'provider:openai',
     );
-    expect(onlineProviderOf('provider:1f2e-3d'), 'provider:1f2e-3d');
+    expect(onlineSourceOf('provider:1f2e-3d'), 'provider:1f2e-3d');
+    expect(
+      onlineSourceOf(
+        'online:model:provider:ab:qwen2.5:7b · online:model:provider:ab:qwen2.5:7b',
+      ),
+      'online:model:provider:ab:qwen2.5:7b',
+    );
   });
 
   test('the identity of an online report names its provider', () {
@@ -24,7 +30,7 @@ void main() {
       variant: 'provider:abc',
       baseModelName: 'provider:abc',
     );
-    expect(onlineProviderOf(modelIdentityOf(report)), 'provider:abc');
+    expect(onlineSourceOf(modelIdentityOf(report)), 'provider:abc');
   });
 
   test('labels name the online provider, or fall back without one', () {

@@ -1,5 +1,11 @@
 # 版本历史
 
+## 1.9.0 — 模型名称、GPU 选项、自定义模型与在线来源库（2026-10-08）
+
+本地模型现在有友好名称（`Qwen: Qwen3.5 0.8B (Q4_K_M)`），并可重命名。本地模型在经验证的设备上可使用 GPU，仅当在来源分区中开启时才使用。AI 设置中的技术详情完整且可复制：包含每个后端（系统 AI、llama.cpp 库与设备、每个本地模型、在线来源）。可在强制警告后从 Hugging Face 仓库添加自定义 GGUF 模型；列出、读取和下载都会向 Hugging Face 暴露 IP 地址。新增设备本地键 `aiComputePreference`、`aiGpuFailures`、`aiCustomModels`、`aiModelAliases`，不同步，也不进入备份。
+
+`OnlineSources` 被共享的 `OnlineSourceManager`（`createOnlineSources()`）取代，沿用相同的键（`aiOnlineProviders`、`aiOnlineAcknowledgements`）与密钥文件（`anime_ai_secrets.json`），已有来源会保留。一个在线来源现在可包含多个模型并支持别名；在线来源页面即共享的来源库：31 个带图标的服务商模板放在可搜索的网格中，端点使用服务商自己的说法，“获取模型”仅在隐私提醒之后按需执行（来源无法列出模型时使用内置目录），宽窗口下为双栏。此前的 `provider:<id>` 选择仍然有效，新选择为 `online:model:<来源>:<模型>`。“由在线来源 <来源> 生成”对两种 id 都会查找来源（`onlineProviderOf` 改名为 `onlineSourceOf`），来源选择器为在线模型显示服务商图标。隐私政策（App 内与 `PRIVACY_POLICY.md`）涵盖自定义模型与 GPU。固定 MyApps-AI v0.6.0。
+
 ## 1.8.12 — 按来源标注 AI 内容，Android 本地模型可用（2026-10-07）
 
 AI 分类与推荐理由现在写明生成位置：「在本设备上生成」，或在线来源的「由在线来源 <服务商> 生成」，

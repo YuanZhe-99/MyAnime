@@ -1,5 +1,11 @@
 # Version history
 
+## 1.9.0 — Model names, GPU option, custom models and the online sources library (2026-10-08)
+
+Local models now have friendly names (`Qwen: Qwen3.5 0.8B (Q4_K_M)`) that can be renamed. Local models can use the GPU where it is verified, only when turned on in the source section. Technical details in the AI settings are complete and copyable: every backend (system AI, the llama.cpp library and devices, each local model, online sources). A custom GGUF model can be added from a Hugging Face repository after a mandatory warning; listing, reading and downloading reveal the IP address to Hugging Face. New device-local keys `aiComputePreference`, `aiGpuFailures`, `aiCustomModels`, `aiModelAliases` never sync and never enter backups.
+
+`OnlineSources` is replaced by the shared `OnlineSourceManager` (`createOnlineSources()`) over the same keys (`aiOnlineProviders`, `aiOnlineAcknowledgements`) and secret file (`anime_ai_secrets.json`), so existing sources carry over. An online source now holds several models, with aliases; the online sources page is the shared library with 31 provider templates and icons in a searchable grid, endpoints labelled in the provider's own words, "Fetch models" only on request after the privacy notice (a built-in catalog when the source cannot list models) and two panes on wide windows. Earlier `provider:<id>` selections keep working; new ones are `online:model:<source>:<model>`. "Generated online by <source>" looks the source up for both ids (`onlineProviderOf` became `onlineSourceOf`), and the source picker shows provider icons for online models. The privacy policy (app and `PRIVACY_POLICY.md`) covers custom models and the GPU. Pin MyApps-AI v0.6.0.
+
 ## 1.8.12 — Source-aware AI labels and Android local models (2026-10-07)
 
 AI categories and recommendation reasons now say where they were generated: "Generated on this

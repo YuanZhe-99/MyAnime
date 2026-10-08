@@ -10,7 +10,7 @@ app's actual network/data behavior (no analytics, WebDAV sync only when the user
 local-only backups, and the optional AI features: off by default; what a source is given; system AI
 (1.6.0), local models downloaded from Hugging Face (1.8.11) and user-added online sources used only
 while selected and after their notice is accepted (1.8.11); where results are kept (rewritten in
-1.8.12) — see [`../../../../on-device-ai.md`](../../../../on-device-ai.md)) —
+1.8.12; custom Hugging Face models after a warning and the GPU only when turned on, 1.9.0) — see [`../../../../on-device-ai.md`](../../../../on-device-ai.md)) —
 see [`../../../backup-restore.md`](../../../../backup-restore.md) and
 [`../../../sync.md`](../../../../sync.md) for the mechanisms it describes in prose. `build` appends
 the localized WebDAV notice lines (`webdavPrivacyPlaintext`, `webdavPrivacyHttp`,
@@ -61,4 +61,4 @@ text since 1.8.12.
 All four policy texts disclose directory fetching, video host requests, temporary native credentials and the embedded website profile/third-party resources.
 
 
-Current integration uses MyApps-AI v0.5.3, explicit platform injection, app-owned source routing and the unified settings skeleton. WebDAV entry points require device-local notice acknowledgement before any network request; see [sync.md](../../../sync.md).
+Current integration uses MyApps-AI v0.6.0, explicit platform injection, the shared source router (`createAiSourceRouter`) and the unified settings skeleton. WebDAV entry points require device-local notice acknowledgement before any network request; see [sync.md](../../../sync.md).

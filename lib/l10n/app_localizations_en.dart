@@ -10,7 +10,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get aiLocalPrivacyPolicy =>
-      'Local AI models: You can explicitly download Qwen3.5 0.8B/2B or Gemma 4 E2B (4-bit) from Hugging Face. Downloads reveal your IP address to the host, but send no app records. Files are checked against a pinned SHA-256 and remain on this device, excluded from sync, backups and ZIP exports. Inference uses the CPU on your device and sends no prompts to a server. Removing files keeps existing generated content. Models are not downloaded automatically.';
+      'Local AI models: You can explicitly download Qwen3.5 0.8B/2B or Gemma 4 E2B (4-bit) from Hugging Face, or, after a warning, a GGUF model you choose from a Hugging Face repository. Listing a repository, reading the start of a file and downloading reveal your IP address to Hugging Face, but send no app records. Files are checked against a SHA-256 pinned to a repository commit and remain on this device, excluded from sync, backups and ZIP exports. Inference runs on your device\'s processor, on its GPU only if you turn that on, and sends no prompts to a server. Removing files keeps existing generated content. Models are never downloaded automatically.';
 
   @override
   String get aiOnlineSources => 'Online AI sources';
@@ -2416,4 +2416,172 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get profileAvatarEditorHint =>
       'Drag to move. Pinch or scroll to zoom.';
+
+  @override
+  String get aiGpuTitle => 'Use the GPU for local models';
+
+  @override
+  String get aiGpuDescription =>
+      'Faster where supported. If the GPU fails to load or run a model, the CPU takes over and the app remembers it.';
+
+  @override
+  String get aiGpuUnavailable =>
+      'No verified GPU support on this device. Local models run on the CPU.';
+
+  @override
+  String get aiDiagnosticsCopy => 'Copy';
+
+  @override
+  String get aiDiagnosticsCopied => 'Technical details copied';
+
+  @override
+  String get aiDiagnosticsNotIncluded => 'Not included in this version';
+
+  @override
+  String get aiCustomModelAdd => 'Add a custom model';
+
+  @override
+  String get aiCustomModelRepository => 'Hugging Face repository';
+
+  @override
+  String get aiCustomModelRepositoryHint =>
+      'owner/name or a huggingface.co link';
+
+  @override
+  String get aiCustomModelList => 'List files';
+
+  @override
+  String get aiCustomModelNoFiles => 'This repository has no GGUF files.';
+
+  @override
+  String get aiCustomModelSplit => 'Split into several files — not supported';
+
+  @override
+  String aiCustomModelListFailed(String reason) {
+    return 'Could not list the repository ($reason)';
+  }
+
+  @override
+  String get aiCustomModelWarningTitle => 'Unverified model';
+
+  @override
+  String get aiCustomModelWarningBody =>
+      'This model has not been tested with this app. It may not load, may be slow or run out of memory, and may give poor or wrong answers.';
+
+  @override
+  String aiCustomModelArchSupported(String architecture) {
+    return 'Architecture: $architecture — supported by the built-in llama.cpp';
+  }
+
+  @override
+  String aiCustomModelArchUnsupported(String architecture) {
+    return 'Architecture: $architecture — not supported by the built-in llama.cpp; it will probably not load';
+  }
+
+  @override
+  String get aiCustomModelArchUnknown =>
+      'Architecture: unknown — the file header could not be read';
+
+  @override
+  String aiCustomModelStorage(String size) {
+    return 'Needs about $size of storage, and about as much free memory to run';
+  }
+
+  @override
+  String aiCustomModelLicense(String license) {
+    return 'License: $license. Following it is your responsibility.';
+  }
+
+  @override
+  String get aiCustomModelLicenseUnknown =>
+      'License: not stated. Checking it is your responsibility.';
+
+  @override
+  String get aiCustomModelAccept => 'I understand this model is not supported';
+
+  @override
+  String get aiCustomModelBadge => 'Unverified';
+
+  @override
+  String get aiCustomModelRemove => 'Remove from list';
+
+  @override
+  String get aiModelRename => 'Rename';
+
+  @override
+  String get aiModelAliasHint => 'Leave empty to use the generated name';
+
+  @override
+  String get aiModelSave => 'Save';
+
+  @override
+  String get aiOnlineAddTitle => 'Add an online source';
+
+  @override
+  String get aiOnlineSearch => 'Search';
+
+  @override
+  String get aiOnlineEndpointChoice => 'Service endpoint';
+
+  @override
+  String get aiOnlineCustomEndpoint => 'Other address';
+
+  @override
+  String get aiOnlineDocs => 'Documentation';
+
+  @override
+  String get aiOnlineModels => 'Models';
+
+  @override
+  String get aiOnlineNoModels =>
+      'No models yet. Fetch the source\'s models or add a model ID.';
+
+  @override
+  String get aiOnlineFetchModels => 'Fetch models';
+
+  @override
+  String aiOnlineFetchFailed(String detail) {
+    return 'Could not list the source\'s models ($detail)';
+  }
+
+  @override
+  String get aiOnlineFromCatalog =>
+      'Showing models from the built-in catalog instead. The source may not offer all of them.';
+
+  @override
+  String get aiOnlineAddModelId => 'Add model ID';
+
+  @override
+  String get aiOnlineModelIdHint => 'For example gpt-4o-mini';
+
+  @override
+  String get aiOnlineAlias => 'Name';
+
+  @override
+  String get aiOnlineAliasHint => 'Leave empty to use the generated name';
+
+  @override
+  String aiOnlineOriginalId(String id) {
+    return 'Model ID: $id';
+  }
+
+  @override
+  String get aiOnlineShowAll => 'Also show non-chat models';
+
+  @override
+  String aiOnlineContext(String size) {
+    return '$size context';
+  }
+
+  @override
+  String get aiOnlineSelectModels => 'Choose models';
+
+  @override
+  String get aiOnlineDone => 'Done';
+
+  @override
+  String get aiOnlineRemoveModel => 'Remove model';
+
+  @override
+  String get aiOnlineLocalServer => 'On your own machine';
 }

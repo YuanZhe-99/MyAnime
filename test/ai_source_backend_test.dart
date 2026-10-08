@@ -28,14 +28,14 @@ void main() {
       final dir = await Directory.systemTemp.createTemp('source_test');
       addTearDown(() => dir.delete(recursive: true));
       final storage = _Storage(dir);
-      final backend = AiSourceBackend(storage: storage);
+      final backend = createAiSourceRouter(storage: storage);
       await backend.initialize();
       expect(await Directory('${dir.path}/ai_models').exists(), isFalse);
       await backend.select('local:qwen3.5-0.8b');
       expect((await backend.statusReport()).status, GenAiStatus.unavailable);
       expect(storage.config['unrelated'], 'keep');
       expect(await Directory('${dir.path}/ai_models').exists(), isFalse);
-      final restored = AiSourceBackend(storage: storage);
+      final restored = createAiSourceRouter(storage: storage);
       await restored.initialize();
       expect(restored.selection.global, 'local:qwen3.5-0.8b');
       expect(restored.catalog.length, 3);
@@ -83,7 +83,8 @@ void main() {
       });
 
       final storage = _Storage(dir);
-      final backend = AiSourceBackend(storage: storage);
+      final online = createOnlineSources(storage: storage);
+      final backend = createAiSourceRouter(storage: storage, online: online);
       await backend.initialize();
       final provider = OnlineProvider(
         id: 'provider:test',
@@ -92,7 +93,7 @@ void main() {
         name: 'Local test',
         modelId: 'test-model',
       );
-      await backend.online.save(provider, newKey: 'sk-test');
+      await online.save(provider, newKey: 'sk-test');
       await backend.select('provider:test');
       expect(
         (await backend.statusReport()).status,
@@ -101,7 +102,7 @@ void main() {
       );
       expect(requests, isEmpty);
 
-      await backend.online.acknowledge(
+      await online.acknowledge(
         'provider:test',
         OnlinePrivacyAcknowledgement(
           noticeVersion: 1,

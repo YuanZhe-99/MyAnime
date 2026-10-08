@@ -41,10 +41,9 @@ find lib -name "*.dart" -not -path "lib/l10n/*" | xargs grep -h '/// Purpose:' |
 | 源文件 | 页面 | 声明数 | Tier A 计数 |
 |---|---|---|---|
 | `lib/features/ai/services/ai_origin.dart` | [features/ai/services/ai_origin.md](features/ai/services/ai_origin.md) | 2 | 0 |
-| `lib/features/ai/services/ai_source_backend.dart` | [features/ai/services/ai_source_backend.md](features/ai/services/ai_source_backend.md) | 21 | 0 |
-| `lib/features/ai/widgets/ai_source_controls.dart` | [features/ai/widgets/ai_source_controls.md](features/ai/widgets/ai_source_controls.md) | 4 | 0 |
+| `lib/features/ai/services/ai_source_backend.dart` | [features/ai/services/ai_source_backend.md](features/ai/services/ai_source_backend.md) | 2 | 0 |
+| `lib/features/ai/widgets/ai_source_controls.dart` | [features/ai/widgets/ai_source_controls.md](features/ai/widgets/ai_source_controls.md) | 8 | 0 |
 | `lib/shared/services/webdav_privacy.dart` | [shared/services/webdav_privacy.md](shared/services/webdav_privacy.md) | 3 | 0 |
-| `lib/features/ai/services/online_sources.dart` | [features/ai/services/online_sources.md](features/ai/services/online_sources.md) | 14 | 0 |
 | `lib/features/ai/widgets/online_sources_page.dart` | [features/ai/widgets/online_sources_page.md](features/ai/widgets/online_sources_page.md) | 1 | 0 |
 | `lib/main.dart` | [main.md](main.md) | 1 | 1 |
 
@@ -207,7 +206,7 @@ find lib -name "*.dart" -not -path "lib/l10n/*" | xargs grep -h '/// Purpose:' |
 |---|---|---|---|---|
 | 根（`lib/`） | 1 | 1 | 1 | 0 |
 | `app/` | 5 | 33 | 25 | 8 |
-| `features/ai/` | 10 | 67 | 7 | 60 |
+| `features/ai/` | 9 | 38 | 7 | 31 |
 | `features/anime/` | 33 | 813 | 387 | 426 |
 | `features/categories/` | 2 | 18 | 11 | 7 |
 | `features/kana/` | 1 | 19 | 3 | 16 |
@@ -215,7 +214,7 @@ find lib -name "*.dart" -not -path "lib/l10n/*" | xargs grep -h '/// Purpose:' |
 | `features/recommendations/` | 11 | 153 | 63 | 90 |
 | `features/settings/` | 4 | 49 | 28 | 21 |
 | `shared/`（utils、widgets、providers、services、views） | 31 | 322 | 241 | 81 |
-| **总计** | **102** | **1549** | **820** | **729** |
+| **总计** | **106** | **1513** | **799** | **714** |
 
 
 ## Anime1 分集播放（1.6.4）
@@ -239,4 +238,4 @@ find lib -name "*.dart" -not -path "lib/l10n/*" | xargs grep -h '/// Purpose:' |
 | `lib/features/anime/services/playback_progress_service.dart` | [features/anime/services/playback_progress_service.md](features/anime/services/playback_progress_service.md) | 6 | 2 |
 | `lib/features/anime/views/anime_player_controls.dart` | [features/anime/views/anime_player_controls.md](features/anime/views/anime_player_controls.md) | 25 | 2 |
 | `lib/shared/utils/playback_time.dart` | [shared/utils/playback_time.md](shared/utils/playback_time.md) | 1 | 0 |
-当前逐文件表合计：107 个文件、1542 个声明（Tier A 799，Tier B 743）。
+当前逐文件表合计：106 个文件、1513 个声明（Tier A 799，Tier B 714）。

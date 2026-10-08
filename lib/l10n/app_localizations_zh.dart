@@ -10,7 +10,7 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get aiLocalPrivacyPolicy =>
-      '本地 AI 模型：您可以主动从 Hugging Face 下载 Qwen3.5 0.8B/2B 或 Gemma 4 E2B（4bit）。下载服务器会获知您的 IP 地址，但不会收到应用记录。文件使用固定的 SHA-256 校验，仅保留在本设备，不进入同步、备份或 ZIP 导出。推理在本设备的 CPU 上运行，不向服务器发送提示词。移除模型文件会保留已有生成内容。模型不会自动下载。';
+      '本地 AI 模型：您可以主动从 Hugging Face 下载 Qwen3.5 0.8B/2B 或 Gemma 4 E2B（4bit），也可以在确认警告后从 Hugging Face 仓库选择一个 GGUF 模型。列出仓库、读取文件开头和下载时，Hugging Face 会获知您的 IP 地址，但不会收到应用记录。文件按固定到仓库提交的 SHA-256 校验，仅保留在本设备，不进入同步、备份或 ZIP 导出。推理在本设备的处理器上运行，只有您开启时才使用 GPU，不会把提示发送到服务器。删除文件不影响已生成的内容。模型从不自动下载。';
 
   @override
   String get aiOnlineSources => '在线 AI 来源';
@@ -2310,6 +2310,167 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get profileAvatarEditorHint => '拖动以移动，双指缩放或滚动鼠标滚轮以缩放。';
+
+  @override
+  String get aiGpuTitle => '本地模型使用 GPU';
+
+  @override
+  String get aiGpuDescription => '在支持的设备上更快。如果 GPU 无法加载或运行模型，会自动改用 CPU，并记住这一点。';
+
+  @override
+  String get aiGpuUnavailable => '此设备没有经过验证的 GPU 支持，本地模型在 CPU 上运行。';
+
+  @override
+  String get aiDiagnosticsCopy => '复制';
+
+  @override
+  String get aiDiagnosticsCopied => '已复制技术详情';
+
+  @override
+  String get aiDiagnosticsNotIncluded => '此版本未包含';
+
+  @override
+  String get aiCustomModelAdd => '添加自定义模型';
+
+  @override
+  String get aiCustomModelRepository => 'Hugging Face 仓库';
+
+  @override
+  String get aiCustomModelRepositoryHint => 'owner/name 或 huggingface.co 链接';
+
+  @override
+  String get aiCustomModelList => '列出文件';
+
+  @override
+  String get aiCustomModelNoFiles => '这个仓库没有 GGUF 文件。';
+
+  @override
+  String get aiCustomModelSplit => '分成多个文件——不支持';
+
+  @override
+  String aiCustomModelListFailed(String reason) {
+    return '无法列出这个仓库（$reason）';
+  }
+
+  @override
+  String get aiCustomModelWarningTitle => '未经验证的模型';
+
+  @override
+  String get aiCustomModelWarningBody =>
+      '这个模型没有在本应用中测试过。它可能无法加载、运行缓慢或内存不足，回答也可能质量差或出错。';
+
+  @override
+  String aiCustomModelArchSupported(String architecture) {
+    return '架构：$architecture——内置 llama.cpp 支持';
+  }
+
+  @override
+  String aiCustomModelArchUnsupported(String architecture) {
+    return '架构：$architecture——内置 llama.cpp 不支持，很可能无法加载';
+  }
+
+  @override
+  String get aiCustomModelArchUnknown => '架构：未知——无法读取文件头';
+
+  @override
+  String aiCustomModelStorage(String size) {
+    return '需要约 $size 存储空间，运行时也需要差不多同样多的可用内存';
+  }
+
+  @override
+  String aiCustomModelLicense(String license) {
+    return '许可证：$license。遵守许可证由你自行负责。';
+  }
+
+  @override
+  String get aiCustomModelLicenseUnknown => '许可证：未注明。请自行确认。';
+
+  @override
+  String get aiCustomModelAccept => '我了解这个模型不受支持';
+
+  @override
+  String get aiCustomModelBadge => '未验证';
+
+  @override
+  String get aiCustomModelRemove => '从列表中移除';
+
+  @override
+  String get aiModelRename => '重命名';
+
+  @override
+  String get aiModelAliasHint => '留空则使用自动生成的名称';
+
+  @override
+  String get aiModelSave => '保存';
+
+  @override
+  String get aiOnlineAddTitle => '添加在线来源';
+
+  @override
+  String get aiOnlineSearch => '搜索';
+
+  @override
+  String get aiOnlineEndpointChoice => '服务端点';
+
+  @override
+  String get aiOnlineCustomEndpoint => '其他地址';
+
+  @override
+  String get aiOnlineDocs => '文档';
+
+  @override
+  String get aiOnlineModels => '模型';
+
+  @override
+  String get aiOnlineNoModels => '还没有模型。获取该来源的模型列表，或手动添加模型 ID。';
+
+  @override
+  String get aiOnlineFetchModels => '获取模型';
+
+  @override
+  String aiOnlineFetchFailed(String detail) {
+    return '无法获取该来源的模型列表（$detail）';
+  }
+
+  @override
+  String get aiOnlineFromCatalog => '改为显示内置目录中的模型，该来源不一定全部提供。';
+
+  @override
+  String get aiOnlineAddModelId => '添加模型 ID';
+
+  @override
+  String get aiOnlineModelIdHint => '例如 gpt-4o-mini';
+
+  @override
+  String get aiOnlineAlias => '名称';
+
+  @override
+  String get aiOnlineAliasHint => '留空则使用自动生成的名称';
+
+  @override
+  String aiOnlineOriginalId(String id) {
+    return '模型 ID：$id';
+  }
+
+  @override
+  String get aiOnlineShowAll => '同时显示非对话模型';
+
+  @override
+  String aiOnlineContext(String size) {
+    return '上下文 $size';
+  }
+
+  @override
+  String get aiOnlineSelectModels => '选择模型';
+
+  @override
+  String get aiOnlineDone => '完成';
+
+  @override
+  String get aiOnlineRemoveModel => '移除模型';
+
+  @override
+  String get aiOnlineLocalServer => '运行在你自己的设备上';
 }
 
 /// The translations for Chinese, as used in Taiwan (`zh_TW`).
@@ -2318,7 +2479,7 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
 
   @override
   String get aiLocalPrivacyPolicy =>
-      '本機 AI 模型：您可以主動從 Hugging Face 下載 Qwen3.5 0.8B/2B 或 Gemma 4 E2B（4bit）。下載伺服器會得知您的 IP 位址，但不會收到應用程式記錄。檔案使用固定的 SHA-256 驗證，僅保留在本裝置，不進入同步、備份或 ZIP 匯出。推論在本裝置的 CPU 上執行，不向伺服器傳送提示詞。移除模型檔案會保留已有生成內容。模型不會自動下載。';
+      '本機 AI 模型：您可以主動從 Hugging Face 下載 Qwen3.5 0.8B/2B 或 Gemma 4 E2B（4 位元），也可以在確認警告後從 Hugging Face 儲存庫選擇一個 GGUF 模型。列出儲存庫、讀取檔案開頭和下載時，Hugging Face 會得知您的 IP 位址，但不會收到應用程式記錄。檔案依固定到儲存庫提交的 SHA-256 驗證，僅保留在本裝置，不進入同步、備份或 ZIP 匯出。推論在本裝置的處理器上執行，只有您開啟時才使用 GPU，不會把提示傳送到伺服器。刪除檔案不影響已產生的內容。模型從不自動下載。';
 
   @override
   String get aiOnlineSources => '線上 AI 來源';
@@ -4618,4 +4779,165 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
 
   @override
   String get profileAvatarEditorHint => '拖曳以移動，雙指縮放或捲動滑鼠滾輪以縮放。';
+
+  @override
+  String get aiGpuTitle => '本機模型使用 GPU';
+
+  @override
+  String get aiGpuDescription => '在支援的裝置上更快。如果 GPU 無法載入或執行模型，會自動改用 CPU，並記住這一點。';
+
+  @override
+  String get aiGpuUnavailable => '此裝置沒有經過驗證的 GPU 支援，本機模型在 CPU 上執行。';
+
+  @override
+  String get aiDiagnosticsCopy => '複製';
+
+  @override
+  String get aiDiagnosticsCopied => '已複製技術詳情';
+
+  @override
+  String get aiDiagnosticsNotIncluded => '此版本未包含';
+
+  @override
+  String get aiCustomModelAdd => '新增自訂模型';
+
+  @override
+  String get aiCustomModelRepository => 'Hugging Face 儲存庫';
+
+  @override
+  String get aiCustomModelRepositoryHint => 'owner/name 或 huggingface.co 連結';
+
+  @override
+  String get aiCustomModelList => '列出檔案';
+
+  @override
+  String get aiCustomModelNoFiles => '這個儲存庫沒有 GGUF 檔案。';
+
+  @override
+  String get aiCustomModelSplit => '分成多個檔案——不支援';
+
+  @override
+  String aiCustomModelListFailed(String reason) {
+    return '無法列出這個儲存庫（$reason）';
+  }
+
+  @override
+  String get aiCustomModelWarningTitle => '未經驗證的模型';
+
+  @override
+  String get aiCustomModelWarningBody =>
+      '這個模型沒有在本應用程式中測試過。它可能無法載入、執行緩慢或記憶體不足，回答也可能品質差或出錯。';
+
+  @override
+  String aiCustomModelArchSupported(String architecture) {
+    return '架構：$architecture——內建 llama.cpp 支援';
+  }
+
+  @override
+  String aiCustomModelArchUnsupported(String architecture) {
+    return '架構：$architecture——內建 llama.cpp 不支援，很可能無法載入';
+  }
+
+  @override
+  String get aiCustomModelArchUnknown => '架構：未知——無法讀取檔案標頭';
+
+  @override
+  String aiCustomModelStorage(String size) {
+    return '需要約 $size 儲存空間，執行時也需要差不多同樣多的可用記憶體';
+  }
+
+  @override
+  String aiCustomModelLicense(String license) {
+    return '授權：$license。遵守授權由你自行負責。';
+  }
+
+  @override
+  String get aiCustomModelLicenseUnknown => '授權：未註明。請自行確認。';
+
+  @override
+  String get aiCustomModelAccept => '我了解這個模型不受支援';
+
+  @override
+  String get aiCustomModelBadge => '未驗證';
+
+  @override
+  String get aiCustomModelRemove => '從清單中移除';
+
+  @override
+  String get aiModelRename => '重新命名';
+
+  @override
+  String get aiModelAliasHint => '留空則使用自動產生的名稱';
+
+  @override
+  String get aiModelSave => '儲存';
+
+  @override
+  String get aiOnlineAddTitle => '新增線上來源';
+
+  @override
+  String get aiOnlineSearch => '搜尋';
+
+  @override
+  String get aiOnlineEndpointChoice => '服務端點';
+
+  @override
+  String get aiOnlineCustomEndpoint => '其他位址';
+
+  @override
+  String get aiOnlineDocs => '文件';
+
+  @override
+  String get aiOnlineModels => '模型';
+
+  @override
+  String get aiOnlineNoModels => '還沒有模型。取得該來源的模型清單，或手動新增模型 ID。';
+
+  @override
+  String get aiOnlineFetchModels => '取得模型';
+
+  @override
+  String aiOnlineFetchFailed(String detail) {
+    return '無法取得該來源的模型清單（$detail）';
+  }
+
+  @override
+  String get aiOnlineFromCatalog => '改為顯示內建目錄中的模型，該來源不一定全部提供。';
+
+  @override
+  String get aiOnlineAddModelId => '新增模型 ID';
+
+  @override
+  String get aiOnlineModelIdHint => '例如 gpt-4o-mini';
+
+  @override
+  String get aiOnlineAlias => '名稱';
+
+  @override
+  String get aiOnlineAliasHint => '留空則使用自動產生的名稱';
+
+  @override
+  String aiOnlineOriginalId(String id) {
+    return '模型 ID：$id';
+  }
+
+  @override
+  String get aiOnlineShowAll => '同時顯示非對話模型';
+
+  @override
+  String aiOnlineContext(String size) {
+    return '上下文 $size';
+  }
+
+  @override
+  String get aiOnlineSelectModels => '選擇模型';
+
+  @override
+  String get aiOnlineDone => '完成';
+
+  @override
+  String get aiOnlineRemoveModel => '移除模型';
+
+  @override
+  String get aiOnlineLocalServer => '執行在你自己的裝置上';
 }

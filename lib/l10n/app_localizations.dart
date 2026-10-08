@@ -104,7 +104,7 @@ abstract class AppLocalizations {
   /// No description provided for @aiLocalPrivacyPolicy.
   ///
   /// In en, this message translates to:
-  /// **'Local AI models: You can explicitly download Qwen3.5 0.8B/2B or Gemma 4 E2B (4-bit) from Hugging Face. Downloads reveal your IP address to the host, but send no app records. Files are checked against a pinned SHA-256 and remain on this device, excluded from sync, backups and ZIP exports. Inference uses the CPU on your device and sends no prompts to a server. Removing files keeps existing generated content. Models are not downloaded automatically.'**
+  /// **'Local AI models: You can explicitly download Qwen3.5 0.8B/2B or Gemma 4 E2B (4-bit) from Hugging Face, or, after a warning, a GGUF model you choose from a Hugging Face repository. Listing a repository, reading the start of a file and downloading reveal your IP address to Hugging Face, but send no app records. Files are checked against a SHA-256 pinned to a repository commit and remain on this device, excluded from sync, backups and ZIP exports. Inference runs on your device\'s processor, on its GPU only if you turn that on, and sends no prompts to a server. Removing files keeps existing generated content. Models are never downloaded automatically.'**
   String get aiLocalPrivacyPolicy;
 
   /// No description provided for @aiOnlineSources.
@@ -4300,6 +4300,294 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Drag to move. Pinch or scroll to zoom.'**
   String get profileAvatarEditorHint;
+
+  /// No description provided for @aiGpuTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Use the GPU for local models'**
+  String get aiGpuTitle;
+
+  /// No description provided for @aiGpuDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Faster where supported. If the GPU fails to load or run a model, the CPU takes over and the app remembers it.'**
+  String get aiGpuDescription;
+
+  /// No description provided for @aiGpuUnavailable.
+  ///
+  /// In en, this message translates to:
+  /// **'No verified GPU support on this device. Local models run on the CPU.'**
+  String get aiGpuUnavailable;
+
+  /// No description provided for @aiDiagnosticsCopy.
+  ///
+  /// In en, this message translates to:
+  /// **'Copy'**
+  String get aiDiagnosticsCopy;
+
+  /// No description provided for @aiDiagnosticsCopied.
+  ///
+  /// In en, this message translates to:
+  /// **'Technical details copied'**
+  String get aiDiagnosticsCopied;
+
+  /// No description provided for @aiDiagnosticsNotIncluded.
+  ///
+  /// In en, this message translates to:
+  /// **'Not included in this version'**
+  String get aiDiagnosticsNotIncluded;
+
+  /// No description provided for @aiCustomModelAdd.
+  ///
+  /// In en, this message translates to:
+  /// **'Add a custom model'**
+  String get aiCustomModelAdd;
+
+  /// No description provided for @aiCustomModelRepository.
+  ///
+  /// In en, this message translates to:
+  /// **'Hugging Face repository'**
+  String get aiCustomModelRepository;
+
+  /// No description provided for @aiCustomModelRepositoryHint.
+  ///
+  /// In en, this message translates to:
+  /// **'owner/name or a huggingface.co link'**
+  String get aiCustomModelRepositoryHint;
+
+  /// No description provided for @aiCustomModelList.
+  ///
+  /// In en, this message translates to:
+  /// **'List files'**
+  String get aiCustomModelList;
+
+  /// No description provided for @aiCustomModelNoFiles.
+  ///
+  /// In en, this message translates to:
+  /// **'This repository has no GGUF files.'**
+  String get aiCustomModelNoFiles;
+
+  /// No description provided for @aiCustomModelSplit.
+  ///
+  /// In en, this message translates to:
+  /// **'Split into several files — not supported'**
+  String get aiCustomModelSplit;
+
+  /// No description provided for @aiCustomModelListFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not list the repository ({reason})'**
+  String aiCustomModelListFailed(String reason);
+
+  /// No description provided for @aiCustomModelWarningTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Unverified model'**
+  String get aiCustomModelWarningTitle;
+
+  /// No description provided for @aiCustomModelWarningBody.
+  ///
+  /// In en, this message translates to:
+  /// **'This model has not been tested with this app. It may not load, may be slow or run out of memory, and may give poor or wrong answers.'**
+  String get aiCustomModelWarningBody;
+
+  /// No description provided for @aiCustomModelArchSupported.
+  ///
+  /// In en, this message translates to:
+  /// **'Architecture: {architecture} — supported by the built-in llama.cpp'**
+  String aiCustomModelArchSupported(String architecture);
+
+  /// No description provided for @aiCustomModelArchUnsupported.
+  ///
+  /// In en, this message translates to:
+  /// **'Architecture: {architecture} — not supported by the built-in llama.cpp; it will probably not load'**
+  String aiCustomModelArchUnsupported(String architecture);
+
+  /// No description provided for @aiCustomModelArchUnknown.
+  ///
+  /// In en, this message translates to:
+  /// **'Architecture: unknown — the file header could not be read'**
+  String get aiCustomModelArchUnknown;
+
+  /// No description provided for @aiCustomModelStorage.
+  ///
+  /// In en, this message translates to:
+  /// **'Needs about {size} of storage, and about as much free memory to run'**
+  String aiCustomModelStorage(String size);
+
+  /// No description provided for @aiCustomModelLicense.
+  ///
+  /// In en, this message translates to:
+  /// **'License: {license}. Following it is your responsibility.'**
+  String aiCustomModelLicense(String license);
+
+  /// No description provided for @aiCustomModelLicenseUnknown.
+  ///
+  /// In en, this message translates to:
+  /// **'License: not stated. Checking it is your responsibility.'**
+  String get aiCustomModelLicenseUnknown;
+
+  /// No description provided for @aiCustomModelAccept.
+  ///
+  /// In en, this message translates to:
+  /// **'I understand this model is not supported'**
+  String get aiCustomModelAccept;
+
+  /// No description provided for @aiCustomModelBadge.
+  ///
+  /// In en, this message translates to:
+  /// **'Unverified'**
+  String get aiCustomModelBadge;
+
+  /// No description provided for @aiCustomModelRemove.
+  ///
+  /// In en, this message translates to:
+  /// **'Remove from list'**
+  String get aiCustomModelRemove;
+
+  /// No description provided for @aiModelRename.
+  ///
+  /// In en, this message translates to:
+  /// **'Rename'**
+  String get aiModelRename;
+
+  /// No description provided for @aiModelAliasHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Leave empty to use the generated name'**
+  String get aiModelAliasHint;
+
+  /// No description provided for @aiModelSave.
+  ///
+  /// In en, this message translates to:
+  /// **'Save'**
+  String get aiModelSave;
+
+  /// No description provided for @aiOnlineAddTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Add an online source'**
+  String get aiOnlineAddTitle;
+
+  /// No description provided for @aiOnlineSearch.
+  ///
+  /// In en, this message translates to:
+  /// **'Search'**
+  String get aiOnlineSearch;
+
+  /// No description provided for @aiOnlineEndpointChoice.
+  ///
+  /// In en, this message translates to:
+  /// **'Service endpoint'**
+  String get aiOnlineEndpointChoice;
+
+  /// No description provided for @aiOnlineCustomEndpoint.
+  ///
+  /// In en, this message translates to:
+  /// **'Other address'**
+  String get aiOnlineCustomEndpoint;
+
+  /// No description provided for @aiOnlineDocs.
+  ///
+  /// In en, this message translates to:
+  /// **'Documentation'**
+  String get aiOnlineDocs;
+
+  /// No description provided for @aiOnlineModels.
+  ///
+  /// In en, this message translates to:
+  /// **'Models'**
+  String get aiOnlineModels;
+
+  /// No description provided for @aiOnlineNoModels.
+  ///
+  /// In en, this message translates to:
+  /// **'No models yet. Fetch the source\'s models or add a model ID.'**
+  String get aiOnlineNoModels;
+
+  /// No description provided for @aiOnlineFetchModels.
+  ///
+  /// In en, this message translates to:
+  /// **'Fetch models'**
+  String get aiOnlineFetchModels;
+
+  /// No description provided for @aiOnlineFetchFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not list the source\'s models ({detail})'**
+  String aiOnlineFetchFailed(String detail);
+
+  /// No description provided for @aiOnlineFromCatalog.
+  ///
+  /// In en, this message translates to:
+  /// **'Showing models from the built-in catalog instead. The source may not offer all of them.'**
+  String get aiOnlineFromCatalog;
+
+  /// No description provided for @aiOnlineAddModelId.
+  ///
+  /// In en, this message translates to:
+  /// **'Add model ID'**
+  String get aiOnlineAddModelId;
+
+  /// No description provided for @aiOnlineModelIdHint.
+  ///
+  /// In en, this message translates to:
+  /// **'For example gpt-4o-mini'**
+  String get aiOnlineModelIdHint;
+
+  /// No description provided for @aiOnlineAlias.
+  ///
+  /// In en, this message translates to:
+  /// **'Name'**
+  String get aiOnlineAlias;
+
+  /// No description provided for @aiOnlineAliasHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Leave empty to use the generated name'**
+  String get aiOnlineAliasHint;
+
+  /// No description provided for @aiOnlineOriginalId.
+  ///
+  /// In en, this message translates to:
+  /// **'Model ID: {id}'**
+  String aiOnlineOriginalId(String id);
+
+  /// No description provided for @aiOnlineShowAll.
+  ///
+  /// In en, this message translates to:
+  /// **'Also show non-chat models'**
+  String get aiOnlineShowAll;
+
+  /// No description provided for @aiOnlineContext.
+  ///
+  /// In en, this message translates to:
+  /// **'{size} context'**
+  String aiOnlineContext(String size);
+
+  /// No description provided for @aiOnlineSelectModels.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose models'**
+  String get aiOnlineSelectModels;
+
+  /// No description provided for @aiOnlineDone.
+  ///
+  /// In en, this message translates to:
+  /// **'Done'**
+  String get aiOnlineDone;
+
+  /// No description provided for @aiOnlineRemoveModel.
+  ///
+  /// In en, this message translates to:
+  /// **'Remove model'**
+  String get aiOnlineRemoveModel;
+
+  /// No description provided for @aiOnlineLocalServer.
+  ///
+  /// In en, this message translates to:
+  /// **'On your own machine'**
+  String get aiOnlineLocalServer;
 }
 
 class _AppLocalizationsDelegate

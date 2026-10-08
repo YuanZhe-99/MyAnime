@@ -50,12 +50,12 @@
      `unknown` 和 `downloading` 时为「重新检查」。
   3. 「使用更快的模型」，仅在 Android 上且 `report.hasSizeChoice` 时显示。
   4. 说明：在 Android 上说明谁下载模型、为何不能在这里删除；在 Apple 上说明由系统管理。
-  5. 一个折叠的「技术详情」，内容为可选中的文本：状态名和代码、detail、变体、已提供和被拒绝的变体、模型名、
-     token 上限、AICore 版本（或「未安装」）、SDK、设备、兼容性、系统版本和语言区域支持，各项只在已知时显示。
+  5. 一个折叠的「技术详情」（自 1.9.0 起为基于 `router.diagnostics()` 的 `MyAppsAiDiagnosticsView`），可复制：
+     包含每个后端（应用与平台、选择、系统 AI、llama.cpp 库与设备、每个本地模型、在线来源），各项只在已知时显示。
 - **用法：** `settings_page.dart` 的「分类与推荐」分区（`AiSettingsTiles(featuresOn: settings.autoCategoriesEnabled || settings.recommendationsEnabled)`）；
   `test/ai_settings_tiles_ui_test.dart`（用 `debugDefaultTargetPlatformOverride` 按平台测试）。
 - **备注：** `unsupported` 表述为需要支持 Apple Intelligence 的 iOS 26 或 macOS 26。这正是 Apple 插件在
   26 之前的 iOS 和 macOS 上报告的状态。
 
 
-当前接入 MyApps-AI v0.5.3，显式注入平台后端，使用应用所属来源路由与统一设置骨架。WebDAV 入口在任何网络请求前要求设备本地提醒确认；具体见同步概念文档。
+当前接入 MyApps-AI v0.6.0，显式注入平台后端，使用共享来源路由（`createAiSourceRouter`）与统一设置骨架。WebDAV 入口在任何网络请求前要求设备本地提醒确认；具体见同步概念文档。

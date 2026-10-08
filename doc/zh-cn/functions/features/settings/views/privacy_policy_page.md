@@ -1,6 +1,6 @@
 # lib/features/settings/views/privacy_policy_page.dart
 
-`PrivacyPolicyPage` 是从设置 -> 关于 -> 隐私政策到达的静态、感知语言区域的设置子页（见 `functions/features/settings/views/settings_page.md`）。它是没有服务依赖的 `StatelessWidget`：`build` 经 `Localizations.localeOf(context)` 解析当前 `Locale` 并把它交给文件中唯一一段真实逻辑 `_getText`，后者从四个硬编码隐私政策字符串常量（`_en`、`_zh`、`_zhTW`、`_ja`）中选一个渲染到可滚动 `SelectableText` 中。政策文本本身记录应用实际的网络/数据行为（无分析、仅在用户配置时 WebDAV 同步、仅本地备份，以及可选的 AI 功能：默认关闭；来源会收到的内容；系统 AI（1.6.0）、从 Hugging Face 下载的本地模型（1.8.11）和用户自行添加、仅在选中且接受隐私提醒后才使用的在线来源（1.8.11）；结果的保存位置（1.8.12 重写）——见 [`../../../../on-device-ai.md`](../../../../on-device-ai.md)）——它用散文描述的机制见 [`../../../backup-restore.md`](../../../../backup-restore.md) 和 [`../../../sync.md`](../../../../sync.md)。`build` 在政策正文后追加本地化的 WebDAV 提醒（`webdavPrivacyPlaintext`、`webdavPrivacyHttp`、`webdavPrivacyPaused`）；1.8.11 追加的 AI 文案自 1.8.12 起并入政策正文。
+`PrivacyPolicyPage` 是从设置 -> 关于 -> 隐私政策到达的静态、感知语言区域的设置子页（见 `functions/features/settings/views/settings_page.md`）。它是没有服务依赖的 `StatelessWidget`：`build` 经 `Localizations.localeOf(context)` 解析当前 `Locale` 并把它交给文件中唯一一段真实逻辑 `_getText`，后者从四个硬编码隐私政策字符串常量（`_en`、`_zh`、`_zhTW`、`_ja`）中选一个渲染到可滚动 `SelectableText` 中。政策文本本身记录应用实际的网络/数据行为（无分析、仅在用户配置时 WebDAV 同步、仅本地备份，以及可选的 AI 功能：默认关闭；来源会收到的内容；系统 AI（1.6.0）、从 Hugging Face 下载的本地模型（1.8.11）和用户自行添加、仅在选中且接受隐私提醒后才使用的在线来源（1.8.11）；结果的保存位置（1.8.12 重写；1.9.0 起涵盖警告后添加的自定义 Hugging Face 模型，以及仅在开启时使用的 GPU）——见 [`../../../../on-device-ai.md`](../../../../on-device-ai.md)）——它用散文描述的机制见 [`../../../backup-restore.md`](../../../../backup-restore.md) 和 [`../../../sync.md`](../../../../sync.md)。`build` 在政策正文后追加本地化的 WebDAV 提醒（`webdavPrivacyPlaintext`、`webdavPrivacyHttp`、`webdavPrivacyPaused`）；1.8.11 追加的 AI 文案自 1.8.12 起并入政策正文。
 
 ## 声明
 
@@ -37,4 +37,4 @@
 四种语言政策均说明目录获取、视频主机请求、临时原生凭据及内嵌网站配置／第三方资源。
 
 
-当前接入 MyApps-AI v0.5.3，显式注入平台后端，使用应用所属来源路由与统一设置骨架。WebDAV 入口在任何网络请求前要求设备本地提醒确认；具体见同步概念文档。
+当前接入 MyApps-AI v0.6.0，显式注入平台后端，使用共享来源路由（`createAiSourceRouter`）与统一设置骨架。WebDAV 入口在任何网络请求前要求设备本地提醒确认；具体见同步概念文档。

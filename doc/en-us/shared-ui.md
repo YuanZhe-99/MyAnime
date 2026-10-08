@@ -67,4 +67,4 @@ remain adapters. JSON, module order, image naming and field-merge behavior are u
 
 ## Unified AI settings
 
-The app pins MyApps-UI v0.1.8, MyApps-DATA v1.1.0 and MyApps-AI v0.5.3. AI settings use MyAppsAiSettingsSkeleton, MyAppsAiSourcePicker and shared model management. Existing enabled and fast-model settings keep their serialized keys. Local CPU inference is available beyond the system-AI platform gate. WebDAV operations require this device’s notice acknowledgement.
+The app pins MyApps-UI v0.1.8, MyApps-DATA v1.1.0 and MyApps-AI v0.6.0. AI settings use MyAppsAiSettingsSkeleton, MyAppsAiSourcePicker and shared model management. Existing enabled and fast-model settings keep their serialized keys. Local CPU inference is available beyond the system-AI platform gate; the GPU is optional. WebDAV operations require this device’s notice acknowledgement.
