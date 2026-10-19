@@ -757,4 +757,4 @@ client，因此这些映射函数是唯一可行的测试接缝。不要在本�
 
 ## 1.6.4 变更
 
-userAgent 更新为 MyAnime/1.6.4 (anime tracker)。
+userAgent 为 MyAnime/1.9.1 (anime tracker)；它跟随应用版本（属于发布时的版本位置）。

@@ -19,7 +19,9 @@ Apple Intelligence 的模型——为自动分类补缺，并为推荐写简短�
 并由 `test/categories_test.dart` 覆盖：AI 建议的分类标签带闪光图标，并以第 4 条的标注作为提示；类型标签映射是确定性的回退，
 模型只填补映射留空的记录；结果存放在 `ai_insights.json` 中。对推荐（1.6.0 M5）而言它们同样已经实现，并由
 `test/recommendations_test.dart` 和 `test/recommendations_page_ui_test.dart` 覆盖：每条 AI 理由都位于第 4 条的标注之下；确定性排序及其标签先渲染，模型失败或回复无效时保持不变；理由只保存在内存中——不写入任何东西。见
-[`features/categories-and-recommendations.md`](features/categories-and-recommendations.md)。
+[`features/categories-and-recommendations.md`](features/categories-and-recommendations.md)。对统计页洞察卡片（1.9.1）而言它们已经实现，并由
+`test/statistics_insight_facts_test.dart` 覆盖：每张卡片都位于第 4 条的标注之下，页面自身的数字先渲染，模型失败时保持不变，结果存放在
+`ai_insight_cards.json` 中，从不同步或备份——见[统计页洞察卡片](#statistics-insight-cards)。
 
 1. **默认关闭。** 在用户打开开关之前，`storage_config.json` 中没有 `onDeviceAiEnabled`。
 2. **开关就是一道门。** 开关关闭时从不调用方法通道，连状态也不查询。
@@ -45,7 +47,10 @@ Apple Intelligence 的模型——为自动分类补缺，并为推荐写简短�
 | `lib/features/ai/services/ai_insights_cache.dart` | `AiInsightsCache`：`ai_insights.json`，本设备的生成结果缓存（1.6.0 M4） |
 | `lib/features/ai/widgets/ai_settings_tiles.dart` | `AiSettingsTiles`：开关、状态行、尺寸偏好、说明和完整、可复制的技术详情（1.9.0） |
 | `lib/features/categories/services/category_service.dart` | `CategoryClassifier`：每次会话的细流（至多 20 条记录）与*立即分类*（1.6.0 M4） |
-| `lib/features/recommendations/services/ai_reason_service.dart` | 推荐理由：排名前八的候选、回复解析、请求语言与中文变体转换（1.6.0 M5）；提示词在 `reason_prompt.dart` 中 |
+| `lib/features/recommendations/services/ai_reason_service.dart` | 推荐理由：排名前八的候选、回复解析、请求语言与中文变体转换（1.6.0 M5）；提示词在 `reason_prompt.dart` 中；候选项的特征事实（`reasonTraitFacts`，1.9.1）和带引用词的回复解析 |
+| `lib/features/ai/services/insight_prompts.dart`、`insight_language.dart`、`insight_service.dart`、`ai_insight_cards_cache.dart` | 统计页洞察卡片（1.9.1）：模块、事实、带版本的指令和提示词、回复解析器、请求语言、基于共享 `AiInsightCoordinator` 的 `AiInsightStore`，以及 `ai_insight_cards.json` 缓存 |
+| `lib/features/ai/widgets/ai_insight_card.dart` | `AiInsightCard`，基于共享的 `MyAppsAiInsightCard`（1.9.1） |
+| `lib/features/anime/services/statistics_insight_facts.dart` | 总览和排行的事实构建器（1.9.1） |
 | `packages/myapps_ai/packages/myapps_ai_platform/android/src/main/kotlin/com/yuanzhe/myapps_ai/GenAiChannel.kt` | 通往 ML Kit GenAI 的 Android 桥接 |
 | `packages/myapps_ai/packages/myapps_ai_platform/` | 一个本地 Flutter 插件，iOS 和 macOS 共用一份 Darwin 源码 |
 
@@ -170,3 +175,33 @@ Google Play 的 AI 生成内容政策把使用 AI 改进现有功能的效率类
 2. 针对当前 SDK 重读 Foundation Models 文档，并确认 runner 镜像的默认 Xcode。
 3. 重新检查错误码：对 `genai-common` AAR 中的 `GenAiException$ErrorCode` 运行 `javap -public -constants`。
 4. 在两种语言中更新**最后核实**和上面的事实。
+
+## 统计页洞察卡片 <a id="statistics-insight-cards"></a>
+
+自 1.9.1 起，统计页面的每个视图都有一张 AI 卡片，移植自 MyDevice!!!!! 的洞察卡片，并建立在共享的 `AiInsightCoordinator`
+和 `MyAppsAiInsightCard` 之上。两张卡片都是紧凑的（点按前只显示一行预览），AI 关闭时不渲染任何内容。与 MyDevice 的卡片
+不同，它们不要求端侧模型：与推荐理由一样，它们使用当前选中的来源——系统 AI、本地模型或在线来源（此时事实会发送给该服务商）
+——标注会写明文字在哪里生成。AI 开关本身仍需要自动分类或推荐处于开启状态。
+
+| 视图 | 位置 | 槽位 |
+|---|---|---|
+| 总览（`statsSummary`） | 趋势图之后、按状态列出的列表之前 | `pace`、`taste`、`backlogAdvice` |
+| 排行（`statsRanking`） | 排行筛选之后 | `ratingProfile`、`divergence` |
+
+事实在 Dart 侧算好，模型只负责解读（`statistics_insight_facts.dart`）。总览：针对所显示的季度、年份或全部时间——与该视图
+计数的作品相同——按观看状态的计数及完结率和弃番率、积压（在看加未开始）、上一季度或上一年的数字及以百分点表示的变化、
+最常见的三个分类（按应用其他地方的规则解析，包括 AI 分类）和制作公司、在至少追过三部的分类中弃番最多的分类，以及积压中
+至多两部作品：剩余集数最少的在看作品和外部评分最高的未开始作品。排行：在时间和类型筛选保留的作品中，个人评分的数量、
+均值和中位数（0–10）、最高的三部和最低的一部、至少有三条评分的故事、画面、音乐和角色分项均分，以及个人评分比外部均分高或
+低至少 1.5 的作品。备注、观看日期和逐集历史从不发送。每张卡片都有不含标题的回退版本（`fallbackFacts`），在模型拒绝或
+没有给出可用回答时尝试一次。
+
+指令把模型设定为动漫记录应用中的分析助手，绝不复述屏幕上已有的数字；回复解析器在读取 `<number>: <sentence>` 行之前
+先去掉推理块（`stripThinking`，MyApps-AI v0.6.2）；标题、制作公司和分类是文字系统检查的引用词。结果按视图缓存在
+`ai_insight_cards.json` 中——这是一个独立文件，因为 `ai_insights.json` 的 `AiInsights` 只保留 AI 分类，会在下次保存时丢弃
+卡片条目——只有指纹（视图、提示词版本、语言、日期、模型、事实）变化时才重新生成。
+
+推荐理由和相关作品理由（提示词版本 2，1.9.1）现在要求给出与喜爱作品、制作公司或观看投入相关的具体推荐语；每个候选项都带上
+篇幅（`12 eps, quick single-cour watch`、`movie`）、外部均分和至多三个题材（`reasonTraitFacts`）。理由解析器不再去掉模型
+常用的 `1. ` 编号，并在文字系统检查中忽略引用的标题、制作公司和题材。提示词版本仍不属于任何缓存：推荐页的理由只保存在
+内存中，已保存的相关作品理由会在其列表下次重建时被替换。

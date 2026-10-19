@@ -6,5 +6,6 @@ export 'package:myapps_ai/myapps_ai.dart'
         ChoiceParse,
         parseChoiceReply,
         stripMarkdown,
+        stripThinking,
         matchesScript,
         cleanSentence;

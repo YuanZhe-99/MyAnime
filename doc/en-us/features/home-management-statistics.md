@@ -84,6 +84,16 @@ model/quarter logic and [`../architecture.md`](../architecture.md) for how these
   - image export/share for the current filtered ranking (see
     [`share-and-import.md`](share-and-import.md))
 
+### AI insight cards (1.9.1)
+
+With AI on, the summary view shows a compact AI card after the trend chart and the ranking view one
+after its filters. The summary card reads the period's momentum (completion and drop rates against
+the previous quarter or year), which categories and studios dominated and how they ended, and
+suggests one backlog title to finish or drop; the ranking card characterizes how strictly the user
+rates, which sub-score drives their top ratings, and where their scores differ most from the
+databases'. The numbers are worked out by `statistics_insight_facts.dart`; see
+[On-device AI — Statistics insight cards](../on-device-ai.md#statistics-insight-cards).
+
 ## List layout and row actions
 
 All three tabs share two behaviours added in 1.5.3.

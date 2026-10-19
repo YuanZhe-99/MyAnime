@@ -6,6 +6,8 @@
 [`../../ai/services/output_validation.md`](../../ai/services/output_validation.md) 和
 [`../../../../features/categories-and-recommendations.md`](../../../../features/categories-and-recommendations.md)。
 
+自 1.9.1 起，每个候选项的事实加上 `reasonTraitFacts`（`12 eps, quick single-cour watch` 或 `movie`、`rated 8.4 externally`、`genres …`）；`parseReasonReply` 先去掉推理块（`stripThinking`），只去掉粗体和代码标记——不再像 `stripMarkdown` 那样去掉 `1. ` 编号——并在文字系统检查中使用来自 `reasonQuotedTerms` 的 `quotedTerms`。
+
 ## 声明
 
 | 声明 | 种类 | Tier | 用途 |
@@ -16,6 +18,8 @@
 | `ReasonLanguage.finish` | 方法（`ReasonLanguage`） | B | 对通过校验的理由做后处理：用 `ChineseConvert` 转成界面使用的中文变体，否则原样返回。 |
 | [`writeAiReasons`](#writeaireasons) | 顶层函数 | A | 请端侧模型写至多三条简短理由。 |
 | [`writeRelatedAiReasons`](#writerelatedaireasons) | 顶层函数 | A | 请端侧模型说明至多三条相关记录为何与主体记录相似（1.6.2）。 |
+| `reasonTraitFacts` | 顶层函数 | A | 为理由提示词描述候选项的观看投入、外部均分和至多三个题材（1.9.1）。 |
+| `reasonQuotedTerms` | 顶层函数 | A | 收集理由中可能保留拉丁字母的标题、制作公司、题材和分类，按长度从长到短（1.9.1）。 |
 
 `aiReasonCandidates`（8）、`aiReasonMaxLength`（140）、私有的 `_answerLine` 模式以及 `ReasonLanguage` 的字段
 （`localeTag`、`name`、`code`、`toTraditional`、`toSimplified`）没有 `/// Purpose:` 注释，不作为行。

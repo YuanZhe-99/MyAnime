@@ -1037,7 +1037,7 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get aiUseOnDeviceDesc =>
-      '默认关闭。使用下方选择的 AI 来源，为资料库没有给出分类的番剧补上分类，并为推荐写一句简短理由。端侧来源的内容不会离开本设备；在线来源会把请求发送给该服务商。';
+      '默认关闭。使用下方选择的 AI 来源，为资料库没有给出分类的番剧补上分类，为推荐写一句简短理由，并在统计页面写出简短摘要。端侧来源的内容不会离开本设备；在线来源会把请求发送给该服务商。';
 
   @override
   String get aiNeedsFeature => '请先开启自动分类或推荐。';
@@ -1110,6 +1110,38 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get aiGeneratedLabel => '在本设备上生成——可能有误';
+
+  @override
+  String get aiInsightTitle => 'AI 洞察';
+
+  @override
+  String get aiRegenerate => '重新生成';
+
+  @override
+  String get aiInsightSkipped => '模型拒绝对这些数据发表意见。';
+
+  @override
+  String get aiGenerating => '正在思考…';
+
+  @override
+  String get aiQuotaHint => '本设备今天的模型使用次数已达上限，请明天再试。';
+
+  @override
+  String get aiForegroundHint => '模型工作时请保持应用在前台。';
+
+  @override
+  String get aiInsightFailed => '模型这次没能给出回答。';
+
+  @override
+  String aiGeneratedAt(String time) {
+    return '生成于 $time';
+  }
+
+  @override
+  String get aiOpenSettings => '设置';
+
+  @override
+  String get aiLanguageUnsupported => '端侧模型无法使用这种语言写作。';
 
   @override
   String get aiGeneratedOnlineUnknownLabel => '在线生成——可能有误';
@@ -3506,7 +3538,7 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
 
   @override
   String get aiUseOnDeviceDesc =>
-      '預設關閉。使用下方選擇的 AI 來源，為資料庫沒有提供分類的番劇補上分類，並為推薦寫一句簡短理由。裝置端來源的內容不會離開本裝置；線上來源會把請求傳送給該服務商。';
+      '預設關閉。使用下方選擇的 AI 來源，為資料庫沒有提供分類的番劇補上分類，為推薦寫一句簡短理由，並在統計頁面寫出簡短摘要。裝置端來源的內容不會離開本裝置；線上來源會把請求傳送給該服務商。';
 
   @override
   String get aiNeedsFeature => '請先開啟自動分類或推薦。';
@@ -3579,6 +3611,38 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
 
   @override
   String get aiGeneratedLabel => '在本裝置上生成——可能有誤';
+
+  @override
+  String get aiInsightTitle => 'AI 洞察';
+
+  @override
+  String get aiRegenerate => '重新生成';
+
+  @override
+  String get aiInsightSkipped => '模型拒絕對這些資料發表意見。';
+
+  @override
+  String get aiGenerating => '正在思考…';
+
+  @override
+  String get aiQuotaHint => '本裝置今天的模型使用次數已達上限，請明天再試。';
+
+  @override
+  String get aiForegroundHint => '模型運作時請讓應用程式保持在前景。';
+
+  @override
+  String get aiInsightFailed => '模型這次沒能給出回答。';
+
+  @override
+  String aiGeneratedAt(String time) {
+    return '生成於 $time';
+  }
+
+  @override
+  String get aiOpenSettings => '設定';
+
+  @override
+  String get aiLanguageUnsupported => '裝置端模型無法使用這種語言寫作。';
 
   @override
   String get aiGeneratedOnlineUnknownLabel => '線上生成——可能有誤';

@@ -1,5 +1,19 @@
 # Version history
 
+## 1.9.1 — Statistics insight cards and sharper recommendation reasons (2026-10-19)
+
+Pin MyApps-AI v0.6.2, whose `stripThinking` removes a model's reasoning blocks before a reply is
+read. The Statistics page gets an AI card in each view (ported from MyDevice!!!!!'s insight cards):
+the summary card compares the period's completion and drop rates with the previous quarter or year,
+names the categories and studios that dominated, and suggests a backlog title; the ranking card
+describes how strictly you rate, which sub-score drives your top ratings, and your largest gaps
+from the databases' scores. The numbers are worked out in Dart; results are cached on this device in
+`ai_insight_cards.json`. Recommendation and related reasons (prompt version 2) now ask for a
+specific pitch, and each candidate carries its length, external average and genres. The reason
+parser no longer drops replies numbered `1. ` and ignores quoted titles, studios and genres in its
+script check. The search User-Agent follows the version again (it still said 1.8.11). The privacy
+policy and the AI setting's description mention the Statistics summaries.
+
 ## 1.9.0 — Model names, GPU option, custom models and the online sources library (2026-10-08)
 
 Local models now have friendly names (`Qwen: Qwen3.5 0.8B (Q4_K_M)`) that can be renamed. Local models can use the GPU where it is verified, only when turned on in the source section. Technical details in the AI settings are complete and copyable: every backend (system AI, the llama.cpp library and devices, each local model, online sources). A custom GGUF model can be added from a Hugging Face repository after a mandatory warning; listing, reading and downloading reveal the IP address to Hugging Face. New device-local keys `aiComputePreference`, `aiGpuFailures`, `aiCustomModels`, `aiModelAliases` never sync and never enter backups.

@@ -27,6 +27,8 @@ The file also declares five private enums with no logic of their own (`_StatsVie
 described here in prose rather than as `Declarations` rows, consistent with how plain enum/field
 declarations are handled elsewhere in this doc set.
 
+Since 1.9.1 the summary view shows a compact [`AiInsightCard`](../../ai/widgets/ai_insight_card.md) after the trend chart and before the lists by status, and the ranking view one after its filters; both render nothing while AI is off. `_load` also reads the AI category cache so the summary card counts categories as the rest of the app resolves them.
+
 ## Declarations
 
 | Declaration | Kind | Tier | Purpose |
@@ -103,6 +105,8 @@ declarations are handled elsewhere in this doc set.
 | `_StatisticsPageState._typeLabel` | method (`_StatisticsPageState`) | B | Localized label for an `AnimeType`. |
 | `_StatisticsPageState._formatScore` | method (`_StatisticsPageState`) | B | Format a rating score to one decimal place. |
 | `_TrendEntry.new` | constructor (`_TrendEntry`) | B | Create a trend entry instance (year, quarter, tracked/completed/dropped counts). |
+| `_summaryInsightCard` | method (`_StatisticsPageState`) | B | Build the summary view's AI insight card from the period the view counts and the previous one (1.9.1). |
+| `_rankingInsightCard` | method (`_StatisticsPageState`) | B | Build the ranking view's AI insight card from what the time and type filters keep (1.9.1). |
 
 ## Documentation
 

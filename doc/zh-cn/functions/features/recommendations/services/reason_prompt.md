@@ -5,6 +5,8 @@
 任何指纹，因为理由从不缓存——它们只在一次访问该页面期间保存在内存中。见
 [`../../../../features/categories-and-recommendations.md`](../../../../features/categories-and-recommendations.md)。
 
+自 1.9.1 起两个提示词版本都为 2：`reasonInstructions` 要求给出 22 词以内、与已看完的喜爱作品、制作公司优势或观看投入相关的具体推荐语，`relatedReasonInstructions` 要求说明具体的共同吸引力（叙事钩子、制作公司风格或设定），而不是罗列分类标签。版本号仍不属于任何缓存。
+
 ## 声明
 
 | 声明 | 种类 | Tier | 用途 |

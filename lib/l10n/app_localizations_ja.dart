@@ -1049,7 +1049,7 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get aiUseOnDeviceDesc =>
-      '初期状態ではオフです。下で選んだAIソースで、データベースに分類がない作品の分類を補い、おすすめの短い理由を書きます。端末内のソースでは何も端末の外に送信されません。オンラインソースはリクエストをその提供元に送信します。';
+      '初期状態ではオフです。下で選んだAIソースで、データベースに分類がない作品の分類を補い、おすすめの短い理由と統計ページの短い要約を書きます。端末内のソースでは何も端末の外に送信されません。オンラインソースはリクエストをその提供元に送信します。';
 
   @override
   String get aiNeedsFeature => '先に自動分類かおすすめをオンにしてください。';
@@ -1124,6 +1124,38 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get aiGeneratedLabel => 'この端末で生成 — 誤りを含む可能性があります';
+
+  @override
+  String get aiInsightTitle => 'AIインサイト';
+
+  @override
+  String get aiRegenerate => '再生成';
+
+  @override
+  String get aiInsightSkipped => 'モデルはこのデータへのコメントを控えました。';
+
+  @override
+  String get aiGenerating => '考え中…';
+
+  @override
+  String get aiQuotaHint => 'この端末の本日のモデル利用上限に達しました。明日もう一度お試しください。';
+
+  @override
+  String get aiForegroundHint => 'モデルの処理中はアプリを開いたままにしてください。';
+
+  @override
+  String get aiInsightFailed => '今回はモデルが回答できませんでした。';
+
+  @override
+  String aiGeneratedAt(String time) {
+    return '$time に生成';
+  }
+
+  @override
+  String get aiOpenSettings => '設定';
+
+  @override
+  String get aiLanguageUnsupported => 'オンデバイスモデルはこの言語で書けません。';
 
   @override
   String get aiGeneratedOnlineUnknownLabel => 'オンラインで生成 — 誤りを含む可能性があります';

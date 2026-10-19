@@ -771,4 +771,4 @@ Five static fields carry a plain doc comment but no `Purpose:` block, so they ha
 
 ## Changes in 1.6.4
 
-userAgent is MyAnime/1.6.4 (anime tracker).
+userAgent is MyAnime/1.9.1 (anime tracker); it follows the app version (a release version location).

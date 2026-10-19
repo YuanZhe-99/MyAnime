@@ -25,7 +25,12 @@ live in `ai_insights.json`. For recommendations (1.6.0 M5) they are implemented 
 `test/recommendations_test.dart` and `test/recommendations_page_ui_test.dart`: each AI reason sits
 under the rule 4 label, the deterministic ranking and its chips render first and stay whenever the
 model fails or its reply is invalid, and reasons are kept in memory only — nothing is written. See
-[`features/categories-and-recommendations.md`](features/categories-and-recommendations.md).
+[`features/categories-and-recommendations.md`](features/categories-and-recommendations.md). For the
+Statistics insight cards (1.9.1) they are implemented and covered by
+`test/statistics_insight_facts_test.dart`: each card sits under the rule 4 label, the page's own
+numbers render first and stay whenever the model fails, and results live in
+`ai_insight_cards.json`, never synced or backed up — see
+[Statistics insight cards](#statistics-insight-cards).
 
 1. **Off by default.** `onDeviceAiEnabled` is absent from `storage_config.json` until the user turns
    the switch on.
@@ -56,7 +61,10 @@ Both flavors ship the feature: it makes no network call of its own.
 | `lib/features/ai/services/ai_insights_cache.dart` | `AiInsightsCache`: `ai_insights.json`, the per-device cache of generated results (1.6.0 M4) |
 | `lib/features/ai/widgets/ai_settings_tiles.dart` | `AiSettingsTiles`: the switch, the status row, the size preference, the notes and the complete, copyable technical details (1.9.0) |
 | `lib/features/categories/services/category_service.dart` | `CategoryClassifier`: the per-session trickle (at most 20 records) and *Categorise now* (1.6.0 M4) |
-| `lib/features/recommendations/services/ai_reason_service.dart` | Recommendation reasons: the top eight candidates, the reply parser, the request language and Chinese variant conversion (1.6.0 M5); the prompt is in `reason_prompt.dart` |
+| `lib/features/recommendations/services/ai_reason_service.dart` | Recommendation reasons: the top eight candidates, their trait facts (`reasonTraitFacts`, 1.9.1), the reply parser with quoted terms, the request language and Chinese variant conversion (1.6.0 M5); the prompt is in `reason_prompt.dart` |
+| `lib/features/ai/services/insight_prompts.dart`, `insight_language.dart`, `insight_service.dart`, `ai_insight_cards_cache.dart` | The Statistics insight cards (1.9.1): modules, facts, versioned instructions and prompt, the reply parser, the request language, `AiInsightStore` over the shared `AiInsightCoordinator`, and the `ai_insight_cards.json` cache |
+| `lib/features/ai/widgets/ai_insight_card.dart` | `AiInsightCard`, over the shared `MyAppsAiInsightCard` (1.9.1) |
+| `lib/features/anime/services/statistics_insight_facts.dart` | The summary and ranking facts builders (1.9.1) |
 | `packages/myapps_ai/packages/myapps_ai_platform/android/src/main/kotlin/com/yuanzhe/myapps_ai/GenAiChannel.kt` | The Android bridge to ML Kit GenAI |
 | `packages/myapps_ai/packages/myapps_ai_platform/` | A local Flutter plugin with one shared Darwin source for iOS and macOS |
 
@@ -208,3 +216,48 @@ Run this when a device becomes available, and update **Last verified** above.
 3. Re-check the error codes: `javap -public -constants` on `GenAiException$ErrorCode` in the
    `genai-common` AAR.
 4. Update **Last verified** and the facts above in both languages.
+
+## Statistics insight cards <a id="statistics-insight-cards"></a>
+
+Since 1.9.1 the Statistics page has an AI card in each view, ported from MyDevice!!!!!'s insight
+cards and built on the shared `AiInsightCoordinator` and `MyAppsAiInsightCard`. Both are compact
+(one preview line until tapped) and render nothing while AI is off. Unlike MyDevice's cards they do
+not require an on-device model: like recommendation reasons, they use whichever source is selected
+— system AI, a local model, or an online source, in which case the facts go to that provider — and
+the label names where the text was generated. The AI switch itself still needs automatic categories
+or recommendations to be on.
+
+| View | Where | Slots |
+|---|---|---|
+| Summary (`statsSummary`) | After the trend chart, before the lists by status | `pace`, `taste`, `backlogAdvice` |
+| Ranking (`statsRanking`) | After the ranking filters | `ratingProfile`, `divergence` |
+
+The facts are worked out in Dart, so the model only interprets them
+(`statistics_insight_facts.dart`). Summary: for the quarter, year or all time shown — the same anime
+the view counts — the counts by viewing status with completion and drop rates, the backlog
+(watching plus not started), the previous quarter's or year's figures with the change in
+percentage points, the top three categories (as resolved for the rest of the app, AI included) and
+studios, the category dropped most often among those tracked at least three times, and up to two
+backlog titles: the watching one with the fewest episodes left and the not-started one rated
+highest elsewhere. Ranking: over the anime the time and type filters keep, the personally rated
+count, mean and median (0–10), the three highest and the lowest titles, the averages of story,
+visuals, music and character where at least three are rated, and the titles at least 1.5 above or
+below their external average. Notes, watch dates and episode-level history are never sent. Each card
+has a title-free fallback (`fallbackFacts`), tried once when the model declines or answers nothing
+usable.
+
+The instructions cast the model as an analytical assistant in an anime-tracking app that never
+restates the numbers already on screen, and the reply parser removes reasoning blocks
+(`stripThinking`, MyApps-AI v0.6.2) before reading `<number>: <sentence>` lines; titles, studios and
+categories are quoted terms for the script check. Results are cached per view in
+`ai_insight_cards.json` — a separate file, because `ai_insights.json`'s `AiInsights` keeps only AI
+categories and would drop card entries on its next save — and regenerated only when the fingerprint
+(view, prompt version, language, date, model, facts) changes.
+
+Recommendation and related reasons (prompt version 2, 1.9.1) are now asked for a specific pitch tied
+to a favorite, a studio or the viewing commitment; each candidate carries its length
+(`12 eps, quick single-cour watch`, `movie`), its external average and up to three genres
+(`reasonTraitFacts`). The reason parser no longer strips `1. ` numbering, which the model often
+uses, and ignores quoted titles, studios and genres in its script check. The prompt versions are
+still not part of any cache: Recommendations-page reasons live in memory, and stored related
+reasons are replaced when their list is next rebuilt.

@@ -15,9 +15,15 @@ import '../../../shared/utils/adaptive_layout.dart';
 import '../../../shared/utils/status_colors.dart';
 import '../../../shared/widgets/adaptive_tile_grid.dart';
 import '../../../shared/widgets/anime_actions_sheet.dart';
+import '../../ai/services/ai_insights_cache.dart';
+import '../../ai/services/insight_prompts.dart';
+import '../../ai/services/insight_service.dart';
+import '../../ai/widgets/ai_insight_card.dart';
+import '../../categories/services/category_service.dart';
 import '../models/anime.dart';
 import '../services/anime_search_service.dart';
 import '../services/anime_storage.dart';
+import '../services/statistics_insight_facts.dart';
 import 'quarter_picker_dialog.dart';
 
 enum _StatsView { summary, ranking }
@@ -51,6 +57,10 @@ class StatisticsPage extends ConsumerStatefulWidget {
 
 class _StatisticsPageState extends ConsumerState<StatisticsPage> {
   List<Anime> _allAnime = [];
+
+  /// AI categories, so the insight card counts categories as the rest of
+  /// the app resolves them (1.9.1).
+  AiInsights? _categoryCache;
   _StatsView _view = _StatsView.summary;
   _TimeScope _scope = _TimeScope.quarter;
   _TrendGranularity _allTrendGranularity = _TrendGranularity.quarter;
@@ -124,8 +134,12 @@ class _StatisticsPageState extends ConsumerState<StatisticsPage> {
   /// Notes: Internal helper used within this file only.
   Future<void> _load() async {
     final data = await AnimeStorage.load();
+    final categories = await AiInsightsCache.load();
     if (mounted) {
-      setState(() => _allAnime = data.animeList);
+      setState(() {
+        _allAnime = data.animeList;
+        _categoryCache = categories;
+      });
       _scrollTrendToEnd();
     }
   }
@@ -1001,6 +1015,117 @@ class _StatisticsPageState extends ConsumerState<StatisticsPage> {
     }
   }
 
+  /// Purpose: Build the summary view's AI insight card.
+  /// Inputs: None.
+  /// Returns: `Widget` — the card, which renders nothing while AI is off.
+  /// Side effects: None; the card asks the insight store itself.
+  /// Notes: Feeds [buildStatsSummaryInsightFacts] the same anime the summary
+  /// counts ([_filteredAnime]) and the previous quarter's or year's, with a
+  /// title-free fallback (1.9.1).
+  Widget _summaryInsightCard() {
+    final String period;
+    final List<Anime>? previous;
+    switch (_scope) {
+      case _TimeScope.quarter:
+        final (py, pq) = _selectedQuarter == 1
+            ? (_selectedYear - 1, 4)
+            : (_selectedYear, _selectedQuarter - 1);
+        period = '$_selectedYear Q$_selectedQuarter';
+        previous = _allAnime.where((a) => a.airsInQuarter(py, pq)).toList();
+      case _TimeScope.year:
+        period = '$_selectedYearOnly';
+        previous = _allAnime.where((a) {
+          for (var q = 1; q <= 4; q++) {
+            if (a.airsInQuarter(_selectedYearOnly - 1, q)) return true;
+          }
+          return false;
+        }).toList();
+      case _TimeScope.all:
+        period = 'all time';
+        previous = null;
+    }
+    final current = _filteredAnime;
+    return AiInsightCard(
+      module: InsightModule.statsSummary,
+      compact: true,
+      margin: const EdgeInsets.fromLTRB(16, 8, 16, 0),
+      buildRequest: (language, now) {
+        InsightFacts? facts({required bool titles}) =>
+            buildStatsSummaryInsightFacts(
+              now: now,
+              period: period,
+              current: current,
+              previous: previous,
+              categoriesOf: (a) =>
+                  resolveCategories(a, insights: _categoryCache).ids,
+              includeTitles: titles,
+            );
+        final full = facts(titles: true);
+        return full == null
+            ? null
+            : AiInsightRequest(
+                facts: full,
+                language: language,
+                now: now,
+                fallbackFacts: facts(titles: false),
+              );
+      },
+    );
+  }
+
+  /// Purpose: Build the ranking view's AI insight card.
+  /// Inputs: None.
+  /// Returns: `Widget` — the card, which renders nothing while AI is off.
+  /// Side effects: None; the card asks the insight store itself.
+  /// Notes: The pool is what the ranking's time and type filters keep,
+  /// whatever score it is sorted by: the card reads personal ratings
+  /// (1.9.1).
+  Widget _rankingInsightCard() {
+    final pool = _allAnime
+        .where(
+          (a) =>
+              _matchesRankingTimeFilter(a) &&
+              (_rankingTypeFilter == null ||
+                  a.effectiveType == _rankingTypeFilter),
+        )
+        .toList();
+    final time = switch (_rankingTimeFilter) {
+      _RankingTimeFilter.all => 'all time',
+      _RankingTimeFilter.quarter =>
+        '$_rankingSelectedYear Q$_rankingSelectedQuarter',
+      _RankingTimeFilter.year => '$_rankingSelectedYearOnly',
+      _RankingTimeFilter.custom =>
+        '$_rankingStartYear Q$_rankingStartQuarter to '
+            '$_rankingEndYear Q$_rankingEndQuarter',
+    };
+    final scope = _rankingTypeFilter == null
+        ? time
+        : '$time, ${_rankingTypeFilter!.name} only';
+    return AiInsightCard(
+      module: InsightModule.statsRanking,
+      compact: true,
+      margin: const EdgeInsets.only(top: 12),
+      buildRequest: (language, now) {
+        InsightFacts? facts({required bool titles}) =>
+            buildStatsRankingInsightFacts(
+              now: now,
+              scope: scope,
+              pool: pool,
+              includeTitles: titles,
+            );
+        final full = facts(titles: true);
+        return full == null
+            ? null
+            : AiInsightRequest(
+                facts: full,
+                language: language,
+                now: now,
+                fallbackFacts: facts(titles: false),
+              );
+      },
+    );
+  }
+
   /// Purpose: Provide the internal grouped anime helper for this file.
   /// Inputs: None.
   /// Returns: `Map<AnimeViewingStatus, List<Anime>>`.
@@ -1747,6 +1872,10 @@ class _StatisticsPageState extends ConsumerState<StatisticsPage> {
                 _buildTrendChart(theme, l10n),
               ],
 
+              // AI reading of the period (1.9.1); renders nothing while AI
+              // is off.
+              _summaryInsightCard(),
+
               const Divider(height: 32),
 
               // Anime lists by status
@@ -1886,6 +2015,9 @@ class _StatisticsPageState extends ConsumerState<StatisticsPage> {
           Text(l10n.statsRankingFilters, style: theme.textTheme.titleSmall),
           const SizedBox(height: 8),
           _buildRankingFilters(theme, l10n),
+          // AI reading of the ranking (1.9.1); renders nothing while AI is
+          // off.
+          _rankingInsightCard(),
           const SizedBox(height: 16),
           Row(
             children: [

@@ -68,7 +68,12 @@ find lib -name "*.dart" -not -path "lib/l10n/*" | xargs grep -h '/// Purpose:' |
 | `lib/features/ai/services/on_device_ai_service.dart` | [features/ai/services/on_device_ai_service.md](features/ai/services/on_device_ai_service.md) | 4 | 0 |
 | `lib/features/ai/services/output_validation.dart` | [features/ai/services/output_validation.md](features/ai/services/output_validation.md) | 0 | 0 |
 | `lib/features/ai/services/prompt_templates.dart` | [features/ai/services/prompt_templates.md](features/ai/services/prompt_templates.md) | 4 | 3 |
+| `lib/features/ai/services/ai_insight_cards_cache.dart` | [features/ai/services/ai_insight_cards_cache.md](features/ai/services/ai_insight_cards_cache.md) | 8 | 0 |
+| `lib/features/ai/services/insight_language.dart` | [features/ai/services/insight_language.md](features/ai/services/insight_language.md) | 3 | 0 |
+| `lib/features/ai/services/insight_prompts.dart` | [features/ai/services/insight_prompts.md](features/ai/services/insight_prompts.md) | 10 | 0 |
+| `lib/features/ai/services/insight_service.dart` | [features/ai/services/insight_service.md](features/ai/services/insight_service.md) | 11 | 0 |
 | `lib/features/ai/widgets/ai_settings_tiles.dart` | [features/ai/widgets/ai_settings_tiles.md](features/ai/widgets/ai_settings_tiles.md) | 6 | 0 |
+| `lib/features/ai/widgets/ai_insight_card.dart` | [features/ai/widgets/ai_insight_card.md](features/ai/widgets/ai_insight_card.md) | 11 | 1 |
 
 端侧 AI 层（1.6.0，M3）。`prompt_templates.dart` 和 `ai_insights_cache.dart` 随自动分类（M4）加入。各行包括带 `/// Purpose:` 注释的私有 `_AiJob` 辅助方法和状态类方法。见
 [../on-device-ai.md](../on-device-ai.md)。
@@ -87,6 +92,7 @@ find lib -name "*.dart" -not -path "lib/l10n/*" | xargs grep -h '/// Purpose:' |
 | `lib/features/anime/services/metadata_cache.dart` | [features/anime/services/metadata_cache.md](features/anime/services/metadata_cache.md) | 9 | 6 |
 | `lib/features/anime/services/metadata_update_service.dart` | [features/anime/services/metadata_update_service.md](features/anime/services/metadata_update_service.md) | 44 | 27 |
 | `lib/features/anime/services/series_service.dart` | [features/anime/services/series_service.md](features/anime/services/series_service.md) | 32 | 20 |
+| `lib/features/anime/services/statistics_insight_facts.dart` | [features/anime/services/statistics_insight_facts.md](features/anime/services/statistics_insight_facts.md) | 5 | 2 |
 | `lib/features/anime/views/anime1_labels.dart` | [features/anime/views/anime1_labels.md](features/anime/views/anime1_labels.md) | 5 | 4 |
 | `lib/features/anime/views/anime_detail_page.dart` | [features/anime/views/anime_detail_page.md](features/anime/views/anime_detail_page.md) | 40 | 16 |
 | `lib/features/anime/views/anime_edit_page.dart` | [features/anime/views/anime_edit_page.md](features/anime/views/anime_edit_page.md) | 31 | 15 |
@@ -98,7 +104,7 @@ find lib -name "*.dart" -not -path "lib/l10n/*" | xargs grep -h '/// Purpose:' |
 | `lib/features/anime/views/metadata_updates_page.dart` | [features/anime/views/metadata_updates_page.md](features/anime/views/metadata_updates_page.md) | 23 | 9 |
 | `lib/features/anime/views/quarter_picker_dialog.dart` | [features/anime/views/quarter_picker_dialog.md](features/anime/views/quarter_picker_dialog.md) | 5 | 1 |
 | `lib/features/anime/views/series_widgets.dart` | [features/anime/views/series_widgets.md](features/anime/views/series_widgets.md) | 13 | 5 |
-| `lib/features/anime/views/statistics_page.dart` | [features/anime/views/statistics_page.md](features/anime/views/statistics_page.md) | 70 | 29 |
+| `lib/features/anime/views/statistics_page.dart` | [features/anime/views/statistics_page.md](features/anime/views/statistics_page.md) | 72 | 29 |
 
 注意：`anime.dart` 比其源码的 `Purpose:` 注释数多一行——`AnimeData` 默认构造函数在源码中完全没有文档注释，但它是真实、已记录的声明（见该页面自己的说明）。`anime_search_service.dart` 过去也有这一性质，因为 `searchAnime1` 带的是普通（非 `Purpose:`）注释；该方法在 1.5.7 中带着完整注释块迁到了 `anime1_service.dart`，因此两者现在一致。`chinese_convert_data.dart` 是生成的数据，没有任何属于文档种类的声明，故其行为 `0 | 0`。
 
@@ -138,7 +144,7 @@ find lib -name "*.dart" -not -path "lib/l10n/*" | xargs grep -h '/// Purpose:' |
 | 源文件 | 页面 | 声明数 | Tier A 计数 |
 |---|---|---|---|
 | `lib/features/recommendations/models/recommendation_data.dart` | [features/recommendations/models/recommendation_data.md](features/recommendations/models/recommendation_data.md) | 33 | 6 |
-| `lib/features/recommendations/services/ai_reason_service.dart` | [features/recommendations/services/ai_reason_service.md](features/recommendations/services/ai_reason_service.md) | 6 | 4 |
+| `lib/features/recommendations/services/ai_reason_service.dart` | [features/recommendations/services/ai_reason_service.md](features/recommendations/services/ai_reason_service.md) | 8 | 6 |
 | `lib/features/recommendations/services/reason_prompt.dart` | [features/recommendations/services/reason_prompt.md](features/recommendations/services/reason_prompt.md) | 5 | 4 |
 | `lib/features/recommendations/services/recommendation_merge.dart` | [features/recommendations/services/recommendation_merge.md](features/recommendations/services/recommendation_merge.md) | 6 | 6 |
 | `lib/features/recommendations/services/recommendation_service.dart` | [features/recommendations/services/recommendation_service.md](features/recommendations/services/recommendation_service.md) | 22 | 10 |
@@ -206,15 +212,15 @@ find lib -name "*.dart" -not -path "lib/l10n/*" | xargs grep -h '/// Purpose:' |
 |---|---|---|---|---|
 | 根（`lib/`） | 1 | 1 | 1 | 0 |
 | `app/` | 5 | 33 | 25 | 8 |
-| `features/ai/` | 9 | 38 | 7 | 31 |
-| `features/anime/` | 33 | 813 | 387 | 426 |
+| `features/ai/` | 14 | 81 | 8 | 73 |
+| `features/anime/` | 34 | 820 | 389 | 431 |
 | `features/categories/` | 2 | 18 | 11 | 7 |
 | `features/kana/` | 1 | 19 | 3 | 16 |
 | `features/profile/` | 8 | 66 | 32 | 34 |
-| `features/recommendations/` | 11 | 153 | 63 | 90 |
+| `features/recommendations/` | 11 | 155 | 65 | 90 |
 | `features/settings/` | 4 | 49 | 28 | 21 |
 | `shared/`（utils、widgets、providers、services、views） | 31 | 322 | 241 | 81 |
-| **总计** | **106** | **1513** | **799** | **714** |
+| **总计** | **112** | **1565** | **804** | **761** |
 
 
 ## Anime1 分集播放（1.6.4）
@@ -238,4 +244,4 @@ find lib -name "*.dart" -not -path "lib/l10n/*" | xargs grep -h '/// Purpose:' |
 | `lib/features/anime/services/playback_progress_service.dart` | [features/anime/services/playback_progress_service.md](features/anime/services/playback_progress_service.md) | 6 | 2 |
 | `lib/features/anime/views/anime_player_controls.dart` | [features/anime/views/anime_player_controls.md](features/anime/views/anime_player_controls.md) | 25 | 2 |
 | `lib/shared/utils/playback_time.dart` | [shared/utils/playback_time.md](shared/utils/playback_time.md) | 1 | 0 |
-当前逐文件表合计：106 个文件、1513 个声明（Tier A 799，Tier B 714）。
+当前逐文件表合计：112 个文件、1565 个声明（Tier A 804，Tier B 761）。

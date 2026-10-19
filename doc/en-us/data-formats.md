@@ -416,6 +416,7 @@ migrates data files, backups, and images.
 | Prefetched candidate covers | `metadata_covers/` | No | Only when cover prefetch is enabled; pruned when its proposal is resolved |
 | Background update policy | `storage_config.json` | No | Device-specific `metadataAutoUpdate` (`off`/`noCellular`/`always`; absent means `noCellular` on mobile, `always` on desktop) and `metadataPrefetchCovers` |
 | On-device AI results | `ai_insights.json` | No | Per-device cache of AI category classifications (1.6.0); not backed up; rebuildable; pruned of deleted records on load. Its `hiddenRecommendations` list was the per-device *Not interested* list in 1.6.0–1.6.1 and is migrated to `recommendations.json`, then left empty, since 1.6.2 |
+| AI insight cards | `ai_insight_cards.json` | No | Per-device cache of the Statistics insight cards (1.9.1), keyed `statsSummary` and `statsRanking`: `{"version": 1, "insights": {<view>: <AiInsightEntry>}}`; not backed up; rebuildable; regenerated when its fingerprint changes |
 
 `metadata_updates.json` and `metadata_covers/` are neither synced nor backed up, and that needs no
 special handling: the sync and backup engines only touch the file names registered in
@@ -423,8 +424,8 @@ special handling: the sync and backup engines only touch the file names register
 live under `AnimeStorage.getAppDir()`, so a storage-path change carries them along. See
 [`features/metadata-auto-update.md`](features/metadata-auto-update.md).
 
-`ai_insights.json` (1.6.0) follows the same mechanism: it is not registered either, so it is neither
-synced nor backed up, and it moves with the storage path. Its schema is in
+`ai_insights.json` (1.6.0) and `ai_insight_cards.json` (1.9.1) follow the same mechanism: they are not registered either, so they are neither
+synced nor backed up, and they move with the storage path. The first one's schema is in
 [`features/categories-and-recommendations.md`](features/categories-and-recommendations.md).
 
 `recommendations.json` (1.6.2) is the opposite case: it **is** registered, as the second module
@@ -569,7 +570,7 @@ Optional externalMeta.episodeCatalog stores sourceUrl, categoryUrl, title, catId
 
 ## AI sources and WebDAV privacy
 
-MyApps-AI v0.6.0 is explicitly split into runtime, platform, models, local UI and llama.cpp packages. Settings uses the unified section skeleton. Global source selection is device-local (`aiSourceSelection`), defaults to system AI, and never chooses online as fallback. Qwen3.5 0.8B/2B Q4_K_M and Gemma 4 E2B Q4_0 run on CPU by default; the GPU is used only when turned on in the source section and only where verified, and GPU failures are recorded on the device. Custom GGUF models can be added from a Hugging Face repository after a mandatory warning, and models can be renamed. The device-local keys `aiComputePreference`, `aiGpuFailures`, `aiCustomModels` and `aiModelAliases` never sync and never enter backups. Downloads require explicit actions, use pinned URLs and SHA-256, and live under `ai_models/` outside data modules, sync, backup and ZIP. Model leases prevent removal during use. Source switches cancel old work and release model resources. System proofreading remains independent in MyNihongo.
+MyApps-AI v0.6.2 is explicitly split into runtime, platform, models, local UI and llama.cpp packages. Settings uses the unified section skeleton. Global source selection is device-local (`aiSourceSelection`), defaults to system AI, and never chooses online as fallback. Qwen3.5 0.8B/2B Q4_K_M and Gemma 4 E2B Q4_0 run on CPU by default; the GPU is used only when turned on in the source section and only where verified, and GPU failures are recorded on the device. Custom GGUF models can be added from a Hugging Face repository after a mandatory warning, and models can be renamed. The device-local keys `aiComputePreference`, `aiGpuFailures`, `aiCustomModels` and `aiModelAliases` never sync and never enter backups. Downloads require explicit actions, use pinned URLs and SHA-256, and live under `ai_models/` outside data modules, sync, backup and ZIP. Model leases prevent removal during use. Source switches cancel old work and release model resources. System proofreading remains independent in MyNihongo.
 
 WebDAV notice version 1 must be acknowledged on each device before connection testing, manual/force sync or background sync. The record is in device-local storage_config.json. Existing configurations stay intact while sync is paused; the WebDAV page displays a review banner. Declining saves no configuration and makes no request. JSON/images have no application-level encryption; HTTPS protects transit, HTTP does not. Wire format, locks and conflict policy remain unchanged.
 

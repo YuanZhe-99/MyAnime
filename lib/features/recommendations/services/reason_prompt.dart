@@ -5,7 +5,7 @@
 library;
 
 /// Version of [reasonInstructions] and [reasonPrompt].
-const int reasonPromptVersion = 1;
+const int reasonPromptVersion = 2;
 
 /// Purpose: Build the system instructions for writing recommendation reasons.
 /// Inputs: `localeTag` — e.g. `zh_CN`, `zh_TW`, `ja_JP`, `en_US`;
@@ -13,14 +13,18 @@ const int reasonPromptVersion = 1;
 /// Returns: `String`.
 /// Side effects: None.
 /// Notes: Uses Apple's exact locale phrase. The model picks by number only and
-/// is never asked to name a title that is not in the list.
+/// is never asked to name a title that is not in the list. Version 2
+/// (1.9.1) asks for a specific pitch tied to a favorite, a studio or the
+/// viewing commitment rather than a list of category tags.
 String reasonInstructions(String localeTag, String languageName) =>
     'The person\'s locale is $localeTag. '
-    'You help choose what to watch next from the person\'s own anime list. '
-    'Pick up to three of the numbered candidates that best fit their taste, '
-    'and for each write one short reason in $languageName, under 20 words. '
-    'Use only the facts given. Answer one line per pick, exactly in the form '
-    '"<number>: <reason>", with no other text.';
+    'You help choose what to watch next from the person\'s anime list. '
+    'Pick up to three numbered candidates that best match their highest-rated '
+    'favorites, and for each write one specific pitch in $languageName, '
+    'under 22 words: connect it to a finished favorite, studio strength, or '
+    'viewing commitment (e.g. a quick single-cour watch) instead of just '
+    'listing category tags. Use only the facts given. Answer one line per '
+    'pick: "<number>: <reason>".';
 
 /// One candidate as the reason prompt describes it.
 class ReasonCandidate {
@@ -92,7 +96,7 @@ String reasonPrompt({
 }
 
 /// Version of [relatedReasonInstructions] and [relatedReasonPrompt] (1.6.2).
-const int relatedReasonPromptVersion = 1;
+const int relatedReasonPromptVersion = 2;
 
 /// Purpose: Build the system instructions for explaining related records.
 /// Inputs: `localeTag` — e.g. `zh_CN`; `languageName` — in English.
@@ -102,12 +106,11 @@ const int relatedReasonPromptVersion = 1;
 /// writes at most three reasons, and never names a title that is not listed.
 String relatedReasonInstructions(String localeTag, String languageName) =>
     'The person\'s locale is $localeTag. '
-    'You explain why anime in the person\'s own list are similar to one '
-    'anime they are looking at. Pick up to three of the numbered candidates '
-    'that are most alike to it, and for each write one short reason in '
-    '$languageName, under 20 words, about what they have in common. '
-    'Use only the facts given. Answer one line per pick, exactly in the form '
-    '"<number>: <reason>", with no other text.';
+    'Pick up to three numbered candidates most similar to the anime being '
+    'viewed. For each, write one sentence in $languageName, under 22 words, '
+    'explaining the specific shared appeal (narrative hook, studio style, or '
+    'setting) rather than just repeating category names. '
+    'Use only the facts given. Answer one line per pick: "<number>: <reason>".';
 
 /// Purpose: Build the prompt for explaining related records.
 /// Inputs: `subject` — the record being viewed (its `number` is ignored);

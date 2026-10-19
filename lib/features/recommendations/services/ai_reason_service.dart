@@ -16,32 +16,106 @@ const int aiReasonCandidates = 8;
 const int aiReasonMaxLength = 140;
 
 final _answerLine = RegExp(r'^\s*(\d+)\s*[:：.)、]\s*(.+?)\s*$');
+final _inlineMarks = RegExp(r'(```[a-zA-Z]*|\*\*|__|`)');
 
 /// Purpose: Read the model's `<number>: <reason>` lines.
 /// Inputs: `reply`; `count` — how many candidates were offered;
-/// `languageCode` — `en`, `ja` or `zh`.
+/// `languageCode` — `en`, `ja` or `zh`; `quotedTerms` — titles, studios,
+/// genres and categories that may stay in Latin letters inside Chinese or
+/// Japanese prose.
 /// Returns: `Map<int, String>` — candidate number (1-based) to reason; at
 /// most three.
 /// Side effects: None.
-/// Notes: Unknown or repeated numbers, over-long reasons and reasons in the
-/// wrong script are dropped; Markdown is stripped first.
+/// Notes: Reasoning blocks are removed first (`stripThinking`), then only
+/// bold and code marks: until 1.9.0 the whole reply went through
+/// `stripMarkdown`, which also removed the `1. ` the model numbers with, so
+/// such a reply parsed to nothing. Unknown or repeated numbers, over-long
+/// reasons and reasons in the wrong script are dropped; quoted terms of two
+/// runes or more are ignored by the script check.
 Map<int, String> parseReasonReply(
   String reply,
   int count,
-  String languageCode,
-) {
+  String languageCode, {
+  List<String> quotedTerms = const [],
+}) {
   final out = <int, String>{};
-  for (final line in stripMarkdown(reply).split('\n')) {
+  final lines = stripThinking(reply).replaceAll(_inlineMarks, '').split('\n');
+  for (final line in lines) {
     final m = _answerLine.firstMatch(line);
     if (m == null) continue;
     final n = int.parse(m.group(1)!);
     if (n < 1 || n > count || out.containsKey(n)) continue;
     final text = cleanSentence(m.group(2)!, maxLength: aiReasonMaxLength);
-    if (text == null || !matchesScript(text, languageCode)) continue;
+    if (text == null) continue;
+    var scriptText = text;
+    for (final term in quotedTerms) {
+      if (term.runes.length >= 2) scriptText = scriptText.replaceAll(term, ' ');
+    }
+    if (!matchesScript(scriptText, languageCode)) continue;
     out[n] = text;
     if (out.length == 3) break;
   }
   return out;
+}
+
+/// Purpose: Describe what watching an anime involves and how it is rated
+/// elsewhere, for a reason prompt.
+/// Inputs: `anime`.
+/// Returns: `List<String>` — e.g. `12 eps, quick single-cour watch`,
+/// `rated 8.4 externally`, `genres Psychological, Mecha`; empty when nothing
+/// is known.
+/// Side effects: None.
+/// Notes: Added in 1.9.1 so the model can pitch a candidate by its
+/// commitment, external reception and specific genres rather than by broad
+/// category ids. A format containing `movie` is a movie whatever its
+/// episode count; at most three genres are listed.
+List<String> reasonTraitFacts(Anime anime) {
+  final meta = anime.externalMeta;
+  final eps = anime.totalEpisodes;
+  final isMovie = (meta?.format ?? '').toLowerCase().contains('movie');
+  final length = isMovie
+      ? 'movie'
+      : eps == null
+      ? (anime.effectiveType == AnimeType.longRunning ? 'long-running' : null)
+      : '$eps eps, ${switch (anime.effectiveType) {
+          AnimeType.singleCour => 'quick single-cour watch',
+          AnimeType.halfYear => 'two-cour run',
+          AnimeType.fullYear => 'year-long run',
+          AnimeType.longRunning => 'long-running',
+          AnimeType.allAtOnce => 'released all at once',
+        }}';
+  final score = meta?.averageNormalizedScore;
+  final genres = (meta?.genres ?? const <String>[]).take(3).toList();
+  return [
+    ?length,
+    if (score != null) 'rated ${score.toStringAsFixed(1)} externally',
+    if (genres.isNotEmpty) 'genres ${genres.join(', ')}',
+  ];
+}
+
+/// Purpose: Collect the words a reason may keep in Latin letters.
+/// Inputs: `candidates` — every candidate (and the subject) in the prompt;
+/// `extra` — other titles in the prompt.
+/// Returns: `List<String>` — titles, studios, genres and categories (ids
+/// with spaces as well as underscores), longest first.
+/// Side effects: None.
+/// Notes: Longest first so a title is removed before a shorter word inside
+/// it.
+List<String> reasonQuotedTerms(
+  List<ReasonCandidate> candidates, [
+  List<String> extra = const [],
+]) {
+  final terms = <String>{
+    ...extra,
+    for (final c in candidates) ...[
+      c.title,
+      ...c.studios,
+      for (final id in c.categories) ...[id, id.replaceAll('_', ' ')],
+      for (final f in c.facts)
+        if (f.startsWith('genres ')) ...f.substring(7).split(', '),
+    ],
+  };
+  return terms.toList()..sort((a, b) => b.length.compareTo(a.length));
 }
 
 /// The language a reason is requested in, and how to post-process it.
@@ -153,6 +227,7 @@ Future<Map<String, String>> writeAiReasons(
         facts: [
           for (final r in top[i].reasons)
             if (r is NextAfterReason) 'next after ${r.previous.displayTitle}',
+          ...reasonTraitFacts(top[i].anime),
         ],
       ),
   ];
@@ -192,7 +267,15 @@ Future<Map<String, String>> writeAiReasons(
       maxOutputTokens: 256,
       priority: AiPriority.interactive,
     );
-    final parsed = parseReasonReply(reply, top.length, language.code);
+    final parsed = parseReasonReply(
+      reply,
+      top.length,
+      language.code,
+      quotedTerms: reasonQuotedTerms(candidates, [
+        for (final a in completed.take(3)) a.displayTitle,
+        ...topStudios.take(3),
+      ]),
+    );
     return {
       for (final e in parsed.entries)
         top[e.key - 1].anime.id: language.finish(e.value),
@@ -225,7 +308,7 @@ Future<Map<String, String>> writeRelatedAiReasons(
         title: a.displayTitle,
         categories: resolveCategories(a, insights: insights).ids,
         studios: a.externalMeta?.studios ?? const [],
-        facts: facts,
+        facts: [...facts, ...reasonTraitFacts(a)],
       );
   final candidates = [
     for (var i = 0; i < related.length; i++)
@@ -247,7 +330,15 @@ Future<Map<String, String>> writeRelatedAiReasons(
       maxOutputTokens: 256,
       priority: AiPriority.interactive,
     );
-    final parsed = parseReasonReply(reply, related.length, language.code);
+    final parsed = parseReasonReply(
+      reply,
+      related.length,
+      language.code,
+      quotedTerms: reasonQuotedTerms([
+        ...candidates,
+        describe(subject, 0, const []),
+      ]),
+    );
     return {
       for (final e in parsed.entries)
         related[e.key - 1].anime.id: language.finish(e.value),

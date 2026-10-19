@@ -69,4 +69,4 @@ The `featuresOn` field carries no `/// Purpose:` comment and is not a row.
   what the Apple plugin reports on iOS and macOS older than 26.
 
 
-Current integration uses MyApps-AI v0.6.0, explicit platform injection, the shared source router (`createAiSourceRouter`) and the unified settings skeleton. WebDAV entry points require device-local notice acknowledgement before any network request; see [sync.md](../../../sync.md).
+Current integration uses MyApps-AI v0.6.2, explicit platform injection, the shared source router (`createAiSourceRouter`) and the unified settings skeleton. WebDAV entry points require device-local notice acknowledgement before any network request; see [sync.md](../../../sync.md).

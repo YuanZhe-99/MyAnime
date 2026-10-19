@@ -1946,7 +1946,7 @@ abstract class AppLocalizations {
   /// No description provided for @aiUseOnDeviceDesc.
   ///
   /// In en, this message translates to:
-  /// **'Off by default. Fills in categories the databases did not provide and writes short reasons for recommendations, with the AI source chosen below. On-device sources keep everything on this device; an online source sends the request to that provider.'**
+  /// **'Off by default. Fills in categories the databases did not provide, writes short reasons for recommendations and short summaries on the Statistics page, with the AI source chosen below. On-device sources keep everything on this device; an online source sends the request to that provider.'**
   String get aiUseOnDeviceDesc;
 
   /// No description provided for @aiNeedsFeature.
@@ -2080,6 +2080,66 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Generated on this device — may be wrong'**
   String get aiGeneratedLabel;
+
+  /// No description provided for @aiInsightTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'AI insight'**
+  String get aiInsightTitle;
+
+  /// No description provided for @aiRegenerate.
+  ///
+  /// In en, this message translates to:
+  /// **'Regenerate'**
+  String get aiRegenerate;
+
+  /// No description provided for @aiInsightSkipped.
+  ///
+  /// In en, this message translates to:
+  /// **'The model declined to comment on this data.'**
+  String get aiInsightSkipped;
+
+  /// No description provided for @aiGenerating.
+  ///
+  /// In en, this message translates to:
+  /// **'Thinking…'**
+  String get aiGenerating;
+
+  /// No description provided for @aiQuotaHint.
+  ///
+  /// In en, this message translates to:
+  /// **'This device\'s daily limit for the model has been reached. Try again tomorrow.'**
+  String get aiQuotaHint;
+
+  /// No description provided for @aiForegroundHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Keep the app open while the model is working.'**
+  String get aiForegroundHint;
+
+  /// No description provided for @aiInsightFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'The model could not answer this time.'**
+  String get aiInsightFailed;
+
+  /// No description provided for @aiGeneratedAt.
+  ///
+  /// In en, this message translates to:
+  /// **'Generated at {time}'**
+  String aiGeneratedAt(String time);
+
+  /// No description provided for @aiOpenSettings.
+  ///
+  /// In en, this message translates to:
+  /// **'Settings'**
+  String get aiOpenSettings;
+
+  /// No description provided for @aiLanguageUnsupported.
+  ///
+  /// In en, this message translates to:
+  /// **'The on-device model cannot write in this language.'**
+  String get aiLanguageUnsupported;
 
   /// No description provided for @aiGeneratedOnlineUnknownLabel.
   ///

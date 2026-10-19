@@ -7,6 +7,8 @@ classification version, this one is part of no fingerprint, because reasons are 
 live in memory for one visit to the page. See
 [`../../../../features/categories-and-recommendations.md`](../../../../features/categories-and-recommendations.md).
 
+Since 1.9.1 both prompt versions are 2: `reasonInstructions` asks for a specific pitch under 22 words tied to a finished favorite, a studio strength or the viewing commitment, and `relatedReasonInstructions` for the specific shared appeal (narrative hook, studio style or setting), instead of category tags. The versions are still not part of any cache.
+
 ## Declarations
 
 | Declaration | Kind | Tier | Purpose |

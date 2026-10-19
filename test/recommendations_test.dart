@@ -327,6 +327,49 @@ void main() {
       expect(parseReasonReply('**2.** 同一工作室的新作', 3, 'zh'), {2: '同一工作室的新作'});
     });
 
+    test('reads `1.` numbering, quoted terms and skips reasoning', () {
+      // Until 1.9.0 stripMarkdown ate the `1. ` numbering.
+      expect(parseReasonReply('1. A quick single-cour watch.', 3, 'en'), {
+        1: 'A quick single-cour watch.',
+      });
+      const line = '1: 和 Frieren 同样出自 Madhouse 的 Psychological 佳作';
+      expect(parseReasonReply(line, 3, 'zh'), isEmpty);
+      expect(
+        parseReasonReply(
+          line,
+          3,
+          'zh',
+          quotedTerms: const ['Frieren', 'Madhouse', 'Psychological'],
+        ),
+        {1: '和 Frieren 同样出自 Madhouse 的 Psychological 佳作'},
+      );
+      expect(
+        parseReasonReply(
+          '<think>\n1: Draft.\n</think>\n2: Final pick.',
+          3,
+          'en',
+        ),
+        {2: 'Final pick.'},
+      );
+    });
+
+    test('trait facts describe commitment, reception and genres', () {
+      final facts = reasonTraitFacts(
+        rec(
+          'a',
+          'A',
+          genres: ['Psychological', 'Mecha', 'Drama', 'Action'],
+          score: 84,
+        ),
+      );
+      expect(facts.first, '12 eps, quick single-cour watch');
+      expect(facts, contains('genres Psychological, Mecha, Drama'));
+      expect(facts.any((f) => f.startsWith('rated ')), isTrue);
+      expect(reasonTraitFacts(rec('b', 'B')), [
+        '12 eps, quick single-cour watch',
+      ]);
+    });
+
     test('chooses the request language and converts Chinese variants', () {
       final tw = ReasonLanguage.forLocale(const Locale('zh', 'TW'))!;
       expect(tw.localeTag, 'zh_TW');

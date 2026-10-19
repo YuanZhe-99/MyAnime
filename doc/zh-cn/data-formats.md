@@ -335,13 +335,14 @@ enum AnimeType {
 | 预取的候选封面 | `metadata_covers/` | 否 | 仅在启用封面预下载时存在；对应建议被处理后即清理 |
 | 后台更新策略 | `storage_config.json` | 否 | 设备特有的 `metadataAutoUpdate`（`off`/`noCellular`/`always`；缺省表示移动端 `noCellular`、桌面 `always`）与 `metadataPrefetchCovers` |
 | 端侧 AI 结果 | `ai_insights.json` | 否 | 本设备的 AI 分类结果缓存（1.6.0）；不备份；可重建；加载时修剪已删除记录的条目。其中的 `hiddenRecommendations` 列表在 1.6.0–1.6.1 中是本设备的*不感兴趣*列表，自 1.6.2 起迁移到 `recommendations.json`，之后保持为空 |
+| AI 洞察卡片 | `ai_insight_cards.json` | 否 | 统计页洞察卡片的本设备缓存（1.9.1），键为 `statsSummary` 和 `statsRanking`：`{"version": 1, "insights": {<视图>: <AiInsightEntry>}}`；不备份；可重建；指纹变化时重新生成 |
 
 `metadata_updates.json` 与 `metadata_covers/` 既不同步也不备份，而这不需要任何特殊处理：同步与备份引擎
 只会碰 `ModuleRegistry` 中注册的文件名外加 `images/`，而两者都没有注册进 `lib/app/data_modules.dart`。
 它们确实位于 `AnimeStorage.getAppDir()` 之下，所以更换存储路径时会跟着一起迁移。见
 [`features/metadata-auto-update.md`](features/metadata-auto-update.md)。
 
-`ai_insights.json`（1.6.0）遵循同样的机制：它也没有注册，因此既不同步也不备份，并随存储路径迁移。其 schema 见
+`ai_insights.json`（1.6.0）和 `ai_insight_cards.json`（1.9.1）遵循同样的机制：它也没有注册，因此既不同步也不备份，并随存储路径迁移。其 schema 见
 [`features/categories-and-recommendations.md`](features/categories-and-recommendations.md)。
 
 `recommendations.json`（1.6.2）正好相反：它**已**注册，作为 `anime_data.json` 之后的第二个模块，因此它会同步、
@@ -437,7 +438,7 @@ WebDAV 连接详情和同步偏好（服务器 URL、凭据、自动同步开关
 
 ## AI 来源与 WebDAV 隐私
 
-MyApps-AI v0.6.0 显式拆分运行时、平台、模型、本地 UI 和 llama.cpp 包。设置使用统一分区骨架。全局来源选择保存在设备本地（`aiSourceSelection`），默认系统 AI，不会自动回退到在线来源。Qwen3.5 0.8B/2B Q4_K_M 与 Gemma 4 E2B Q4_0 默认在 CPU 上运行；仅当在来源分区中开启且设备经验证时才使用 GPU，GPU 失败会记录在本设备。可在强制警告后从 Hugging Face 仓库添加自定义 GGUF 模型，也可重命名模型。设备本地键 `aiComputePreference`、`aiGpuFailures`、`aiCustomModels` 与 `aiModelAliases` 不同步，也不进入备份。下载仅由明确操作触发，使用固定地址与 SHA-256，保存在 `ai_models/`，不进入数据模块、同步、备份或 ZIP。模型租约避免使用中移除文件。切换来源取消旧任务并释放模型资源。MyNihongo 的系统校对保持独立。
+MyApps-AI v0.6.2 显式拆分运行时、平台、模型、本地 UI 和 llama.cpp 包。设置使用统一分区骨架。全局来源选择保存在设备本地（`aiSourceSelection`），默认系统 AI，不会自动回退到在线来源。Qwen3.5 0.8B/2B Q4_K_M 与 Gemma 4 E2B Q4_0 默认在 CPU 上运行；仅当在来源分区中开启且设备经验证时才使用 GPU，GPU 失败会记录在本设备。可在强制警告后从 Hugging Face 仓库添加自定义 GGUF 模型，也可重命名模型。设备本地键 `aiComputePreference`、`aiGpuFailures`、`aiCustomModels` 与 `aiModelAliases` 不同步，也不进入备份。下载仅由明确操作触发，使用固定地址与 SHA-256，保存在 `ai_models/`，不进入数据模块、同步、备份或 ZIP。模型租约避免使用中移除文件。切换来源取消旧任务并释放模型资源。MyNihongo 的系统校对保持独立。
 
 WebDAV 第 1 版提醒必须在每个设备上确认后，才能测试连接、手动/强制同步或后台同步。记录保存在设备本地 storage_config.json。已有配置保持不变，同步暂停时 WebDAV 页面显示查看提醒横幅。拒绝不保存配置、不发出请求。JSON/图片没有应用层加密；HTTPS 加密传输，HTTP 不加密。线格式、锁和冲突策略保持不变。
 

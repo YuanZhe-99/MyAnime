@@ -1104,7 +1104,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get aiUseOnDeviceDesc =>
-      'Off by default. Fills in categories the databases did not provide and writes short reasons for recommendations, with the AI source chosen below. On-device sources keep everything on this device; an online source sends the request to that provider.';
+      'Off by default. Fills in categories the databases did not provide, writes short reasons for recommendations and short summaries on the Statistics page, with the AI source chosen below. On-device sources keep everything on this device; an online source sends the request to that provider.';
 
   @override
   String get aiNeedsFeature =>
@@ -1183,6 +1183,41 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get aiGeneratedLabel => 'Generated on this device — may be wrong';
+
+  @override
+  String get aiInsightTitle => 'AI insight';
+
+  @override
+  String get aiRegenerate => 'Regenerate';
+
+  @override
+  String get aiInsightSkipped => 'The model declined to comment on this data.';
+
+  @override
+  String get aiGenerating => 'Thinking…';
+
+  @override
+  String get aiQuotaHint =>
+      'This device\'s daily limit for the model has been reached. Try again tomorrow.';
+
+  @override
+  String get aiForegroundHint =>
+      'Keep the app open while the model is working.';
+
+  @override
+  String get aiInsightFailed => 'The model could not answer this time.';
+
+  @override
+  String aiGeneratedAt(String time) {
+    return 'Generated at $time';
+  }
+
+  @override
+  String get aiOpenSettings => 'Settings';
+
+  @override
+  String get aiLanguageUnsupported =>
+      'The on-device model cannot write in this language.';
 
   @override
   String get aiGeneratedOnlineUnknownLabel => 'Generated online — may be wrong';

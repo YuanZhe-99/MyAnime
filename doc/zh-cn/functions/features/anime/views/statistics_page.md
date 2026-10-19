@@ -7,6 +7,8 @@ P2：布局函数传入页面上下文并使用实际导航内容约束；
 
 本文件还声明了五个无自身逻辑的私有枚举（`_StatsView`、`_TimeScope`、`_TrendGranularity`、`_RankingTimeFilter`、`_SummarySharePriority`）和一个小型私有数据类 `_TrendEntry`（一个趋势图条目的年/季度/已跟踪/已完成/弃看计数）——这里用散文而不是 `Declarations` 行描述它们，与本文档集其他地方处理普通枚举/字段声明的方式一致。
 
+自 1.9.1 起，总览视图在趋势图之后、按状态列出的列表之前显示一张紧凑的 [`AiInsightCard`](../../ai/widgets/ai_insight_card.md)，排行视图在筛选之后显示一张；AI 关闭时两者都不渲染任何内容。`_load` 还会读取 AI 分类缓存，使总览卡片按应用其他地方的规则计算分类。
+
 ## 声明
 
 | 声明 | 种类 | Tier | 用途 |
@@ -83,6 +85,8 @@ P2：布局函数传入页面上下文并使用实际导航内容约束；
 | `_StatisticsPageState._typeLabel` | 方法（`_StatisticsPageState`） | B | `AnimeType` 的本地化标签。 |
 | `_StatisticsPageState._formatScore` | 方法（`_StatisticsPageState`） | B | 把评分格式化为一位小数。 |
 | `_TrendEntry.new` | 构造函数（`_TrendEntry`） | B | 创建趋势条目实例（年、季度、已跟踪/已完成/弃看计数）。 |
+| `_summaryInsightCard` | 方法（`_StatisticsPageState`） | B | 根据视图计数的时间段及上一时间段构建总览视图的 AI 洞察卡片（1.9.1）。 |
+| `_rankingInsightCard` | 方法（`_StatisticsPageState`） | B | 根据时间和类型筛选保留的作品构建排行视图的 AI 洞察卡片（1.9.1）。 |
 
 ## 文档
 

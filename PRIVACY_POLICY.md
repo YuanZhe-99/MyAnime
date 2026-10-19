@@ -45,9 +45,9 @@ These services have their own privacy policies, which we encourage you to review
 
 ## AI Features (optional, since 1.6.0)
 
-Automatic categories and short reasons for recommendations can optionally be written by an AI source. This is off by default and runs only after you turn on "Use AI features" in Settings and choose a source under "AI source and model". The app never switches to an online source by itself: "Automatic (system AI)" uses only the AI built into your system.
+Automatic categories and short reasons for recommendations can optionally be written by an AI source. This is off by default and runs only after you turn on "Use AI features" in Settings and choose a source under "AI source and model". The app never switches to an online source by itself: "Automatic (system AI)" uses only the AI built into your system. Since 1.9.1 the same source can also write short summaries on the Statistics page.
 
-**What a source is given.** For categories: an anime's titles, format, year, type, episode count, studios and genres. For recommendation reasons, also the suggested titles, your ratings of a few recently finished anime, and which studios and categories you tend to like. Your notes and watch history are never given to it.
+**What a source is given.** For categories: an anime's titles, format, year, type, episode count, studios and genres. For recommendation reasons, also the suggested titles, your ratings of a few recently finished anime, and which studios and categories you tend to like. Your notes and watch history are never given to it. For the Statistics summaries: counts by viewing status for the period shown and the one before, your most frequent categories and studios, and up to two titles from your backlog; on the ranking view, your ratings and sub-scores and a few titles with their external scores.
 
 **The three kinds of source:**
 
@@ -55,7 +55,7 @@ Automatic categories and short reasons for recommendations can optionally be wri
 - **Local models** (since 1.8.11): Qwen3.5 0.8B or 2B, or Gemma 4 E2B (4-bit), downloaded from Hugging Face only when you tap Download; since 1.9.0 also a GGUF model you choose from a Hugging Face repository, after a warning that it is unverified. Listing a repository, reading the start of a file and downloading reveal your IP address to Hugging Face but send none of your app data. The files are checked against a pinned SHA-256, stay on this device, and are excluded from sync, backups and ZIP exports. They run on your device's processor, on its GPU only if you turn that on; no prompt leaves the device.
 - **Online sources** (since 1.8.11): providers you add yourself, with a server address and API key you enter. Only while you have selected one, and only after you accept its privacy notice for that server on this device, the prompts described above are sent to that provider, which handles them under its own privacy policy. An online source is never used as a fallback. API keys are stored as plaintext on this device only and are excluded from sync, backups and ZIP exports. Connections to an `http://` address are not encrypted.
 
-**Where results are kept.** AI categories are cached on this device only; they are neither synced nor backed up. Reasons on the Recommendations page are kept in memory only. Reasons on a detail page's Related list are saved with that list in your recommendations file, which syncs to your own WebDAV server if you set one up and is included in backups. Each result is labelled with where it was generated: on this device, or online with the provider's name.
+**Where results are kept.** AI categories are cached on this device only; they are neither synced nor backed up. Reasons on the Recommendations page are kept in memory only. Reasons on a detail page's Related list are saved with that list in your recommendations file, which syncs to your own WebDAV server if you set one up and is included in backups. Each result is labelled with where it was generated: on this device, or online with the provider's name. Statistics summaries are cached on this device only and are neither synced nor backed up.
 
 ## Data Backup
 

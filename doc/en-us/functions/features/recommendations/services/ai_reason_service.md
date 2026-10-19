@@ -7,6 +7,8 @@ See [`recommendation_service.md`](recommendation_service.md), [`reason_prompt.md
 [`../../ai/services/output_validation.md`](../../ai/services/output_validation.md) and
 [`../../../../features/categories-and-recommendations.md`](../../../../features/categories-and-recommendations.md).
 
+Since 1.9.1 each candidate's facts add `reasonTraitFacts` (`12 eps, quick single-cour watch` or `movie`, `rated 8.4 externally`, `genres …`), and `parseReasonReply` removes reasoning blocks (`stripThinking`) and only bold and code marks — no longer the `1. ` numbering `stripMarkdown` removed — and takes `quotedTerms` from `reasonQuotedTerms` for its script check.
+
 ## Declarations
 
 | Declaration | Kind | Tier | Purpose |
@@ -17,6 +19,8 @@ See [`recommendation_service.md`](recommendation_service.md), [`reason_prompt.md
 | `ReasonLanguage.finish` | method (`ReasonLanguage`) | B | Post-process a validated reason: convert to the UI's Chinese variant with `ChineseConvert`, else return it unchanged. |
 | [`writeAiReasons`](#writeaireasons) | top-level function | A | Ask the on-device model for up to three short reasons. |
 | [`writeRelatedAiReasons`](#writerelatedaireasons) | top-level function | A | Ask the on-device model why up to three related records are like the subject (1.6.2). |
+| `reasonTraitFacts` | top-level function | A | Describe a candidate's viewing commitment, external average and up to three genres for the reason prompt (1.9.1). |
+| `reasonQuotedTerms` | top-level function | A | Collect the titles, studios, genres and categories a reason may keep in Latin letters, longest first (1.9.1). |
 
 `aiReasonCandidates` (8), `aiReasonMaxLength` (140), the private `_answerLine` pattern and the
 `ReasonLanguage` fields (`localeTag`, `name`, `code`, `toTraditional`, `toSimplified`) carry no

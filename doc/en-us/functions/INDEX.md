@@ -22,7 +22,7 @@ The rows below sum to **1549** documented declarations.
 |---|---|
 | Tier A (full entry: Purpose/Inputs/Returns/Side effects/Algorithm/Usage/Notes) | 820 |
 | Tier B (index row only) | 729 |
-| **Total** | **106** | **1513** | **799** | **714** |
+| **Total** | **112** | **1565** | **804** | **761** |
 
 **Known gap.** These two numbers do not match: 18 declarations carry a `/// Purpose:` comment in
 source but have no row here, so the index under-covers `lib/` by that much. The 1.5.7 recount found
@@ -142,7 +142,12 @@ detail.
 | `lib/features/ai/services/on_device_ai_service.dart` | [features/ai/services/on_device_ai_service.md](features/ai/services/on_device_ai_service.md) | 4 | 0 |
 | `lib/features/ai/services/output_validation.dart` | [features/ai/services/output_validation.md](features/ai/services/output_validation.md) | 0 | 0 |
 | `lib/features/ai/services/prompt_templates.dart` | [features/ai/services/prompt_templates.md](features/ai/services/prompt_templates.md) | 4 | 3 |
+| `lib/features/ai/services/ai_insight_cards_cache.dart` | [features/ai/services/ai_insight_cards_cache.md](features/ai/services/ai_insight_cards_cache.md) | 8 | 0 |
+| `lib/features/ai/services/insight_language.dart` | [features/ai/services/insight_language.md](features/ai/services/insight_language.md) | 3 | 0 |
+| `lib/features/ai/services/insight_prompts.dart` | [features/ai/services/insight_prompts.md](features/ai/services/insight_prompts.md) | 10 | 0 |
+| `lib/features/ai/services/insight_service.dart` | [features/ai/services/insight_service.md](features/ai/services/insight_service.md) | 11 | 0 |
 | `lib/features/ai/widgets/ai_settings_tiles.dart` | [features/ai/widgets/ai_settings_tiles.md](features/ai/widgets/ai_settings_tiles.md) | 6 | 0 |
+| `lib/features/ai/widgets/ai_insight_card.dart` | [features/ai/widgets/ai_insight_card.md](features/ai/widgets/ai_insight_card.md) | 11 | 1 |
 
 The on-device AI layer (1.6.0, M3). `prompt_templates.dart` and `ai_insights_cache.dart` arrived with automatic
 categories (M4). Rows include the private `_AiJob` helpers and state methods
@@ -162,6 +167,7 @@ that carry a `/// Purpose:` comment. See [../on-device-ai.md](../on-device-ai.md
 | `lib/features/anime/services/metadata_cache.dart` | [features/anime/services/metadata_cache.md](features/anime/services/metadata_cache.md) | 9 | 6 |
 | `lib/features/anime/services/metadata_update_service.dart` | [features/anime/services/metadata_update_service.md](features/anime/services/metadata_update_service.md) | 44 | 27 |
 | `lib/features/anime/services/series_service.dart` | [features/anime/services/series_service.md](features/anime/services/series_service.md) | 32 | 20 |
+| `lib/features/anime/services/statistics_insight_facts.dart` | [features/anime/services/statistics_insight_facts.md](features/anime/services/statistics_insight_facts.md) | 5 | 2 |
 | `lib/features/anime/views/anime1_labels.dart` | [features/anime/views/anime1_labels.md](features/anime/views/anime1_labels.md) | 5 | 4 |
 | `lib/features/anime/views/anime_detail_page.dart` | [features/anime/views/anime_detail_page.md](features/anime/views/anime_detail_page.md) | 40 | 16 |
 | `lib/features/anime/views/anime_edit_page.dart` | [features/anime/views/anime_edit_page.md](features/anime/views/anime_edit_page.md) | 31 | 15 |
@@ -173,7 +179,7 @@ that carry a `/// Purpose:` comment. See [../on-device-ai.md](../on-device-ai.md
 | `lib/features/anime/views/metadata_updates_page.dart` | [features/anime/views/metadata_updates_page.md](features/anime/views/metadata_updates_page.md) | 23 | 9 |
 | `lib/features/anime/views/quarter_picker_dialog.dart` | [features/anime/views/quarter_picker_dialog.md](features/anime/views/quarter_picker_dialog.md) | 5 | 1 |
 | `lib/features/anime/views/series_widgets.dart` | [features/anime/views/series_widgets.md](features/anime/views/series_widgets.md) | 13 | 5 |
-| `lib/features/anime/views/statistics_page.dart` | [features/anime/views/statistics_page.md](features/anime/views/statistics_page.md) | 70 | 29 |
+| `lib/features/anime/views/statistics_page.dart` | [features/anime/views/statistics_page.md](features/anime/views/statistics_page.md) | 72 | 29 |
 
 Note: `anime.dart` has one more row than its source's `Purpose:` comment count â the `AnimeData`
 default constructor has no doc comment at all in source but is a real, documented declaration (see
@@ -218,7 +224,7 @@ The synced profile (1.7.0): display name and avatar. See [../features/profile.md
 | Source file | Page | Declarations | Tier A count |
 |---|---|---|---|
 | `lib/features/recommendations/models/recommendation_data.dart` | [features/recommendations/models/recommendation_data.md](features/recommendations/models/recommendation_data.md) | 33 | 6 |
-| `lib/features/recommendations/services/ai_reason_service.dart` | [features/recommendations/services/ai_reason_service.md](features/recommendations/services/ai_reason_service.md) | 6 | 4 |
+| `lib/features/recommendations/services/ai_reason_service.dart` | [features/recommendations/services/ai_reason_service.md](features/recommendations/services/ai_reason_service.md) | 8 | 6 |
 | `lib/features/recommendations/services/reason_prompt.dart` | [features/recommendations/services/reason_prompt.md](features/recommendations/services/reason_prompt.md) | 5 | 4 |
 | `lib/features/recommendations/services/recommendation_merge.dart` | [features/recommendations/services/recommendation_merge.md](features/recommendations/services/recommendation_merge.md) | 6 | 6 |
 | `lib/features/recommendations/services/recommendation_service.dart` | [features/recommendations/services/recommendation_service.md](features/recommendations/services/recommendation_service.md) | 22 | 10 |
@@ -287,15 +293,15 @@ the 771 hand-documented declarations above).
 |---|---|---|---|---|
 | Root (`lib/`) | 1 | 1 | 1 | 0 |
 | `app/` | 5 | 33 | 25 | 8 |
-| `features/ai/` | 9 | 38 | 7 | 31 |
-| `features/anime/` | 33 | 813 | 387 | 426 |
+| `features/ai/` | 14 | 81 | 8 | 73 |
+| `features/anime/` | 34 | 820 | 389 | 431 |
 | `features/categories/` | 2 | 18 | 11 | 7 |
 | `features/kana/` | 1 | 19 | 3 | 16 |
 | `features/profile/` | 8 | 66 | 32 | 34 |
-| `features/recommendations/` | 11 | 153 | 63 | 90 |
+| `features/recommendations/` | 11 | 155 | 65 | 90 |
 | `features/settings/` | 4 | 49 | 28 | 21 |
 | `shared/` (utils, widgets, providers, services, views) | 31 | 322 | 241 | 81 |
-| **Total** | **106** | **1513** | **799** | **714** |
+| **Total** | **112** | **1565** | **804** | **761** |
 
 
 ## Anime1 episode playback (1.6.4)
@@ -319,4 +325,4 @@ the 771 hand-documented declarations above).
 | `lib/features/anime/services/playback_progress_service.dart` | [features/anime/services/playback_progress_service.md](features/anime/services/playback_progress_service.md) | 6 | 2 |
 | `lib/features/anime/views/anime_player_controls.dart` | [features/anime/views/anime_player_controls.md](features/anime/views/anime_player_controls.md) | 25 | 2 |
 | `lib/shared/utils/playback_time.dart` | [shared/utils/playback_time.md](shared/utils/playback_time.md) | 1 | 0 |
-Current per-file table sum: 106 files, 1513 declarations (799 Tier A, 714 Tier B).
+Current per-file table sum: 112 files, 1565 declarations (804 Tier A, 761 Tier B).
