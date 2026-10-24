@@ -51,7 +51,9 @@
   颜色来自 `res/values*/widget_colors.xml`：`values-v31`/`values-night-v31` 中使用 Material You 系统颜色，
   Android 12 以下使用由种子色派生的 Material 3 色调。Android 12+ 上的圆角半径为
   `system_app_widget_background_radius`。`MainActivity` 处理 `com.yuanzhe.my_anime/home_widget` 通道，
-  `WidgetStore` 把快照保存在私有的 `MyAnimeWidget` shared preferences 中。见
+  `WidgetStore` 把快照保存在私有的 `MyAnimeWidget` shared preferences 中。小组件布局只能使用 `@RemoteView` 类
+  （`FrameLayout`、`LinearLayout`、`TextView`、`ImageView` 等）：1.9.2 中一个普通 `<View>` 占位视图导致启动器以
+  "Couldn't add widget" 拒绝添加 2×2 小组件。见
   [`features/home-screen-widgets.md`](features/home-screen-widgets.md)。
 - **Kotlin 迁移状态（应用侧已迁移）：** Gradle wrapper `9.3.1`、AGP `9.1.1`，应用不再应用 `kotlin-android`。Kotlin `jvmTarget` 由顶层 `kotlin { compilerOptions { jvmTarget = JvmTarget.JVM_17 } }` 块设置——刻意**不用** `jvmToolchain`（需要真实安装 JDK 17）也**不用** `kotlinOptions`（已移除）。`android/gradle.properties` 保留 Flutter 迁移器兼容标志 `android.builtInKotlin=false` 和 `android.newDsl=false`，因为多个插件仍直接应用 Kotlin Gradle Plugin（KGP）——把 `builtInKotlin` 设为 `true` 会破坏每个应用 KGP 的插件（已验证）。在 `settings.gradle.kts` 中保留 `org.jetbrains.kotlin.android` 声明（`apply false`）；应用 KGP 的插件从那里解析它。
 - **`file_picker` 精确固定为 `10.3.7`**（不是 caret 约束），因为它是既自己应用 KGP（`builtInKotlin=false` 时需要）*又*能对照 `flutter.compileSdkVersion` 编译（AGP 9 AAR 元数据检查需要）的最后一个版本。`10.3.9+` 和 `11.x` 依赖 AGP 的内置 Kotlin，在兼容模式下无法编译；`10.3.2` 及更早固定 `compileSdk 34`，无法通过元数据检查。其 Dart API 是 `FilePicker.platform.*`。

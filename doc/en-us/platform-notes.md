@@ -66,7 +66,9 @@ reuses the shared search service.
   colors in `values-v31`/`values-night-v31`, seed-derived Material 3 tones below Android 12. The
   corner radius is `system_app_widget_background_radius` on Android 12+. `MainActivity` handles the
   `com.yuanzhe.my_anime/home_widget` channel and `WidgetStore` keeps the snapshot in the private
-  `MyAnimeWidget` shared preferences. See
+  `MyAnimeWidget` shared preferences. Widget layouts may use only `@RemoteView` classes
+  (`FrameLayout`, `LinearLayout`, `TextView`, `ImageView`, …): a plain `<View>` spacer made the
+  launcher reject the 2×2 widget with "Couldn't add widget" in 1.9.2. See
   [`features/home-screen-widgets.md`](features/home-screen-widgets.md).
 - **Kotlin migration state (app side migrated):** Gradle wrapper `9.3.1`, AGP `9.1.1`, and the app
   no longer applies `kotlin-android`. The Kotlin `jvmTarget` is set by a top-level

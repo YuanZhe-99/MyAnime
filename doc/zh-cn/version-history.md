@@ -1,5 +1,11 @@
 # 版本历史
 
+## 1.9.3 — 修复 Android 2×2 小组件（2026-10-24）
+
+Android 的 2×2 小组件无法添加（"Couldn't add widget"）：布局里用了一个普通 `<View>` 作占位，RemoteViews
+拒绝加载它。占位已改为 `FrameLayout`；2×1 横条和 iOS 小组件不受影响。见
+[`platform-notes.md`](platform-notes.md#android)。
+
 ## 1.9.2 — 桌面小组件（2026-10-24）
 
 Android 与 iOS 新增两个"待看"小组件：2×2 小组件显示今日更新数、已播出未看的集数以及待看队列中的前两部；

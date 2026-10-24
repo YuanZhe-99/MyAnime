@@ -1,5 +1,12 @@
 # Version history
 
+## 1.9.3 — Android 2×2 widget fix (2026-10-24)
+
+The Android 2×2 widget could not be added ("Couldn't add widget"): its layout used a plain
+`<View>` as a spacer, which RemoteViews refuses to inflate. The spacer is now a `FrameLayout`;
+the 2×1 strip and the iOS widgets were not affected. See
+[`platform-notes.md`](platform-notes.md#android).
+
 ## 1.9.2 — Home-screen widgets (2026-10-24)
 
 Two "Up next" widgets on Android and iOS: a 2×2 widget with today's update count, the number of
