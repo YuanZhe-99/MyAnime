@@ -2503,6 +2503,31 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get aiOnlineLocalServer => '运行在你自己的设备上';
+
+  @override
+  String get widgetToWatch => '集待看';
+
+  @override
+  String get widgetToday => '今日';
+
+  @override
+  String get widgetCaughtUp => '已全部看完';
+
+  @override
+  String get widgetNoUpdatesToday => '今日无更新';
+
+  @override
+  String get widgetNext => '接下来';
+
+  @override
+  String widgetEpisode(String number) {
+    return '第$number集';
+  }
+
+  @override
+  String widgetSeriesCount(String count) {
+    return '$count 部';
+  }
 }
 
 /// The translations for Chinese, as used in Taiwan (`zh_TW`).
@@ -5004,4 +5029,29 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
 
   @override
   String get aiOnlineLocalServer => '執行在你自己的裝置上';
+
+  @override
+  String get widgetToWatch => '集待看';
+
+  @override
+  String get widgetToday => '今日';
+
+  @override
+  String get widgetCaughtUp => '已全部看完';
+
+  @override
+  String get widgetNoUpdatesToday => '今日無更新';
+
+  @override
+  String get widgetNext => '接下來';
+
+  @override
+  String widgetEpisode(String number) {
+    return '第$number集';
+  }
+
+  @override
+  String widgetSeriesCount(String count) {
+    return '$count 部';
+  }
 }

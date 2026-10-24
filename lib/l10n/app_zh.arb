@@ -842,5 +842,12 @@
   "aiOnlineSelectModels": "选择模型",
   "aiOnlineDone": "完成",
   "aiOnlineRemoveModel": "移除模型",
-  "aiOnlineLocalServer": "运行在你自己的设备上"
+  "aiOnlineLocalServer": "运行在你自己的设备上",
+  "widgetToWatch": "集待看",
+  "widgetToday": "今日",
+  "widgetCaughtUp": "已全部看完",
+  "widgetNoUpdatesToday": "今日无更新",
+  "widgetNext": "接下来",
+  "widgetEpisode": "第{number}集",
+  "widgetSeriesCount": "{count} 部"
 }

@@ -281,6 +281,7 @@ the 771 hand-documented declarations above).
 | `lib/shared/services/duplicate_service.dart` | [shared/services/duplicate_service.md](shared/services/duplicate_service.md) | 17 | 12 |
 | `lib/shared/services/file_open_service.dart` | [shared/services/file_open_service.md](shared/services/file_open_service.md) | 21 | 17 |
 | `lib/shared/services/reminder_service.dart` | [shared/services/reminder_service.md](shared/services/reminder_service.md) | 9 | 8 |
+| `lib/shared/services/home_widget_service.dart` | [shared/services/home_widget_service.md](shared/services/home_widget_service.md) | 10 | 7 |
 | `lib/shared/services/import_export_service.dart` | [shared/services/import_export_service.md](shared/services/import_export_service.md) | 6 | 4 |
 | `lib/shared/services/tray_service.dart` | [shared/services/tray_service.md](shared/services/tray_service.md) | 16 | 8 |
 | `lib/shared/services/image_service.dart` | [shared/services/image_service.md](shared/services/image_service.md) | 6 | 6 |
@@ -300,8 +301,12 @@ the 771 hand-documented declarations above).
 | `features/profile/` | 8 | 66 | 32 | 34 |
 | `features/recommendations/` | 11 | 155 | 65 | 90 |
 | `features/settings/` | 4 | 49 | 28 | 21 |
-| `shared/` (utils, widgets, providers, services, views) | 31 | 322 | 241 | 81 |
-| **Total** | **112** | **1565** | **804** | **761** |
+| `shared/` (utils, widgets, providers, services, views) | 32 | 332 | 248 | 84 |
+| **Total** | **113** | **1575** | **811** | **764** |
+
+The home-screen widget change added one file, `home_widget_service.dart` (10 declarations, 7 Tier A,
+3 Tier B); `anime_storage.dart`, `app_settings.dart`, `auto_sync_service.dart` and `main.dart`
+changed without a new declaration. The historical extraction totals above were not recounted.
 
 
 ## Anime1 episode playback (1.6.4)

@@ -16,7 +16,7 @@
 - **用途：** 初始化纯桌面后台服务、核心应用服务和待处理文件打开状态，然后启动 Flutter 组件树。
 - **输入：** `args` — 进程命令行参数；扫描其中的 `.myanimeitem` 路径（通过文件关联/双击的桌面冷启动）。
 - **返回：** 无（isolate 通过 `runApp` 继续运行）。
-- **副作用：** 调用 `WidgetsFlutterBinding.ensureInitialized()`；仅在 Windows/macOS/Linux 上设置 `launch_at_startup`、启动 `LocalApiServer` 并初始化 `TrayService`；初始化 `ReminderService` 本地通知；触发 `BackupService.runAutoBackupIfNeeded()`（即发即忘）；启动 `AutoSyncService.instance` 生命周期观察者；启动 `ReminderService.startPeriodicCheck()`；初始化 `FileOpenService`；并调用 `runApp` 挂载包在 `DevicePreview` 中的组件树。
+- **副作用：** 调用 `WidgetsFlutterBinding.ensureInitialized()`；仅在 Windows/macOS/Linux 上设置 `launch_at_startup`、启动 `LocalApiServer` 并初始化 `TrayService`；初始化 `ReminderService` 本地通知；触发 `BackupService.runAutoBackupIfNeeded()`（即发即忘）；启动 `AutoSyncService.instance` 生命周期观察者；启动 `ReminderService.startPeriodicCheck()`；启动 `HomeWidgetService.init()`（Android/iOS 桌面小组件）；初始化 `FileOpenService`；并调用 `runApp` 挂载包在 `DevicePreview` 中的组件树。
 - **算法：**
   1. 在任何插件调用前确保 Flutter bindings 已初始化。
   2. 如果在桌面平台运行（`!kIsWeb && (Windows || macOS || Linux)`），读取 `PackageInfo.fromPlatform()`，并用应用名和 `Platform.resolvedExecutable` 向 `launch_at_startup` 注册应用。
@@ -32,7 +32,10 @@
       自动分类或端侧 AI 关闭时它什么也不做。见
       [`../features/categories-and-recommendations.md`](../features/categories-and-recommendations.md)。
   8. 启动 `ReminderService.startPeriodicCheck()`（桌面 60 秒进程内提醒检查）。
-  8a. 仅在 `AppFlavor.isFull` 下，解析后台资料更新策略，若不是 `off` 则启动
+  8a. 启动 `HomeWidgetService.init()`，不 await；除 Android 和 iOS 外为空操作，在这两个平台上
+      它订阅同步重载并推送第一份小组件快照。见
+      [`../features/home-screen-widgets.md`](../features/home-screen-widgets.md)。
+  8b. 仅在 `AppFlavor.isFull` 下，解析后台资料更新策略，若不是 `off` 则启动
       `MetadataUpdateService.instance`。启动时不 await，因此一次缓慢的配置读取不会拖延首帧。这里的
       flavor 门禁是必需的 —— 该服务执行在线查询，而商店构建不包含这些功能。见
       [`../features/metadata-auto-update.md`](../features/metadata-auto-update.md)。

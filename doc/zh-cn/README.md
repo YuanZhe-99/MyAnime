@@ -39,6 +39,8 @@
 - [`features/share-and-import.md`](features/share-and-import.md) — 分享/导出流程和 `.myanimeitem` 文件导入/导出。
 - [`features/duplicate-detection.md`](features/duplicate-detection.md) — 重复分组和合并逻辑。
 - [`features/reminders.md`](features/reminders.md) — 移动/桌面提醒通知调度。
+- [`features/home-screen-widgets.md`](features/home-screen-widgets.md) — Android/iOS「接下来」
+  桌面小组件（2×2 与 2×1 横条）：显示什么、快照格式以及原生刷新。
 
 ### 算法
 

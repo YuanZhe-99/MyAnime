@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Widget picker text only; widget content strings come from the ARB files. -->
+<resources>
+    <string name="widget_up_next_description">番剧更新与待看列表</string>
+    <string name="widget_up_next_strip_description">待看集数与下一部</string>
+</resources>

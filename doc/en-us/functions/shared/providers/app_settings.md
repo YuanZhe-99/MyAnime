@@ -200,7 +200,8 @@ separate rows.
 - **Inputs:** `locale` — the new `Locale`, or `null` to follow the system locale.
 - **Returns:** None.
 - **Side effects:** Updates `state` via `copyWith(locale: locale, clearLocale: locale == null)`;
-  calls `AnimeStorage.setLocaleTag(...)`.
+  calls `AnimeStorage.setLocaleTag(...)`; schedules a home-widget refresh
+  (`HomeWidgetService.notifyDataChanged()`) so widget wording follows the language.
 - **Algorithm:** 1) Update state, explicitly signaling `clearLocale` when `locale` is `null`
   (`copyWith`'s optional-field pattern otherwise can't distinguish "leave unchanged" from
   "set to null"). 2) If `locale` is `null`, persist `null`. Otherwise build a storage tag —
@@ -265,7 +266,8 @@ separate rows.
 - **Purpose:** Update whether the home calendar date grid uses JST or local dates, and persist it.
 - **Inputs:** `basis` — the new `HomeCalendarTimeBasis`.
 - **Returns:** None.
-- **Side effects:** Updates `state`; calls `AnimeStorage.setHomeCalendarTimeBasis(...)`.
+- **Side effects:** Updates `state`; calls `AnimeStorage.setHomeCalendarTimeBasis(...)`; schedules a
+  home-widget refresh, since the widgets' "today" follows the same basis.
 - **Algorithm:** 1) `state = state.copyWith(homeCalendarTimeBasis: basis)`. 2) Persist `null` when
   `basis == HomeCalendarTimeBasis.jst` (the default), otherwise persist `basis.name` (i.e.
   `'local'`).

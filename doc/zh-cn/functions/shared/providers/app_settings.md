@@ -150,7 +150,8 @@
 - **用途：** 更新内存中的语言区域并持久化该选择（或清除它以跟随系统）。
 - **输入：** `locale` — 新的 `Locale`，或 `null` 跟随系统语言区域。
 - **返回：** 无。
-- **副作用：** 经 `copyWith(locale: locale, clearLocale: locale == null)` 更新 `state`；调用 `AnimeStorage.setLocaleTag(...)`。
+- **副作用：** 经 `copyWith(locale: locale, clearLocale: locale == null)` 更新 `state`；调用 `AnimeStorage.setLocaleTag(...)`；
+  安排一次桌面小组件刷新（`HomeWidgetService.notifyDataChanged()`），使小组件文案跟随语言。
 - **算法：** 1) 更新状态，`locale` 为 `null` 时显式发出 `clearLocale` 信号（`copyWith` 的可选字段模式否则无法区分"保持不变"与"设为 null"）。2) `locale` 为 `null` 时持久化 `null`。否则构建存储标签——有 country code 时为 `'<languageCode>_<countryCode>'`，否则只用 `languageCode`——并经 `AnimeStorage.setLocaleTag` 持久化它。
 - **用法：**
   ```dart
@@ -201,7 +202,8 @@
 - **用途：** 更新主页日历日期网格使用 JST 还是本地日期，并持久化它。
 - **输入：** `basis` — 新的 `HomeCalendarTimeBasis`。
 - **返回：** 无。
-- **副作用：** 更新 `state`；调用 `AnimeStorage.setHomeCalendarTimeBasis(...)`。
+- **副作用：** 更新 `state`；调用 `AnimeStorage.setHomeCalendarTimeBasis(...)`；安排一次
+  桌面小组件刷新，因为小组件的「今天」采用同一时间基准。
 - **算法：** 1) `state = state.copyWith(homeCalendarTimeBasis: basis)`。2) `basis == HomeCalendarTimeBasis.jst`（默认）时持久化 `null`，否则持久化 `basis.name`（即 `'local'`）。
 - **用法：** 接到与 `setHomeCalendarLayout` 类似的设置页控件上（见 `lib/features/settings/views/settings_page.dart`，主页日历时间基准小节）。
 - **备注：** 此设置只改变主页日历网格显示哪些日期；动画播出时间戳本身始终基于 JST，按 `AGENTS.md`。

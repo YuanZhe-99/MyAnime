@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Widget picker text only; widget content strings come from the ARB files. -->
+<resources>
+    <string name="widget_up_next_description">新着エピソードと未視聴リスト</string>
+    <string name="widget_up_next_strip_description">未視聴話数と次に見る作品</string>
+</resources>

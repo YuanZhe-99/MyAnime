@@ -2530,4 +2530,29 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get aiOnlineLocalServer => '自分の端末で動作';
+
+  @override
+  String get widgetToWatch => '話 未視聴';
+
+  @override
+  String get widgetToday => '今日';
+
+  @override
+  String get widgetCaughtUp => 'すべて視聴済み';
+
+  @override
+  String get widgetNoUpdatesToday => '今日の放送はありません';
+
+  @override
+  String get widgetNext => '次';
+
+  @override
+  String widgetEpisode(String number) {
+    return '第$number話';
+  }
+
+  @override
+  String widgetSeriesCount(String count) {
+    return '$count 作品';
+  }
 }

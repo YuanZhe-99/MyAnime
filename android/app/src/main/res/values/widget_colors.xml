@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Home-screen widget palette before Android 12: Material 3 tones of the
+     app seed (#673AB7). values-v31 swaps in the wallpaper (Material You)
+     system colors. -->
+<resources>
+    <color name="widget_background">#FFF7F1FB</color>
+    <color name="widget_on_surface">#FF1D1B20</color>
+    <color name="widget_on_surface_variant">#FF4A4458</color>
+    <color name="widget_primary">#FF6A4FA8</color>
+    <color name="widget_primary_container">#FFEBDDFF</color>
+    <color name="widget_on_primary_container">#FF250059</color>
+</resources>

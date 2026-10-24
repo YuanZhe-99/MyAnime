@@ -246,6 +246,8 @@ Not copied to the other repos — no other app has these.
 | navigation position | 导航栏位置 | 1.7.2 起设置 › 通用里的选项（`navPlacement`）：全部底部（默认）、宽屏侧边、全部侧边；两种界面风格通用。zh-TW 用「導覽列位置」，ja 用「ナビゲーションの位置」 |
 | compact floating bar | 紧凑悬浮栏 | 1.7.2 起 Expressive 风格的底栏：宽度就是各项的宽度、悬浮在页面之上的胶囊，选中项显示图标与标签；取代 1.7.0 的「悬浮岛」。zh-TW 用「精簡懸浮列」，ja 用「コンパクトなフローティングバー」 |
 | avatar editor | 头像编辑器 | 1.7.2 起选择头像后打开的全屏取景界面：拖动、缩放、旋转，圆形遮罩内的内容即最终头像。zh-TW 用「頭像編輯器」，ja 用「アバターエディター」 |
+| home-screen widget | 桌面小组件 | Android/iOS 主屏上的「待看」小组件；与 Flutter 的 widget（组件）区分。zh-TW 用「桌面小工具」，ja 用「ホーム画面ウィジェット」 |
+| to watch (widget count) | 待看 | 小组件里已播出但未看的集数 |
 
 ## 6. Review checklist (run before committing a Chinese page)
 

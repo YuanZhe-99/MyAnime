@@ -6,6 +6,7 @@ import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
 
 import '../../../shared/services/auto_sync_service.dart';
+import '../../../shared/services/home_widget_service.dart';
 import '../../../shared/services/reminder_service.dart';
 import '../../../shared/utils/adaptive_layout.dart';
 import '../../../shared/utils/calendar_preferences.dart';
@@ -186,11 +187,12 @@ class AnimeStorage {
     return AnimeData.fromJson(json);
   }
 
-  /// Purpose: Persist the library and notify auto-sync and reminders.
+  /// Purpose: Persist the library and notify auto-sync, reminders and widgets.
   /// Inputs: `data`.
   /// Returns: None.
   /// Side effects: Atomically rewrites `anime_data.json` through a uniquely
-  /// named temporary file, then notifies auto-sync and the reminder service.
+  /// named temporary file, then notifies auto-sync, the reminder service and
+  /// the home-screen widgets.
   /// Notes: Internal helper used within this file only. It is the write that
   /// code already running inside [_dataQueue] must use; it never enqueues.
   static Future<void> _writeData(AnimeData data) async {
@@ -199,6 +201,7 @@ class AnimeStorage {
     await atomicWriteString(file, jsonStr);
     AutoSyncService.instance.notifySaved();
     ReminderService.notifyDataChanged();
+    HomeWidgetService.notifyDataChanged();
   }
 
   /// Purpose: Run a read-modify-write operation on the library exclusively.

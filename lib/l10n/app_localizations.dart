@@ -4648,6 +4648,48 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'On your own machine'**
   String get aiOnlineLocalServer;
+
+  /// Home-screen widget: label under the count of aired, unwatched episodes.
+  ///
+  /// In en, this message translates to:
+  /// **'to watch'**
+  String get widgetToWatch;
+
+  /// No description provided for @widgetToday.
+  ///
+  /// In en, this message translates to:
+  /// **'Today'**
+  String get widgetToday;
+
+  /// No description provided for @widgetCaughtUp.
+  ///
+  /// In en, this message translates to:
+  /// **'All caught up'**
+  String get widgetCaughtUp;
+
+  /// No description provided for @widgetNoUpdatesToday.
+  ///
+  /// In en, this message translates to:
+  /// **'Nothing airs today'**
+  String get widgetNoUpdatesToday;
+
+  /// No description provided for @widgetNext.
+  ///
+  /// In en, this message translates to:
+  /// **'Next'**
+  String get widgetNext;
+
+  /// No description provided for @widgetEpisode.
+  ///
+  /// In en, this message translates to:
+  /// **'EP {number}'**
+  String widgetEpisode(String number);
+
+  /// No description provided for @widgetSeriesCount.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} series'**
+  String widgetSeriesCount(String count);
 }
 
 class _AppLocalizationsDelegate

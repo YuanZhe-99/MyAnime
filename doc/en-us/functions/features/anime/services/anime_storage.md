@@ -26,7 +26,7 @@ notifies `AutoSyncService`/`ReminderService` after every save. See
 | [`load`](#load) | static method (`AnimeStorage`) | A | Load `anime_data.json` into an `AnimeData`. |
 | `_dataQueue` | static field (`AnimeStorage`) | B | The shared `AtomicWriteQueue` that serializes every read-modify-write of `anime_data.json` (1.6.7). |
 | `_configQueue` | static field (`AnimeStorage`) | B | The shared `AtomicWriteQueue` for `storage_config.json` (1.6.7). |
-| [`_writeData`](#writedata) | static method (`AnimeStorage`) | A | The unqueued library write: unique-temp atomic write, then auto-sync and reminder notifications. |
+| [`_writeData`](#writedata) | static method (`AnimeStorage`) | A | The unqueued library write: unique-temp atomic write, then auto-sync, reminder and home-widget notifications. |
 | `_exclusiveData` | static method (`AnimeStorage`) | B | Run a read-modify-write on the library inside `_dataQueue` and return its result. |
 | [`updateRecord`](#updaterecord) | static method (`AnimeStorage`) | A | Replace one record computed from the freshly stored copy; no write for a missing id or a `null` result. |
 | [`updateLibrary`](#updatelibrary) | static method (`AnimeStorage`) | A | Rewrite the library from a freshly re-read copy, keeping unknown top-level fields. |
@@ -323,7 +323,7 @@ notifies `AutoSyncService`/`ReminderService` after every save. See
 - **Inputs:** `data`.
 - **Returns:** None.
 - **Side effects:** Atomically overwrites `anime_data.json`; calls `AutoSyncService.instance.notifySaved()` (see [`../../../../sync.md`](../../../../sync.md)) and `ReminderService.notifyDataChanged()` so scheduled notification bodies stay current.
-- **Algorithm:** Enqueues [`_writeData`](#writedata) on `_dataQueue`. `_writeData` resolves the data file, serializes `data.toJson()` with `JsonEncoder.withIndent('  ')` (see [`../../../../data-formats.md`](../../../../data-formats.md) on why indentation is load-bearing for sync's unchanged-file fast path), writes it with `atomicWriteString` from `myapps_data` (a uniquely named temp file, then rename), then fires both notifications.
+- **Algorithm:** Enqueues [`_writeData`](#writedata) on `_dataQueue`. `_writeData` resolves the data file, serializes `data.toJson()` with `JsonEncoder.withIndent('  ')` (see [`../../../../data-formats.md`](../../../../data-formats.md) on why indentation is load-bearing for sync's unchanged-file fast path), writes it with `atomicWriteString` from `myapps_data` (a uniquely named temp file, then rename), then fires the auto-sync, reminder and home-widget notifications.
 - **Usage:**
   ```dart
   await AnimeStorage.save(AnimeData(animes: list));
@@ -767,10 +767,10 @@ patchExternalMeta accepts optional expectedWatchUrls keyed by record id. Guarded
 ### `static Future<void> _writeData(AnimeData data)` <a id="writedata"></a>
 - **Kind:** static method of `AnimeStorage`
 - **Source:** `lib/features/anime/services/anime_storage.dart`
-- **Purpose:** Write the library to `anime_data.json` and notify auto-sync and the reminder service, without touching the queue.
+- **Purpose:** Write the library to `anime_data.json` and notify auto-sync, the reminder service and the home-screen widgets, without touching the queue.
 - **Inputs:** `data`.
 - **Returns:** None.
-- **Side effects:** Atomically rewrites `anime_data.json`; calls `AutoSyncService.instance.notifySaved()` and `ReminderService.notifyDataChanged()`.
+- **Side effects:** Atomically rewrites `anime_data.json`; calls `AutoSyncService.instance.notifySaved()`, `ReminderService.notifyDataChanged()` and `HomeWidgetService.notifyDataChanged()`.
 - **Notes:** Code already running inside `_dataQueue` must call this, never the public `save`, which enqueues behind the running operation and deadlocks. Replaces the old `_atomicWrite` helper (fixed `.tmp` name).
 
 ### `static Future<bool> updateRecord(String id, Anime? Function(Anime current) update)` <a id="updaterecord"></a>

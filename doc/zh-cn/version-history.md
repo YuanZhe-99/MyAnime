@@ -1,5 +1,15 @@
 # 版本历史
 
+## 1.9.2 — 桌面小组件（2026-10-24）
+
+Android 与 iOS 新增两个"待看"小组件：2×2 小组件显示今日更新数、已播出未看的集数以及待看队列中的前两部；
+2×1 横条显示待看数和下一部（iOS 主屏没有 2×1 尺寸，对应锁屏 / 待机显示（StandBy）的矩形小组件）。计数与首页
+"未看"列表一致，"今日"跟随首页日历的时间基准。Android 用 RemoteViews 绘制，采用 Material You 配色；iOS
+新增 `UpNextWidget` WidgetKit 扩展，与 App 共享 App Group `group.com.yuanzhe.myAnime`，Runner 仍为
+iOS 13，WidgetKit 弱链接。`HomeWidgetService` 在每次保存、同步、恢复、回到前台以及更改语言或时间基准后，
+经新的 `home_widget` 方法通道写入仅存于本机的快照（不同步、不备份、不分享）；快照包含未来 8 天的剧集，
+App 关闭时小组件也能保持最新。没有新增依赖。见 [`features/home-screen-widgets.md`](features/home-screen-widgets.md)。
+
 ## 1.9.1 — 统计页洞察卡片与更具体的推荐理由（2026-10-19）
 
 固定 MyApps-AI v0.6.2，其 `stripThinking` 会在读取回复前删除模型的推理块。统计页面的每个视图都有了一张 AI 卡片

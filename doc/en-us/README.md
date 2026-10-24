@@ -75,6 +75,8 @@ The shared WebDAV sync, backup, and ZIP engines are not in this repository. They
   merge logic.
 - [`features/reminders.md`](features/reminders.md) — mobile/desktop reminder notification
   scheduling.
+- [`features/home-screen-widgets.md`](features/home-screen-widgets.md) — the Android/iOS "Up next"
+  widgets (2×2 and the 2×1 strip): what they show, the snapshot format, and native refresh.
 
 ### Algorithms
 

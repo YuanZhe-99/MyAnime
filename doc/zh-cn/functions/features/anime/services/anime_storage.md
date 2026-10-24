@@ -17,7 +17,7 @@
 | [`load`](#load) | 静态方法（`AnimeStorage`） | A | 把 `anime_data.json` 加载进 `AnimeData`。 |
 | `_dataQueue` | 静态字段（`AnimeStorage`） | B | 串行化 `anime_data.json` 每次读-改-写的共享 `AtomicWriteQueue`（1.6.7）。 |
 | `_configQueue` | 静态字段（`AnimeStorage`） | B | `storage_config.json` 的共享 `AtomicWriteQueue`（1.6.7）。 |
-| [`_writeData`](#writedata) | 静态方法（`AnimeStorage`） | A | 不入队的资料库写入：唯一临时文件原子写入，然后通知自动同步和提醒。 |
+| [`_writeData`](#writedata) | 静态方法（`AnimeStorage`） | A | 不入队的资料库写入：唯一临时文件原子写入，然后通知自动同步、提醒和桌面小组件。 |
 | `_exclusiveData` | 静态方法（`AnimeStorage`） | B | 在 `_dataQueue` 内执行一次资料库读-改-写并返回其结果。 |
 | [`updateRecord`](#updaterecord) | 静态方法（`AnimeStorage`） | A | 以刚读出的存储副本计算并替换一条记录；id 不存在或结果为 `null` 时不写入。 |
 | [`updateLibrary`](#updatelibrary) | 静态方法（`AnimeStorage`） | A | 以刚重新读出的副本重写资料库，并保留未知的顶层字段。 |
@@ -300,7 +300,7 @@
 - **输入：** `data`。
 - **返回：** 无。
 - **副作用：** 原子覆盖 `anime_data.json`；调用 `AutoSyncService.instance.notifySaved()`（见 [`../../../../sync.md`](../../../../sync.md)）和 `ReminderService.notifyDataChanged()`，使计划通知正文保持最新。
-- **算法：** 解析数据文件，用 `JsonEncoder.withIndent('  ')` 序列化 `data.toJson()`（缩进为什么对同步的未变化文件快速路径承载负载见 [`../../../../data-formats.md`](../../../../data-formats.md)），把 [`_writeData`](#writedata) 排入 `_dataQueue`；`_writeData` 用 `myapps_data` 的 `atomicWriteString`（唯一命名的临时文件再重命名）写入，然后触发两个通知。
+- **算法：** 解析数据文件，用 `JsonEncoder.withIndent('  ')` 序列化 `data.toJson()`（缩进为什么对同步的未变化文件快速路径承载负载见 [`../../../../data-formats.md`](../../../../data-formats.md)），把 [`_writeData`](#writedata) 排入 `_dataQueue`；`_writeData` 用 `myapps_data` 的 `atomicWriteString`（唯一命名的临时文件再重命名）写入，然后触发自动同步、提醒和桌面小组件通知。
 - **用法：**
   ```dart
   await AnimeStorage.save(AnimeData(animes: list));
@@ -722,10 +722,10 @@ patchExternalMeta 接受按记录 id 索引的可选 expectedWatchUrls。受保�
 ### `static Future<void> _writeData(AnimeData data)` <a id="writedata"></a>
 - **种类：** `AnimeStorage` 的静态方法
 - **来源：** `lib/features/anime/services/anime_storage.dart`
-- **用途：** 把资料库写入 `anime_data.json` 并通知自动同步和提醒服务，不经过队列。
+- **用途：** 把资料库写入 `anime_data.json` 并通知自动同步、提醒服务和桌面小组件，不经过队列。
 - **输入：** `data`。
 - **返回：** 无。
-- **副作用：** 原子重写 `anime_data.json`；调用 `AutoSyncService.instance.notifySaved()` 与 `ReminderService.notifyDataChanged()`。
+- **副作用：** 原子重写 `anime_data.json`；调用 `AutoSyncService.instance.notifySaved()`、`ReminderService.notifyDataChanged()` 与 `HomeWidgetService.notifyDataChanged()`。
 - **备注：** 已在 `_dataQueue` 内运行的代码必须调用它，绝不能调用公开的 `save`（它会排在正在运行的操作之后而死锁）。取代旧的 `_atomicWrite`（固定 `.tmp` 名）。
 
 ### `static Future<bool> updateRecord(String id, Anime? Function(Anime current) update)` <a id="updaterecord"></a>

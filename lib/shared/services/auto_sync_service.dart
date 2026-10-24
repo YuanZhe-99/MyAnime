@@ -14,6 +14,7 @@ import 'package:flutter/widgets.dart';
 import 'package:myapps_data/myapps_data.dart' as shared;
 
 import 'backup_service.dart';
+import 'home_widget_service.dart';
 import 'reminder_service.dart';
 import 'webdav_service.dart';
 import 'webdav_privacy.dart';
@@ -61,6 +62,7 @@ class AutoSyncService {
     onResume: () async {
       await BackupService.runAutoBackupIfNeeded();
       ReminderService.notifyDataChanged();
+      HomeWidgetService.notifyDataChanged();
     },
   );
 

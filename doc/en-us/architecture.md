@@ -133,6 +133,7 @@ lib/
       backup_service.dart
       duplicate_service.dart
       file_open_service.dart
+      home_widget_service.dart  # Android/iOS home-screen widget snapshot
       image_service.dart
       import_export_service.dart
       local_api_server.dart

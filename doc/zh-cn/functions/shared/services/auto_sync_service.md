@@ -10,7 +10,7 @@
 | `runSync` | `WebDAVService.sync(config)` — 绝不用 `autoResolve`。 |
 | `consumeLocalDataChanged` | `WebDAVService.consumeLocalDataChanged`。 |
 | `onPeriodicTick` | `BackupService.runAutoBackupIfNeeded`，使跨过午夜持续运行的桌面实例仍能完成每日备份。 |
-| `onResume` | 每日备份**和** `ReminderService.notifyDataChanged()`。 |
+| `onResume` | 每日备份、`ReminderService.notifyDataChanged()` **和** `HomeWidgetService.notifyDataChanged()`。 |
 
 ## 声明
 

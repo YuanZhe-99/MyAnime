@@ -844,5 +844,12 @@
   "aiOnlineSelectModels": "モデルを選択",
   "aiOnlineDone": "完了",
   "aiOnlineRemoveModel": "モデルを削除",
-  "aiOnlineLocalServer": "自分の端末で動作"
+  "aiOnlineLocalServer": "自分の端末で動作",
+  "widgetToWatch": "話 未視聴",
+  "widgetToday": "今日",
+  "widgetCaughtUp": "すべて視聴済み",
+  "widgetNoUpdatesToday": "今日の放送はありません",
+  "widgetNext": "次",
+  "widgetEpisode": "第{number}話",
+  "widgetSeriesCount": "{count} 作品"
 }

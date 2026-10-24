@@ -2619,4 +2619,29 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get aiOnlineLocalServer => 'On your own machine';
+
+  @override
+  String get widgetToWatch => 'to watch';
+
+  @override
+  String get widgetToday => 'Today';
+
+  @override
+  String get widgetCaughtUp => 'All caught up';
+
+  @override
+  String get widgetNoUpdatesToday => 'Nothing airs today';
+
+  @override
+  String get widgetNext => 'Next';
+
+  @override
+  String widgetEpisode(String number) {
+    return 'EP $number';
+  }
+
+  @override
+  String widgetSeriesCount(String count) {
+    return '$count series';
+  }
 }

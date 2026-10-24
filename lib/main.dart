@@ -18,6 +18,7 @@ import 'shared/services/auto_sync_service.dart';
 import 'shared/services/backup_service.dart';
 import 'shared/services/file_open_service.dart';
 import 'shared/services/local_api_server.dart';
+import 'shared/services/home_widget_service.dart';
 import 'shared/services/reminder_service.dart';
 import 'shared/services/tray_service.dart';
 
@@ -64,6 +65,9 @@ void main(List<String> args) async {
 
   // Start periodic reminder check (every 60s)
   ReminderService.startPeriodicCheck();
+
+  // Feed the Android/iOS home-screen widgets (no-op elsewhere).
+  unawaited(HomeWidgetService.init());
 
   // Start the background metadata updater. Full builds only — it performs
   // online lookups, which store builds do not ship. It gates itself again on

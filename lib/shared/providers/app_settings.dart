@@ -9,6 +9,7 @@ import '../../features/ai/services/on_device_ai_service.dart';
 import '../../features/anime/services/anime_storage.dart';
 import '../../features/anime/services/manage_grouping.dart';
 import '../../features/categories/services/category_service.dart';
+import '../services/home_widget_service.dart';
 import '../utils/adaptive_layout.dart';
 import '../utils/calendar_preferences.dart';
 
@@ -182,6 +183,7 @@ class AppSettingsNotifier extends StateNotifier<AppSettings> {
           : locale.languageCode;
       AnimeStorage.setLocaleTag(tag);
     }
+    HomeWidgetService.notifyDataChanged();
   }
 
   /// Purpose: Update the app-wide calendar week start day.
@@ -217,6 +219,7 @@ class AppSettingsNotifier extends StateNotifier<AppSettings> {
     AnimeStorage.setHomeCalendarTimeBasis(
       basis == HomeCalendarTimeBasis.jst ? null : basis.name,
     );
+    HomeWidgetService.notifyDataChanged();
   }
 
   /// Purpose: Update the remembered home calendar view format.

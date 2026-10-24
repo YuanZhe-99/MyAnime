@@ -12,7 +12,7 @@ periodic timer, in-flight guard, and status bookkeeping moved to the `myapps_dat
 | `runSync` | `WebDAVService.sync(config)` — never with `autoResolve`. |
 | `consumeLocalDataChanged` | `WebDAVService.consumeLocalDataChanged`. |
 | `onPeriodicTick` | `BackupService.runAutoBackupIfNeeded`, so a desktop instance left running across midnight still takes its daily backup. |
-| `onResume` | The daily backup **and** `ReminderService.notifyDataChanged()`. |
+| `onResume` | The daily backup, `ReminderService.notifyDataChanged()` **and** `HomeWidgetService.notifyDataChanged()`. |
 
 ## Declarations
 

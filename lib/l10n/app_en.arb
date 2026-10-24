@@ -882,5 +882,15 @@
   "aiOnlineSelectModels": "Choose models",
   "aiOnlineDone": "Done",
   "aiOnlineRemoveModel": "Remove model",
-  "aiOnlineLocalServer": "On your own machine"
+  "aiOnlineLocalServer": "On your own machine",
+  "widgetToWatch": "to watch",
+  "@widgetToWatch": { "description": "Home-screen widget: label under the count of aired, unwatched episodes." },
+  "widgetToday": "Today",
+  "widgetCaughtUp": "All caught up",
+  "widgetNoUpdatesToday": "Nothing airs today",
+  "widgetNext": "Next",
+  "widgetEpisode": "EP {number}",
+  "@widgetEpisode": { "placeholders": { "number": { "type": "String" } } },
+  "widgetSeriesCount": "{count} series",
+  "@widgetSeriesCount": { "placeholders": { "count": { "type": "String" } } }
 }

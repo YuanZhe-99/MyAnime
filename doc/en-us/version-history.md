@@ -1,5 +1,19 @@
 # Version history
 
+## 1.9.2 — Home-screen widgets (2026-10-24)
+
+Two "Up next" widgets on Android and iOS: a 2×2 widget with today's update count, the number of
+aired episodes left to watch and the first two series in the watch queue, and a 2×1 strip with the
+count and the next series (on iOS the rectangular lock-screen / StandBy widget, since iOS has no
+2×1 home-screen size). Counts match the Home tab's Unwatched list and "today" follows the Home
+calendar's time basis. Android draws them with RemoteViews in Material You colors; iOS adds the
+`UpNextWidget` WidgetKit extension sharing the `group.com.yuanzhe.myAnime` App Group, with
+Runner still on iOS 13 and WidgetKit weak-linked. `HomeWidgetService` writes a device-local
+snapshot (never synced, backed up or shared) over a new `home_widget` method channel after every
+save, sync, restore, resume and language or time-basis change; it carries 8 days of upcoming
+episodes so the widgets stay current while the app is closed. No new dependency. See
+[`features/home-screen-widgets.md`](features/home-screen-widgets.md).
+
 ## 1.9.1 — Statistics insight cards and sharper recommendation reasons (2026-10-19)
 
 Pin MyApps-AI v0.6.2, whose `stripThinking` removes a model's reasoning blocks before a reply is

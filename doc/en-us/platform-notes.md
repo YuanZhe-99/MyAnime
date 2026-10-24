@@ -44,10 +44,30 @@ reuses the shared search service.
   launches on iOS 18 and earlier. Building the bridge needs the Xcode 26 SDK; with an older SDK
   `canImport` is false and the plugin answers `unsupported`. No entitlement or `Info.plist` key is
   needed. See [`on-device-ai.md`](on-device-ai.md).
+- **Home-screen widgets:** the `UpNextWidget` WidgetKit app extension (`ios/UpNextWidget/`,
+  bundle id `com.yuanzhe.myAnime.UpNextWidget`, deployment target iOS 14) is a hand-added target in
+  `project.pbxproj`, embedded by Runner's *Embed Foundation Extensions* phase, which sits before
+  *Thin Binary* to avoid Xcode's build-cycle error. Runner and the extension share the App Group
+  `group.com.yuanzhe.myAnime` (`Runner/Runner.entitlements`, `UpNextWidget/UpNextWidget.entitlements`);
+  a signed build needs that App Group enabled on both App IDs, while the CI `--no-codesign` build
+  does not. Runner stays at iOS 13.0 and links WidgetKit with `-weak_framework WidgetKit`, and
+  `AppDelegate` calls `WidgetCenter` only behind `#available(iOS 14.0, *)`. The
+  `com.yuanzhe.my_anime/home_widget` channel is registered in
+  `didInitializeImplicitFlutterEngine`. No widget plugin is used: `home_widget` requires iOS 14 and
+  pulls Glance/Compose into Android. See
+  [`features/home-screen-widgets.md`](features/home-screen-widgets.md).
 
 ## Android
 
 - `android/app/build.gradle.kts` should use `import java.util.Properties`.
+- **Home-screen widgets:** two RemoteViews `AppWidgetProvider`s (`widget/UpNextWidgetProvider.kt`,
+  2×2; `widget/UpNextStripWidgetProvider.kt`, 2×1) registered in `AndroidManifest.xml`, with no
+  extra Gradle dependency. Colors come from `res/values*/widget_colors.xml`: Material You system
+  colors in `values-v31`/`values-night-v31`, seed-derived Material 3 tones below Android 12. The
+  corner radius is `system_app_widget_background_radius` on Android 12+. `MainActivity` handles the
+  `com.yuanzhe.my_anime/home_widget` channel and `WidgetStore` keeps the snapshot in the private
+  `MyAnimeWidget` shared preferences. See
+  [`features/home-screen-widgets.md`](features/home-screen-widgets.md).
 - **Kotlin migration state (app side migrated):** Gradle wrapper `9.3.1`, AGP `9.1.1`, and the app
   no longer applies `kotlin-android`. The Kotlin `jvmTarget` is set by a top-level
   `kotlin { compilerOptions { jvmTarget = JvmTarget.JVM_17 } }` block — deliberately **not**

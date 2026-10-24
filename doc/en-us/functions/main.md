@@ -26,7 +26,8 @@ before handing control to Flutter's widget tree via `runApp`. See
   sets up `launch_at_startup`, starts `LocalApiServer`, and initializes `TrayService`; initializes
   `ReminderService` local notifications; fires `BackupService.runAutoBackupIfNeeded()`
   (fire-and-forget); starts `AutoSyncService.instance` lifecycle observer; starts
-  `ReminderService.startPeriodicCheck()`; initializes `FileOpenService`; and calls `runApp` to mount
+  `ReminderService.startPeriodicCheck()`; starts `HomeWidgetService.init()` (Android/iOS widgets);
+  initializes `FileOpenService`; and calls `runApp` to mount
   the widget tree wrapped in `DevicePreview`.
 - **Algorithm:**
   1. Ensure Flutter bindings are initialized before any plugin call.
@@ -49,7 +50,10 @@ before handing control to Flutter's widget tree via `runApp`. See
       automatic categories or on-device AI are off. See
       [`../features/categories-and-recommendations.md`](../features/categories-and-recommendations.md).
   8. Start `ReminderService.startPeriodicCheck()` (desktop 60-second in-process reminder check).
-  8a. Under `AppFlavor.isFull` only, resolve the background metadata-update policy and start
+  8a. Start `HomeWidgetService.init()` without awaiting; a no-op except on Android and iOS, where
+      it subscribes to sync reloads and pushes the first widget snapshot. See
+      [`../features/home-screen-widgets.md`](../features/home-screen-widgets.md).
+  8b. Under `AppFlavor.isFull` only, resolve the background metadata-update policy and start
       `MetadataUpdateService.instance` unless it is `off`. Started without awaiting, so a slow
       config read cannot delay the first frame. The flavor gate is required here — the service
       performs online lookups, which store builds do not ship. See
