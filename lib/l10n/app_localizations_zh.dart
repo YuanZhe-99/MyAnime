@@ -2528,6 +2528,15 @@ class AppLocalizationsZh extends AppLocalizations {
   String widgetSeriesCount(String count) {
     return '$count 部';
   }
+
+  @override
+  String get settingsWidgets => '桌面小组件';
+
+  @override
+  String get settingsWidgetTextSize => '小组件字号';
+
+  @override
+  String get settingsWidgetTextSizeDesc => '下方为预览；桌面上的小组件会在几秒内更新。';
 }
 
 /// The translations for Chinese, as used in Taiwan (`zh_TW`).
@@ -5054,4 +5063,13 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
   String widgetSeriesCount(String count) {
     return '$count 部';
   }
+
+  @override
+  String get settingsWidgets => '桌面小工具';
+
+  @override
+  String get settingsWidgetTextSize => '小工具字級';
+
+  @override
+  String get settingsWidgetTextSizeDesc => '下方為預覽；桌面上的小工具會在幾秒內更新。';
 }

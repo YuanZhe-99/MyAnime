@@ -1,5 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:my_anime/features/anime/models/anime.dart';
+import 'package:my_anime/features/settings/widgets/home_widget_preview.dart';
 import 'package:my_anime/shared/services/home_widget_service.dart';
 import 'package:my_anime/shared/utils/calendar_preferences.dart';
 
@@ -74,9 +75,7 @@ void main() {
       [
         make(
           'b',
-          statuses: {
-            for (var ep = 1; ep <= 4; ep++) ep: EpisodeStatus.watched,
-          },
+          statuses: {for (var ep = 1; ep <= 4; ep++) ep: EpisodeStatus.watched},
         ),
       ],
       nowUtc: now,
@@ -105,9 +104,7 @@ void main() {
   });
 
   test('caps the episode list', () {
-    final library = [
-      for (var i = 0; i < 100; i++) make('x$i'),
-    ];
+    final library = [for (var i = 0; i < 100; i++) make('x$i')];
     final snapshot = HomeWidgetService.buildSnapshot(
       library,
       nowUtc: now,
@@ -119,5 +116,47 @@ void main() {
       HomeWidgetService.maxEpisodes,
     );
     expect(snapshot['airedUnwatched'], 400);
+  });
+
+  test('writes the clamped text scale', () {
+    Map<String, dynamic> build(double scale) => HomeWidgetService.buildSnapshot(
+      const [],
+      nowUtc: now,
+      basis: HomeCalendarTimeBasis.jst,
+      labels: labels,
+      textScale: scale,
+    );
+    expect(build(1.0)['textScale'], 1.0);
+    expect(build(1.3)['textScale'], 1.3);
+    expect(build(3)['textScale'], HomeWidgetService.maxTextScale);
+    expect(build(0.5)['textScale'], HomeWidgetService.minTextScale);
+    expect(HomeWidgetService.clampTextScale(1.2000001), 1.2);
+    expect(HomeWidgetService.clampTextScale(double.nan), 1.0);
+  });
+
+  test('preview state mirrors the native evaluation', () {
+    final snapshot = HomeWidgetService.buildSnapshot(
+      [
+        make(
+          'a',
+          statuses: {1: EpisodeStatus.watched, 2: EpisodeStatus.watched},
+        ),
+        make(
+          'b',
+          statuses: {for (var ep = 1; ep <= 4; ep++) ep: EpisodeStatus.watched},
+        ),
+      ],
+      nowUtc: now,
+      basis: HomeCalendarTimeBasis.jst,
+      labels: labels,
+    );
+    final state = HomeWidgetPreviewState.evaluate(snapshot, now);
+    expect(state.toWatch, 2);
+    expect(state.queue.map((e) => [e['id'], e['e']]), [
+      ['a', 3],
+    ]);
+    // Both anime air episode 4 today (JST).
+    expect(state.todayCount, 2);
+    expect(state.nextUp?['e'], 5);
   });
 }

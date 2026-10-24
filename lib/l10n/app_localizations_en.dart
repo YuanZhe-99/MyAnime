@@ -2644,4 +2644,14 @@ class AppLocalizationsEn extends AppLocalizations {
   String widgetSeriesCount(String count) {
     return '$count series';
   }
+
+  @override
+  String get settingsWidgets => 'Home-screen widgets';
+
+  @override
+  String get settingsWidgetTextSize => 'Widget text size';
+
+  @override
+  String get settingsWidgetTextSizeDesc =>
+      'Preview below; widgets on your home screen update within a few seconds.';
 }

@@ -248,6 +248,7 @@ Not copied to the other repos — no other app has these.
 | avatar editor | 头像编辑器 | 1.7.2 起选择头像后打开的全屏取景界面：拖动、缩放、旋转，圆形遮罩内的内容即最终头像。zh-TW 用「頭像編輯器」，ja 用「アバターエディター」 |
 | home-screen widget | 桌面小组件 | Android/iOS 主屏上的「待看」小组件；与 Flutter 的 widget（组件）区分。zh-TW 用「桌面小工具」，ja 用「ホーム画面ウィジェット」 |
 | to watch (widget count) | 待看 | 小组件里已播出但未看的集数 |
+| widget text size | 小组件字号 | 设置里调整桌面小组件文字大小的滑块；zh-TW 用「小工具字級」 |
 
 ## 6. Review checklist (run before committing a Chinese page)
 

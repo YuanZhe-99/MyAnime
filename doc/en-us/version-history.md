@@ -1,5 +1,14 @@
 # Version history
 
+## 1.9.4 — Widget text size (2026-10-24)
+
+The home-screen widgets' text can now be made larger: **Settings › Home-screen widgets › Widget text
+size** scales both widgets from 90% to 150%, with a live preview of the 2×2 widget and the 2×1 strip
+under the slider. The scale travels in the widget snapshot as `textScale` and is applied by the
+Android RemoteViews and the iOS WidgetKit views; at large sizes the 2×2 widget shows one queue row
+instead of two. Stored per device as `widgetTextScale`. See
+[`features/home-screen-widgets.md`](features/home-screen-widgets.md#text-size).
+
 ## 1.9.3 — Android 2×2 widget fix (2026-10-24)
 
 The Android 2×2 widget could not be added ("Couldn't add widget"): its layout used a plain

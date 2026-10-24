@@ -18,6 +18,7 @@ import '../../../app/theme.dart';
 import '../../../shared/utils/jst_time.dart';
 import '../../../shared/providers/app_settings.dart';
 import '../../../shared/services/auto_sync_service.dart';
+import '../../../shared/services/home_widget_service.dart';
 import '../../../shared/services/import_export_service.dart';
 import '../../../shared/services/local_api_server.dart';
 import '../../../shared/services/reminder_service.dart';
@@ -36,6 +37,7 @@ import '../../profile/views/profile_header.dart';
 import 'backup_page.dart';
 import 'license_page.dart' as app_license;
 import 'privacy_policy_page.dart';
+import '../widgets/home_widget_preview.dart';
 
 /// The five settings rows that lead to a second-level page.
 ///
@@ -1032,6 +1034,34 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
             onChanged: notifier.setKanaTabEnabled,
           ),
         ]),
+
+        // ── Home-screen widgets (1.9.4) ──
+        // Android and iOS only. The preview redraws as the slider moves; the
+        // placed widgets follow through the debounced snapshot refresh.
+        if (HomeWidgetService.isSupported)
+          _buildSection(l10n.settingsWidgets, [
+            ListTile(
+              leading: const Icon(Icons.format_size),
+              title: Text(l10n.settingsWidgetTextSize),
+              subtitle: Text(l10n.settingsWidgetTextSizeDesc),
+              trailing: Text(
+                '${(settings.widgetTextScale * 100).round()}%',
+                style: Theme.of(context).textTheme.labelLarge,
+              ),
+            ),
+            Slider(
+              value: settings.widgetTextScale,
+              min: HomeWidgetService.minTextScale,
+              max: HomeWidgetService.maxTextScale,
+              divisions: 6,
+              label: '${(settings.widgetTextScale * 100).round()}%',
+              onChanged: notifier.setWidgetTextScale,
+            ),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 4, 16, 16),
+              child: HomeWidgetPreview(textScale: settings.widgetTextScale),
+            ),
+          ]),
 
         // ── Categories & recommendations ──
         // Everything here is off by default. The on-device AI rows appear

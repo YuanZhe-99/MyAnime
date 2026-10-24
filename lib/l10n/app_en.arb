@@ -892,5 +892,9 @@
   "widgetEpisode": "EP {number}",
   "@widgetEpisode": { "placeholders": { "number": { "type": "String" } } },
   "widgetSeriesCount": "{count} series",
-  "@widgetSeriesCount": { "placeholders": { "count": { "type": "String" } } }
+  "@widgetSeriesCount": { "placeholders": { "count": { "type": "String" } } },
+  "settingsWidgets": "Home-screen widgets",
+  "settingsWidgetTextSize": "Widget text size",
+  "@settingsWidgetTextSize": { "description": "Settings: slider that scales the text of the home-screen widgets." },
+  "settingsWidgetTextSizeDesc": "Preview below; widgets on your home screen update within a few seconds."
 }

@@ -153,6 +153,12 @@ lead to (`../../../shared/views/webdav_config_page.md`, `backup_page.md` in this
   Desktop and About sections. Since 1.7.1 General holds, right after the theme `SegmentedButton`, the *Interface style* picker that replaces 1.7.0's *Floating navigation bar* `SwitchListTile`: a `ListTile` (`auto_awesome_outlined` icon, title *Interface style*, subtitle describing the two styles) followed by a `SegmentedButton<AppUiStyle>` with the segments *Material 3* and *Expressive*, padded like the theme picker (`settings.uiStyle` / `notifier.setUiStyle`). Expressive (the default) also shows the compact floating bar; Material 3 uses the classic one. Since 1.7.2, right after it, a *Navigation position* `ListTile` (`view_sidebar_outlined`, `settingsNavPlacement` and its description) with a `SegmentedButton<NavPlacement>` of *Bottom* (the default), *Side on wide* and *Side* (`settings.navPlacement` / `notifier.setNavPlacement`; shown for both styles), and, only while the placement is not *Bottom*, a *Side navigation position* `ListTile` (`swap_horiz`) with a `SegmentedButton<bool>` of *Left* and *Right* (`settings.navRailOnRight` / `notifier.setNavRailOnRight`). Since 1.6.0 General ends with the *Kana quick reference*
   `SwitchListTile`, bound to `settings.kanaTabEnabled` and `notifier.setKanaTabEnabled`; its
   description names MyNihongo!!!!! without a store link.
+  Since 1.9.4, on Android and iOS only (`HomeWidgetService.isSupported`), a *Home-screen widgets*
+  section (`settingsWidgets`) sits between General and *Categories & recommendations*: a `ListTile`
+  (`format_size`, *Widget text size*, the current percentage as trailing text), a 6-division
+  `Slider` from `HomeWidgetService.minTextScale` to `maxTextScale` bound to
+  `settings.widgetTextScale` / `notifier.setWidgetTextScale`, and a `HomeWidgetPreview` (see
+  [`../widgets/home_widget_preview.md`](../widgets/home_widget_preview.md)).
   Since 1.6.0 (M4) a *Categories & recommendations* section (`aiSectionTitle`) follows General: the
   *Automatic categories* `SwitchListTile` (`settings.autoCategoriesEnabled` /
   `notifier.setAutoCategoriesEnabled`), then — since 1.6.0 (M5) — the *Recommendations*

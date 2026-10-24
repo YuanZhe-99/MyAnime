@@ -328,6 +328,7 @@ enum AnimeType {
 | 端侧 AI 开关与模型尺寸偏好 | `storage_config.json` | 否 | 设备特有的 `onDeviceAiEnabled` 与 `onDeviceAiPreferFast`（Android）；缺省表示关闭（1.6.0） |
 | 自动分类 | `storage_config.json` | 否 | 设备特有的 `autoCategoriesEnabled`；缺省表示关闭（1.6.0） |
 | 推荐 | `storage_config.json` | 否 | 设备特有的 `recommendationsEnabled`；缺省表示关闭（1.6.0） |
+| 桌面小组件字号 | `storage_config.json` | 否 | 设备特有的 `widgetTextScale`（1.9.4）：0.9 到 1.5 之间的数值；缺省表示 1.0。会以 `textScale` 写入小组件快照 |
 | WebDAV 配置 | `webdav_config.json` | 否 | 仅本地秘密/配置 |
 | 同步基线快照 | `.sync_base/anime_data.json`, `.sync_base/recommendations.json`, `.sync_base/playback_progress.json`, `.sync_base/profile.json` | 否 | 本地合并跟踪，每个模块一份 |
 | 本地备份 | `backups/backup_*.json` | 否 | 本地恢复；v2 捆绑引用去重后的图像 blob |

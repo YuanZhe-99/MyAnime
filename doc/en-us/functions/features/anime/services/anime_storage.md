@@ -63,6 +63,8 @@ notifies `AutoSyncService`/`ReminderService` after every save. See
 | [`setMetadataPrefetchCovers`](#setmetadataprefetchcovers) | static method (`AnimeStorage`) | A | Persist whether candidate covers are prefetched. |
 | [`getKanaTabEnabled`](#getkanatabenabled) | static method (`AnimeStorage`) | A | Read whether the Kana quick-reference tab is shown. |
 | [`setKanaTabEnabled`](#setkanatabenabled) | static method (`AnimeStorage`) | A | Persist whether the Kana quick-reference tab is shown. |
+| [`getWidgetTextScale`](#getwidgettextscale) | static method (`AnimeStorage`) | A | Read the home-screen widget text scale (1.9.4). |
+| [`setWidgetTextScale`](#setwidgettextscale) | static method (`AnimeStorage`) | A | Persist the home-screen widget text scale (1.9.4). |
 | [`getUiStyle`](#getuistyle) | static method (`AnimeStorage`) | A | Read the stored interface style name, migrating the 1.7.0 `classicNavBar` key (1.7.1; replaces `getFloatingNavBar`). |
 | [`setUiStyle`](#setuistyle) | static method (`AnimeStorage`) | A | Persist the interface style and drop the superseded `classicNavBar` key (1.7.1; replaces `setFloatingNavBar`). |
 | [`getNavPlacement`](#getnavplacement) | static method (`AnimeStorage`) | A | Read the stored navigation placement name (1.7.2). |
@@ -664,6 +666,19 @@ notifies `AutoSyncService`/`ReminderService` after every save. See
 - **Side effects:** Writes `storage_config.json`.
 - **Notes:** Writes `kanaTabEnabled: true` when on and removes the key when off, the same shape as
   `setMetadataPrefetchCovers`.
+
+### `static Future<double> getWidgetTextScale()` <a id="getwidgettextscale"></a>
+- **Kind:** static method of `AnimeStorage`
+- **Returns:** `Future<double>` — `config['widgetTextScale']` as a double, or `1.0` when absent or
+  not a number.
+- **Side effects:** Reads `storage_config.json`.
+- **Notes:** Added in 1.9.4. Callers clamp it with `HomeWidgetService.clampTextScale`; read by
+  `AppSettingsNotifier._loadPersisted` and `HomeWidgetService.refresh`.
+
+### `static Future<void> setWidgetTextScale(double scale)` <a id="setwidgettextscale"></a>
+- **Kind:** static method of `AnimeStorage`
+- **Side effects:** Writes `storage_config.json`.
+- **Notes:** Added in 1.9.4. Removes the key for the default `1.0`, otherwise writes the number.
 
 ### `static Future<String?> getUiStyle()` <a id="getuistyle"></a>
 - **Kind:** static method of `AnimeStorage`

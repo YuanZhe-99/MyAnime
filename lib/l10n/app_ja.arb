@@ -851,5 +851,8 @@
   "widgetNoUpdatesToday": "今日の放送はありません",
   "widgetNext": "次",
   "widgetEpisode": "第{number}話",
-  "widgetSeriesCount": "{count} 作品"
+  "widgetSeriesCount": "{count} 作品",
+  "settingsWidgets": "ホーム画面ウィジェット",
+  "settingsWidgetTextSize": "ウィジェットの文字サイズ",
+  "settingsWidgetTextSizeDesc": "下にプレビューを表示します。ホーム画面のウィジェットは数秒で更新されます。"
 }

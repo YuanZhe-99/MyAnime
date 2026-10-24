@@ -12,6 +12,7 @@ widgets, the snapshot format and the native readers — this page covers the Dar
 |---|---|---|---|
 | [`HomeWidgetService._`](#homewidgetservice-_) | constructor (`HomeWidgetService`) | B | Prevent instantiation; the class is static-only. |
 | [`isSupported`](#issupported) | getter (`HomeWidgetService`) | B | Whether the platform has home-screen widgets (Android, iOS). |
+| [`clampTextScale`](#clamptextscale) | method (`HomeWidgetService`) | A | Clamp a widget text scale to the supported range (1.9.4). |
 | [`init`](#init) | method (`HomeWidgetService`) | A | Subscribe to sync/restore reloads and push the first snapshot. |
 | [`notifyDataChanged`](#notifydatachanged) | method (`HomeWidgetService`) | A | Debounce a refresh after data or settings change. |
 | [`refresh`](#refresh) | method (`HomeWidgetService`) | A | Rebuild the snapshot from storage and send it to the native widgets. |
@@ -21,10 +22,22 @@ widgets, the snapshot format and the native readers — this page covers the Dar
 | [`_startOfToday`](#_startoftoday) | method (`HomeWidgetService`) | A | The UTC instant at which "today" starts for a calendar time basis. |
 | [`_l10n`](#_l10n) | method (`HomeWidgetService`) | B | Resolve localizations from the saved locale or the platform default. |
 
-Constants: `formatVersion` (1), `lookahead` (8 days), `maxEpisodes` (80), and the private
-`_channel`.
+Constants: `formatVersion` (1), `lookahead` (8 days), `maxEpisodes` (80), `minTextScale` (0.9) and
+`maxTextScale` (1.5), and the private `_channel`.
 
 ## Documentation
+
+### `static double clampTextScale(double scale)` <a id="clamptextscale"></a>
+- **Kind:** static method of `HomeWidgetService`
+- **Source:** `lib/shared/services/home_widget_service.dart`
+- **Purpose:** Keep a widget text scale within `minTextScale`..`maxTextScale`.
+- **Inputs:** `scale`.
+- **Returns:** The clamped scale rounded to one decimal; `1.0` for NaN or infinity.
+- **Side effects:** None.
+- **Algorithm:** `clamp`, then `round(scale * 10) / 10`.
+- **Usage:** `AppSettingsNotifier` (load and setter), [`refresh`](#refresh), [`buildSnapshot`](#buildsnapshot).
+- **Notes:** Added in 1.9.4. Rounding keeps the slider's 0.1 steps exact. The native readers clamp
+  to the same range again.
 
 ### `static Future<void> init()` <a id="init"></a>
 - **Kind:** static method of `HomeWidgetService`
@@ -48,7 +61,7 @@ Constants: `formatVersion` (1), `lookahead` (8 days), `maxEpisodes` (80), and th
 - **Side effects:** Cancels and restarts a `Timer` that calls [`refresh`](#refresh).
 - **Algorithm:** No-op on unsupported platforms.
 - **Usage:** `AnimeStorage._writeData`, the `AutoSyncService` resume hook and local-data-changed
-  callback, and `AppSettingsNotifier.setLocale` / `setHomeCalendarTimeBasis`.
+  callback, and `AppSettingsNotifier.setLocale` / `setHomeCalendarTimeBasis` / `setWidgetTextScale`.
 - **Notes:** Debouncing collapses bursts such as a sync applying many records.
 
 ### `static Future<void> refresh()` <a id="refresh"></a>
@@ -57,11 +70,12 @@ Constants: `formatVersion` (1), `lookahead` (8 days), `maxEpisodes` (80), and th
 - **Purpose:** Rebuild the snapshot and redraw the widgets.
 - **Inputs:** None.
 - **Returns:** `Future<void>`.
-- **Side effects:** Reads `anime_data.json` (`AnimeStorage.load`) and the `homeCalendarTimeBasis`
-  and locale keys of `storage_config.json`; invokes `update` on the channel, which stores the JSON
+- **Side effects:** Reads `anime_data.json` (`AnimeStorage.load`) and the `homeCalendarTimeBasis`,
+  `widgetTextScale` and locale keys of `storage_config.json`; invokes `update` on the channel, which stores the JSON
   natively and redraws every placed widget.
 - **Algorithm:** Load → resolve the time basis (`'local'` or JST) → resolve localizations →
-  [`buildSnapshot`](#buildsnapshot) with `DateTime.now().toUtc()` and [`labelsFor`](#labelsfor) →
+  [`buildSnapshot`](#buildsnapshot) with `DateTime.now().toUtc()`, [`labelsFor`](#labelsfor) and the
+  stored text scale →
   `jsonEncode` → `invokeMethod('update', {'snapshot': json})`.
 - **Usage:** Through [`notifyDataChanged`](#notifydatachanged) and [`init`](#init).
 - **Notes:** Every failure is logged and swallowed; a stale widget is harmless.
@@ -79,13 +93,14 @@ Constants: `formatVersion` (1), `lookahead` (8 days), `maxEpisodes` (80), and th
 - **Usage:** [`refresh`](#refresh).
 - **Notes:** `appName` is always `MyAnime`.
 
-### `static Map<String, dynamic> buildSnapshot(List<Anime> animeList, {required DateTime nowUtc, required HomeCalendarTimeBasis basis, required Map<String, String> labels})` <a id="buildsnapshot"></a>
+### `static Map<String, dynamic> buildSnapshot(List<Anime> animeList, {required DateTime nowUtc, required HomeCalendarTimeBasis basis, required Map<String, String> labels, double textScale = 1.0})` <a id="buildsnapshot"></a>
 - **Kind:** static method of `HomeWidgetService`
 - **Source:** `lib/shared/services/home_widget_service.dart`
 - **Purpose:** Build the version-1 snapshot.
-- **Inputs:** `animeList`; `nowUtc`; `basis` — which calendar day counts as today; `labels`.
+- **Inputs:** `animeList`; `nowUtc`; `basis` — which calendar day counts as today; `labels`;
+  `textScale` — the widget text size multiplier (1.9.4).
 - **Returns:** A JSON-ready map with `v`, `generatedAt`, `timeZone`, `airedUnwatched`,
-  `queueSize`, `episodes` and `labels`.
+  `queueSize`, `episodes`, `labels` and `textScale` (clamped).
 - **Side effects:** None.
 - **Algorithm:** For every anime, walk `startEpisode..(endEpisode ?? startEpisode)` like the Home
   tab. For each episode with an air time, convert it with [`jstToUtc`](#jsttoutc); count it in
@@ -93,7 +108,8 @@ Constants: `formatVersion` (1), `lookahead` (8 days), `maxEpisodes` (80), and th
   otherwise keep it when it airs between [`_startOfToday`](#_startoftoday) and `now + lookahead`.
   Sort both lists by air time, keep queue entries first up to `maxEpisodes`, then sort the result
   by air time. `w` is true for any status other than unwatched.
-- **Usage:** [`refresh`](#refresh); `test/home_widget_service_test.dart`.
+- **Usage:** [`refresh`](#refresh); the settings preview (`HomeWidgetPreview`);
+  `test/home_widget_service_test.dart`.
 - **Notes:** The native recount (`toWatch = airedUnwatched + newly aired unwatched entries`)
   relies on every episode after `generatedAt` up to the lookahead being present.
 

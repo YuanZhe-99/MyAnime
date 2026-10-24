@@ -25,7 +25,7 @@ its status is unwatched and its air time (Japan time, blank air time = 23:59 JST
 - A large **to-watch episode count**, with the number of series behind it.
 - Up to two rows of the **watch queue**: per anime, its earliest unwatched aired episode, oldest air
   time first — the same rows as the Home tab's *Unwatched* list. Android shows the second row only
-  when the widget is at least 150 dp tall.
+  when the widget is at least 150 dp tall (scaled by the text size, see below).
 - When nothing is left to watch, the count becomes *All caught up* and the row shows the next
   airing episode with its time (today: `HH:mm`; later: weekday + `HH:mm`).
 
@@ -36,6 +36,21 @@ its status is unwatched and its air time (Japan time, blank air time = 23:59 JST
   airing episode or *Nothing airs today*.
 
 Tapping either widget opens the app.
+
+### Text size
+
+**Settings › Home-screen widgets › Widget text size** (1.9.4, Android and iOS only) scales every
+text in both widgets from 90% to 150% in 10% steps; the default is 100%. A live preview of the 2×2
+widget and the 2×1 strip, drawn from the real library by `HomeWidgetPreview`
+(`lib/features/settings/widgets/home_widget_preview.dart`), sits under the slider and redraws as it
+moves; the placed widgets follow through the usual debounced refresh. The preview approximates the
+native widgets in the app's colors rather than copying either platform pixel for pixel.
+
+To keep larger text inside a fixed cell, Android needs `150 dp × scale` of height before it shows a
+second queue row, and the iOS 2×2 widget drops to one row above 120%. The iOS lock-screen
+rectangle scales too, with `minimumScaleFactor` letting its first line shrink back to fit. The value
+is the device-local `widgetTextScale` key in `storage_config.json` (see
+[`../data-formats.md`](../data-formats.md)).
 
 "Today" uses the Home calendar's time basis: Japan time by default, the device's local day when
 **Settings › Home Calendar Time › Local Time** is chosen. Displayed air times use the same zone.
@@ -72,7 +87,7 @@ side, which stores it and redraws:
 - any library save (`AnimeStorage._writeData`),
 - a sync download or backup restore (the `AutoSyncService` local-data-changed callback),
 - the app resuming,
-- a change of UI language or calendar time basis.
+- a change of UI language, calendar time basis or widget text size.
 
 ### Staying correct while the app is closed
 
@@ -106,7 +121,8 @@ nextUp  = the earliest entry with !w and at > now
   "labels": {
     "appName": "MyAnime", "toWatch": "…", "today": "…", "caughtUp": "…",
     "noUpdates": "…", "next": "…", "episode": "EP {n}", "series": "{n} series"
-  }
+  },
+  "textScale": 1.0
 }
 ```
 
@@ -116,6 +132,8 @@ nextUp  = the earliest entry with !w and at > now
 - `episodes` — per anime its earliest unwatched aired episode (the queue entry), plus every episode
   from the start of today to 8 days ahead; at most 80 entries, queue entries first. `w` is true for
   watched or skipped episodes.
+- `textScale` — the widget text size multiplier, 0.9–1.5 (1.9.4). Older snapshots lack it, and both
+  native readers then use 1.0 and clamp any value to the same range. Adding it did not change `v`.
 - `labels` — the widget wording, resolved from the ARB files in the app's language; `{n}` is
   replaced natively. Only the widget-picker name and description live in native resources
   (`res/values*/widget_strings.xml` on Android, `galleryText` in the Swift file on iOS).

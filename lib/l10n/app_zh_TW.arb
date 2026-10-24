@@ -847,5 +847,8 @@
   "widgetNoUpdatesToday": "今日無更新",
   "widgetNext": "接下來",
   "widgetEpisode": "第{number}集",
-  "widgetSeriesCount": "{count} 部"
+  "widgetSeriesCount": "{count} 部",
+  "settingsWidgets": "桌面小工具",
+  "settingsWidgetTextSize": "小工具字級",
+  "settingsWidgetTextSizeDesc": "下方為預覽；桌面上的小工具會在幾秒內更新。"
 }

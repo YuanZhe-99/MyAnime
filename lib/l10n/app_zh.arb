@@ -849,5 +849,8 @@
   "widgetNoUpdatesToday": "今日无更新",
   "widgetNext": "接下来",
   "widgetEpisode": "第{number}集",
-  "widgetSeriesCount": "{count} 部"
+  "widgetSeriesCount": "{count} 部",
+  "settingsWidgets": "桌面小组件",
+  "settingsWidgetTextSize": "小组件字号",
+  "settingsWidgetTextSizeDesc": "下方为预览；桌面上的小组件会在几秒内更新。"
 }

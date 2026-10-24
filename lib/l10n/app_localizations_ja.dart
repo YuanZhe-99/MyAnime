@@ -2555,4 +2555,14 @@ class AppLocalizationsJa extends AppLocalizations {
   String widgetSeriesCount(String count) {
     return '$count 作品';
   }
+
+  @override
+  String get settingsWidgets => 'ホーム画面ウィジェット';
+
+  @override
+  String get settingsWidgetTextSize => 'ウィジェットの文字サイズ';
+
+  @override
+  String get settingsWidgetTextSizeDesc =>
+      '下にプレビューを表示します。ホーム画面のウィジェットは数秒で更新されます。';
 }

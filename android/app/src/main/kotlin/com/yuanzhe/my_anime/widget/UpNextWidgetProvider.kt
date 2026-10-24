@@ -54,8 +54,19 @@ class UpNextWidgetProvider : AppWidgetProvider() {
     }
 
     companion object {
-        /** Minimum widget height, in dp, that fits two queue rows. */
+        /** Minimum widget height, in dp, that fits two queue rows at 100% text. */
         private const val TWO_ROW_MIN_HEIGHT_DP = 150
+
+        /** Text views and their layout sizes in sp at 100%; `count` is sized per state. */
+        private val SCALED_TEXT = listOf(
+            R.id.app_name to 12f,
+            R.id.today_pill to 11f,
+            R.id.count_label to 12f,
+            R.id.row1_title to 13f,
+            R.id.row1_meta to 12f,
+            R.id.row2_title to 13f,
+            R.id.row2_meta to 12f,
+        )
 
         /**
          * Purpose: Build the 2x2 RemoteViews for a state.
@@ -63,24 +74,28 @@ class UpNextWidgetProvider : AppWidgetProvider() {
          * Returns: `RemoteViews`.
          * Side effects: None.
          * Notes: Caught up shows the label instead of a zero; with an empty
-         * queue the row shows the next airing episode instead.
+         * queue the row shows the next airing episode instead. Text sizes and
+         * the two-row height threshold grow with the snapshot's text scale.
          */
         fun render(context: Context, state: UpNextState, options: Bundle?): RemoteViews {
             val now = System.currentTimeMillis()
             val views = RemoteViews(context.packageName, R.layout.widget_up_next)
             views.setOnClickPendingIntent(R.id.widget_root, launchIntent(context))
+            for ((id, base) in SCALED_TEXT) {
+                views.setTextViewTextSize(id, TypedValue.COMPLEX_UNIT_SP, state.sp(base))
+            }
             views.setTextViewText(R.id.app_name, state.label("appName"))
             views.setTextViewText(R.id.today_pill, "${state.label("today")} ${state.todayCount}")
 
             if (state.toWatch > 0) {
-                views.setTextViewTextSize(R.id.count, TypedValue.COMPLEX_UNIT_SP, 36f)
+                views.setTextViewTextSize(R.id.count, TypedValue.COMPLEX_UNIT_SP, state.sp(36f))
                 views.setTextViewText(R.id.count, state.toWatch.toString())
                 views.setTextViewText(
                     R.id.count_label,
                     "${state.label("toWatch")} · ${state.series(state.queue.size)}",
                 )
             } else {
-                views.setTextViewTextSize(R.id.count, TypedValue.COMPLEX_UNIT_SP, 20f)
+                views.setTextViewTextSize(R.id.count, TypedValue.COMPLEX_UNIT_SP, state.sp(20f))
                 views.setTextViewText(R.id.count, state.label("caughtUp"))
                 views.setTextViewText(
                     R.id.count_label,
@@ -89,7 +104,8 @@ class UpNextWidgetProvider : AppWidgetProvider() {
             }
 
             val minHeight = options?.getInt(AppWidgetManager.OPTION_APPWIDGET_MIN_HEIGHT) ?: 0
-            val rowCount = if (minHeight == 0 || minHeight >= TWO_ROW_MIN_HEIGHT_DP) 2 else 1
+            val twoRowHeight = TWO_ROW_MIN_HEIGHT_DP * state.textScale
+            val rowCount = if (minHeight == 0 || minHeight >= twoRowHeight) 2 else 1
             val rows = if (state.queue.isNotEmpty()) {
                 state.queue.take(rowCount).map { it.title to state.episode(it.episode) }
             } else {

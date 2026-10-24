@@ -110,6 +110,9 @@ class AppSettingsNotifier extends StateNotifier<AppSettings> {
     final autoCategoriesEnabled = await AnimeStorage.getAutoCategoriesEnabled();
     final recommendationsEnabled =
         await AnimeStorage.getRecommendationsEnabled();
+    final widgetTextScale = HomeWidgetService.clampTextScale(
+      await AnimeStorage.getWidgetTextScale(),
+    );
 
     final themeMode = switch (modeStr) {
       'light' => ThemeMode.light,
@@ -143,6 +146,7 @@ class AppSettingsNotifier extends StateNotifier<AppSettings> {
       onDeviceAiPreferFast: onDeviceAiPreferFast,
       autoCategoriesEnabled: autoCategoriesEnabled,
       recommendationsEnabled: recommendationsEnabled,
+      widgetTextScale: widgetTextScale,
     );
     CategoryClassifier.instance.enabled = autoCategoriesEnabled;
     // The service holds no preference of its own; it is told once here and
@@ -219,6 +223,19 @@ class AppSettingsNotifier extends StateNotifier<AppSettings> {
     AnimeStorage.setHomeCalendarTimeBasis(
       basis == HomeCalendarTimeBasis.jst ? null : basis.name,
     );
+    HomeWidgetService.notifyDataChanged();
+  }
+
+  /// Purpose: Update the home-screen widget text scale (1.9.4).
+  /// Inputs: `scale` — clamped to the supported range.
+  /// Returns: None.
+  /// Side effects: Persists the scale and schedules a widget refresh.
+  /// Notes: The in-app preview reads the state directly; the native widgets
+  /// pick it up from the next snapshot.
+  void setWidgetTextScale(double scale) {
+    final clamped = HomeWidgetService.clampTextScale(scale);
+    state = state.copyWith(widgetTextScale: clamped);
+    AnimeStorage.setWidgetTextScale(clamped);
     HomeWidgetService.notifyDataChanged();
   }
 
@@ -454,8 +471,11 @@ class AppSettings {
   /// Whether recommendations are on. Off by default.
   final bool recommendationsEnabled;
 
+  /// Text scale of the home-screen widgets (1.9.4). 1.0 by default.
+  final double widgetTextScale;
+
   /// Purpose: Create a app settings instance.
-  /// Inputs: `themeMode`, `locale`, `weekStartDay`, `homeCalendarLayout`, `homeCalendarTimeBasis`, `homeCalendarFormat`, `homeListColumns`, `manageListColumns`, `manageViewMode`, `manageSeriesSort`, `statsListColumns`, `kanaTabEnabled`, `uiStyle`, `navPlacement`, `navRailOnRight`, `onDeviceAiEnabled`, `onDeviceAiPreferFast`, `autoCategoriesEnabled`, `recommendationsEnabled`.
+  /// Inputs: `themeMode`, `locale`, `weekStartDay`, `homeCalendarLayout`, `homeCalendarTimeBasis`, `homeCalendarFormat`, `homeListColumns`, `manageListColumns`, `manageViewMode`, `manageSeriesSort`, `statsListColumns`, `kanaTabEnabled`, `uiStyle`, `navPlacement`, `navRailOnRight`, `onDeviceAiEnabled`, `onDeviceAiPreferFast`, `autoCategoriesEnabled`, `recommendationsEnabled`, `widgetTextScale`.
   /// Returns: A new `AppSettings` instance.
   /// Side effects: None.
   /// Notes: `weekStartDay` stores the local-calendar preference; Japanese layout uses Sunday effectively.
@@ -479,6 +499,7 @@ class AppSettings {
     this.onDeviceAiPreferFast = false,
     this.autoCategoriesEnabled = false,
     this.recommendationsEnabled = false,
+    this.widgetTextScale = 1.0,
   });
 
   /// Purpose: Return the week start day that should be applied to calendars.
@@ -492,7 +513,7 @@ class AppSettings {
       : weekStartDay;
 
   /// Purpose: Create a copy with selected fields replaced.
-  /// Inputs: `themeMode`, `locale`, `weekStartDay`, `homeCalendarLayout`, `homeCalendarTimeBasis`, `homeCalendarFormat`, `homeListColumns`, `manageListColumns`, `manageViewMode`, `manageSeriesSort`, `statsListColumns`, `kanaTabEnabled`, `uiStyle`, `navPlacement`, `navRailOnRight`, `onDeviceAiEnabled`, `onDeviceAiPreferFast`, `autoCategoriesEnabled`, `recommendationsEnabled`, `clearLocale`.
+  /// Inputs: `themeMode`, `locale`, `weekStartDay`, `homeCalendarLayout`, `homeCalendarTimeBasis`, `homeCalendarFormat`, `homeListColumns`, `manageListColumns`, `manageViewMode`, `manageSeriesSort`, `statsListColumns`, `kanaTabEnabled`, `uiStyle`, `navPlacement`, `navRailOnRight`, `onDeviceAiEnabled`, `onDeviceAiPreferFast`, `autoCategoriesEnabled`, `recommendationsEnabled`, `widgetTextScale`, `clearLocale`.
   /// Returns: `AppSettings`.
   /// Side effects: None.
   /// Notes: None.
@@ -516,6 +537,7 @@ class AppSettings {
     bool? onDeviceAiPreferFast,
     bool? autoCategoriesEnabled,
     bool? recommendationsEnabled,
+    double? widgetTextScale,
     bool clearLocale = false,
   }) {
     return AppSettings(
@@ -541,6 +563,7 @@ class AppSettings {
           autoCategoriesEnabled ?? this.autoCategoriesEnabled,
       recommendationsEnabled:
           recommendationsEnabled ?? this.recommendationsEnabled,
+      widgetTextScale: widgetTextScale ?? this.widgetTextScale,
     );
   }
 }

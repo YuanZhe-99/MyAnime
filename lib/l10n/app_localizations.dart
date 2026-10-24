@@ -4690,6 +4690,24 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'{count} series'**
   String widgetSeriesCount(String count);
+
+  /// No description provided for @settingsWidgets.
+  ///
+  /// In en, this message translates to:
+  /// **'Home-screen widgets'**
+  String get settingsWidgets;
+
+  /// Settings: slider that scales the text of the home-screen widgets.
+  ///
+  /// In en, this message translates to:
+  /// **'Widget text size'**
+  String get settingsWidgetTextSize;
+
+  /// No description provided for @settingsWidgetTextSizeDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'Preview below; widgets on your home screen update within a few seconds.'**
+  String get settingsWidgetTextSizeDesc;
 }
 
 class _AppLocalizationsDelegate

@@ -1,5 +1,12 @@
 # 版本历史
 
+## 1.9.4 — 小组件字号（2026-10-24）
+
+桌面小组件的文字现在可以调大：**设置 › 桌面小组件 › 小组件字号**把两个小组件按 90% 到 150% 缩放，滑块下方实时预览
+2×2 小组件和 2×1 横条。倍数以 `textScale` 写入小组件快照，由 Android RemoteViews 和 iOS WidgetKit 视图应用；字号较大时
+2×2 小组件只显示一行队列。按设备存为 `widgetTextScale`。见
+[`features/home-screen-widgets.md`](features/home-screen-widgets.md#字号)。
+
 ## 1.9.3 — 修复 Android 2×2 小组件（2026-10-24）
 
 Android 的 2×2 小组件无法添加（"Couldn't add widget"）：布局里用了一个普通 `<View>` 作占位，RemoteViews

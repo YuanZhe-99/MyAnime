@@ -764,6 +764,32 @@ class AnimeStorage {
     });
   }
 
+  /// Purpose: Return the home-screen widget text scale (1.9.4).
+  /// Inputs: None.
+  /// Returns: `Future<double>` — 1.0 when unset or not a number.
+  /// Side effects: Reads `storage_config.json`.
+  /// Notes: Callers clamp it with `HomeWidgetService.clampTextScale`.
+  static Future<double> getWidgetTextScale() async {
+    final config = await readConfig();
+    final value = config['widgetTextScale'];
+    return value is num ? value.toDouble() : 1.0;
+  }
+
+  /// Purpose: Persist the home-screen widget text scale (1.9.4).
+  /// Inputs: `scale`.
+  /// Returns: None.
+  /// Side effects: Writes `storage_config.json`.
+  /// Notes: The default 1.0 is removed from config rather than stored.
+  static Future<void> setWidgetTextScale(double scale) async {
+    await updateConfig((config) {
+      if (scale == 1.0) {
+        config.remove('widgetTextScale');
+      } else {
+        config['widgetTextScale'] = scale;
+      }
+    });
+  }
+
   /// Purpose: Return the stored interface style name (1.7.1).
   /// Inputs: None.
   /// Returns: `Future<String?>` — `'material3'`, or null for the default

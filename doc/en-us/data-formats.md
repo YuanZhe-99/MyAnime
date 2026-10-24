@@ -409,6 +409,7 @@ migrates data files, backups, and images.
 | On-device AI switch and model-size preference | `storage_config.json` | No | Device-specific `onDeviceAiEnabled` and `onDeviceAiPreferFast` (Android); absent means off (1.6.0) |
 | Automatic categories | `storage_config.json` | No | Device-specific `autoCategoriesEnabled`; absent means off (1.6.0) |
 | Recommendations | `storage_config.json` | No | Device-specific `recommendationsEnabled`; absent means off (1.6.0) |
+| Home-screen widget text size | `storage_config.json` | No | Device-specific `widgetTextScale` (1.9.4): a number from 0.9 to 1.5; absent means 1.0. Copied into the widget snapshot as `textScale` |
 | WebDAV configuration | `webdav_config.json` | No | Local secret/config only |
 | Sync base snapshots | `.sync_base/anime_data.json`, `.sync_base/recommendations.json`, `.sync_base/playback_progress.json`, `.sync_base/profile.json` | No | Local merge tracking, one per module |
 | Local backups | `backups/backup_*.json` | No | Local recovery; v2 bundles reference deduplicated image blobs |

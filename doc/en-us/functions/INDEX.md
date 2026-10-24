@@ -160,7 +160,7 @@ that carry a `/// Purpose:` comment. See [../on-device-ai.md](../on-device-ai.md
 | `lib/features/anime/models/anime.dart` | [features/anime/models/anime.md](features/anime/models/anime.md) | 84 | 68 |
 | `lib/features/anime/models/anime_category.dart` | [features/anime/models/anime_category.md](features/anime/models/anime_category.md) | 2 | 1 |
 | `lib/features/anime/models/metadata_update.dart` | [features/anime/models/metadata_update.md](features/anime/models/metadata_update.md) | 22 | 9 |
-| `lib/features/anime/services/anime_storage.dart` | [features/anime/services/anime_storage.md](features/anime/services/anime_storage.md) | 70 | 54 |
+| `lib/features/anime/services/anime_storage.dart` | [features/anime/services/anime_storage.md](features/anime/services/anime_storage.md) | 72 | 56 |
 | `lib/features/anime/services/manage_grouping.dart` | [features/anime/services/manage_grouping.md](features/anime/services/manage_grouping.md) | 5 | 1 |
 | `lib/features/anime/services/anime1_service.dart` | [features/anime/services/anime1_service.md](features/anime/services/anime1_service.md) | 31 | 17 |
 | `lib/features/anime/services/anime_search_service.dart` | [features/anime/services/anime_search_service.md](features/anime/services/anime_search_service.md) | 71 | 48 |
@@ -246,6 +246,7 @@ Recommendations (1.6.0, M5); the synced trash bins, the related list and the tra
 | `lib/features/settings/views/license_page.dart` | [features/settings/views/license_page.md](features/settings/views/license_page.md) | 2 | 0 |
 | `lib/features/settings/views/privacy_policy_page.dart` | [features/settings/views/privacy_policy_page.md](features/settings/views/privacy_policy_page.md) | 3 | 1 |
 | `lib/features/settings/views/settings_page.dart` | [features/settings/views/settings_page.md](features/settings/views/settings_page.md) | 28 | 20 |
+| `lib/features/settings/widgets/home_widget_preview.dart` | [features/settings/widgets/home_widget_preview.md](features/settings/widgets/home_widget_preview.md) | 13 | 6 |
 
 ## l10n/
 
@@ -256,7 +257,7 @@ the 771 hand-documented declarations above).
 
 | Source file | Page | Declarations | Tier A count |
 |---|---|---|---|
-| `lib/shared/providers/app_settings.dart` | [shared/providers/app_settings.md](shared/providers/app_settings.md) | 29 | 18 |
+| `lib/shared/providers/app_settings.dart` | [shared/providers/app_settings.md](shared/providers/app_settings.md) | 30 | 19 |
 | `lib/shared/utils/adaptive_layout.dart` | [shared/utils/adaptive_layout.md](shared/utils/adaptive_layout.md) | 13 | 13 |
 | `lib/shared/utils/calendar_preferences.dart` | [shared/utils/calendar_preferences.md](shared/utils/calendar_preferences.md) | 4 | 4 |
 | `lib/shared/utils/chinese_convert.dart` | [shared/utils/chinese_convert.md](shared/utils/chinese_convert.md) | 5 | 4 |
@@ -281,7 +282,7 @@ the 771 hand-documented declarations above).
 | `lib/shared/services/duplicate_service.dart` | [shared/services/duplicate_service.md](shared/services/duplicate_service.md) | 17 | 12 |
 | `lib/shared/services/file_open_service.dart` | [shared/services/file_open_service.md](shared/services/file_open_service.md) | 21 | 17 |
 | `lib/shared/services/reminder_service.dart` | [shared/services/reminder_service.md](shared/services/reminder_service.md) | 9 | 8 |
-| `lib/shared/services/home_widget_service.dart` | [shared/services/home_widget_service.md](shared/services/home_widget_service.md) | 10 | 7 |
+| `lib/shared/services/home_widget_service.dart` | [shared/services/home_widget_service.md](shared/services/home_widget_service.md) | 11 | 8 |
 | `lib/shared/services/import_export_service.dart` | [shared/services/import_export_service.md](shared/services/import_export_service.md) | 6 | 4 |
 | `lib/shared/services/tray_service.dart` | [shared/services/tray_service.md](shared/services/tray_service.md) | 16 | 8 |
 | `lib/shared/services/image_service.dart` | [shared/services/image_service.md](shared/services/image_service.md) | 6 | 6 |
@@ -295,18 +296,24 @@ the 771 hand-documented declarations above).
 | Root (`lib/`) | 1 | 1 | 1 | 0 |
 | `app/` | 5 | 33 | 25 | 8 |
 | `features/ai/` | 14 | 81 | 8 | 73 |
-| `features/anime/` | 34 | 820 | 389 | 431 |
+| `features/anime/` | 34 | 822 | 391 | 431 |
 | `features/categories/` | 2 | 18 | 11 | 7 |
 | `features/kana/` | 1 | 19 | 3 | 16 |
 | `features/profile/` | 8 | 66 | 32 | 34 |
 | `features/recommendations/` | 11 | 155 | 65 | 90 |
-| `features/settings/` | 4 | 49 | 28 | 21 |
-| `shared/` (utils, widgets, providers, services, views) | 32 | 332 | 248 | 84 |
-| **Total** | **113** | **1575** | **811** | **764** |
+| `features/settings/` | 5 | 62 | 34 | 28 |
+| `shared/` (utils, widgets, providers, services, views) | 32 | 334 | 250 | 84 |
+| **Total** | **114** | **1592** | **821** | **771** |
 
 The home-screen widget change added one file, `home_widget_service.dart` (10 declarations, 7 Tier A,
 3 Tier B); `anime_storage.dart`, `app_settings.dart`, `auto_sync_service.dart` and `main.dart`
 changed without a new declaration. The historical extraction totals above were not recounted.
+
+The 1.9.4 widget text-size change added one file, `home_widget_preview.dart` (13 declarations, 6 Tier A,
+7 Tier B), and four declarations in changed files, all Tier A: `anime_storage.dart` +2
+(`getWidgetTextScale`, `setWidgetTextScale`), `app_settings.dart` +1 (`setWidgetTextScale`) and
+`home_widget_service.dart` +1 (`clampTextScale`); `settings_page.dart` changed without a new
+declaration.
 
 
 ## Anime1 episode playback (1.6.4)

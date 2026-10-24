@@ -3,6 +3,7 @@ package com.yuanzhe.my_anime.widget
 import android.appwidget.AppWidgetManager
 import android.appwidget.AppWidgetProvider
 import android.content.Context
+import android.util.TypedValue
 import android.widget.RemoteViews
 import com.yuanzhe.my_anime.R
 
@@ -33,11 +34,15 @@ class UpNextStripWidgetProvider : AppWidgetProvider() {
          * Side effects: None.
          * Notes: Line 1 is the first queued title (or "caught up"); line 2 is
          * its episode plus today's update count, or the next airing episode.
+         * Text sizes are the layout's, times the snapshot's text scale.
          */
         fun render(context: Context, state: UpNextState): RemoteViews {
             val now = System.currentTimeMillis()
             val views = RemoteViews(context.packageName, R.layout.widget_up_next_strip)
             views.setOnClickPendingIntent(R.id.widget_root, UpNextWidgetProvider.launchIntent(context))
+            views.setTextViewTextSize(R.id.count, TypedValue.COMPLEX_UNIT_SP, state.sp(18f))
+            views.setTextViewTextSize(R.id.line1, TypedValue.COMPLEX_UNIT_SP, state.sp(14f))
+            views.setTextViewTextSize(R.id.line2, TypedValue.COMPLEX_UNIT_SP, state.sp(12f))
             views.setTextViewText(R.id.count, if (state.toWatch > 0) state.toWatch.toString() else "✓")
             val today = "${state.label("today")} ${state.todayCount}"
             val first = state.queue.firstOrNull()

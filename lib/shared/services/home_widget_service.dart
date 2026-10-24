@@ -41,7 +41,23 @@ class HomeWidgetService {
   /// Cap on episode entries, keeping the shared store small.
   static const maxEpisodes = 80;
 
+  /// Smallest and largest widget text scale the settings slider offers.
+  static const minTextScale = 0.9;
+  static const maxTextScale = 1.5;
+
   static Timer? _debounce;
+
+  /// Purpose: Clamp a widget text scale to the supported range.
+  /// Inputs: `scale`.
+  /// Returns: The scale within [minTextScale]..[maxTextScale], rounded to
+  /// one decimal; 1.0 for a non-finite value.
+  /// Side effects: None.
+  /// Notes: Rounding keeps slider steps exact when stored and compared.
+  static double clampTextScale(double scale) {
+    if (!scale.isFinite) return 1.0;
+    final clamped = scale.clamp(minTextScale, maxTextScale).toDouble();
+    return (clamped * 10).roundToDouble() / 10;
+  }
 
   /// Purpose: Whether this platform has home-screen widgets.
   /// Inputs: None.
@@ -67,7 +83,7 @@ class HomeWidgetService {
   /// Returns: None.
   /// Side effects: Starts a 2-second timer that calls [refresh].
   /// Notes: Called from library saves, sync/restore reloads, app resume, and
-  /// the locale and calendar-time-basis settings.
+  /// the locale, calendar-time-basis and widget-text-size settings.
   static void notifyDataChanged() {
     if (!isSupported) return;
     _debounce?.cancel();
@@ -93,6 +109,7 @@ class HomeWidgetService {
         nowUtc: DateTime.now().toUtc(),
         basis: basis,
         labels: labelsFor(l10n),
+        textScale: clampTextScale(await AnimeStorage.getWidgetTextScale()),
       );
       await _channel.invokeMethod<void>('update', {
         'snapshot': jsonEncode(snapshot),
@@ -121,7 +138,8 @@ class HomeWidgetService {
 
   /// Purpose: Build the widget snapshot for a library at a given instant.
   /// Inputs: `animeList`; `nowUtc`; `basis` — which calendar day counts as
-  /// "today"; `labels` from [labelsFor].
+  /// "today"; `labels` from [labelsFor]; `textScale` — the widget text size
+  /// multiplier, written as `textScale`.
   /// Returns: The JSON-ready snapshot map (format version [formatVersion]).
   /// Side effects: None.
   /// Notes: Per anime it keeps the earliest unwatched aired episode (the
@@ -134,6 +152,7 @@ class HomeWidgetService {
     required DateTime nowUtc,
     required HomeCalendarTimeBasis basis,
     required Map<String, String> labels,
+    double textScale = 1.0,
   }) {
     final now = nowUtc.toUtc();
     final windowStart = _startOfToday(now, basis);
@@ -184,6 +203,7 @@ class HomeWidgetService {
       'queueSize': queue.length,
       'episodes': episodes,
       'labels': labels,
+      'textScale': clampTextScale(textScale),
     };
   }
 

@@ -54,6 +54,8 @@
 | [`setMetadataPrefetchCovers`](#setmetadataprefetchcovers) | 静态方法（`AnimeStorage`） | A | 持久化是否预下载候选封面。 |
 | [`getKanaTabEnabled`](#getkanatabenabled) | 静态方法（`AnimeStorage`） | A | 读取是否显示五十音速查标签。 |
 | [`setKanaTabEnabled`](#setkanatabenabled) | 静态方法（`AnimeStorage`） | A | 持久化是否显示五十音速查标签。 |
+| [`getWidgetTextScale`](#getwidgettextscale) | 静态方法（`AnimeStorage`） | A | 读取桌面小组件的字号缩放（1.9.4）。 |
+| [`setWidgetTextScale`](#setwidgettextscale) | 静态方法（`AnimeStorage`） | A | 持久化桌面小组件的字号缩放（1.9.4）。 |
 | [`getUiStyle`](#getuistyle) | 静态方法（`AnimeStorage`） | A | 读取已存储的界面风格名称，并迁移 1.7.0 的 `classicNavBar` 键（1.7.1；取代 `getFloatingNavBar`）。 |
 | [`setUiStyle`](#setuistyle) | 静态方法（`AnimeStorage`） | A | 持久化界面风格并丢弃被取代的 `classicNavBar` 键（1.7.1；取代 `setFloatingNavBar`）。 |
 | [`getNavPlacement`](#getnavplacement) | 静态方法（`AnimeStorage`） | A | 读取已存储的导航位置名称（1.7.2）。 |
@@ -627,6 +629,18 @@
 - **种类：** `AnimeStorage` 的静态方法
 - **副作用：** 写入 `storage_config.json`。
 - **备注：** 开启时写入 `kanaTabEnabled: true`，关闭时移除该键，形态与 `setMetadataPrefetchCovers` 相同。
+
+### `static Future<double> getWidgetTextScale()` <a id="getwidgettextscale"></a>
+- **种类：** `AnimeStorage` 的静态方法
+- **返回：** `Future<double>` —— `config['widgetTextScale']` 的 double 值；缺失或不是数字时为 `1.0`。
+- **副作用：** 读取 `storage_config.json`。
+- **备注：** 1.9.4 新增。调用方用 `HomeWidgetService.clampTextScale` 限定范围；由
+  `AppSettingsNotifier._loadPersisted` 和 `HomeWidgetService.refresh` 读取。
+
+### `static Future<void> setWidgetTextScale(double scale)` <a id="setwidgettextscale"></a>
+- **种类：** `AnimeStorage` 的静态方法
+- **副作用：** 写入 `storage_config.json`。
+- **备注：** 1.9.4 新增。默认值 `1.0` 时移除该键，否则写入该数值。
 
 ### `static Future<String?> getUiStyle()` <a id="getuistyle"></a>
 - **种类：** `AnimeStorage` 的静态方法

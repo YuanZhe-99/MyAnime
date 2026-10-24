@@ -28,7 +28,17 @@ data class UpNextState(
     val nextUp: WidgetEpisode?,
     val labels: Map<String, String>,
     val zone: ZoneId,
+    val textScale: Float = 1f,
 ) {
+    /**
+     * Purpose: Scale a layout text size by the user's widget text size.
+     * Inputs: `base` — the size in sp at 100%.
+     * Returns: The scaled size in sp.
+     * Side effects: None.
+     * Notes: Applied with `RemoteViews.setTextViewTextSize` in both providers.
+     */
+    fun sp(base: Float): Float = base * textScale
+
     /**
      * Purpose: Return a snapshot label, falling back to English.
      * Inputs: `key` — a key of the snapshot's `labels` object.
@@ -73,6 +83,10 @@ data class UpNextState(
     companion object {
         /** Key of the snapshot JSON in `WidgetStore`'s preferences. */
         const val SNAPSHOT_KEY = "myanime_widget_snapshot"
+
+        /** Bounds of the snapshot's `textScale`; matches `HomeWidgetService`. */
+        private const val MIN_TEXT_SCALE = 0.9f
+        private const val MAX_TEXT_SCALE = 1.5f
 
         private val FALLBACK_LABELS = mapOf(
             "appName" to "MyAnime",
@@ -141,7 +155,9 @@ data class UpNextState(
                 Instant.ofEpochMilli(it.airAt).atZone(zone).toLocalDate() == today
             }
             val nextUp = episodes.firstOrNull { !it.watched && it.airAt > now }
-            return UpNextState(toWatch, queue, todayCount, nextUp, labels, zone)
+            val textScale = json.optDouble("textScale", 1.0).toFloat()
+                .takeIf { it.isFinite() }?.coerceIn(MIN_TEXT_SCALE, MAX_TEXT_SCALE) ?: 1f
+            return UpNextState(toWatch, queue, todayCount, nextUp, labels, zone, textScale)
         }
     }
 }

@@ -47,6 +47,8 @@ struct WidgetSnapshot: Decodable {
   let airedUnwatched: Int
   let episodes: [WidgetEpisode]
   let labels: [String: String]
+  /// Widget text size multiplier (1.9.4); absent in older snapshots.
+  let textScale: Double?
 
   /// Purpose: Read and decode the stored snapshot.
   /// Inputs: None.
@@ -81,6 +83,14 @@ struct UpNextEntry: TimelineEntry {
   let nextUp: WidgetEpisode?
   let labels: [String: String]
   let zone: TimeZone
+  var textScale: CGFloat = 1
+
+  /// Purpose: Scale a font size by the user's widget text size.
+  /// Inputs: `size` — points at 100%.
+  /// Returns: The scaled size in points.
+  /// Side effects: None.
+  /// Notes: Every text in both families goes through this.
+  func pt(_ size: CGFloat) -> CGFloat { size * textScale }
 
   /// Purpose: Return a snapshot label, falling back to English.
   /// Inputs: `key`.
@@ -148,7 +158,8 @@ struct UpNextEntry: TimelineEntry {
       todayCount: todayCount,
       nextUp: episodes.first { !$0.w && $0.at > now },
       labels: snapshot.labels,
-      zone: snapshot.zone)
+      zone: snapshot.zone,
+      textScale: CGFloat(min(max(snapshot.textScale ?? 1, 0.9), 1.5)))
   }
 
   /// Sample state for the widget gallery and placeholders.
@@ -252,12 +263,13 @@ extension View {
 struct EpisodeRow: View {
   let title: String
   let meta: String
+  var scale: CGFloat = 1
 
   var body: some View {
     HStack(spacing: 4) {
-      Text(title).font(.system(size: 12, weight: .medium)).lineLimit(1)
+      Text(title).font(.system(size: 12 * scale, weight: .medium)).lineLimit(1)
       Spacer(minLength: 2)
-      Text(meta).font(.system(size: 11, weight: .semibold)).foregroundColor(brand)
+      Text(meta).font(.system(size: 11 * scale, weight: .semibold)).foregroundColor(brand)
         .lineLimit(1).fixedSize().accentable()
     }
   }
@@ -272,12 +284,12 @@ struct UpNextSmallView: View {
     VStack(alignment: .leading, spacing: 0) {
       HStack(spacing: 4) {
         Image(systemName: "play.circle.fill")
-          .font(.system(size: 13, weight: .semibold)).foregroundColor(brand).accentable()
+          .font(.system(size: entry.pt(13), weight: .semibold)).foregroundColor(brand).accentable()
         Text(entry.label("appName"))
-          .font(.system(size: 12, weight: .semibold)).foregroundColor(.secondary).lineLimit(1)
+          .font(.system(size: entry.pt(12), weight: .semibold)).foregroundColor(.secondary).lineLimit(1)
         Spacer(minLength: 4)
         Text("\(entry.label("today")) \(entry.todayCount)")
-          .font(.system(size: 11, weight: .semibold)).foregroundColor(brand).lineLimit(1)
+          .font(.system(size: entry.pt(11), weight: .semibold)).foregroundColor(brand).lineLimit(1)
           .padding(.horizontal, 7).padding(.vertical, 2)
           .background(Capsule().fill(brand.opacity(0.15)))
           .accentable()
@@ -285,15 +297,15 @@ struct UpNextSmallView: View {
       Spacer(minLength: 4)
       if entry.toWatch > 0 {
         Text("\(entry.toWatch)")
-          .font(.system(size: 40, weight: .bold, design: .rounded)).foregroundColor(brand)
+          .font(.system(size: entry.pt(40), weight: .bold, design: .rounded)).foregroundColor(brand)
           .lineLimit(1).minimumScaleFactor(0.6).accentable()
         Text("\(entry.label("toWatch")) · \(entry.series(entry.queue.count))")
-          .font(.caption2).foregroundColor(.secondary).lineLimit(1)
+          .font(.system(size: entry.pt(11))).foregroundColor(.secondary).lineLimit(1)
       } else {
         Image(systemName: "checkmark.circle.fill")
-          .font(.system(size: 26, weight: .semibold)).foregroundColor(brand).accentable()
+          .font(.system(size: entry.pt(26), weight: .semibold)).foregroundColor(brand).accentable()
         Text(entry.label("caughtUp"))
-          .font(.system(size: 15, weight: .semibold)).lineLimit(1).padding(.top, 2)
+          .font(.system(size: entry.pt(15), weight: .semibold)).lineLimit(1).padding(.top, 2)
       }
       Spacer(minLength: 4)
       rows
@@ -303,14 +315,15 @@ struct UpNextSmallView: View {
   @ViewBuilder private var rows: some View {
     if !entry.queue.isEmpty {
       VStack(alignment: .leading, spacing: 3) {
-        ForEach(Array(entry.queue.prefix(2)), id: \.self) { episode in
-          EpisodeRow(title: episode.t, meta: entry.episode(episode.e))
+        // Large text leaves room for one row only.
+        ForEach(Array(entry.queue.prefix(entry.textScale > 1.2 ? 1 : 2)), id: \.self) { episode in
+          EpisodeRow(title: episode.t, meta: entry.episode(episode.e), scale: entry.textScale)
         }
       }
     } else if let next = entry.nextUp {
-      EpisodeRow(title: next.t, meta: entry.airTime(next))
+      EpisodeRow(title: next.t, meta: entry.airTime(next), scale: entry.textScale)
     } else {
-      Text(entry.label("noUpdates")).font(.caption2).foregroundColor(.secondary).lineLimit(1)
+      Text(entry.label("noUpdates")).font(.system(size: entry.pt(11))).foregroundColor(.secondary).lineLimit(1)
     }
   }
 }
@@ -327,19 +340,20 @@ struct UpNextRectangularView: View {
           entry.toWatch > 0
             ? "\(entry.toWatch) \(entry.label("toWatch"))" : entry.label("caughtUp")
         )
-        .font(.headline).lineLimit(1)
+        .font(.system(size: entry.pt(15), weight: .semibold)).lineLimit(1)
+        .minimumScaleFactor(0.7)
       }
       .accentable()
       if let first = entry.queue.first {
-        Text(first.t).font(.system(size: 13, weight: .medium)).lineLimit(1)
+        Text(first.t).font(.system(size: entry.pt(13), weight: .medium)).lineLimit(1)
         Text("\(entry.episode(first.e)) · \(entry.label("today")) \(entry.todayCount)")
-          .font(.caption2).foregroundColor(.secondary).lineLimit(1)
+          .font(.system(size: entry.pt(11))).foregroundColor(.secondary).lineLimit(1)
       } else if let next = entry.nextUp {
-        Text(next.t).font(.system(size: 13, weight: .medium)).lineLimit(1)
+        Text(next.t).font(.system(size: entry.pt(13), weight: .medium)).lineLimit(1)
         Text("\(entry.label("next")) \(entry.airTime(next))")
-          .font(.caption2).foregroundColor(.secondary).lineLimit(1)
+          .font(.system(size: entry.pt(11))).foregroundColor(.secondary).lineLimit(1)
       } else {
-        Text(entry.label("noUpdates")).font(.caption2).foregroundColor(.secondary).lineLimit(1)
+        Text(entry.label("noUpdates")).font(.system(size: entry.pt(11))).foregroundColor(.secondary).lineLimit(1)
       }
     }
     .frame(maxWidth: .infinity, alignment: .leading)

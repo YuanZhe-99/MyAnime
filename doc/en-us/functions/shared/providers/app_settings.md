@@ -25,6 +25,7 @@ management conventions (Riverpod, no Provider/Bloc) and
 | [`AppSettingsNotifier.setWeekStartDay`](#appsettingsnotifier-setweekstartday) | method (`AppSettingsNotifier`) | A | Update the app-wide calendar week start day and persist it. |
 | [`AppSettingsNotifier.setHomeCalendarLayout`](#appsettingsnotifier-sethomecalendarlayout) | method (`AppSettingsNotifier`) | A | Update the home calendar day-name layout and persist it. |
 | [`AppSettingsNotifier.setHomeCalendarTimeBasis`](#appsettingsnotifier-sethomecalendartimebasis) | method (`AppSettingsNotifier`) | A | Update whether the home calendar date grid uses JST or local dates, and persist it. |
+| [`AppSettingsNotifier.setWidgetTextScale`](#appsettingsnotifier-setwidgettextscale) | method (`AppSettingsNotifier`) | A | Change the home-screen widget text size and refresh the widgets (1.9.4). |
 | [`AppSettingsNotifier.setHomeCalendarFormat`](#appsettingsnotifier-sethomecalendarformat) | method (`AppSettingsNotifier`) | A | Update the remembered home calendar view format and persist it. |
 | `AppSettingsNotifier.setHomeListColumns` | method (`AppSettingsNotifier`) | B | Update the remembered home list column preference and persist it. |
 | `AppSettingsNotifier.setManageListColumns` | method (`AppSettingsNotifier`) | B | Update the remembered management list column preference and persist it. |
@@ -275,6 +276,21 @@ separate rows.
   `lib/features/settings/views/settings_page.dart`, home-calendar-time-basis section).
 - **Notes:** This setting only changes which dates are shown in the home calendar grid; anime
   airing timestamps themselves remain JST-based regardless, per `AGENTS.md`.
+
+### `void setWidgetTextScale(double scale)` <a id="appsettingsnotifier-setwidgettextscale"></a>
+- **Kind:** method of `AppSettingsNotifier`
+- **Source:** `lib/shared/providers/app_settings.dart`
+- **Purpose:** Change the text size of the home-screen widgets (1.9.4).
+- **Inputs:** `scale` — a multiplier; clamped by `HomeWidgetService.clampTextScale` to 0.9–1.5 in
+  0.1 steps.
+- **Returns:** None.
+- **Side effects:** Updates `state.widgetTextScale`; calls `AnimeStorage.setWidgetTextScale`; schedules
+  a home-widget refresh so the placed widgets follow.
+- **Algorithm:** Clamp → `copyWith` → persist (fire-and-forget) → `HomeWidgetService.notifyDataChanged()`.
+- **Usage:** The *Widget text size* slider in Settings › Home-screen widgets (Android and iOS only),
+  whose `HomeWidgetPreview` redraws from `state` immediately.
+- **Notes:** `_loadPersisted` reads the stored value through the same clamp; the field defaults to
+  `1.0`.
 
 ### `void setHomeCalendarFormat(CalendarFormat format)` <a id="appsettingsnotifier-sethomecalendarformat"></a>
 - **Kind:** method of `AppSettingsNotifier`
@@ -538,3 +554,7 @@ They follow the `homeCalendarFormat` shape: loaded in `_loadPersisted` through
 `parseManageViewMode` / `parseManageSeriesSort`, written fire-and-forget through `AnimeStorage`, only
 a non-default value stored (`manageViewMode`, `manageSeriesSort` in `storage_config.json`), and no
 settings-page control — the Manage app bar's view toggle and sort menu are the only writers.
+
+1.9.4 adds `widgetTextScale`, a `double` defaulting to `1.0`: loaded in `_loadPersisted` through
+`HomeWidgetService.clampTextScale`, stored as `widgetTextScale` in `storage_config.json` only when it
+is not `1.0`, and changed by [`setWidgetTextScale`](#appsettingsnotifier-setwidgettextscale).
