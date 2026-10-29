@@ -1,5 +1,13 @@
 # 版本历史
 
+## 1.9.5 — 小组件改用 MyApps-Widget（2026-10-28）
+
+桌面小组件改为基于新的共享包 MyApps-Widget（v0.1.0，子模块 `packages/myapps_widget`）运行，MyDay 及之后的应用可以用同样的方式
+发布自己的小组件。`HomeWidgetService` 保持公开形态不变，成为 `MyAppsWidgetBridge` 之上的门面；快照现为 kind 为
+`myanime.upNext` 的外层封装，MyAnime 的字段位于 `payload` 下；应用专用的 `com.yuanzhe.my_anime/home_widget` 通道、
+`WidgetStore` 和 `AppDelegate` 中的处理代码均已移除。更新后应用运行一次之前，两个原生读取端都会回退读取 1.9.4 的快照。
+设置中的滑块和预览卡片来自 `myapps_widget_ui`。用户可见的内容没有变化。见 [`shared-widget.md`](shared-widget.md)。
+
 ## 1.9.4 — 小组件字号（2026-10-24）
 
 桌面小组件的文字现在可以调大：**设置 › 桌面小组件 › 小组件字号**把两个小组件按 90% 到 150% 缩放，滑块下方实时预览

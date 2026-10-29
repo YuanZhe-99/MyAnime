@@ -12,6 +12,7 @@ import 'package:launch_at_startup/launch_at_startup.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 
 import 'package:intl/intl.dart';
+import 'package:myapps_widget_ui/myapps_widget_ui.dart';
 
 import '../../../l10n/app_localizations.dart';
 import '../../../app/theme.dart';
@@ -1040,21 +1041,10 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
         // placed widgets follow through the debounced snapshot refresh.
         if (HomeWidgetService.isSupported)
           _buildSection(l10n.settingsWidgets, [
-            ListTile(
-              leading: const Icon(Icons.format_size),
-              title: Text(l10n.settingsWidgetTextSize),
-              subtitle: Text(l10n.settingsWidgetTextSizeDesc),
-              trailing: Text(
-                '${(settings.widgetTextScale * 100).round()}%',
-                style: Theme.of(context).textTheme.labelLarge,
-              ),
-            ),
-            Slider(
+            WidgetTextScaleControl(
               value: settings.widgetTextScale,
-              min: HomeWidgetService.minTextScale,
-              max: HomeWidgetService.maxTextScale,
-              divisions: 6,
-              label: '${(settings.widgetTextScale * 100).round()}%',
+              title: l10n.settingsWidgetTextSize,
+              subtitle: l10n.settingsWidgetTextSizeDesc,
               onChanged: notifier.setWidgetTextScale,
             ),
             Padding(

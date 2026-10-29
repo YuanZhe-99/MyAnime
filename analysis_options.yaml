@@ -13,6 +13,7 @@ analyzer:
     - packages/myapps_ui/**
     - packages/myapps_ai/**
     - packages/myapps_data/**
+    - packages/myapps_widget/**
     # Vendored platform repair; upstream style is documented in packages/VENDORED.md.
     - packages/flutter_inappwebview_macos/**
     - build/**

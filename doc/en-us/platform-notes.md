@@ -50,11 +50,13 @@ reuses the shared search service.
   *Thin Binary* to avoid Xcode's build-cycle error. Runner and the extension share the App Group
   `group.com.yuanzhe.myAnime` (`Runner/Runner.entitlements`, `UpNextWidget/UpNextWidget.entitlements`);
   a signed build needs that App Group enabled on both App IDs, while the CI `--no-codesign` build
-  does not. Runner stays at iOS 13.0 and links WidgetKit with `-weak_framework WidgetKit`, and
-  `AppDelegate` calls `WidgetCenter` only behind `#available(iOS 14.0, *)`. The
-  `com.yuanzhe.my_anime/home_widget` channel is registered in
-  `didInitializeImplicitFlutterEngine`. No widget plugin is used: `home_widget` requires iOS 14 and
-  pulls Glance/Compose into Android. See
+  does not. Runner stays at iOS 13.0 and links WidgetKit with `-weak_framework WidgetKit`. Since
+  1.9.5 the shared `myapps_widget` plugin (MyApps-Widget, registered by the generated plugin
+  registrant in `didInitializeImplicitFlutterEngine`) writes the App Group and calls `WidgetCenter`
+  behind `#available(iOS 14.0, *)`; the extension compiles
+  `packages/myapps_widget/apple/MyAppsWidgetKit/MyAppsWidgetKit.swift` through a file reference. The
+  third-party `home_widget` plugin is not used: it requires iOS 14 and pulls Glance/Compose into
+  Android. See [`shared-widget.md`](shared-widget.md) and
   [`features/home-screen-widgets.md`](features/home-screen-widgets.md).
 
 ## Android
@@ -64,9 +66,9 @@ reuses the shared search service.
   2×2; `widget/UpNextStripWidgetProvider.kt`, 2×1) registered in `AndroidManifest.xml`, with no
   extra Gradle dependency. Colors come from `res/values*/widget_colors.xml`: Material You system
   colors in `values-v31`/`values-night-v31`, seed-derived Material 3 tones below Android 12. The
-  corner radius is `system_app_widget_background_radius` on Android 12+. `MainActivity` handles the
-  `com.yuanzhe.my_anime/home_widget` channel and `WidgetStore` keeps the snapshot in the private
-  `MyAnimeWidget` shared preferences. Widget layouts may use only `@RemoteView` classes
+  corner radius is `system_app_widget_background_radius` on Android 12+. Since 1.9.5 the shared
+  `myapps_widget` plugin stores the envelope in the private `myapps_widget` shared preferences and
+  broadcasts the redraw; both providers extend its `EnvelopeWidgetProvider`. Widget layouts may use only `@RemoteView` classes
   (`FrameLayout`, `LinearLayout`, `TextView`, `ImageView`, …): a plain `<View>` spacer made the
   launcher reject the 2×2 widget with "Couldn't add widget" in 1.9.2. See
   [`features/home-screen-widgets.md`](features/home-screen-widgets.md).

@@ -76,11 +76,13 @@ side, which stores it and redraws:
 
 1. `HomeWidgetService.refresh()` (`lib/shared/services/home_widget_service.dart`) loads
    `anime_data.json`, the calendar time basis and the UI language, and builds the snapshot.
-2. It sends the JSON over the `com.yuanzhe.my_anime/home_widget` method channel (`update`).
-3. Android (`MainActivity` → `WidgetStore.push`) writes it to the private `MyAnimeWidget` shared
-   preferences and redraws every placed instance. iOS (`AppDelegate`) writes it to the
-   `group.com.yuanzhe.myAnime` App Group `UserDefaults` and calls
-   `WidgetCenter.reloadAllTimelines()`.
+2. Since 1.9.5 it publishes the snapshot as a MyApps-Widget envelope of kind `myanime.upNext`
+   through the shared `myapps_widget` plugin (see [`../shared-widget.md`](../shared-widget.md)).
+3. Android: the plugin stores it under `envelope.myanime.upNext` in the private `myapps_widget`
+   shared preferences and asks `UpNextWidgetProvider` and `UpNextStripWidgetProvider` to redraw.
+   iOS: it stores it under `myapps_widget.envelope.myanime.upNext` in the
+   `group.com.yuanzhe.myAnime` App Group `UserDefaults` and reloads the `MyAnimeUpNextWidget`
+   timelines.
 
 `HomeWidgetService.notifyDataChanged()` schedules a refresh 2 seconds after the last of:
 
@@ -106,23 +108,32 @@ nextUp  = the earliest entry with !w and at > now
 - **iOS** builds a timeline with an entry at every air time in the next 24 hours plus the next
   midnight, and asks for a new timeline after the last entry (at least one hour out).
 
-### Snapshot format (version 1)
+### Snapshot format (envelope 1, payload version 1)
+
+The envelope fields (`v`, `kind`, `pv`, `generatedAt`, `textScale`, `privacy`, `refreshAt`) and
+their reading rules belong to MyApps-Widget; MyAnime's own fields sit under `payload`.
 
 ```json
 {
   "v": 1,
+  "kind": "myanime.upNext",
+  "pv": 1,
   "generatedAt": 1769605200000,
-  "timeZone": "Asia/Tokyo",
-  "airedUnwatched": 2,
-  "queueSize": 1,
-  "episodes": [
-    { "id": "…", "t": "Title", "e": 3, "at": 1768568400000, "w": false }
-  ],
-  "labels": {
-    "appName": "MyAnime", "toWatch": "…", "today": "…", "caughtUp": "…",
-    "noUpdates": "…", "next": "…", "episode": "EP {n}", "series": "{n} series"
-  },
-  "textScale": 1.0
+  "textScale": 1.0,
+  "privacy": "normal",
+  "refreshAt": [],
+  "payload": {
+    "timeZone": "Asia/Tokyo",
+    "airedUnwatched": 2,
+    "queueSize": 1,
+    "episodes": [
+      { "id": "…", "t": "Title", "e": 3, "at": 1768568400000, "w": false }
+    ],
+    "labels": {
+      "appName": "MyAnime", "toWatch": "…", "today": "…", "caughtUp": "…",
+      "noUpdates": "…", "next": "…", "episode": "EP {n}", "series": "{n} series"
+    }
+  }
 }
 ```
 
@@ -132,21 +143,31 @@ nextUp  = the earliest entry with !w and at > now
 - `episodes` — per anime its earliest unwatched aired episode (the queue entry), plus every episode
   from the start of today to 8 days ahead; at most 80 entries, queue entries first. `w` is true for
   watched or skipped episodes.
-- `textScale` — the widget text size multiplier, 0.9–1.5 (1.9.4). Older snapshots lack it, and both
-  native readers then use 1.0 and clamp any value to the same range. Adding it did not change `v`.
+- `textScale` — the widget text size multiplier, 0.9–1.5 (1.9.4), now an envelope field that the
+  shared readers clamp to the same range. `refreshAt` is left empty: both platforms already recount
+  from `episodes`.
 - `labels` — the widget wording, resolved from the ARB files in the app's language; `{n}` is
   replaced natively. Only the widget-picker name and description live in native resources
   (`res/values*/widget_strings.xml` on Android, `galleryText` in the Swift file on iOS).
 
-The format is private to the app and its own widgets: it is device-local, never synced, never
-backed up and never shared. Changing it means bumping `v` together with both native readers.
+The payload is private to the app and its own widgets: it is device-local, never synced, never
+backed up and never shared. Changing it means bumping `pv` (`HomeWidgetService.formatVersion`)
+together with both native readers.
+
+Until 1.9.4 the same fields, plus `v`, `generatedAt` and `textScale`, were stored at the top level
+under `myanime_widget_snapshot` (Android `MyAnimeWidget` preferences, the same App Group on iOS).
+Both native readers fall back to that snapshot while no envelope exists, so widgets placed before
+the update keep their content until the app runs once.
 
 ## Platform setup
 
 - **Android** — two `<receiver>` entries in `AndroidManifest.xml`; the Kotlin lives in
-  `android/app/src/main/kotlin/com/yuanzhe/my_anime/widget/`. No extra Gradle dependency.
+  `android/app/src/main/kotlin/com/yuanzhe/my_anime/widget/`, and both providers extend the shared
+  `EnvelopeWidgetProvider`. The plugin comes in through `pubspec.yaml`; no Gradle edit.
 - **iOS** — the `UpNextWidget` app-extension target (`ios/UpNextWidget/`, deployment target iOS 14)
-  is embedded in Runner. Runner and the extension both carry the
+  is embedded in Runner and also compiles
+  `packages/myapps_widget/apple/MyAppsWidgetKit/MyAppsWidgetKit.swift` (a file reference). Runner and
+  the extension both carry the
   `group.com.yuanzhe.myAnime` App Group entitlement, which must be enabled on both App IDs before a
   signed build. Runner (iOS 13) weak-links WidgetKit. See
   [`../platform-notes.md`](../platform-notes.md#ios).

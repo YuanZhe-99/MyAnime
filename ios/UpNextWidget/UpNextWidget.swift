@@ -3,12 +3,17 @@ import WidgetKit
 
 // "Up next" widget: a 2x2 home-screen widget (systemSmall) and a compact
 // lock-screen / StandBy strip (accessoryRectangular, iOS 16+). Both render the
-// snapshot that lib/shared/services/home_widget_service.dart writes through
-// AppDelegate.swift; the format is documented in
+// MyApps-Widget envelope of kind myanime.upNext that
+// lib/shared/services/home_widget_service.dart publishes through the shared
+// myapps_widget plugin, read with MyAppsWidgetKit.swift (compiled into this
+// target from packages/myapps_widget). The payload is documented in
 // doc/en-us/features/home-screen-widgets.md.
 
 private let appGroupId = "group.com.yuanzhe.myAnime"
-private let snapshotKey = "myanime_widget_snapshot"
+/// Envelope kind; matches `HomeWidgetService.kind`.
+private let envelopeKind = "myanime.upNext"
+/// Pre-1.9.5 key, read only until the app publishes its first envelope.
+private let legacySnapshotKey = "myanime_widget_snapshot"
 private let brand = Color(red: 0x67 / 255, green: 0x3A / 255, blue: 0xB7 / 255)
 
 private let fallbackLabels: [String: String] = [
@@ -40,26 +45,43 @@ struct WidgetEpisode: Decodable, Hashable {
   var airDate: Date { Date(timeIntervalSince1970: TimeInterval(at) / 1000) }
 }
 
-/// The JSON snapshot the app stores in the App Group.
+/// MyAnime's widget data: the envelope payload plus the envelope's
+/// `generatedAt` and `textScale`.
 struct WidgetSnapshot: Decodable {
-  let generatedAt: Int64
+  /// From the envelope; top-level in a pre-1.9.5 snapshot.
+  var generatedAt: Int64?
   let timeZone: String
   let airedUnwatched: Int
   let episodes: [WidgetEpisode]
   let labels: [String: String]
-  /// Widget text size multiplier (1.9.4); absent in older snapshots.
-  let textScale: Double?
+  /// From the envelope; top-level (or absent) in a pre-1.9.5 snapshot.
+  var textScale: Double?
 
-  /// Purpose: Read and decode the stored snapshot.
+  /// Purpose: Read and decode the stored envelope.
   /// Inputs: None.
   /// Returns: The snapshot, or nil before the app first wrote one.
   /// Side effects: Reads the App Group `UserDefaults`.
-  /// Notes: A decode failure is treated as no snapshot.
+  /// Notes: A missing envelope falls back to the pre-1.9.5 snapshot so placed
+  /// widgets keep their content until the app runs; invalid, too-new or
+  /// undecodable data is treated as no snapshot.
   static func load() -> WidgetSnapshot? {
-    guard let raw = UserDefaults(suiteName: appGroupId)?.string(forKey: snapshotKey),
-      let data = raw.data(using: .utf8)
-    else { return nil }
-    return try? JSONDecoder().decode(WidgetSnapshot.self, from: data)
+    let read = WidgetEnvelopeStore.read(kind: envelopeKind, appGroupId: appGroupId)
+    switch read.status {
+    case .ok:
+      guard let envelope = read.envelope,
+        var snapshot = envelope.decodePayload(WidgetSnapshot.self)
+      else { return nil }
+      snapshot.generatedAt = envelope.generatedAt
+      snapshot.textScale = envelope.textScale
+      return snapshot
+    case .missing:
+      guard let raw = UserDefaults(suiteName: appGroupId)?.string(forKey: legacySnapshotKey),
+        let data = raw.data(using: .utf8)
+      else { return nil }
+      return try? JSONDecoder().decode(WidgetSnapshot.self, from: data)
+    case .invalid, .tooNew:
+      return nil
+    }
   }
 
   /// Purpose: Return the calendar zone that decides what "today" is.
@@ -145,7 +167,7 @@ struct UpNextEntry: TimelineEntry {
     }
     let now = Int64(date.timeIntervalSince1970 * 1000)
     let episodes = snapshot.episodes.sorted { $0.at < $1.at }
-    let newlyAired = episodes.filter { !$0.w && $0.at > snapshot.generatedAt && $0.at <= now }.count
+    let newlyAired = episodes.filter { !$0.w && $0.at > (snapshot.generatedAt ?? 0) && $0.at <= now }.count
     var seen = Set<String>()
     let queue = episodes.filter { !$0.w && $0.at <= now && seen.insert($0.id).inserted }
     var calendar = Calendar(identifier: .gregorian)
@@ -159,7 +181,7 @@ struct UpNextEntry: TimelineEntry {
       nextUp: episodes.first { !$0.w && $0.at > now },
       labels: snapshot.labels,
       zone: snapshot.zone,
-      textScale: CGFloat(min(max(snapshot.textScale ?? 1, 0.9), 1.5)))
+      textScale: CGFloat(WidgetTextScale.clamp(snapshot.textScale ?? 1)))
   }
 
   /// Sample state for the widget gallery and placeholders.
@@ -407,7 +429,7 @@ private func galleryText(_ en: String, zhHans: String, zhHant: String, ja: Strin
 }
 
 struct UpNextWidget: Widget {
-  /// Widget kind; the app reloads it with `reloadAllTimelines`.
+  /// Widget kind; matches `iosKinds` in `HomeWidgetService`, whose publishes reload it.
   let kind = "MyAnimeUpNextWidget"
 
   var body: some WidgetConfiguration {

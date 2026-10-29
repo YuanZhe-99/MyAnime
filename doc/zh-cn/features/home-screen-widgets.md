@@ -64,11 +64,12 @@ iOS 没有 2×1 的主屏尺寸，因此紧凑横条对应矩形锁屏小组件�
 
 1. `HomeWidgetService.refresh()`（`lib/shared/services/home_widget_service.dart`）加载
    `anime_data.json`、日历时间基准和界面语言，并构建快照。
-2. 它通过 `com.yuanzhe.my_anime/home_widget` method channel（`update`）发送 JSON。
-3. Android（`MainActivity` → `WidgetStore.push`）把它写入私有的 `MyAnimeWidget` shared
-   preferences，并重绘每个已放置的实例。iOS（`AppDelegate`）把它写入
-   `group.com.yuanzhe.myAnime` App Group 的 `UserDefaults`，并调用
-   `WidgetCenter.reloadAllTimelines()`。
+2. 自 1.9.5 起，它通过共享的 `myapps_widget` 插件，把快照作为 kind 为 `myanime.upNext` 的
+   MyApps-Widget 外层封装发布（见 [`../shared-widget.md`](../shared-widget.md)）。
+3. Android：插件把它存进私有的 `myapps_widget` shared preferences，键为 `envelope.myanime.upNext`，
+   并请 `UpNextWidgetProvider` 和 `UpNextStripWidgetProvider` 重绘。iOS：把它存进
+   `group.com.yuanzhe.myAnime` App Group 的 `UserDefaults`，键为 `myapps_widget.envelope.myanime.upNext`，
+   并重新加载 `MyAnimeUpNextWidget` 的时间线。
 
 `HomeWidgetService.notifyDataChanged()` 在以下事件中最后一次发生后 2 秒安排一次刷新：
 
@@ -92,23 +93,32 @@ nextUp  = the earliest entry with !w and at > now
 - **iOS** 构建一条时间线，在未来 24 小时内的每个播出时间以及下一个午夜各放一个条目，
   并在最后一个条目之后（至少一小时后）请求新的时间线。
 
-### 快照格式（第 1 版）
+### 快照格式（外层封装第 1 版，payload 第 1 版）
+
+外层封装字段（`v`、`kind`、`pv`、`generatedAt`、`textScale`、`privacy`、`refreshAt`）及其读取规则归
+MyApps-Widget 所有；MyAnime 自己的字段位于 `payload` 下。
 
 ```json
 {
   "v": 1,
+  "kind": "myanime.upNext",
+  "pv": 1,
   "generatedAt": 1769605200000,
-  "timeZone": "Asia/Tokyo",
-  "airedUnwatched": 2,
-  "queueSize": 1,
-  "episodes": [
-    { "id": "…", "t": "Title", "e": 3, "at": 1768568400000, "w": false }
-  ],
-  "labels": {
-    "appName": "MyAnime", "toWatch": "…", "today": "…", "caughtUp": "…",
-    "noUpdates": "…", "next": "…", "episode": "EP {n}", "series": "{n} series"
-  },
-  "textScale": 1.0
+  "textScale": 1.0,
+  "privacy": "normal",
+  "refreshAt": [],
+  "payload": {
+    "timeZone": "Asia/Tokyo",
+    "airedUnwatched": 2,
+    "queueSize": 1,
+    "episodes": [
+      { "id": "…", "t": "Title", "e": 3, "at": 1768568400000, "w": false }
+    ],
+    "labels": {
+      "appName": "MyAnime", "toWatch": "…", "today": "…", "caughtUp": "…",
+      "noUpdates": "…", "next": "…", "episode": "EP {n}", "series": "{n} series"
+    }
+  }
 }
 ```
 
@@ -117,19 +127,24 @@ nextUp  = the earliest entry with !w and at > now
 - `airedUnwatched` —— `generatedAt` 时刻的待看计数。
 - `episodes` —— 每部动画最早的已播出未看剧集（队列条目），加上从今天开始到 8 天后的每一集；
   最多 80 个条目，队列条目在前。已看或已跳过的剧集 `w` 为 true。
-- `textScale` —— 小组件字号倍数，0.9–1.5（1.9.4）。旧快照没有该字段，此时两个原生读取端都使用 1.0，
-  并把任何值限定在同一范围内。新增该字段没有改变 `v`。
+- `textScale` —— 小组件字号倍数，0.9–1.5（1.9.4），现为外层封装字段，由共享读取端限定在同一范围内。
+  `refreshAt` 留空：两个平台都已依据 `episodes` 重新计数。
 - `labels` —— 小组件文案，按应用语言从 ARB 文件解析；`{n}` 由原生端替换。只有小组件选择器中的名称和描述
   放在原生资源里（Android 上为 `res/values*/widget_strings.xml`，iOS 上为 Swift 文件中的 `galleryText`）。
 
-该格式只属于应用及其自身的小组件：仅存于设备本地，绝不同步、绝不备份、绝不分享。修改它意味着要同时提升 `v`
-并更新两个原生读取端。
+payload 只属于应用及其自身的小组件：仅存于设备本地，绝不同步、绝不备份、绝不分享。修改它意味着要同时提升
+`pv`（`HomeWidgetService.formatVersion`）并更新两个原生读取端。
+
+1.9.4 及之前，相同字段连同 `v`、`generatedAt` 和 `textScale` 以顶层形式存于 `myanime_widget_snapshot`
+（Android 的 `MyAnimeWidget` preferences，iOS 上为同一个 App Group）。在没有外层封装时，两个原生读取端都会回退读取该
+快照，因此更新前放置的小组件在应用运行一次之前仍保留内容。
 
 ## 平台设置
 
 - **Android** —— `AndroidManifest.xml` 中的两个 `<receiver>` 条目；Kotlin 代码位于
-  `android/app/src/main/kotlin/com/yuanzhe/my_anime/widget/`。不需要额外的 Gradle 依赖。
-- **iOS** —— `UpNextWidget` 应用扩展目标（`ios/UpNextWidget/`，部署目标 iOS 14）嵌入在 Runner 中。
+  `android/app/src/main/kotlin/com/yuanzhe/my_anime/widget/`，两个 Provider 都继承共享的
+  `EnvelopeWidgetProvider`。插件通过 `pubspec.yaml` 引入，无需修改 Gradle。
+- **iOS** —— `UpNextWidget` 应用扩展目标（`ios/UpNextWidget/`，部署目标 iOS 14）嵌入在 Runner 中，并编译 `packages/myapps_widget/apple/MyAppsWidgetKit/MyAppsWidgetKit.swift`（文件引用）。
   Runner 和扩展都带有 `group.com.yuanzhe.myAnime` App Group entitlement，签名构建前必须在两个 App ID 上
   都启用它。Runner（iOS 13）弱链接 WidgetKit。见
   [`../platform-notes.md`](../platform-notes.md#ios)。

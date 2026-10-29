@@ -764,6 +764,27 @@ packages:
       relative: true
     source: path
     version: "0.1.8"
+  myapps_widget:
+    dependency: "direct main"
+    description:
+      path: "packages/myapps_widget/packages/myapps_widget"
+      relative: true
+    source: path
+    version: "0.1.0"
+  myapps_widget_core:
+    dependency: transitive
+    description:
+      path: "packages/myapps_widget/packages/myapps_widget_core"
+      relative: true
+    source: path
+    version: "0.1.0"
+  myapps_widget_ui:
+    dependency: "direct main"
+    description:
+      path: "packages/myapps_widget/packages/myapps_widget_ui"
+      relative: true
+    source: path
+    version: "0.1.0"
   native_toolchain_c:
     dependency: transitive
     description:

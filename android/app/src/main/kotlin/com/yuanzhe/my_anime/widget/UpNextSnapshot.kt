@@ -1,6 +1,9 @@
 package com.yuanzhe.my_anime.widget
 
-import android.content.SharedPreferences
+import android.content.Context
+import com.yuanzhe.myapps_widget.EnvelopeStore
+import com.yuanzhe.myapps_widget.WidgetEnvelopeStatus
+import com.yuanzhe.myapps_widget.WidgetTextScale
 import org.json.JSONObject
 import java.time.Instant
 import java.time.ZoneId
@@ -17,9 +20,10 @@ data class WidgetEpisode(
 )
 
 /**
- * The widget state at one instant, derived from the snapshot that
- * `lib/shared/services/home_widget_service.dart` writes. The format is
- * documented in `doc/en-us/features/home-screen-widgets.md`.
+ * The widget state at one instant, derived from the MyApps-Widget envelope of
+ * kind `myanime.upNext` that `lib/shared/services/home_widget_service.dart`
+ * publishes. The payload is documented in
+ * `doc/en-us/features/home-screen-widgets.md`.
  */
 data class UpNextState(
     val toWatch: Int,
@@ -30,15 +34,6 @@ data class UpNextState(
     val zone: ZoneId,
     val textScale: Float = 1f,
 ) {
-    /**
-     * Purpose: Scale a layout text size by the user's widget text size.
-     * Inputs: `base` — the size in sp at 100%.
-     * Returns: The scaled size in sp.
-     * Side effects: None.
-     * Notes: Applied with `RemoteViews.setTextViewTextSize` in both providers.
-     */
-    fun sp(base: Float): Float = base * textScale
-
     /**
      * Purpose: Return a snapshot label, falling back to English.
      * Inputs: `key` — a key of the snapshot's `labels` object.
@@ -81,12 +76,12 @@ data class UpNextState(
     }
 
     companion object {
-        /** Key of the snapshot JSON in `WidgetStore`'s preferences. */
-        const val SNAPSHOT_KEY = "myanime_widget_snapshot"
+        /** Envelope kind; matches `HomeWidgetService.kind`. */
+        const val KIND = "myanime.upNext"
 
-        /** Bounds of the snapshot's `textScale`; matches `HomeWidgetService`. */
-        private const val MIN_TEXT_SCALE = 0.9f
-        private const val MAX_TEXT_SCALE = 1.5f
+        /** Pre-1.9.5 store, read only until the app publishes its first envelope. */
+        private const val LEGACY_PREFERENCES = "MyAnimeWidget"
+        private const val LEGACY_SNAPSHOT_KEY = "myanime_widget_snapshot"
 
         private val FALLBACK_LABELS = mapOf(
             "appName" to "MyAnime",
@@ -102,32 +97,60 @@ data class UpNextState(
         private val EMPTY = UpNextState(0, emptyList(), 0, null, emptyMap(), ZoneId.systemDefault())
 
         /**
-         * Purpose: Parse the stored snapshot and evaluate it at `now`.
-         * Inputs: `prefs` — `WidgetStore.prefs`; `now` — epoch milliseconds.
-         * Returns: The state, or an empty state when no valid snapshot exists.
-         * Side effects: None.
-         * Notes: None.
+         * Purpose: Read the stored envelope and evaluate it at `now`.
+         * Inputs: `context`; `now` — epoch milliseconds.
+         * Returns: The state, or an empty state when no readable envelope exists.
+         * Side effects: Reads `EnvelopeStore` and, before the first 1.9.5 publish, the legacy preferences.
+         * Notes: A missing envelope falls back to the pre-1.9.5 `MyAnimeWidget` snapshot, so widgets
+         * placed before the update keep their content until the app runs. Invalid or too-new envelopes
+         * read as empty.
          */
-        fun load(prefs: SharedPreferences, now: Long = System.currentTimeMillis()): UpNextState {
-            val raw = prefs.getString(SNAPSHOT_KEY, null) ?: return EMPTY
+        fun load(context: Context, now: Long = System.currentTimeMillis()): UpNextState {
+            val read = EnvelopeStore.read(context, KIND)
             return try {
-                evaluate(JSONObject(raw), now)
+                when (read.status) {
+                    WidgetEnvelopeStatus.OK -> {
+                        val e = read.envelope!!
+                        evaluate(e.payload, e.generatedAt, e.textScale, now)
+                    }
+                    WidgetEnvelopeStatus.MISSING -> loadLegacy(context, now)
+                    else -> EMPTY
+                }
             } catch (e: Exception) {
                 EMPTY
             }
         }
 
         /**
-         * Purpose: Evaluate a parsed snapshot at an instant.
-         * Inputs: `json`, `now` epoch milliseconds.
+         * Purpose: Evaluate the pre-1.9.5 snapshot, whose fields sat at the top level.
+         * Inputs: `context`, `now`.
+         * Returns: The state, or an empty state.
+         * Side effects: Reads the legacy preferences.
+         * Notes: Remove once 1.9.4 is no longer in the field.
+         */
+        private fun loadLegacy(context: Context, now: Long): UpNextState {
+            val raw = context.getSharedPreferences(LEGACY_PREFERENCES, Context.MODE_PRIVATE)
+                .getString(LEGACY_SNAPSHOT_KEY, null) ?: return EMPTY
+            val json = JSONObject(raw)
+            return evaluate(
+                json,
+                json.optLong("generatedAt"),
+                WidgetTextScale.clamp(json.optDouble("textScale", 1.0)),
+                now,
+            )
+        }
+
+        /**
+         * Purpose: Evaluate a payload at an instant.
+         * Inputs: `json` — the envelope payload; `generatedAt` and `now` — epoch milliseconds;
+         * `textScale` — already clamped.
          * Returns: `UpNextState`.
          * Side effects: None.
          * Notes: Mirrors `HomeWidgetService.buildSnapshot`: episodes that aired
          * after `generatedAt` join the to-watch count and queue, so the widget
          * stays right between app launches within the snapshot's lookahead.
          */
-        fun evaluate(json: JSONObject, now: Long): UpNextState {
-            val generatedAt = json.optLong("generatedAt")
+        fun evaluate(json: JSONObject, generatedAt: Long, textScale: Float, now: Long): UpNextState {
             val zoneId = json.optString("timeZone")
             val zone = if (zoneId.isEmpty()) ZoneId.systemDefault() else ZoneId.of(zoneId)
             val labels = mutableMapOf<String, String>()
@@ -155,8 +178,6 @@ data class UpNextState(
                 Instant.ofEpochMilli(it.airAt).atZone(zone).toLocalDate() == today
             }
             val nextUp = episodes.firstOrNull { !it.watched && it.airAt > now }
-            val textScale = json.optDouble("textScale", 1.0).toFloat()
-                .takeIf { it.isFinite() }?.coerceIn(MIN_TEXT_SCALE, MAX_TEXT_SCALE) ?: 1f
             return UpNextState(toWatch, queue, todayCount, nextUp, labels, zone, textScale)
         }
     }

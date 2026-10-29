@@ -1,10 +1,8 @@
 import 'dart:async';
-import 'dart:convert';
-import 'dart:io';
 import 'dart:ui';
 
 import 'package:flutter/foundation.dart';
-import 'package:flutter/services.dart';
+import 'package:myapps_widget/myapps_widget.dart';
 
 import '../../features/anime/models/anime.dart';
 import '../../features/anime/services/anime_storage.dart';
@@ -15,11 +13,12 @@ import 'auto_sync_service.dart';
 /// Feeds the Android and iOS home-screen widgets ("Up next" 2×2 and the
 /// compact 2×1 strip / lock-screen rectangle) with a precomputed snapshot.
 ///
-/// The snapshot is one JSON string handed to the native side over
-/// [_channel], which stores it (the `MyAnimeWidget` shared preferences on
-/// Android, the `group.com.yuanzhe.myAnime` App Group `UserDefaults` on iOS)
-/// and redraws the widgets. The native widgets only render it; the format is
-/// documented in `doc/en-us/features/home-screen-widgets.md`.
+/// A facade over the shared MyApps-Widget bridge (`packages/myapps_widget`):
+/// the snapshot is a MyApps-Widget envelope of kind [kind] whose payload is
+/// MyAnime's own format. The plugin stores it (Android private preferences
+/// `myapps_widget`, the `group.com.yuanzhe.myAnime` App Group on iOS) and
+/// redraws only this kind's widgets. The payload is documented in
+/// `doc/en-us/features/home-screen-widgets.md`.
 class HomeWidgetService {
   /// Purpose: Prevent direct instantiation and expose only static members.
   /// Inputs: None.
@@ -28,11 +27,37 @@ class HomeWidgetService {
   /// Notes: None.
   HomeWidgetService._();
 
-  /// Native bridge: `MainActivity.kt` on Android, `AppDelegate.swift` on iOS.
-  static const _channel = MethodChannel('com.yuanzhe.my_anime/home_widget');
+  /// Envelope kind of the "Up next" widgets; also the native storage key suffix.
+  static const kind = 'myanime.upNext';
 
-  /// Snapshot format version; bump only with a matching native change.
+  /// iOS App Group shared with the `UpNextWidget` extension.
+  static const appGroupId = 'group.com.yuanzhe.myAnime';
+
+  /// Payload format version (the envelope's `pv`); bump only with a
+  /// matching native change.
   static const formatVersion = 1;
+
+  /// The shared bridge, registered with the one kind both widget sizes render.
+  static final _bridge = MyAppsWidgetBridge(
+    appGroupId: appGroupId,
+    kinds: [
+      WidgetKindDescriptor(
+        id: kind,
+        androidProviders: const [
+          'com.yuanzhe.my_anime.widget.UpNextWidgetProvider',
+          'com.yuanzhe.my_anime.widget.UpNextStripWidgetProvider',
+        ],
+        iosKinds: const ['MyAnimeUpNextWidget'],
+        payloadVersion: formatVersion,
+      ),
+    ],
+  );
+
+  /// Debounces refreshes after data or settings change.
+  static final _scheduler = WidgetRefreshScheduler(
+    onRefresh: refresh,
+    onError: (e, _) => debugPrint('HomeWidgetService: refresh failed: $e'),
+  );
 
   /// How far ahead upcoming episodes are included, so the widgets keep
   /// moving episodes from "upcoming" to "to watch" without the app running.
@@ -41,11 +66,10 @@ class HomeWidgetService {
   /// Cap on episode entries, keeping the shared store small.
   static const maxEpisodes = 80;
 
-  /// Smallest and largest widget text scale the settings slider offers.
-  static const minTextScale = 0.9;
-  static const maxTextScale = 1.5;
-
-  static Timer? _debounce;
+  /// Smallest and largest widget text scale the settings slider offers;
+  /// shared with every MyApps widget through `WidgetTextScale`.
+  static const minTextScale = WidgetTextScale.min;
+  static const maxTextScale = WidgetTextScale.max;
 
   /// Purpose: Clamp a widget text scale to the supported range.
   /// Inputs: `scale`.
@@ -53,19 +77,15 @@ class HomeWidgetService {
   /// one decimal; 1.0 for a non-finite value.
   /// Side effects: None.
   /// Notes: Rounding keeps slider steps exact when stored and compared.
-  static double clampTextScale(double scale) {
-    if (!scale.isFinite) return 1.0;
-    final clamped = scale.clamp(minTextScale, maxTextScale).toDouble();
-    return (clamped * 10).roundToDouble() / 10;
-  }
+  /// Delegates to `WidgetTextScale.clamp`, which the native readers mirror.
+  static double clampTextScale(double scale) => WidgetTextScale.clamp(scale);
 
   /// Purpose: Whether this platform has home-screen widgets.
   /// Inputs: None.
   /// Returns: `bool`.
   /// Side effects: None.
   /// Notes: Android and iOS only; every public entry point no-ops elsewhere.
-  static bool get isSupported =>
-      !kIsWeb && (Platform.isAndroid || Platform.isIOS);
+  static bool get isSupported => _bridge.isSupported;
 
   /// Purpose: Configure the widget store and push the first snapshot.
   /// Inputs: None.
@@ -81,20 +101,21 @@ class HomeWidgetService {
   /// Purpose: Schedule a debounced widget refresh after data or settings change.
   /// Inputs: None.
   /// Returns: None.
-  /// Side effects: Starts a 2-second timer that calls [refresh].
+  /// Side effects: Restarts the 2-second `WidgetRefreshScheduler` timer that
+  /// calls [refresh].
   /// Notes: Called from library saves, sync/restore reloads, app resume, and
   /// the locale, calendar-time-basis and widget-text-size settings.
   static void notifyDataChanged() {
     if (!isSupported) return;
-    _debounce?.cancel();
-    _debounce = Timer(const Duration(seconds: 2), () => unawaited(refresh()));
+    _scheduler.schedule();
   }
 
   /// Purpose: Rebuild the snapshot from the stored library and redraw the widgets.
   /// Inputs: None.
   /// Returns: None.
   /// Side effects: Reads `anime_data.json` and `storage_config.json`, writes
-  /// the shared widget store, and asks the OS to redraw every widget.
+  /// this kind's envelope through the bridge, and asks the OS to redraw both
+  /// widget sizes.
   /// Notes: Failures are logged and swallowed; a stale widget is harmless.
   static Future<void> refresh() async {
     if (!isSupported) return;
@@ -111,9 +132,7 @@ class HomeWidgetService {
         labels: labelsFor(l10n),
         textScale: clampTextScale(await AnimeStorage.getWidgetTextScale()),
       );
-      await _channel.invokeMethod<void>('update', {
-        'snapshot': jsonEncode(snapshot),
-      });
+      await _bridge.publish(WidgetEnvelope.fromJson(snapshot));
     } catch (e) {
       debugPrint('HomeWidgetService: refresh failed: $e');
     }
@@ -139,8 +158,9 @@ class HomeWidgetService {
   /// Purpose: Build the widget snapshot for a library at a given instant.
   /// Inputs: `animeList`; `nowUtc`; `basis` — which calendar day counts as
   /// "today"; `labels` from [labelsFor]; `textScale` — the widget text size
-  /// multiplier, written as `textScale`.
-  /// Returns: The JSON-ready snapshot map (format version [formatVersion]).
+  /// multiplier, written as the envelope's `textScale`.
+  /// Returns: The JSON-ready envelope map (envelope `v` 1, kind [kind],
+  /// `pv` [formatVersion]) with MyAnime's fields under `payload`.
   /// Side effects: None.
   /// Notes: Per anime it keeps the earliest unwatched aired episode (the
   /// "to watch" queue) and every episode airing from the start of today to
@@ -195,16 +215,20 @@ class HomeWidgetService {
     final episodes = [...queue, ...upcoming].take(maxEpisodes).toList()
       ..sort(byAt);
 
-    return {
-      'v': formatVersion,
-      'generatedAt': now.millisecondsSinceEpoch,
-      'timeZone': basis == HomeCalendarTimeBasis.jst ? 'Asia/Tokyo' : '',
-      'airedUnwatched': airedUnwatched,
-      'queueSize': queue.length,
-      'episodes': episodes,
-      'labels': labels,
-      'textScale': clampTextScale(textScale),
-    };
+    return _bridge
+        .envelope(
+          kind,
+          {
+            'timeZone': basis == HomeCalendarTimeBasis.jst ? 'Asia/Tokyo' : '',
+            'airedUnwatched': airedUnwatched,
+            'queueSize': queue.length,
+            'episodes': episodes,
+            'labels': labels,
+          },
+          generatedAt: now,
+          textScale: textScale,
+        )
+        .toJson();
   }
 
   /// Purpose: Convert an anime-model Japan wall-clock time to a UTC instant.

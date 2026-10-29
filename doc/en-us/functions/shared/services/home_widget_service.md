@@ -1,8 +1,9 @@
 # lib/shared/services/home_widget_service.dart
 
-`HomeWidgetService` feeds the Android and iOS home-screen widgets. It builds a JSON snapshot of
-the watch queue, today's episodes and the upcoming week, and hands it to the native side over the
-`com.yuanzhe.my_anime/home_widget` method channel. See
+`HomeWidgetService` feeds the Android and iOS home-screen widgets. It builds a snapshot of the
+watch queue, today's episodes and the upcoming week and, since 1.9.5, publishes it as a
+MyApps-Widget envelope of kind `myanime.upNext` through the shared `MyAppsWidgetBridge` (see
+[`../../../shared-widget.md`](../../../shared-widget.md)); it is the app's facade over that package. See
 [`../../../features/home-screen-widgets.md`](../../../features/home-screen-widgets.md) for the
 widgets, the snapshot format and the native readers — this page covers the Dart declarations.
 
@@ -22,8 +23,12 @@ widgets, the snapshot format and the native readers — this page covers the Dar
 | [`_startOfToday`](#_startoftoday) | method (`HomeWidgetService`) | A | The UTC instant at which "today" starts for a calendar time basis. |
 | [`_l10n`](#_l10n) | method (`HomeWidgetService`) | B | Resolve localizations from the saved locale or the platform default. |
 
-Constants: `formatVersion` (1), `lookahead` (8 days), `maxEpisodes` (80), `minTextScale` (0.9) and
-`maxTextScale` (1.5), and the private `_channel`.
+Constants: `kind` (`myanime.upNext`), `appGroupId` (`group.com.yuanzhe.myAnime`), `formatVersion`
+(1, the payload `pv`), `lookahead` (8 days), `maxEpisodes` (80), `minTextScale` (0.9) and
+`maxTextScale` (1.5), both aliases of `WidgetTextScale`. Private fields: `_bridge` (the
+`MyAppsWidgetBridge` with one `WidgetKindDescriptor` naming both Android providers and the
+`MyAnimeUpNextWidget` WidgetKit kind) and `_scheduler` (a 2-second `WidgetRefreshScheduler` that
+logs failures).
 
 ## Documentation
 
@@ -34,7 +39,7 @@ Constants: `formatVersion` (1), `lookahead` (8 days), `maxEpisodes` (80), `minTe
 - **Inputs:** `scale`.
 - **Returns:** The clamped scale rounded to one decimal; `1.0` for NaN or infinity.
 - **Side effects:** None.
-- **Algorithm:** `clamp`, then `round(scale * 10) / 10`.
+- **Algorithm:** Delegates to `WidgetTextScale.clamp`: `clamp`, then `round(scale * 10) / 10`.
 - **Usage:** `AppSettingsNotifier` (load and setter), [`refresh`](#refresh), [`buildSnapshot`](#buildsnapshot).
 - **Notes:** Added in 1.9.4. Rounding keeps the slider's 0.1 steps exact. The native readers clamp
   to the same range again.
@@ -58,7 +63,7 @@ Constants: `formatVersion` (1), `lookahead` (8 days), `maxEpisodes` (80), `minTe
 - **Purpose:** Schedule a refresh 2 seconds after the last change.
 - **Inputs:** None.
 - **Returns:** None.
-- **Side effects:** Cancels and restarts a `Timer` that calls [`refresh`](#refresh).
+- **Side effects:** Restarts `_scheduler`, whose timer calls [`refresh`](#refresh).
 - **Algorithm:** No-op on unsupported platforms.
 - **Usage:** `AnimeStorage._writeData`, the `AutoSyncService` resume hook and local-data-changed
   callback, and `AppSettingsNotifier.setLocale` / `setHomeCalendarTimeBasis` / `setWidgetTextScale`.
@@ -71,12 +76,11 @@ Constants: `formatVersion` (1), `lookahead` (8 days), `maxEpisodes` (80), `minTe
 - **Inputs:** None.
 - **Returns:** `Future<void>`.
 - **Side effects:** Reads `anime_data.json` (`AnimeStorage.load`) and the `homeCalendarTimeBasis`,
-  `widgetTextScale` and locale keys of `storage_config.json`; invokes `update` on the channel, which stores the JSON
-  natively and redraws every placed widget.
+  `widgetTextScale` and locale keys of `storage_config.json`; publishes the envelope through
+  `_bridge`, which stores it natively and redraws both widget sizes.
 - **Algorithm:** Load → resolve the time basis (`'local'` or JST) → resolve localizations →
   [`buildSnapshot`](#buildsnapshot) with `DateTime.now().toUtc()`, [`labelsFor`](#labelsfor) and the
-  stored text scale →
-  `jsonEncode` → `invokeMethod('update', {'snapshot': json})`.
+  stored text scale → `WidgetEnvelope.fromJson` → `_bridge.publish`.
 - **Usage:** Through [`notifyDataChanged`](#notifydatachanged) and [`init`](#init).
 - **Notes:** Every failure is logged and swallowed; a stale widget is harmless.
 
@@ -96,18 +100,20 @@ Constants: `formatVersion` (1), `lookahead` (8 days), `maxEpisodes` (80), `minTe
 ### `static Map<String, dynamic> buildSnapshot(List<Anime> animeList, {required DateTime nowUtc, required HomeCalendarTimeBasis basis, required Map<String, String> labels, double textScale = 1.0})` <a id="buildsnapshot"></a>
 - **Kind:** static method of `HomeWidgetService`
 - **Source:** `lib/shared/services/home_widget_service.dart`
-- **Purpose:** Build the version-1 snapshot.
+- **Purpose:** Build the snapshot: an envelope (`v` 1) with payload version 1.
 - **Inputs:** `animeList`; `nowUtc`; `basis` — which calendar day counts as today; `labels`;
   `textScale` — the widget text size multiplier (1.9.4).
-- **Returns:** A JSON-ready map with `v`, `generatedAt`, `timeZone`, `airedUnwatched`,
-  `queueSize`, `episodes`, `labels` and `textScale` (clamped).
+- **Returns:** A JSON-ready envelope map: `v`, `kind`, `pv`, `generatedAt`, `textScale` (clamped),
+  `privacy` (`normal`), `refreshAt` (empty) and `payload` with `timeZone`, `airedUnwatched`,
+  `queueSize`, `episodes` and `labels`.
 - **Side effects:** None.
 - **Algorithm:** For every anime, walk `startEpisode..(endEpisode ?? startEpisode)` like the Home
   tab. For each episode with an air time, convert it with [`jstToUtc`](#jsttoutc); count it in
   `airedUnwatched` when unwatched and aired; make the first such episode the anime's queue entry;
   otherwise keep it when it airs between [`_startOfToday`](#_startoftoday) and `now + lookahead`.
   Sort both lists by air time, keep queue entries first up to `maxEpisodes`, then sort the result
-  by air time. `w` is true for any status other than unwatched.
+  by air time. `w` is true for any status other than unwatched. Wrap the payload with
+  `_bridge.envelope`.
 - **Usage:** [`refresh`](#refresh); the settings preview (`HomeWidgetPreview`);
   `test/home_widget_service_test.dart`.
 - **Notes:** The native recount (`toWatch = airedUnwatched + newly aired unwatched entries`)
@@ -139,7 +145,7 @@ Constants: `formatVersion` (1), `lookahead` (8 days), `maxEpisodes` (80), `minTe
 ### Tier B entries
 
 - `HomeWidgetService._` <a id="homewidgetservice-_"></a> — private constructor; static-only class.
-- `isSupported` <a id="issupported"></a> — `!kIsWeb && (Android || iOS)`; every public entry point
-  returns early otherwise.
+- `isSupported` <a id="issupported"></a> — `_bridge.isSupported` (`!kIsWeb && (Android || iOS)`);
+  every public entry point returns early otherwise.
 - `_l10n` <a id="_l10n"></a> — the reminder service's locale resolution, falling back to English
   if the lookup throws.

@@ -1,5 +1,8 @@
+import 'dart:convert';
+
 import 'package:flutter_test/flutter_test.dart';
 import 'package:my_anime/features/anime/models/anime.dart';
+import 'package:myapps_widget/myapps_widget.dart';
 import 'package:my_anime/features/settings/widgets/home_widget_preview.dart';
 import 'package:my_anime/shared/services/home_widget_service.dart';
 import 'package:my_anime/shared/utils/calendar_preferences.dart';
@@ -52,14 +55,23 @@ void main() {
       labels: labels,
     );
 
-    expect(snapshot['v'], HomeWidgetService.formatVersion);
+    expect(snapshot['v'], widgetEnvelopeVersion);
+    expect(snapshot['kind'], HomeWidgetService.kind);
+    expect(snapshot['pv'], HomeWidgetService.formatVersion);
+    expect(
+      WidgetEnvelopeRead.decode(
+        jsonEncode(snapshot),
+        expectedKind: HomeWidgetService.kind,
+      ).status,
+      WidgetEnvelopeStatus.ok,
+    );
     expect(snapshot['generatedAt'], now.millisecondsSinceEpoch);
-    expect(snapshot['timeZone'], 'Asia/Tokyo');
-    expect(snapshot['airedUnwatched'], 2);
-    expect(snapshot['queueSize'], 1);
-    expect(snapshot['labels'], labels);
+    expect(snapshot['payload']['timeZone'], 'Asia/Tokyo');
+    expect(snapshot['payload']['airedUnwatched'], 2);
+    expect(snapshot['payload']['queueSize'], 1);
+    expect(snapshot['payload']['labels'], labels);
 
-    final episodes = (snapshot['episodes'] as List).cast<Map>();
+    final episodes = (snapshot['payload']['episodes'] as List).cast<Map>();
     // Episode 3 is the queue entry, 4 aired today, 5 airs next week;
     // episode 6 is beyond the lookahead.
     expect(episodes.map((e) => e['e']), [3, 4, 5]);
@@ -83,9 +95,9 @@ void main() {
       labels: labels,
     );
 
-    expect(snapshot['airedUnwatched'], 0);
-    expect(snapshot['queueSize'], 0);
-    final episodes = (snapshot['episodes'] as List).cast<Map>();
+    expect(snapshot['payload']['airedUnwatched'], 0);
+    expect(snapshot['payload']['queueSize'], 0);
+    final episodes = (snapshot['payload']['episodes'] as List).cast<Map>();
     expect(episodes.map((e) => [e['e'], e['w']]), [
       [4, true],
       [5, false],
@@ -99,8 +111,8 @@ void main() {
       basis: HomeCalendarTimeBasis.local,
       labels: labels,
     );
-    expect(snapshot['timeZone'], '');
-    expect(snapshot['airedUnwatched'], 4);
+    expect(snapshot['payload']['timeZone'], '');
+    expect(snapshot['payload']['airedUnwatched'], 4);
   });
 
   test('caps the episode list', () {
@@ -112,10 +124,10 @@ void main() {
       labels: labels,
     );
     expect(
-      (snapshot['episodes'] as List).length,
+      (snapshot['payload']['episodes'] as List).length,
       HomeWidgetService.maxEpisodes,
     );
-    expect(snapshot['airedUnwatched'], 400);
+    expect(snapshot['payload']['airedUnwatched'], 400);
   });
 
   test('writes the clamped text scale', () {

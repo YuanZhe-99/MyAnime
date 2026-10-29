@@ -225,6 +225,7 @@
 | home-screen widget | 桌面小组件 | Android/iOS 主屏上的「待看」小组件；与 Flutter 的 widget（组件）区分。zh-TW 用「桌面小工具」，ja 用「ホーム画面ウィジェット」 |
 | to watch (widget count) | 待看 | 小组件里已播出但未看的集数 |
 | widget text size | 小组件字号 | 设置里调整桌面小组件文字大小的滑块；zh-TW 用「小工具字級」 |
+| envelope (widget) | 外层封装 | MyApps-Widget 存储的小组件数据外壳；其中的 `payload` 不译 |
 
 ## 6. 复查清单（提交中文页面之前运行）
 

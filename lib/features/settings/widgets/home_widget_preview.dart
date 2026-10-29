@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:myapps_widget_ui/myapps_widget_ui.dart';
 
 import '../../../l10n/app_localizations.dart';
 import '../../../shared/services/home_widget_service.dart';
@@ -65,7 +66,9 @@ class _HomeWidgetPreviewState extends State<HomeWidgetPreview> {
       future: _state,
       builder: (context, snapshot) {
         final state = snapshot.data;
-        if (state == null) return const SizedBox(height: 172);
+        if (state == null) {
+          return const SizedBox(height: WidgetPreviewSurface.smallSide);
+        }
         return Wrap(
           spacing: 16,
           runSpacing: 16,
@@ -106,20 +109,21 @@ class HomeWidgetPreviewState {
   final Map<String, dynamic>? nextUp;
 
   /// Purpose: Evaluate a freshly built snapshot.
-  /// Inputs: `snapshot` from [HomeWidgetService.buildSnapshot]; `nowUtc` — the
-  /// instant it was built for.
+  /// Inputs: `snapshot` — the envelope map from
+  /// [HomeWidgetService.buildSnapshot]; `nowUtc` — the instant it was built for.
   /// Returns: `HomeWidgetPreviewState`.
   /// Side effects: None.
-  /// Notes: Because the snapshot is fresh, no episode aired after
-  /// `generatedAt`, so `toWatch` is simply `airedUnwatched`.
+  /// Notes: Reads MyAnime's fields from the envelope's `payload`. Because the
+  /// snapshot is fresh, no episode aired after `generatedAt`, so `toWatch`
+  /// is simply `airedUnwatched`.
   factory HomeWidgetPreviewState.evaluate(
     Map<String, dynamic> snapshot,
     DateTime nowUtc,
   ) {
     final now = nowUtc.millisecondsSinceEpoch;
-    final episodes = (snapshot['episodes'] as List)
-        .cast<Map<String, dynamic>>();
-    final jst = snapshot['timeZone'] == 'Asia/Tokyo';
+    final payload = snapshot['payload'] as Map<String, dynamic>;
+    final episodes = (payload['episodes'] as List).cast<Map<String, dynamic>>();
+    final jst = payload['timeZone'] == 'Asia/Tokyo';
     DateTime day(int ms) {
       final utc = DateTime.fromMillisecondsSinceEpoch(ms, isUtc: true);
       final t = jst ? utc.add(const Duration(hours: 9)) : utc.toLocal();
@@ -129,7 +133,7 @@ class HomeWidgetPreviewState {
     final today = day(now);
     final seen = <String>{};
     return HomeWidgetPreviewState(
-      toWatch: snapshot['airedUnwatched'] as int,
+      toWatch: payload['airedUnwatched'] as int,
       queue: [
         for (final e in episodes)
           if (e['w'] != true && (e['at'] as int) <= now && seen.add(e['id'])) e,
@@ -160,47 +164,6 @@ String _airTime(BuildContext context, int ms) {
     context,
   ).narrowWeekdays[at.weekday % 7];
   return '$weekday $time';
-}
-
-/// Shared rounded surface of both preview cards.
-class _WidgetSurface extends StatelessWidget {
-  /// Purpose: Create a widget surface.
-  /// Inputs: `width`, `height`, `padding`, `child`.
-  /// Returns: A new `_WidgetSurface`.
-  /// Side effects: None.
-  /// Notes: Fixed size, like a launcher cell; overflowing text is clipped.
-  const _WidgetSurface({
-    required this.width,
-    required this.height,
-    required this.padding,
-    required this.child,
-  });
-
-  final double width;
-  final double height;
-  final EdgeInsets padding;
-  final Widget child;
-
-  /// Purpose: Build the widget subtree for the current state.
-  /// Inputs: `context`.
-  /// Returns: The clipped, tinted card.
-  /// Side effects: None.
-  /// Notes: None.
-  @override
-  Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
-    return Container(
-      width: width,
-      height: height,
-      padding: padding,
-      clipBehavior: Clip.antiAlias,
-      decoration: BoxDecoration(
-        color: scheme.secondaryContainer.withValues(alpha: 0.55),
-        borderRadius: BorderRadius.circular(24),
-      ),
-      child: child,
-    );
-  }
 }
 
 /// Preview of the 2×2 "Up next" widget.
@@ -242,9 +205,9 @@ class _SmallWidgetCard extends StatelessWidget {
           ];
     final caughtUp = state.toWatch == 0;
 
-    return _WidgetSurface(
-      width: 172,
-      height: 172,
+    return WidgetPreviewSurface(
+      width: WidgetPreviewSurface.smallSide,
+      height: WidgetPreviewSurface.smallSide,
       padding: const EdgeInsets.all(16),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -382,9 +345,9 @@ class _StripWidgetCard extends StatelessWidget {
           )
         : (l10n.widgetCaughtUp, l10n.widgetNoUpdatesToday);
 
-    return _WidgetSurface(
-      width: 172,
-      height: 76,
+    return WidgetPreviewSurface(
+      width: WidgetPreviewSurface.smallSide,
+      height: WidgetPreviewSurface.stripHeight,
       padding: const EdgeInsets.fromLTRB(10, 8, 14, 8),
       child: Row(
         children: [

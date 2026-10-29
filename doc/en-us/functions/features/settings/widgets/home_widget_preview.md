@@ -5,8 +5,9 @@ Android and iOS only), so the *Widget text size* slider can be judged before loo
 screen. It builds a snapshot of the real library with
 [`HomeWidgetService.buildSnapshot`](../../../shared/services/home_widget_service.md#buildsnapshot),
 evaluates it the way the native widgets do, and draws a 2×2 card and a 2×1 strip with the Android
-layout text sizes times the chosen scale, in the app's color scheme. It approximates the native
-widgets; it is not a pixel copy of either platform. See
+layout text sizes times the chosen scale, in the app's color scheme, on the shared
+`WidgetPreviewSurface` from `myapps_widget_ui` (1.9.5). It approximates the native widgets; it is
+not a pixel copy of either platform. See
 [`../../../../features/home-screen-widgets.md`](../../../../features/home-screen-widgets.md).
 
 ## Declarations
@@ -20,8 +21,6 @@ widgets; it is not a pixel copy of either platform. See
 | `HomeWidgetPreviewState(...)` | constructor (`HomeWidgetPreviewState`) | B | Hold one evaluated widget state. |
 | [`HomeWidgetPreviewState.evaluate`](#evaluate) | factory constructor (`HomeWidgetPreviewState`) | A | Evaluate a fresh snapshot like the native widgets. |
 | [`_airTime`](#_airtime) | top-level function | A | Format an air time like the native widgets. |
-| `_WidgetSurface(...)` | constructor (`_WidgetSurface`) | B | Create the shared fixed-size card surface. |
-| `_WidgetSurface.build` | method (`_WidgetSurface`) | B | Draw the rounded, tinted, clipped surface. |
 | `_SmallWidgetCard(...)` | constructor (`_SmallWidgetCard`) | B | Create the 2×2 preview. |
 | [`_SmallWidgetCard.build`](#_smallwidgetcard-build) | method (`_SmallWidgetCard`) | A | Draw the 2×2 widget. |
 | `_StripWidgetCard(...)` | constructor (`_StripWidgetCard`) | B | Create the 2×1 preview. |
@@ -44,7 +43,8 @@ widgets; it is not a pixel copy of either platform. See
 - **Kind:** method of `_HomeWidgetPreviewState`
 - **Purpose:** Show both cards in a centered `Wrap`.
 - **Inputs:** `context`.
-- **Returns:** The cards, or a 172-pixel placeholder until `_load` completes.
+- **Returns:** The cards, or a `WidgetPreviewSurface.smallSide` (172-pixel) placeholder until
+  `_load` completes.
 - **Side effects:** None.
 - **Algorithm:** `FutureBuilder` over `_load`; passes `widget.textScale` to both cards.
 - **Usage:** Settings page, below the slider.
@@ -53,10 +53,11 @@ widgets; it is not a pixel copy of either platform. See
 ### `factory HomeWidgetPreviewState.evaluate(Map<String, dynamic> snapshot, DateTime nowUtc)` <a id="evaluate"></a>
 - **Kind:** factory constructor of `HomeWidgetPreviewState`
 - **Purpose:** Mirror the native `UpNextState` evaluation for a snapshot built at `nowUtc`.
-- **Inputs:** `snapshot` from `buildSnapshot`; `nowUtc`.
+- **Inputs:** `snapshot` — the envelope map from `buildSnapshot`; `nowUtc`.
 - **Returns:** `toWatch`, `queue`, `todayCount`, `nextUp`.
 - **Side effects:** None.
-- **Algorithm:** `toWatch = airedUnwatched` (nothing aired after `generatedAt`); `queue` = the first
+- **Algorithm:** Reads the envelope's `payload`. `toWatch = airedUnwatched` (nothing aired after
+  `generatedAt`); `queue` = the first
   unwatched aired entry per anime; `todayCount` = entries whose date in the snapshot zone (JST, or
   the device zone) is today; `nextUp` = the first unwatched entry after now.
 - **Usage:** [`_load`](#_load); `test/home_widget_service_test.dart`.
@@ -76,7 +77,7 @@ widgets; it is not a pixel copy of either platform. See
 - **Kind:** method of `_SmallWidgetCard`
 - **Purpose:** Draw the 2×2 widget: header with today pill, count or *All caught up*, label, rows.
 - **Inputs:** `context`.
-- **Returns:** A 172 × 172 card.
+- **Returns:** A 172 × 172 `WidgetPreviewSurface`.
 - **Side effects:** None.
 - **Algorithm:** Sizes from `widget_up_next.xml` (12/11/36 or 20/12/13/12 sp) times the scale; two
   queue rows up to 120%, one above; with an empty queue, the next airing episode.
@@ -87,7 +88,7 @@ widgets; it is not a pixel copy of either platform. See
 - **Kind:** method of `_StripWidgetCard`
 - **Purpose:** Draw the 2×1 strip: count tile and two lines.
 - **Inputs:** `context`.
-- **Returns:** A 172 × 76 card.
+- **Returns:** A 172 × 76 `WidgetPreviewSurface`.
 - **Side effects:** None.
 - **Algorithm:** Sizes from `widget_up_next_strip.xml` (18/14/12 sp) times the scale; lines as in
   `UpNextStripWidgetProvider.render`.

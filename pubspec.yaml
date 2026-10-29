@@ -2,7 +2,7 @@ name: my_anime
 description: "MyAnime!!!!! — Your anime tracking companion"
 publish_to: 'none'
 
-version: 1.9.4+90
+version: 1.9.5+91
 
 dependency_overrides:
   # Xcode 26.6 protocol availability fix; upstream PR #2870, macOS only.
@@ -53,6 +53,12 @@ dependencies:
   # After a fresh clone: git submodule update --init
   myapps_data:
     path: packages/myapps_data
+  # Shared home-screen widget bridge (Android, iOS), embedded as the
+  # MyApps-Widget submodule. See doc/en-us/shared-widget.md.
+  myapps_widget:
+    path: packages/myapps_widget/packages/myapps_widget
+  myapps_widget_ui:
+    path: packages/myapps_widget/packages/myapps_widget_ui
   # Local plugin: Apple Foundation Models bridge for on-device AI (iOS and
   # macOS only). See doc/en-us/on-device-ai.md.
 
@@ -154,7 +160,7 @@ msix_config:
   display_name: MyAnime!!!!!
   publisher_display_name: yuanzhe
   identity_name: com.yuanzhe.myanime
-  msix_version: 1.9.4.0
+  msix_version: 1.9.5.0
   logo_path: assets/icon/app_icon.png
   capabilities: internetClient
   install_certificate: false

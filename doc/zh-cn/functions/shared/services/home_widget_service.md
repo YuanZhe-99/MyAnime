@@ -1,6 +1,6 @@
 # lib/shared/services/home_widget_service.dart
 
-`HomeWidgetService` 为 Android 和 iOS 桌面小组件提供数据。它构建一份包含观看队列、今天的剧集和未来一周的 JSON 快照，并通过 `com.yuanzhe.my_anime/home_widget` method channel 交给原生端。小组件、快照格式和原生读取端见 [`../../../features/home-screen-widgets.md`](../../../features/home-screen-widgets.md)——本页介绍 Dart 声明。
+`HomeWidgetService` 为 Android 和 iOS 桌面小组件提供数据。它构建一份包含观看队列、今天的剧集和未来一周的快照，自 1.9.5 起通过共享的 `MyAppsWidgetBridge` 把它作为 kind 为 `myanime.upNext` 的 MyApps-Widget 外层封装发布（见 [`../../../shared-widget.md`](../../../shared-widget.md)）；它是应用对该包的门面。小组件、快照格式和原生读取端见 [`../../../features/home-screen-widgets.md`](../../../features/home-screen-widgets.md)——本页介绍 Dart 声明。
 
 ## 声明
 
@@ -18,7 +18,7 @@
 | [`_startOfToday`](#_startoftoday) | 方法（`HomeWidgetService`） | A | 给定日历时间基准下「今天」开始的 UTC 时刻。 |
 | [`_l10n`](#_l10n) | 方法（`HomeWidgetService`） | B | 从保存的语言区域或平台默认值解析本地化。 |
 
-常量：`formatVersion`（1）、`lookahead`（8 天）、`maxEpisodes`（80）、`minTextScale`（0.9）和 `maxTextScale`（1.5），以及私有的 `_channel`。
+常量：`kind`（`myanime.upNext`）、`appGroupId`（`group.com.yuanzhe.myAnime`）、`formatVersion`（1，即 payload 的 `pv`）、`lookahead`（8 天）、`maxEpisodes`（80）、`minTextScale`（0.9）和 `maxTextScale`（1.5），后两者是 `WidgetTextScale` 的别名。私有字段：`_bridge`（`MyAppsWidgetBridge`，含一个列出两个 Android Provider 和 WidgetKit kind `MyAnimeUpNextWidget` 的 `WidgetKindDescriptor`）和 `_scheduler`（记录失败的 2 秒 `WidgetRefreshScheduler`）。
 
 ## 文档
 
@@ -29,7 +29,7 @@
 - **输入：** `scale`。
 - **返回：** 限定后四舍五入到一位小数的倍数；NaN 或无穷大时为 `1.0`。
 - **副作用：** 无。
-- **算法：** `clamp`，然后 `round(scale * 10) / 10`。
+- **算法：** 委托给 `WidgetTextScale.clamp`：`clamp`，然后 `round(scale * 10) / 10`。
 - **用法：** `AppSettingsNotifier`（加载与 setter）、[`refresh`](#refresh)、[`buildSnapshot`](#buildsnapshot)。
 - **备注：** 1.9.4 新增。四舍五入让滑块的 0.1 步长保持精确。原生读取方会再按同一范围限定一次。
 
@@ -50,7 +50,7 @@
 - **用途：** 在最后一次变更后 2 秒安排一次刷新。
 - **输入：** 无。
 - **返回：** 无。
-- **副作用：** 取消并重新启动一个调用 [`refresh`](#refresh) 的 `Timer`。
+- **副作用：** 重新启动 `_scheduler`，其计时器会调用 [`refresh`](#refresh)。
 - **算法：** 在不支持的平台上为空操作。
 - **用法：** `AnimeStorage._writeData`、`AutoSyncService` 的恢复钩子与本地数据变更回调，以及 `AppSettingsNotifier.setLocale` / `setHomeCalendarTimeBasis` / `setWidgetTextScale`。
 - **备注：** 防抖把突发变更（例如一次同步应用大量记录）合并为一次。
@@ -61,8 +61,8 @@
 - **用途：** 重建快照并重绘小组件。
 - **输入：** 无。
 - **返回：** `Future<void>`。
-- **副作用：** 读取 `anime_data.json`（`AnimeStorage.load`）以及 `storage_config.json` 的 `homeCalendarTimeBasis`、`widgetTextScale` 和语言区域键；在通道上调用 `update`，由原生端保存 JSON 并重绘每个已放置的小组件。
-- **算法：** 加载 → 解析时间基准（`'local'` 或 JST）→ 解析本地化 → 以 `DateTime.now().toUtc()`、[`labelsFor`](#labelsfor) 和存储的字号缩放调用 [`buildSnapshot`](#buildsnapshot) → `jsonEncode` → `invokeMethod('update', {'snapshot': json})`。
+- **副作用：** 读取 `anime_data.json`（`AnimeStorage.load`）以及 `storage_config.json` 的 `homeCalendarTimeBasis`、`widgetTextScale` 和语言区域键；通过 `_bridge` 发布外层封装，由原生端保存并重绘两种尺寸的小组件。
+- **算法：** 加载 → 解析时间基准（`'local'` 或 JST）→ 解析本地化 → 以 `DateTime.now().toUtc()`、[`labelsFor`](#labelsfor) 和存储的字号缩放调用 [`buildSnapshot`](#buildsnapshot) → `WidgetEnvelope.fromJson` → `_bridge.publish`。
 - **用法：** 经 [`notifyDataChanged`](#notifydatachanged) 和 [`init`](#init) 调用。
 - **备注：** 每个失败都被记录并吞掉；过时的小组件无害。
 
@@ -80,11 +80,11 @@
 ### `static Map<String, dynamic> buildSnapshot(List<Anime> animeList, {required DateTime nowUtc, required HomeCalendarTimeBasis basis, required Map<String, String> labels, double textScale = 1.0})` <a id="buildsnapshot"></a>
 - **种类：** `HomeWidgetService` 的静态方法
 - **来源：** `lib/shared/services/home_widget_service.dart`
-- **用途：** 构建第 1 版快照。
+- **用途：** 构建快照：外层封装第 1 版（`v`），payload 第 1 版。
 - **输入：** `animeList`；`nowUtc`；`basis` — 哪个日历日算作今天；`labels`；`textScale` — 小组件字号倍数（1.9.4）。
-- **返回：** 一个可直接序列化为 JSON 的 map，包含 `v`、`generatedAt`、`timeZone`、`airedUnwatched`、`queueSize`、`episodes`、`labels` 和 `textScale`（已限定范围）。
+- **返回：** 一个可直接序列化为 JSON 的外层封装 map：`v`、`kind`、`pv`、`generatedAt`、`textScale`（已限定范围）、`privacy`（`normal`）、`refreshAt`（空）以及 `payload`，其中包含 `timeZone`、`airedUnwatched`、`queueSize`、`episodes` 和 `labels`。
 - **副作用：** 无。
-- **算法：** 对每部动画，像首页一样遍历 `startEpisode..(endEpisode ?? startEpisode)`。对每个有播出时间的剧集，用 [`jstToUtc`](#jsttoutc) 转换；未看且已播出时计入 `airedUnwatched`；第一个这样的剧集作为该动画的队列条目；否则当它在 [`_startOfToday`](#_startoftoday) 与 `now + lookahead` 之间播出时保留。两个列表都按播出时间排序，队列条目在前，最多保留 `maxEpisodes` 个，然后把结果按播出时间排序。状态不是未看的任何剧集 `w` 都为 true。
+- **算法：** 对每部动画，像首页一样遍历 `startEpisode..(endEpisode ?? startEpisode)`。对每个有播出时间的剧集，用 [`jstToUtc`](#jsttoutc) 转换；未看且已播出时计入 `airedUnwatched`；第一个这样的剧集作为该动画的队列条目；否则当它在 [`_startOfToday`](#_startoftoday) 与 `now + lookahead` 之间播出时保留。两个列表都按播出时间排序，队列条目在前，最多保留 `maxEpisodes` 个，然后把结果按播出时间排序。状态不是未看的任何剧集 `w` 都为 true。最后用 `_bridge.envelope` 包装 payload。
 - **用法：** [`refresh`](#refresh)；设置页预览（`HomeWidgetPreview`）；`test/home_widget_service_test.dart`。
 - **备注：** 原生端的重新计数（`toWatch = airedUnwatched + newly aired unwatched entries`）依赖于 `generatedAt` 之后直到前瞻窗口结束的每一集都在快照中。
 
@@ -113,5 +113,5 @@
 ### Tier B 条目
 
 - `HomeWidgetService._` <a id="homewidgetservice-_"></a> — 私有构造函数；纯静态类。
-- `isSupported` <a id="issupported"></a> — `!kIsWeb && (Android || iOS)`；否则每个公开入口都提前返回。
+- `isSupported` <a id="issupported"></a> — `_bridge.isSupported`（`!kIsWeb && (Android || iOS)`）；否则每个公开入口都提前返回。
 - `_l10n` <a id="_l10n"></a> — 沿用 提醒服务的语言区域解析，查找抛出时回退为英文。

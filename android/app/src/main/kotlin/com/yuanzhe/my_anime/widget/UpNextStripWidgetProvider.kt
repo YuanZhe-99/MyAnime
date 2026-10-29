@@ -1,30 +1,25 @@
 package com.yuanzhe.my_anime.widget
 
-import android.appwidget.AppWidgetManager
-import android.appwidget.AppWidgetProvider
 import android.content.Context
-import android.util.TypedValue
+import android.os.Bundle
 import android.widget.RemoteViews
 import com.yuanzhe.my_anime.R
+import com.yuanzhe.myapps_widget.EnvelopeWidgetProvider
+import com.yuanzhe.myapps_widget.WidgetLaunch
+import com.yuanzhe.myapps_widget.setScaledTextSize
 
 /** 2x1 strip widget: a tonal to-watch count tile and the next anime to watch. */
-class UpNextStripWidgetProvider : AppWidgetProvider() {
+class UpNextStripWidgetProvider : EnvelopeWidgetProvider() {
 
     /**
-     * Purpose: Redraw every instance from the stored snapshot.
-     * Inputs: `context`, `appWidgetManager`, `appWidgetIds`.
-     * Returns: None.
-     * Side effects: Pushes RemoteViews to the launcher.
-     * Notes: Called on add and by the system update period.
+     * Purpose: Draw one instance from the stored envelope.
+     * Inputs: `context`, `appWidgetId`, `options` (unused; the strip has one layout).
+     * Returns: `RemoteViews`.
+     * Side effects: Reads the envelope store.
+     * Notes: Called by the shared base on add, update period, resize and publish.
      */
-    override fun onUpdate(
-        context: Context,
-        appWidgetManager: AppWidgetManager,
-        appWidgetIds: IntArray,
-    ) {
-        val views = render(context, UpNextState.load(WidgetStore.prefs(context)))
-        for (id in appWidgetIds) appWidgetManager.updateAppWidget(id, views)
-    }
+    override fun render(context: Context, appWidgetId: Int, options: Bundle?): RemoteViews =
+        render(context, UpNextState.load(context))
 
     companion object {
         /**
@@ -39,10 +34,10 @@ class UpNextStripWidgetProvider : AppWidgetProvider() {
         fun render(context: Context, state: UpNextState): RemoteViews {
             val now = System.currentTimeMillis()
             val views = RemoteViews(context.packageName, R.layout.widget_up_next_strip)
-            views.setOnClickPendingIntent(R.id.widget_root, UpNextWidgetProvider.launchIntent(context))
-            views.setTextViewTextSize(R.id.count, TypedValue.COMPLEX_UNIT_SP, state.sp(18f))
-            views.setTextViewTextSize(R.id.line1, TypedValue.COMPLEX_UNIT_SP, state.sp(14f))
-            views.setTextViewTextSize(R.id.line2, TypedValue.COMPLEX_UNIT_SP, state.sp(12f))
+            views.setOnClickPendingIntent(R.id.widget_root, WidgetLaunch.pendingIntent(context))
+            views.setScaledTextSize(R.id.count, 18f, state.textScale)
+            views.setScaledTextSize(R.id.line1, 14f, state.textScale)
+            views.setScaledTextSize(R.id.line2, 12f, state.textScale)
             views.setTextViewText(R.id.count, if (state.toWatch > 0) state.toWatch.toString() else "✓")
             val today = "${state.label("today")} ${state.todayCount}"
             val first = state.queue.firstOrNull()

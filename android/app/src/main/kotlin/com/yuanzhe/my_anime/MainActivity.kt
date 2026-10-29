@@ -3,7 +3,6 @@ package com.yuanzhe.my_anime
 import android.content.Intent
 import android.net.Uri
 import androidx.core.content.FileProvider
-import com.yuanzhe.my_anime.widget.WidgetStore
 import io.flutter.embedding.android.FlutterActivity
 import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.plugin.common.MethodChannel
@@ -14,12 +13,12 @@ class MainActivity : FlutterActivity() {
 
 
     /**
-     * Purpose: Register Android share, file-open, home-widget and on-device AI channels for the Flutter engine.
+     * Purpose: Register Android share and file-open channels for the Flutter engine.
      * Inputs: `flutterEngine`.
      * Returns: None.
      * Side effects: Installs method-channel handlers and may dispatch the launch intent into Flutter.
      * Notes: Runs during activity startup and reuses the existing launch intent for cold-start file opens.
-     * System AI is registered by the generated shared-plugin registrant.
+     * System AI and the home-screen widget bridge are registered by the generated shared-plugin registrant.
      */
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
         super.configureFlutterEngine(flutterEngine)
@@ -74,17 +73,6 @@ class MainActivity : FlutterActivity() {
                 }
             }
 
-
-        // Home-screen widgets: store the snapshot and redraw (HomeWidgetService).
-        MethodChannel(flutterEngine.dartExecutor.binaryMessenger, "com.yuanzhe.my_anime/home_widget")
-            .setMethodCallHandler { call, result ->
-                if (call.method == "update") {
-                    WidgetStore.push(applicationContext, call.argument<String>("snapshot") ?: "")
-                    result.success(null)
-                } else {
-                    result.notImplemented()
-                }
-            }
 
         // Handle file open from launch intent
         handleIntent(intent)

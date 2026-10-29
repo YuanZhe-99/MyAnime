@@ -113,7 +113,7 @@ lib/
       backup_service.dart
       duplicate_service.dart
       file_open_service.dart
-      home_widget_service.dart  # Android/iOS home-screen widget snapshot
+      home_widget_service.dart  # Android/iOS home-screen widgets (MyApps-Widget facade)
       image_service.dart
       import_export_service.dart
       local_api_server.dart
@@ -199,3 +199,5 @@ WebDAV 同步引擎、备份引擎、ZIP 传输引擎和自动同步调度器**�
 自 1.6.5 起，原生路由在 media_kit 的视频之上绘制应用自己的控件（`anime_player_controls.dart`），并通过 `PlaybackProgressService` 把同步的续播位置记录到 `playback_progress.json`，即第三个已注册的数据模块。播放超过一集的 95% 即标记为已看。分集对应页在折叠屏和宽窗口上遵循共享的分栏规则。
 
 AI 来源路由与 WebDAV 设备确认：见 [shared-ai.md](shared-ai.md) 与 [sync.md](sync.md)。
+
+桌面小组件传输（MyApps-Widget，1.9.5）：见 [shared-widget.md](shared-widget.md)。

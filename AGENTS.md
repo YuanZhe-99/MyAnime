@@ -38,6 +38,7 @@ about to change, verify against the code, then fix the docs in the same commit.
 | Windows/macOS/iOS/Android specifics, `file_picker` pin, Gradle/AGP state | `doc/en-us/platform-notes.md` |
 | CI jobs, build commands, `tool/` scripts, fresh-clone steps | `doc/en-us/ci-cd.md` |
 | On-device AI platform facts: AICore, Foundation Models, device checklist | `doc/en-us/on-device-ai.md` |
+| Home-screen widget transport, MyApps-Widget ownership | `doc/en-us/shared-widget.md` |
 | Why a behavior exists; past releases | `doc/en-us/version-history.md` |
 | English→Chinese terminology | `doc/en-us/translation-guide.md` |
 
@@ -140,6 +141,9 @@ Do not change these without the user explicitly deciding to:
   re-export shims. Do not reintroduce implementations in them.
 
 ## Working with the shared package
+
+For MyApps-Widget, read `doc/en-us/shared-widget.md`. Keep `HomeWidgetService` as the facade and
+do not reintroduce an app-specific widget channel or store.
 
 For MyApps-UI, read `doc/en-us/shared-ui.md`. Do not reintroduce shared theme
 or adaptive-rule implementations in app facades. Publish and tag the library

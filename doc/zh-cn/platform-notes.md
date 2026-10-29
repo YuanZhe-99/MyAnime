@@ -38,9 +38,10 @@
   由 Runner 的 *Embed Foundation Extensions* 阶段嵌入；该阶段位于 *Thin Binary* 之前，以避免 Xcode 的构建循环错误。
   Runner 与扩展共享 App Group `group.com.yuanzhe.myAnime`（`Runner/Runner.entitlements`、`UpNextWidget/UpNextWidget.entitlements`）；
   签名构建需要在两个 App ID 上都启用该 App Group，CI 的 `--no-codesign` 构建则不需要。Runner 仍为 iOS 13.0，
-  用 `-weak_framework WidgetKit` 链接 WidgetKit，`AppDelegate` 只在 `#available(iOS 14.0, *)` 之后调用 `WidgetCenter`。
-  `com.yuanzhe.my_anime/home_widget` 通道在 `didInitializeImplicitFlutterEngine` 中注册。没有使用任何小组件插件：
-  `home_widget` 要求 iOS 14，并会给 Android 引入 Glance/Compose。见
+  用 `-weak_framework WidgetKit` 链接 WidgetKit。自 1.9.5 起，共享的 `myapps_widget` 插件（MyApps-Widget，由生成的插件
+  注册器在 `didInitializeImplicitFlutterEngine` 中注册）写入 App Group，并在 `#available(iOS 14.0, *)` 之后调用 `WidgetCenter`；
+  扩展通过文件引用编译 `packages/myapps_widget/apple/MyAppsWidgetKit/MyAppsWidgetKit.swift`。未使用第三方 `home_widget`
+  插件：它要求 iOS 14，并会给 Android 引入 Glance/Compose。见 [`shared-widget.md`](shared-widget.md) 与
   [`features/home-screen-widgets.md`](features/home-screen-widgets.md)。
 
 ## Android
@@ -50,8 +51,8 @@
   2×2；`widget/UpNextStripWidgetProvider.kt`，2×1）注册在 `AndroidManifest.xml` 中，不需要额外的 Gradle 依赖。
   颜色来自 `res/values*/widget_colors.xml`：`values-v31`/`values-night-v31` 中使用 Material You 系统颜色，
   Android 12 以下使用由种子色派生的 Material 3 色调。Android 12+ 上的圆角半径为
-  `system_app_widget_background_radius`。`MainActivity` 处理 `com.yuanzhe.my_anime/home_widget` 通道，
-  `WidgetStore` 把快照保存在私有的 `MyAnimeWidget` shared preferences 中。小组件布局只能使用 `@RemoteView` 类
+  `system_app_widget_background_radius`。自 1.9.5 起，共享的 `myapps_widget` 插件把外层封装保存在私有的
+  `myapps_widget` shared preferences 中并广播重绘；两个 Provider 都继承它的 `EnvelopeWidgetProvider`。小组件布局只能使用 `@RemoteView` 类
   （`FrameLayout`、`LinearLayout`、`TextView`、`ImageView` 等）：1.9.2 中一个普通 `<View>` 占位视图导致启动器以
   "Couldn't add widget" 拒绝添加 2×2 小组件。见
   [`features/home-screen-widgets.md`](features/home-screen-widgets.md)。

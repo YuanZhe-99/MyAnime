@@ -154,9 +154,9 @@ lead to (`../../../shared/views/webdav_config_page.md`, `backup_page.md` in this
   `SwitchListTile`, bound to `settings.kanaTabEnabled` and `notifier.setKanaTabEnabled`; its
   description names MyNihongo!!!!! without a store link.
   Since 1.9.4, on Android and iOS only (`HomeWidgetService.isSupported`), a *Home-screen widgets*
-  section (`settingsWidgets`) sits between General and *Categories & recommendations*: a `ListTile`
-  (`format_size`, *Widget text size*, the current percentage as trailing text), a 6-division
-  `Slider` from `HomeWidgetService.minTextScale` to `maxTextScale` bound to
+  section (`settingsWidgets`) sits between General and *Categories & recommendations*: since 1.9.5
+  the shared `WidgetTextScaleControl` from `myapps_widget_ui` (*Widget text size* with its
+  description, the current percentage, and a 6-division slider over `WidgetTextScale`) bound to
   `settings.widgetTextScale` / `notifier.setWidgetTextScale`, and a `HomeWidgetPreview` (see
   [`../widgets/home_widget_preview.md`](../widgets/home_widget_preview.md)).
   Since 1.6.0 (M4) a *Categories & recommendations* section (`aiSectionTitle`) follows General: the

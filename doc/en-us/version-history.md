@@ -1,5 +1,16 @@
 # Version history
 
+## 1.9.5 — Widgets on MyApps-Widget (2026-10-28)
+
+The home-screen widgets now run on the new shared MyApps-Widget package (v0.1.0, submodule
+`packages/myapps_widget`), so MyDay and later apps can publish their own widgets the same way.
+`HomeWidgetService` keeps its public shape and becomes a facade over `MyAppsWidgetBridge`; the
+snapshot is now an envelope of kind `myanime.upNext` with MyAnime's fields under `payload`; the
+app-specific `com.yuanzhe.my_anime/home_widget` channel, `WidgetStore` and the `AppDelegate`
+handler are gone. Both native readers fall back to the 1.9.4 snapshot until the app runs once after
+the update. The settings slider and preview card come from `myapps_widget_ui`. Nothing the user
+sees changed. See [`shared-widget.md`](shared-widget.md).
+
 ## 1.9.4 — Widget text size (2026-10-24)
 
 The home-screen widgets' text can now be made larger: **Settings › Home-screen widgets › Widget text

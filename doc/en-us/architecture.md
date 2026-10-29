@@ -133,7 +133,7 @@ lib/
       backup_service.dart
       duplicate_service.dart
       file_open_service.dart
-      home_widget_service.dart  # Android/iOS home-screen widget snapshot
+      home_widget_service.dart  # Android/iOS home-screen widgets (MyApps-Widget facade)
       image_service.dart
       import_export_service.dart
       local_api_server.dart
@@ -257,3 +257,5 @@ Full-build watch actions use a shared episode-directory route and native-player 
 Since 1.6.5 the native route draws the app's own controls over media_kit's video (`anime_player_controls.dart`) and records a synced resume point through `PlaybackProgressService` into `playback_progress.json`, the third registered data module. Passing 95% of an episode marks it watched. The episode-directory route follows the shared split rule on foldables and wide windows.
 
 AI source routing and WebDAV device consent: see [shared-ai.md](shared-ai.md) and [sync.md](sync.md).
+
+Home-screen widget transport (MyApps-Widget, 1.9.5): see [shared-widget.md](shared-widget.md).

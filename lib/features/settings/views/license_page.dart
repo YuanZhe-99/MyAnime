@@ -48,6 +48,9 @@ MyApps-UI (myapps_ui, myapps_adaptive, myapps_profile)
 MyApps-AI (myapps_ai, myapps_ai_platform, myapps_ai_ui)
 GNU GPL version 3. Source: https://github.com/YuanZhe-99/MyApps-AI
 
+MyApps-Widget (myapps_widget, myapps_widget_core, myapps_widget_ui)
+GNU GPL version 3. Source: https://github.com/YuanZhe-99/MyApps-Widget
+
 Local model runtime: llama.cpp (MIT), https://github.com/ggml-org/llama.cpp
 Model artifacts (downloaded only on request): Qwen3.5 0.8B/2B (Alibaba Cloud,
 Apache-2.0; GGUF by bartowski), Gemma 4 E2B (Google, Apache-2.0).

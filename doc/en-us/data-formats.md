@@ -398,7 +398,7 @@ migrates data files, backups, and images.
 | Auto-backup enabled | `storage_config.json` | No | Device-specific config |
 | Backup retention days | `storage_config.json` | No | Device-specific config |
 | Reminder enabled/time/last reminder date | `storage_config.json` | No | Device-specific local-time reminder config and internal state |
-| Home-screen widget snapshot | Android `MyAnimeWidget` shared preferences / iOS App Group `UserDefaults` (`myanime_widget_snapshot`) | No | Outside the app data directory; derived from `anime_data.json` and rewritten on every change; never backed up or shared. See [`features/home-screen-widgets.md`](features/home-screen-widgets.md) |
+| Home-screen widget snapshot | Android `myapps_widget` shared preferences / iOS App Group `UserDefaults`, key `envelope.myanime.upNext` / `myapps_widget.envelope.myanime.upNext` (1.9.5; a MyApps-Widget envelope). Until 1.9.4: `MyAnimeWidget` / `myanime_widget_snapshot`, still read as a fallback | No | Outside the app data directory; derived from `anime_data.json` and rewritten on every change; never backed up or shared. See [`features/home-screen-widgets.md`](features/home-screen-widgets.md) and [`shared-widget.md`](shared-widget.md) |
 | API server enabled/listen address/port/credentials | `storage_config.json` | No | Local desktop config; credentials must not be committed |
 | Tray and launch-at-startup preferences | `storage_config.json` | No | Local desktop config |
 | Kana tab shown | `storage_config.json` | No | Device-specific `kanaTabEnabled`; absent means hidden (1.6.0) |

@@ -1,57 +1,32 @@
 package com.yuanzhe.my_anime.widget
 
-import android.app.PendingIntent
 import android.appwidget.AppWidgetManager
-import android.appwidget.AppWidgetProvider
 import android.content.Context
-import android.content.Intent
 import android.os.Bundle
-import android.util.TypedValue
 import android.view.View
 import android.widget.RemoteViews
 import com.yuanzhe.my_anime.R
+import com.yuanzhe.myapps_widget.EnvelopeWidgetProvider
+import com.yuanzhe.myapps_widget.WidgetLaunch
+import com.yuanzhe.myapps_widget.setScaledTextSize
 
 /**
  * 2x2 "Up next" widget: today's update count, the aired episodes left to
  * watch, and the first anime in the watch queue (or the next airing one).
  */
-class UpNextWidgetProvider : AppWidgetProvider() {
+class UpNextWidgetProvider : EnvelopeWidgetProvider() {
 
     /**
-     * Purpose: Redraw every instance from the stored snapshot.
-     * Inputs: `context`, `appWidgetManager`, `appWidgetIds`.
-     * Returns: None.
-     * Side effects: Pushes RemoteViews to the launcher.
-     * Notes: Called on add and by the system update period; the snapshot is
-     * re-evaluated at the current time, so newly aired episodes appear.
+     * Purpose: Draw one instance from the stored envelope.
+     * Inputs: `context`, `appWidgetId`, `options` — the instance's size options.
+     * Returns: `RemoteViews`.
+     * Side effects: Reads the envelope store.
+     * Notes: The shared base calls this on add, on the system update period, on
+     * resize and after each publish; the payload is re-evaluated at the current
+     * time, so newly aired episodes appear.
      */
-    override fun onUpdate(
-        context: Context,
-        appWidgetManager: AppWidgetManager,
-        appWidgetIds: IntArray,
-    ) {
-        val state = UpNextState.load(WidgetStore.prefs(context))
-        for (id in appWidgetIds) {
-            appWidgetManager.updateAppWidget(id, render(context, state, appWidgetManager.getAppWidgetOptions(id)))
-        }
-    }
-
-    /**
-     * Purpose: Redraw one instance after the user resizes it.
-     * Inputs: `context`, `appWidgetManager`, `appWidgetId`, `newOptions`.
-     * Returns: None.
-     * Side effects: Pushes RemoteViews to the launcher.
-     * Notes: The second queue row appears only when the widget is tall enough.
-     */
-    override fun onAppWidgetOptionsChanged(
-        context: Context,
-        appWidgetManager: AppWidgetManager,
-        appWidgetId: Int,
-        newOptions: Bundle,
-    ) {
-        val state = UpNextState.load(WidgetStore.prefs(context))
-        appWidgetManager.updateAppWidget(appWidgetId, render(context, state, newOptions))
-    }
+    override fun render(context: Context, appWidgetId: Int, options: Bundle?): RemoteViews =
+        render(context, UpNextState.load(context), options)
 
     companion object {
         /** Minimum widget height, in dp, that fits two queue rows at 100% text. */
@@ -80,22 +55,22 @@ class UpNextWidgetProvider : AppWidgetProvider() {
         fun render(context: Context, state: UpNextState, options: Bundle?): RemoteViews {
             val now = System.currentTimeMillis()
             val views = RemoteViews(context.packageName, R.layout.widget_up_next)
-            views.setOnClickPendingIntent(R.id.widget_root, launchIntent(context))
+            views.setOnClickPendingIntent(R.id.widget_root, WidgetLaunch.pendingIntent(context))
             for ((id, base) in SCALED_TEXT) {
-                views.setTextViewTextSize(id, TypedValue.COMPLEX_UNIT_SP, state.sp(base))
+                views.setScaledTextSize(id, base, state.textScale)
             }
             views.setTextViewText(R.id.app_name, state.label("appName"))
             views.setTextViewText(R.id.today_pill, "${state.label("today")} ${state.todayCount}")
 
             if (state.toWatch > 0) {
-                views.setTextViewTextSize(R.id.count, TypedValue.COMPLEX_UNIT_SP, state.sp(36f))
+                views.setScaledTextSize(R.id.count, 36f, state.textScale)
                 views.setTextViewText(R.id.count, state.toWatch.toString())
                 views.setTextViewText(
                     R.id.count_label,
                     "${state.label("toWatch")} · ${state.series(state.queue.size)}",
                 )
             } else {
-                views.setTextViewTextSize(R.id.count, TypedValue.COMPLEX_UNIT_SP, state.sp(20f))
+                views.setScaledTextSize(R.id.count, 20f, state.textScale)
                 views.setTextViewText(R.id.count, state.label("caughtUp"))
                 views.setTextViewText(
                     R.id.count_label,
@@ -139,25 +114,6 @@ class UpNextWidgetProvider : AppWidgetProvider() {
             views.setViewVisibility(rowId, View.VISIBLE)
             views.setTextViewText(titleId, row.first)
             views.setTextViewText(metaId, row.second)
-        }
-
-        /**
-         * Purpose: Build the tap action that opens the app.
-         * Inputs: `context`.
-         * Returns: An immutable `PendingIntent` for the launcher activity.
-         * Side effects: None.
-         * Notes: Shared by both widget sizes.
-         */
-        fun launchIntent(context: Context): PendingIntent {
-            val intent = context.packageManager.getLaunchIntentForPackage(context.packageName)
-                ?: Intent()
-            intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_SINGLE_TOP)
-            return PendingIntent.getActivity(
-                context,
-                0,
-                intent,
-                PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
-            )
         }
     }
 }

@@ -246,7 +246,7 @@ Recommendations (1.6.0, M5); the synced trash bins, the related list and the tra
 | `lib/features/settings/views/license_page.dart` | [features/settings/views/license_page.md](features/settings/views/license_page.md) | 2 | 0 |
 | `lib/features/settings/views/privacy_policy_page.dart` | [features/settings/views/privacy_policy_page.md](features/settings/views/privacy_policy_page.md) | 3 | 1 |
 | `lib/features/settings/views/settings_page.dart` | [features/settings/views/settings_page.md](features/settings/views/settings_page.md) | 28 | 20 |
-| `lib/features/settings/widgets/home_widget_preview.dart` | [features/settings/widgets/home_widget_preview.md](features/settings/widgets/home_widget_preview.md) | 13 | 6 |
+| `lib/features/settings/widgets/home_widget_preview.dart` | [features/settings/widgets/home_widget_preview.md](features/settings/widgets/home_widget_preview.md) | 11 | 6 |
 
 ## l10n/
 
@@ -301,9 +301,9 @@ the 771 hand-documented declarations above).
 | `features/kana/` | 1 | 19 | 3 | 16 |
 | `features/profile/` | 8 | 66 | 32 | 34 |
 | `features/recommendations/` | 11 | 155 | 65 | 90 |
-| `features/settings/` | 5 | 62 | 34 | 28 |
+| `features/settings/` | 5 | 60 | 34 | 26 |
 | `shared/` (utils, widgets, providers, services, views) | 32 | 334 | 250 | 84 |
-| **Total** | **114** | **1592** | **821** | **771** |
+| **Total** | **114** | **1590** | **821** | **769** |
 
 The home-screen widget change added one file, `home_widget_service.dart` (10 declarations, 7 Tier A,
 3 Tier B); `anime_storage.dart`, `app_settings.dart`, `auto_sync_service.dart` and `main.dart`
@@ -314,6 +314,11 @@ The 1.9.4 widget text-size change added one file, `home_widget_preview.dart` (13
 (`getWidgetTextScale`, `setWidgetTextScale`), `app_settings.dart` +1 (`setWidgetTextScale`) and
 `home_widget_service.dart` +1 (`clampTextScale`); `settings_page.dart` changed without a new
 declaration.
+
+The 1.9.5 move onto MyApps-Widget removed two Tier B declarations from `home_widget_preview.dart`
+(`_WidgetSurface` and its `build`, replaced by the shared `WidgetPreviewSurface`);
+`home_widget_service.dart`, `settings_page.dart` and the Android and iOS widget code changed without a
+new Dart declaration.
 
 
 ## Anime1 episode playback (1.6.4)

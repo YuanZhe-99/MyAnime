@@ -317,7 +317,7 @@ enum AnimeType {
 | 自动备份启用 | `storage_config.json` | 否 | 设备特有配置 |
 | 备份保留天数 | `storage_config.json` | 否 | 设备特有配置 |
 | 提醒启用/时间/上次提醒日期 | `storage_config.json` | 否 | 设备特有的本地时间提醒配置和内部状态 |
-| 桌面小组件快照 | Android `MyAnimeWidget` shared preferences / iOS App Group `UserDefaults`（`myanime_widget_snapshot`） | 否 | 位于应用数据目录之外；由 `anime_data.json` 派生，每次变更都会重写；绝不备份或分享。见 [`features/home-screen-widgets.md`](features/home-screen-widgets.md) |
+| 桌面小组件快照 | Android `myapps_widget` shared preferences / iOS App Group `UserDefaults`，键为 `envelope.myanime.upNext` / `myapps_widget.envelope.myanime.upNext`（1.9.5；MyApps-Widget 外层封装）。1.9.4 及之前：`MyAnimeWidget` / `myanime_widget_snapshot`，仍作为回退读取 | 否 | 位于应用数据目录之外；由 `anime_data.json` 派生，每次变更都会重写；绝不备份或分享。见 [`features/home-screen-widgets.md`](features/home-screen-widgets.md) 与 [`shared-widget.md`](shared-widget.md) |
 | API 服务器启用/监听地址/端口/凭据 | `storage_config.json` | 否 | 本地桌面配置；凭据不得被提交 |
 | 托盘和开机自启偏好 | `storage_config.json` | 否 | 本地桌面配置 |
 | 是否显示假名标签 | `storage_config.json` | 否 | 设备特有的 `kanaTabEnabled`；缺省表示隐藏（1.6.0） |

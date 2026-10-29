@@ -166,7 +166,7 @@ find lib -name "*.dart" -not -path "lib/l10n/*" | xargs grep -h '/// Purpose:' |
 | `lib/features/settings/views/license_page.dart` | [features/settings/views/license_page.md](features/settings/views/license_page.md) | 2 | 0 |
 | `lib/features/settings/views/privacy_policy_page.dart` | [features/settings/views/privacy_policy_page.md](features/settings/views/privacy_policy_page.md) | 3 | 1 |
 | `lib/features/settings/views/settings_page.dart` | [features/settings/views/settings_page.md](features/settings/views/settings_page.md) | 28 | 20 |
-| `lib/features/settings/widgets/home_widget_preview.dart` | [features/settings/widgets/home_widget_preview.md](features/settings/widgets/home_widget_preview.md) | 13 | 6 |
+| `lib/features/settings/widgets/home_widget_preview.dart` | [features/settings/widgets/home_widget_preview.md](features/settings/widgets/home_widget_preview.md) | 11 | 6 |
 
 ## l10n/
 
@@ -220,9 +220,9 @@ find lib -name "*.dart" -not -path "lib/l10n/*" | xargs grep -h '/// Purpose:' |
 | `features/kana/` | 1 | 19 | 3 | 16 |
 | `features/profile/` | 8 | 66 | 32 | 34 |
 | `features/recommendations/` | 11 | 155 | 65 | 90 |
-| `features/settings/` | 5 | 62 | 34 | 28 |
+| `features/settings/` | 5 | 60 | 34 | 26 |
 | `shared/`（utils、widgets、providers、services、views） | 32 | 334 | 250 | 84 |
-| **总计** | **114** | **1592** | **821** | **771** |
+| **总计** | **114** | **1590** | **821** | **769** |
 
 桌面小组件变更新增了一个文件 `home_widget_service.dart`（10 个声明，7 个 Tier A、
 3 个 Tier B）；`anime_storage.dart`、`app_settings.dart`、`auto_sync_service.dart` 和 `main.dart`
@@ -232,6 +232,10 @@ find lib -name "*.dart" -not -path "lib/l10n/*" | xargs grep -h '/// Purpose:' |
 并在改动文件中新增四个声明，均为 Tier A：`anime_storage.dart` +2（`getWidgetTextScale`、`setWidgetTextScale`）、
 `app_settings.dart` +1（`setWidgetTextScale`）和 `home_widget_service.dart` +1（`clampTextScale`）；
 `settings_page.dart` 有改动但没有新增声明。
+
+1.9.5 改用 MyApps-Widget 后，`home_widget_preview.dart` 移除了两个 Tier B 声明（`_WidgetSurface` 及其 `build`，
+由共享的 `WidgetPreviewSurface` 取代）；`home_widget_service.dart`、`settings_page.dart` 以及 Android 和 iOS
+小组件代码有改动，但没有新增 Dart 声明。
 
 
 ## Anime1 分集播放（1.6.4）
