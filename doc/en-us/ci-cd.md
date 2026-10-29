@@ -17,8 +17,7 @@ in CI, so the default `GITHUB_TOKEN` is sufficient.
 - Android APK full flavor and AAB store flavor. Both are release builds, so they run R8 with the
   ML Kit keep rules in `android/app/proguard-rules.pro`.
 - Windows x64 full installer on `windows-latest`.
-- Windows ARM64 full installer on `windows-11-arm`; this currently uses cached Flutter master because
-  stable ARM64 engine support was not yet available when the workflow was written.
+- Windows ARM64 full installer on `windows-11-arm`, built with the Flutter stable tag cloned from git.
 - iOS full sideload IPA without codesign. After `flutter build ios`, the step "Check
   FoundationModels is weakly linked (iOS)" runs `tool/check_weak_link.sh` on
   `build/ios/iphoneos/Runner.app`.
@@ -33,9 +32,12 @@ in CI, so the default `GITHUB_TOKEN` is sufficient.
 - GitHub `secrets` cannot be used directly in step `if` expressions; route them through job-level
   `env`.
 - Windows ARM64 output is controlled by `iscc /DARM64 installer.iss`.
-- The ARM64 Flutter master cache is weekly so Windows Defender reputation can accumulate for reused
-  DLL hashes. Once stable Flutter ships suitable ARM64 support, switch this job back to a
-  stable-channel setup.
+- Windows ARM64 clones the Flutter stable tag `FLUTTER_VERSION` with git instead of using
+  `subosito/flutter-action`: the published Windows archive is x64-only and would build an x64 app,
+  while a git checkout downloads the engine matching the Arm runner (stable engines ship
+  `windows-arm64` artifacts). The fixed tag keeps DLL hashes stable for Windows Defender reputation.
+  Do not clone Flutter master: on 2026-10-29 its head failed to build `flutter_tools`, and
+  `flutter doctor` retried until the job timed out. `flutter doctor` now has a 15-minute timeout.
 - Remove the `CL=/D_SILENCE_EXPERIMENTAL_COROUTINE_DEPRECATION_WARNINGS` compatibility macro once the
   dependency chain no longer includes `<experimental/coroutine>`.
 - Action versions: `actions/checkout@v7`, `actions/setup-java@v5`, `actions/upload-artifact@v7`,

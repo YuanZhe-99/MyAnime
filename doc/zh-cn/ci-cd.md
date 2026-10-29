@@ -15,7 +15,7 @@ P2 使用公共导航和实际内容约束，见 [shared-ui.md](shared-ui.md)。
 - Android full 风味的 APK 和 store 风味的 AAB。两者都是 release 构建，因此会带着 `android/app/proguard-rules.pro`
   中的 ML Kit 保留规则运行 R8。
 - 在 `windows-latest` 上构建 Windows x64 full 安装包。
-- 在 `windows-11-arm` 上构建 Windows ARM64 full 安装包；它目前使用缓存的 Flutter master，因为编写工作流时 stable 的 ARM64 引擎支持尚不可用。
+- 在 `windows-11-arm` 上构建 Windows ARM64 full 安装包，使用从 git 克隆的 Flutter stable 标签。
 - 不带签名的 iOS full 侧载 IPA。`flutter build ios` 之后，步骤「Check FoundationModels is weakly linked (iOS)」
   对 `build/ios/iphoneos/Runner.app` 运行 `tool/check_weak_link.sh`。
 - 通过 `create-dmg` 构建 macOS full DMG。`flutter build macos` 之后，步骤「Check FoundationModels is weakly
@@ -28,7 +28,10 @@ P2 使用公共导航和实际内容约束，见 [shared-ui.md](shared-ui.md)。
 - 让工作流 Flutter 版本与 Dart SDK 约束保持一致。
 - GitHub `secrets` 不能直接在步骤的 `if` 表达式中使用；要通过任务级 `env` 路由。
 - Windows ARM64 输出由 `iscc /DARM64 installer.iss` 控制。
-- ARM64 Flutter master 缓存按周更新，让 Windows Defender 信誉可以累积到复用的 DLL 哈希上。一旦 stable Flutter 提供合适的 ARM64 支持，就把这个任务切回 stable 通道配置。
+- Windows ARM64 用 git 克隆 Flutter stable 标签 `FLUTTER_VERSION`，而不是使用 `subosito/flutter-action`：官方发布的 Windows
+  压缩包只有 x64，会构建出 x64 应用；git 检出则会下载与 Arm runner 匹配的引擎（stable 引擎提供 `windows-arm64` 产物）。固定的标签让
+  DLL 哈希保持稳定，便于累积 Windows Defender 信誉。不要克隆 Flutter master：2026-10-29 时其最新提交无法编译 `flutter_tools`，
+  `flutter doctor` 一直重试直到任务超时。`flutter doctor` 现设有 15 分钟超时。
 - 依赖链不再包含 `<experimental/coroutine>` 后，移除 `CL=/D_SILENCE_EXPERIMENTAL_COROUTINE_DEPRECATION_WARNINGS` 兼容宏。
 - Action 版本：`actions/checkout@v7`、`actions/setup-java@v5`、`actions/upload-artifact@v7`、`actions/download-artifact@v8`、`actions/cache@v6`、`softprops/action-gh-release@v3`（从 GitHub 废弃的基于 Node 20 的 majors 升级）。在下次标签发布前用一次 `workflow_dispatch` 运行验证工作流变更。
 - 已知的剩余警告：Android 任务仍会为 `flutter_timezone`、`package_info_plus`、`share_plus`、`shared_preferences_android`、`wakelock_plus` 和 `file_picker` 打印 Flutter 的"应用 KGP 的插件"警告。应用侧已迁移（AGP 9.1.1，无应用级 `kotlin-android`）；剩余警告只在插件侧，且截至 2026-07，即使这些插件的最新版本仍应用 KGP。彻底消除需要在每个插件都提供 Built-in Kotlin 支持后翻转为 `android.builtInKotlin=true`；尝试时要用真实的 APK/AAB 构建验证。
