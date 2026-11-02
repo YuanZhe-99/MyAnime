@@ -63,8 +63,10 @@ notifies `AutoSyncService`/`ReminderService` after every save. See
 | [`setMetadataPrefetchCovers`](#setmetadataprefetchcovers) | static method (`AnimeStorage`) | A | Persist whether candidate covers are prefetched. |
 | [`getKanaTabEnabled`](#getkanatabenabled) | static method (`AnimeStorage`) | A | Read whether the Kana quick-reference tab is shown. |
 | [`setKanaTabEnabled`](#setkanatabenabled) | static method (`AnimeStorage`) | A | Persist whether the Kana quick-reference tab is shown. |
-| [`getWidgetTextScale`](#getwidgettextscale) | static method (`AnimeStorage`) | A | Read the home-screen widget text scale (1.9.4). |
-| [`setWidgetTextScale`](#setwidgettextscale) | static method (`AnimeStorage`) | A | Persist the home-screen widget text scale (1.9.4). |
+| [`getWidgetTextScale`](#getwidgettextscale) | static method (`AnimeStorage`) | A | Read the large (2×2) home-screen widget text scale (1.9.4). |
+| [`setWidgetTextScale`](#setwidgettextscale) | static method (`AnimeStorage`) | A | Persist the large (2×2) home-screen widget text scale (1.9.4). |
+| [`getWidgetStripTextScale`](#getwidgetstriptextscale) | static method (`AnimeStorage`) | A | Read the strip widget's own text scale, or null when unset (1.9.7). |
+| [`setWidgetStripTextScale`](#setwidgetstriptextscale) | static method (`AnimeStorage`) | A | Persist the strip widget's own text scale (1.9.7). |
 | [`getUiStyle`](#getuistyle) | static method (`AnimeStorage`) | A | Read the stored interface style name, migrating the 1.7.0 `classicNavBar` key (1.7.1; replaces `getFloatingNavBar`). |
 | [`setUiStyle`](#setuistyle) | static method (`AnimeStorage`) | A | Persist the interface style and drop the superseded `classicNavBar` key (1.7.1; replaces `setFloatingNavBar`). |
 | [`getNavPlacement`](#getnavplacement) | static method (`AnimeStorage`) | A | Read the stored navigation placement name (1.7.2). |
@@ -673,12 +675,29 @@ notifies `AutoSyncService`/`ReminderService` after every save. See
   not a number.
 - **Side effects:** Reads `storage_config.json`.
 - **Notes:** Added in 1.9.4. Callers clamp it with `HomeWidgetService.clampTextScale`; read by
-  `AppSettingsNotifier._loadPersisted` and `HomeWidgetService.refresh`.
+  `AppSettingsNotifier._loadPersisted` and `HomeWidgetService.refresh`. Since 1.9.7 it is the large widget's
+  scale only; the strip has [`getWidgetStripTextScale`](#getwidgetstriptextscale).
 
 ### `static Future<void> setWidgetTextScale(double scale)` <a id="setwidgettextscale"></a>
 - **Kind:** static method of `AnimeStorage`
 - **Side effects:** Writes `storage_config.json`.
 - **Notes:** Added in 1.9.4. Removes the key for the default `1.0`, otherwise writes the number.
+
+### `static Future<double?> getWidgetStripTextScale()` <a id="getwidgetstriptextscale"></a>
+- **Kind:** static method of `AnimeStorage`
+- **Returns:** `Future<double?>` — `config['widgetStripTextScale']` as a double, or `null` when absent
+  or not a number.
+- **Side effects:** Reads `storage_config.json`.
+- **Notes:** Added in 1.9.7. Null means the strip follows [`getWidgetTextScale`](#getwidgettextscale),
+  which is how a 1.9.4–1.9.6 install with one shared size reads. Callers clamp it with
+  `HomeWidgetService.clampTextScale`; read by `AppSettingsNotifier._loadPersisted` and
+  `HomeWidgetService.refresh`.
+
+### `static Future<void> setWidgetStripTextScale(double scale)` <a id="setwidgetstriptextscale"></a>
+- **Kind:** static method of `AnimeStorage`
+- **Side effects:** Writes `storage_config.json`.
+- **Notes:** Added in 1.9.7. Always writes the number, including `1.0`, because an absent key means
+  "same as the large widget".
 
 ### `static Future<String?> getUiStyle()` <a id="getuistyle"></a>
 - **Kind:** static method of `AnimeStorage`

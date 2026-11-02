@@ -9,13 +9,13 @@ import '../services/on_device_ai_service.dart';
 import 'ai_source_controls.dart';
 import '../services/ai_insights_cache.dart';
 
-/// The on-device AI rows of the *Categories & recommendations* Settings
-/// section: the switch, the model status with its actions, the size
-/// preference, the notes, and a collapsed technical-details tile.
+/// The body of the AI settings page, which since 1.9.7 opens from an entry row
+/// in the *Categories & recommendations* Settings section: the switch, the
+/// source, the model status with its actions, the size preference, the notes,
+/// and a collapsed technical-details tile.
 ///
-/// Renders nothing on a platform that cannot have an on-device model
-/// (Windows, Linux, web), so the section there holds only the feature
-/// switches.
+/// Renders on every platform: where no on-device model exists, the source
+/// choice still offers local and online models.
 class AiSettingsTiles extends ConsumerStatefulWidget {
   /// Whether at least one feature that uses the model is on; the AI switch
   /// is enabled only then.

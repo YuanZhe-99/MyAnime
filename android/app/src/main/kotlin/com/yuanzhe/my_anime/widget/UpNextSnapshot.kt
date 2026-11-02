@@ -33,6 +33,8 @@ data class UpNextState(
     val labels: Map<String, String>,
     val zone: ZoneId,
     val textScale: Float = 1f,
+    /** The strip widget's own text scale (1.9.7); equals [textScale] in older payloads. */
+    val stripTextScale: Float = textScale,
 ) {
     /**
      * Purpose: Return a snapshot label, falling back to English.
@@ -143,7 +145,8 @@ data class UpNextState(
         /**
          * Purpose: Evaluate a payload at an instant.
          * Inputs: `json` — the envelope payload; `generatedAt` and `now` — epoch milliseconds;
-         * `textScale` — already clamped.
+         * `textScale` — already clamped; the large widget's, and the strip's unless the payload carries
+         * `stripTextScale` (1.9.7).
          * Returns: `UpNextState`.
          * Side effects: None.
          * Notes: Mirrors `HomeWidgetService.buildSnapshot`: episodes that aired
@@ -178,7 +181,12 @@ data class UpNextState(
                 Instant.ofEpochMilli(it.airAt).atZone(zone).toLocalDate() == today
             }
             val nextUp = episodes.firstOrNull { !it.watched && it.airAt > now }
-            return UpNextState(toWatch, queue, todayCount, nextUp, labels, zone, textScale)
+            val stripTextScale = if (json.has("stripTextScale")) {
+                WidgetTextScale.clamp(json.optDouble("stripTextScale", textScale.toDouble()))
+            } else {
+                textScale
+            }
+            return UpNextState(toWatch, queue, todayCount, nextUp, labels, zone, textScale, stripTextScale)
         }
     }
 }

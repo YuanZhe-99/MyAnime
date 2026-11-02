@@ -854,5 +854,9 @@
   "widgetSeriesCount": "{count} 作品",
   "settingsWidgets": "ホーム画面ウィジェット",
   "settingsWidgetTextSize": "ウィジェットの文字サイズ",
-  "settingsWidgetTextSizeDesc": "下にプレビューを表示します。ホーム画面のウィジェットは数秒で更新されます。"
+  "settingsWidgetTextSizeDesc": "下にプレビューを表示します。ホーム画面のウィジェットは数秒で更新されます。",
+  "settingsWidgetsDesc": "ウィジェットごとの文字サイズとプレビュー",
+  "settingsWidgetLarge": "大きいウィジェット",
+  "settingsWidgetStrip": "横長ウィジェット",
+  "aiSettingsEntryDesc": "AIソース・モデル・技術情報"
 }

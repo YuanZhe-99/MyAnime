@@ -790,6 +790,31 @@ class AnimeStorage {
     });
   }
 
+  /// Purpose: Return the 2×1 strip widget's own text scale (1.9.7).
+  /// Inputs: None.
+  /// Returns: `Future<double?>` — null when unset or not a number.
+  /// Side effects: Reads `storage_config.json`.
+  /// Notes: Null means the strip follows [getWidgetTextScale], which is what
+  /// a 1.9.4–1.9.6 install with one shared size reads as. Callers clamp it
+  /// with `HomeWidgetService.clampTextScale`.
+  static Future<double?> getWidgetStripTextScale() async {
+    final config = await readConfig();
+    final value = config['widgetStripTextScale'];
+    return value is num ? value.toDouble() : null;
+  }
+
+  /// Purpose: Persist the 2×1 strip widget's own text scale (1.9.7).
+  /// Inputs: `scale`.
+  /// Returns: None.
+  /// Side effects: Writes `storage_config.json`.
+  /// Notes: Always stored, including 1.0, because an absent key means
+  /// "same as the large widget".
+  static Future<void> setWidgetStripTextScale(double scale) async {
+    await updateConfig((config) {
+      config['widgetStripTextScale'] = scale;
+    });
+  }
+
   /// Purpose: Return the stored interface style name (1.7.1).
   /// Inputs: None.
   /// Returns: `Future<String?>` — `'material3'`, or null for the default

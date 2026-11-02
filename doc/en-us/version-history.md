@@ -1,5 +1,18 @@
 # Version history
 
+## 1.9.7 — Widget and AI settings pages (2026-11-02)
+
+Settings had grown long on its first level, so two groups moved to pages of their own. **Settings ›
+Home-screen widgets** is now one row that opens a page with a section per widget, and the strip
+has its own text size (`widgetStripTextScale`, written to the snapshot payload as
+`stripTextScale`; until it is set the strip follows the large widget, so 1.9.6 settings carry
+over). Each preview shows one widget, drawn at 75% so it no longer looks larger than the widget on
+the home screen, and with nothing placed it defaults to 3×2 and 3×1 rather than 2×2 and 2×1. The
+on-device AI rows moved behind one entry row in *Categories & recommendations*, using the new
+`MyAppsAiSettingsEntry` and `MyAppsAiSettingsPage` from MyApps-AI v0.6.3 so the other apps can
+adopt the same layout when they next update. Both pages also open in the two-pane Settings layout.
+See [`features/home-screen-widgets.md`](features/home-screen-widgets.md#text-size).
+
 ## 1.9.6 — Widget preview at the placed size (2026-11-02)
 
 The widget preview under **Settings › Home-screen widgets › Widget text size** was always a fixed

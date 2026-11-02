@@ -18,12 +18,14 @@ MyAnime keeps:
 - `HomeWidgetService` as the facade, with its public members unchanged: `isSupported`, `init`,
   `notifyDataChanged`, `refresh`, `labelsFor`, `buildSnapshot`, `jstToUtc`, `clampTextScale` and
   the constants. It adds `kind` (`myanime.upNext`) and `appGroupId`.
-- The payload (`timeZone`, `airedUnwatched`, `queueSize`, `episodes`, `labels`) and its version
+- The payload (`timeZone`, `airedUnwatched`, `queueSize`, `episodes`, `labels`, and since 1.9.7
+  `stripTextScale`) and its version
   `pv` (`HomeWidgetService.formatVersion`).
 - The native renderers: `UpNextWidgetProvider` and `UpNextStripWidgetProvider` (extending the
   shared `EnvelopeWidgetProvider`), `UpNextState`, the XML layouts and colors, and the
   `UpNextWidget` extension (`UpNextWidget.swift`).
-- Wording, the `widgetTextScale` setting and the settings preview `HomeWidgetPreview`.
+- Wording, the `widgetTextScale` and `widgetStripTextScale` settings, the widget settings page
+  `HomeWidgetSettingsPage` and its per-widget preview `HomeWidgetPreview` (1.9.7).
 
 The license page names MyApps-Widget and its GPL v3 source.
 

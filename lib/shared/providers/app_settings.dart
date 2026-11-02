@@ -113,6 +113,9 @@ class AppSettingsNotifier extends StateNotifier<AppSettings> {
     final widgetTextScale = HomeWidgetService.clampTextScale(
       await AnimeStorage.getWidgetTextScale(),
     );
+    final widgetStripTextScale = HomeWidgetService.clampTextScale(
+      await AnimeStorage.getWidgetStripTextScale() ?? widgetTextScale,
+    );
 
     final themeMode = switch (modeStr) {
       'light' => ThemeMode.light,
@@ -147,6 +150,7 @@ class AppSettingsNotifier extends StateNotifier<AppSettings> {
       autoCategoriesEnabled: autoCategoriesEnabled,
       recommendationsEnabled: recommendationsEnabled,
       widgetTextScale: widgetTextScale,
+      widgetStripTextScale: widgetStripTextScale,
     );
     CategoryClassifier.instance.enabled = autoCategoriesEnabled;
     // The service holds no preference of its own; it is told once here and
@@ -226,16 +230,29 @@ class AppSettingsNotifier extends StateNotifier<AppSettings> {
     HomeWidgetService.notifyDataChanged();
   }
 
-  /// Purpose: Update the home-screen widget text scale (1.9.4).
+  /// Purpose: Update the large (2×2) home-screen widget's text scale (1.9.4).
   /// Inputs: `scale` — clamped to the supported range.
   /// Returns: None.
   /// Side effects: Persists the scale and schedules a widget refresh.
   /// Notes: The in-app preview reads the state directly; the native widgets
-  /// pick it up from the next snapshot.
+  /// pick it up from the next snapshot. Since 1.9.7 the strip has its own
+  /// scale ([setWidgetStripTextScale]).
   void setWidgetTextScale(double scale) {
     final clamped = HomeWidgetService.clampTextScale(scale);
     state = state.copyWith(widgetTextScale: clamped);
     AnimeStorage.setWidgetTextScale(clamped);
+    HomeWidgetService.notifyDataChanged();
+  }
+
+  /// Purpose: Update the 2×1 strip widget's text scale (1.9.7).
+  /// Inputs: `scale` — clamped to the supported range.
+  /// Returns: None.
+  /// Side effects: Persists the scale and schedules a widget refresh.
+  /// Notes: Independent of [setWidgetTextScale].
+  void setWidgetStripTextScale(double scale) {
+    final clamped = HomeWidgetService.clampTextScale(scale);
+    state = state.copyWith(widgetStripTextScale: clamped);
+    AnimeStorage.setWidgetStripTextScale(clamped);
     HomeWidgetService.notifyDataChanged();
   }
 
@@ -471,11 +488,15 @@ class AppSettings {
   /// Whether recommendations are on. Off by default.
   final bool recommendationsEnabled;
 
-  /// Text scale of the home-screen widgets (1.9.4). 1.0 by default.
+  /// Text scale of the large (2×2) home-screen widget (1.9.4). 1.0 by default.
   final double widgetTextScale;
 
+  /// Text scale of the 2×1 strip widget (1.9.7). 1.0 by default; follows
+  /// [widgetTextScale] until set on its own.
+  final double widgetStripTextScale;
+
   /// Purpose: Create a app settings instance.
-  /// Inputs: `themeMode`, `locale`, `weekStartDay`, `homeCalendarLayout`, `homeCalendarTimeBasis`, `homeCalendarFormat`, `homeListColumns`, `manageListColumns`, `manageViewMode`, `manageSeriesSort`, `statsListColumns`, `kanaTabEnabled`, `uiStyle`, `navPlacement`, `navRailOnRight`, `onDeviceAiEnabled`, `onDeviceAiPreferFast`, `autoCategoriesEnabled`, `recommendationsEnabled`, `widgetTextScale`.
+  /// Inputs: `themeMode`, `locale`, `weekStartDay`, `homeCalendarLayout`, `homeCalendarTimeBasis`, `homeCalendarFormat`, `homeListColumns`, `manageListColumns`, `manageViewMode`, `manageSeriesSort`, `statsListColumns`, `kanaTabEnabled`, `uiStyle`, `navPlacement`, `navRailOnRight`, `onDeviceAiEnabled`, `onDeviceAiPreferFast`, `autoCategoriesEnabled`, `recommendationsEnabled`, `widgetTextScale`, `widgetStripTextScale`.
   /// Returns: A new `AppSettings` instance.
   /// Side effects: None.
   /// Notes: `weekStartDay` stores the local-calendar preference; Japanese layout uses Sunday effectively.
@@ -500,6 +521,7 @@ class AppSettings {
     this.autoCategoriesEnabled = false,
     this.recommendationsEnabled = false,
     this.widgetTextScale = 1.0,
+    this.widgetStripTextScale = 1.0,
   });
 
   /// Purpose: Return the week start day that should be applied to calendars.
@@ -513,7 +535,7 @@ class AppSettings {
       : weekStartDay;
 
   /// Purpose: Create a copy with selected fields replaced.
-  /// Inputs: `themeMode`, `locale`, `weekStartDay`, `homeCalendarLayout`, `homeCalendarTimeBasis`, `homeCalendarFormat`, `homeListColumns`, `manageListColumns`, `manageViewMode`, `manageSeriesSort`, `statsListColumns`, `kanaTabEnabled`, `uiStyle`, `navPlacement`, `navRailOnRight`, `onDeviceAiEnabled`, `onDeviceAiPreferFast`, `autoCategoriesEnabled`, `recommendationsEnabled`, `widgetTextScale`, `clearLocale`.
+  /// Inputs: `themeMode`, `locale`, `weekStartDay`, `homeCalendarLayout`, `homeCalendarTimeBasis`, `homeCalendarFormat`, `homeListColumns`, `manageListColumns`, `manageViewMode`, `manageSeriesSort`, `statsListColumns`, `kanaTabEnabled`, `uiStyle`, `navPlacement`, `navRailOnRight`, `onDeviceAiEnabled`, `onDeviceAiPreferFast`, `autoCategoriesEnabled`, `recommendationsEnabled`, `widgetTextScale`, `widgetStripTextScale`, `clearLocale`.
   /// Returns: `AppSettings`.
   /// Side effects: None.
   /// Notes: None.
@@ -538,6 +560,7 @@ class AppSettings {
     bool? autoCategoriesEnabled,
     bool? recommendationsEnabled,
     double? widgetTextScale,
+    double? widgetStripTextScale,
     bool clearLocale = false,
   }) {
     return AppSettings(
@@ -564,6 +587,7 @@ class AppSettings {
       recommendationsEnabled:
           recommendationsEnabled ?? this.recommendationsEnabled,
       widgetTextScale: widgetTextScale ?? this.widgetTextScale,
+      widgetStripTextScale: widgetStripTextScale ?? this.widgetStripTextScale,
     );
   }
 }

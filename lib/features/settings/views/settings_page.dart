@@ -12,7 +12,8 @@ import 'package:launch_at_startup/launch_at_startup.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 
 import 'package:intl/intl.dart';
-import 'package:myapps_widget_ui/myapps_widget_ui.dart';
+import 'package:myapps_ai_ui/myapps_ai_ui.dart'
+    show MyAppsAiSettingsEntry, MyAppsAiSettingsPage;
 
 import '../../../l10n/app_localizations.dart';
 import '../../../app/theme.dart';
@@ -36,15 +37,24 @@ import '../../anime/services/metadata_update_service.dart';
 import '../../categories/widgets/categorize_now_tile.dart';
 import '../../profile/views/profile_header.dart';
 import 'backup_page.dart';
+import 'home_widget_settings_page.dart';
 import 'license_page.dart' as app_license;
 import 'privacy_policy_page.dart';
-import '../widgets/home_widget_preview.dart';
 
-/// The five settings rows that lead to a second-level page.
+/// The settings rows that lead to a second-level page (home-screen widgets
+/// and AI since 1.9.7).
 ///
-/// Only these five participate in the two-pane layout. Everything else on the
+/// Only these participate in the two-pane layout. Everything else on the
 /// page is either an inline control or a dialog, and neither is a page.
-enum _SettingsDetail { webdav, backup, duplicates, privacy, license }
+enum _SettingsDetail {
+  widgets,
+  ai,
+  webdav,
+  backup,
+  duplicates,
+  privacy,
+  license,
+}
 
 class SettingsPage extends ConsumerStatefulWidget {
   /// Purpose: Create a settings page instance.
@@ -145,11 +155,16 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
   /// Side effects: None beyond building widgets.
   /// Notes: Internal helper used within this file only. The same widget serves
   /// both modes: pushed full-screen on a narrow window, and hosted in the
-  /// detail pane on a wide one. None of the five pages needed a change to be
+  /// detail pane on a wide one. None of the pages needed a change to be
   /// embeddable, because a nested `Navigator` holding one route reports
   /// `canPop == false` and their app bars therefore grow no back arrow.
   Widget _detailPage(_SettingsDetail detail) {
     return switch (detail) {
+      _SettingsDetail.widgets => const HomeWidgetSettingsPage(),
+      _SettingsDetail.ai => MyAppsAiSettingsPage(
+        title: AppLocalizations.of(context)!.aiUseOnDevice,
+        child: _aiSettingsBody(),
+      ),
       _SettingsDetail.webdav => const WebDAVConfigPage(),
       _SettingsDetail.backup => const BackupPage(),
       _SettingsDetail.duplicates => const DuplicateCheckPage(),
@@ -158,12 +173,28 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
     };
   }
 
+  /// Purpose: Build the body of the AI settings page (1.9.7).
+  /// Inputs: None.
+  /// Returns: `Widget` — the on-device AI rows.
+  /// Side effects: None beyond building widgets.
+  /// Notes: Internal helper used within this file only. A `Consumer`, so the
+  /// page reads the feature switches itself wherever it is hosted.
+  Widget _aiSettingsBody() => Consumer(
+    builder: (context, ref, _) {
+      final settings = ref.watch(appSettingsProvider);
+      return AiSettingsTiles(
+        featuresOn:
+            settings.autoCategoriesEnabled || settings.recommendationsEnabled,
+      );
+    },
+  );
+
   /// Purpose: Open a second-level page the way the current layout calls for.
   /// Inputs: `detail`.
   /// Returns: None.
   /// Side effects: Either selects the detail pane's page or pushes a route on
   /// the root navigator.
-  /// Notes: Internal helper used within this file only. Every one of the five
+  /// Notes: Internal helper used within this file only. Every one of these
   /// rows goes through here, so the two modes cannot drift apart.
   void _open(_SettingsDetail detail) {
     if (_twoPane) {
@@ -1037,26 +1068,24 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
         ]),
 
         // ── Home-screen widgets (1.9.4) ──
-        // Android and iOS only. The preview redraws as the slider moves; the
-        // placed widgets follow through the debounced snapshot refresh.
+        // Android and iOS only. Since 1.9.7 one row leads to a page with a
+        // text-size slider and preview per widget.
         if (HomeWidgetService.isSupported)
           _buildSection(l10n.settingsWidgets, [
-            WidgetTextScaleControl(
-              value: settings.widgetTextScale,
-              title: l10n.settingsWidgetTextSize,
-              subtitle: l10n.settingsWidgetTextSizeDesc,
-              onChanged: notifier.setWidgetTextScale,
-            ),
-            Padding(
-              padding: const EdgeInsets.fromLTRB(16, 4, 16, 16),
-              child: HomeWidgetPreview(textScale: settings.widgetTextScale),
+            ListTile(
+              leading: const Icon(Icons.widgets_outlined),
+              title: Text(l10n.settingsWidgetTextSize),
+              subtitle: Text(l10n.settingsWidgetsDesc),
+              trailing: const Icon(Icons.chevron_right),
+              selected: _twoPane && _detail == _SettingsDetail.widgets,
+              onTap: () => _open(_SettingsDetail.widgets),
             ),
           ]),
 
         // ── Categories & recommendations ──
         // Everything here is off by default. The on-device AI rows appear
-        // only on Android, iOS and macOS, and the AI switch is usable only
-        // while a feature that needs it is on.
+        // on their own page since 1.9.7 (MyApps-AI's entry row), and the AI
+        // switch there is usable only while a feature that needs it is on.
         _buildSection(l10n.aiSectionTitle, [
           SwitchListTile(
             secondary: const Icon(Icons.category_outlined),
@@ -1072,10 +1101,12 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
             value: settings.recommendationsEnabled,
             onChanged: notifier.setRecommendationsEnabled,
           ),
-          AiSettingsTiles(
-            featuresOn:
-                settings.autoCategoriesEnabled ||
-                settings.recommendationsEnabled,
+          MyAppsAiSettingsEntry(
+            title: l10n.aiUseOnDevice,
+            subtitle: l10n.aiSettingsEntryDesc,
+            builder: (_) => _aiSettingsBody(),
+            selected: _twoPane && _detail == _SettingsDetail.ai,
+            onTap: () => _open(_SettingsDetail.ai),
           ),
           if (settings.autoCategoriesEnabled) const CategorizeNowTile(),
         ]),

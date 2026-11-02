@@ -2537,6 +2537,18 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get settingsWidgetTextSizeDesc => '下方为预览；桌面上的小组件会在几秒内更新。';
+
+  @override
+  String get settingsWidgetsDesc => '分别设置各小组件的字号，并附预览';
+
+  @override
+  String get settingsWidgetLarge => '大号小组件';
+
+  @override
+  String get settingsWidgetStrip => '横条小组件';
+
+  @override
+  String get aiSettingsEntryDesc => 'AI 来源、模型与技术详情';
 }
 
 /// The translations for Chinese, as used in Taiwan (`zh_TW`).
@@ -5072,4 +5084,16 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
 
   @override
   String get settingsWidgetTextSizeDesc => '下方為預覽；桌面上的小工具會在幾秒內更新。';
+
+  @override
+  String get settingsWidgetsDesc => '分別設定各小工具的字級，並附預覽';
+
+  @override
+  String get settingsWidgetLarge => '大型小工具';
+
+  @override
+  String get settingsWidgetStrip => '橫條小工具';
+
+  @override
+  String get aiSettingsEntryDesc => 'AI 來源、模型與技術細節';
 }

@@ -82,7 +82,7 @@ logs failures).
 - **Side effects:** Restarts `_scheduler`, whose timer calls [`refresh`](#refresh).
 - **Algorithm:** No-op on unsupported platforms.
 - **Usage:** `AnimeStorage._writeData`, the `AutoSyncService` resume hook and local-data-changed
-  callback, and `AppSettingsNotifier.setLocale` / `setHomeCalendarTimeBasis` / `setWidgetTextScale`.
+  callback, and `AppSettingsNotifier.setLocale` / `setHomeCalendarTimeBasis` / `setWidgetTextScale` / `setWidgetStripTextScale`.
 - **Notes:** Debouncing collapses bursts such as a sync applying many records.
 
 ### `static Future<void> refresh()` <a id="refresh"></a>
@@ -92,11 +92,12 @@ logs failures).
 - **Inputs:** None.
 - **Returns:** `Future<void>`.
 - **Side effects:** Reads `anime_data.json` (`AnimeStorage.load`) and the `homeCalendarTimeBasis`,
-  `widgetTextScale` and locale keys of `storage_config.json`; publishes the envelope through
+  `widgetTextScale`, `widgetStripTextScale` (1.9.7) and locale keys of `storage_config.json`; publishes the envelope through
   `_bridge`, which stores it natively and redraws both widget sizes.
 - **Algorithm:** Load → resolve the time basis (`'local'` or JST) → resolve localizations →
-  [`buildSnapshot`](#buildsnapshot) with `DateTime.now().toUtc()`, [`labelsFor`](#labelsfor) and the
-  stored text scale → `WidgetEnvelope.fromJson` → `_bridge.publish`.
+  [`buildSnapshot`](#buildsnapshot) with `DateTime.now().toUtc()`, [`labelsFor`](#labelsfor), the
+  clamped `widgetTextScale` as `textScale` and the clamped `widgetStripTextScale ?? widgetTextScale` as
+  `stripTextScale` → `WidgetEnvelope.fromJson` → `_bridge.publish`.
 - **Usage:** Through [`notifyDataChanged`](#notifydatachanged) and [`init`](#init).
 - **Notes:** Every failure is logged and swallowed; a stale widget is harmless.
 
@@ -113,15 +114,16 @@ logs failures).
 - **Usage:** [`refresh`](#refresh).
 - **Notes:** `appName` is always `MyAnime`.
 
-### `static Map<String, dynamic> buildSnapshot(List<Anime> animeList, {required DateTime nowUtc, required HomeCalendarTimeBasis basis, required Map<String, String> labels, double textScale = 1.0})` <a id="buildsnapshot"></a>
+### `static Map<String, dynamic> buildSnapshot(List<Anime> animeList, {required DateTime nowUtc, required HomeCalendarTimeBasis basis, required Map<String, String> labels, double textScale = 1.0, double? stripTextScale})` <a id="buildsnapshot"></a>
 - **Kind:** static method of `HomeWidgetService`
 - **Source:** `lib/shared/services/home_widget_service.dart`
 - **Purpose:** Build the snapshot: an envelope (`v` 1) with payload version 1.
 - **Inputs:** `animeList`; `nowUtc`; `basis` — which calendar day counts as today; `labels`;
-  `textScale` — the widget text size multiplier (1.9.4).
+  `textScale` — the large widget's text size multiplier (1.9.4; both widgets until 1.9.6);
+  `stripTextScale` — the strip's (1.9.7), defaulting to `textScale`.
 - **Returns:** A JSON-ready envelope map: `v`, `kind`, `pv`, `generatedAt`, `textScale` (clamped),
   `privacy` (`normal`), `refreshAt` (empty) and `payload` with `timeZone`, `airedUnwatched`,
-  `queueSize`, `episodes` and `labels`.
+  `queueSize`, `episodes`, `labels` and, since 1.9.7, `stripTextScale` (`stripTextScale ?? textScale`).
 - **Side effects:** None.
 - **Algorithm:** For every anime, walk `startEpisode..(endEpisode ?? startEpisode)` like the Home
   tab. For each episode with an air time, convert it with [`jstToUtc`](#jsttoutc); count it in
@@ -134,6 +136,8 @@ logs failures).
   `test/home_widget_service_test.dart`.
 - **Notes:** The native recount (`toWatch = airedUnwatched + newly aired unwatched entries`)
   relies on every episode after `generatedAt` up to the lookahead being present.
+  `stripTextScale` is optional and additive, so `pv` stays 1; the native readers fall back to
+  `textScale` when a payload lacks it.
 
 ### `static DateTime jstToUtc(DateTime jst)` <a id="jsttoutc"></a>
 - **Kind:** static method of `HomeWidgetService`

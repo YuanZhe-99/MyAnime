@@ -160,7 +160,7 @@ that carry a `/// Purpose:` comment. See [../on-device-ai.md](../on-device-ai.md
 | `lib/features/anime/models/anime.dart` | [features/anime/models/anime.md](features/anime/models/anime.md) | 84 | 68 |
 | `lib/features/anime/models/anime_category.dart` | [features/anime/models/anime_category.md](features/anime/models/anime_category.md) | 2 | 1 |
 | `lib/features/anime/models/metadata_update.dart` | [features/anime/models/metadata_update.md](features/anime/models/metadata_update.md) | 22 | 9 |
-| `lib/features/anime/services/anime_storage.dart` | [features/anime/services/anime_storage.md](features/anime/services/anime_storage.md) | 72 | 56 |
+| `lib/features/anime/services/anime_storage.dart` | [features/anime/services/anime_storage.md](features/anime/services/anime_storage.md) | 74 | 58 |
 | `lib/features/anime/services/manage_grouping.dart` | [features/anime/services/manage_grouping.md](features/anime/services/manage_grouping.md) | 5 | 1 |
 | `lib/features/anime/services/anime1_service.dart` | [features/anime/services/anime1_service.md](features/anime/services/anime1_service.md) | 31 | 17 |
 | `lib/features/anime/services/anime_search_service.dart` | [features/anime/services/anime_search_service.md](features/anime/services/anime_search_service.md) | 71 | 48 |
@@ -243,10 +243,11 @@ Recommendations (1.6.0, M5); the synced trash bins, the related list and the tra
 | Source file | Page | Declarations | Tier A count |
 |---|---|---|---|
 | `lib/features/settings/views/backup_page.dart` | [features/settings/views/backup_page.md](features/settings/views/backup_page.md) | 16 | 7 |
+| `lib/features/settings/views/home_widget_settings_page.dart` | [features/settings/views/home_widget_settings_page.md](features/settings/views/home_widget_settings_page.md) | 3 | 1 |
 | `lib/features/settings/views/license_page.dart` | [features/settings/views/license_page.md](features/settings/views/license_page.md) | 2 | 0 |
 | `lib/features/settings/views/privacy_policy_page.dart` | [features/settings/views/privacy_policy_page.md](features/settings/views/privacy_policy_page.md) | 3 | 1 |
-| `lib/features/settings/views/settings_page.dart` | [features/settings/views/settings_page.md](features/settings/views/settings_page.md) | 28 | 20 |
-| `lib/features/settings/widgets/home_widget_preview.dart` | [features/settings/widgets/home_widget_preview.md](features/settings/widgets/home_widget_preview.md) | 11 | 6 |
+| `lib/features/settings/views/settings_page.dart` | [features/settings/views/settings_page.md](features/settings/views/settings_page.md) | 29 | 20 |
+| `lib/features/settings/widgets/home_widget_preview.dart` | [features/settings/widgets/home_widget_preview.md](features/settings/widgets/home_widget_preview.md) | 11 | 7 |
 
 ## l10n/
 
@@ -257,7 +258,7 @@ the 771 hand-documented declarations above).
 
 | Source file | Page | Declarations | Tier A count |
 |---|---|---|---|
-| `lib/shared/providers/app_settings.dart` | [shared/providers/app_settings.md](shared/providers/app_settings.md) | 30 | 19 |
+| `lib/shared/providers/app_settings.dart` | [shared/providers/app_settings.md](shared/providers/app_settings.md) | 31 | 20 |
 | `lib/shared/utils/adaptive_layout.dart` | [shared/utils/adaptive_layout.md](shared/utils/adaptive_layout.md) | 13 | 13 |
 | `lib/shared/utils/calendar_preferences.dart` | [shared/utils/calendar_preferences.md](shared/utils/calendar_preferences.md) | 4 | 4 |
 | `lib/shared/utils/chinese_convert.dart` | [shared/utils/chinese_convert.md](shared/utils/chinese_convert.md) | 5 | 4 |
@@ -296,14 +297,14 @@ the 771 hand-documented declarations above).
 | Root (`lib/`) | 1 | 1 | 1 | 0 |
 | `app/` | 5 | 33 | 25 | 8 |
 | `features/ai/` | 14 | 81 | 8 | 73 |
-| `features/anime/` | 34 | 822 | 391 | 431 |
+| `features/anime/` | 34 | 824 | 393 | 431 |
 | `features/categories/` | 2 | 18 | 11 | 7 |
 | `features/kana/` | 1 | 19 | 3 | 16 |
 | `features/profile/` | 8 | 66 | 32 | 34 |
 | `features/recommendations/` | 11 | 155 | 65 | 90 |
-| `features/settings/` | 5 | 60 | 34 | 26 |
-| `shared/` (utils, widgets, providers, services, views) | 32 | 335 | 251 | 84 |
-| **Total** | **114** | **1591** | **822** | **769** |
+| `features/settings/` | 6 | 64 | 36 | 28 |
+| `shared/` (utils, widgets, providers, services, views) | 32 | 336 | 252 | 84 |
+| **Total** | **115** | **1598** | **827** | **771** |
 
 The home-screen widget change added one file, `home_widget_service.dart` (10 declarations, 7 Tier A,
 3 Tier B); `anime_storage.dart`, `app_settings.dart`, `auto_sync_service.dart` and `main.dart`
@@ -322,6 +323,15 @@ new Dart declaration.
 
 The placed-size preview change added one Tier A declaration, `home_widget_service.dart` +1
 (`placedSizes`); `home_widget_preview.dart` changed without a new declaration.
+
+The 1.9.7 per-widget text size change added one file, `home_widget_settings_page.dart` (3
+declarations, 1 Tier A, 2 Tier B), and four declarations in changed files: `anime_storage.dart` +2
+(`getWidgetStripTextScale`, `setWidgetStripTextScale`, both Tier A), `app_settings.dart` +1
+(`setWidgetStripTextScale`, Tier A) and `settings_page.dart` +1 (`_aiSettingsBody`, Tier B).
+`home_widget_preview.dart` keeps 11 rows: it became a `StatelessWidget`, so `createState` (Tier B) is
+gone and the static `defaultSize` (Tier A) is new, while `_load` became the static `load`.
+`home_widget_service.dart`, `ai_settings_tiles.dart` and the Android and iOS widget code changed
+without a new Dart declaration.
 
 
 ## Anime1 episode playback (1.6.4)

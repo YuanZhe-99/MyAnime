@@ -850,5 +850,9 @@
   "widgetSeriesCount": "{count} 部",
   "settingsWidgets": "桌面小工具",
   "settingsWidgetTextSize": "小工具字級",
-  "settingsWidgetTextSizeDesc": "下方為預覽；桌面上的小工具會在幾秒內更新。"
+  "settingsWidgetTextSizeDesc": "下方為預覽；桌面上的小工具會在幾秒內更新。",
+  "settingsWidgetsDesc": "分別設定各小工具的字級，並附預覽",
+  "settingsWidgetLarge": "大型小工具",
+  "settingsWidgetStrip": "橫條小工具",
+  "aiSettingsEntryDesc": "AI 來源、模型與技術細節"
 }

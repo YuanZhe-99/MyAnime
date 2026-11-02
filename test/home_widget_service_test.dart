@@ -146,6 +146,21 @@ void main() {
     expect(HomeWidgetService.clampTextScale(double.nan), 1.0);
   });
 
+  test('writes the strip scale into the payload, defaulting to textScale', () {
+    Map<String, dynamic> payload({double? strip}) =>
+        HomeWidgetService.buildSnapshot(
+              const [],
+              nowUtc: now,
+              basis: HomeCalendarTimeBasis.jst,
+              labels: labels,
+              textScale: 1.2,
+              stripTextScale: strip,
+            )['payload']
+            as Map<String, dynamic>;
+    expect(payload()['stripTextScale'], 1.2);
+    expect(payload(strip: 0.9)['stripTextScale'], 0.9);
+  });
+
   test('preview state mirrors the native evaluation', () {
     final snapshot = HomeWidgetService.buildSnapshot(
       [

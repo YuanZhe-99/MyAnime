@@ -5,8 +5,12 @@ Shared implementation now lives in MyApps-AI v0.4.1; this page describes the app
 `AiSettingsTiles`, added in 1.6.0 (M3), builds the on-device AI rows of the *Categories & recommendations*
 Settings section: the "Use AI features" switch (titled "Use on-device AI" before 1.8.12), the model status row with its
 action, "Prefer the faster model" (Android, only when both sizes are served), the notes on who owns
-the model, and a collapsed *Technical details* tile. On Windows, Linux and the web it renders
-nothing. Since 1.6.0 (M4) `settings_page.dart` places it after the feature switches; since M5 it passes
+the model, and a collapsed *Technical details* tile. It renders on every platform:
+where no on-device model exists, the source choice still offers local and online models. Since 1.6.0 (M4) `settings_page.dart` placed it after the feature switches; since 1.9.7 it
+is instead the body of the AI settings page, a `MyAppsAiSettingsPage` (MyApps-AI v0.6.3) opened from
+the `MyAppsAiSettingsEntry` row that took its place in the section and built by
+`_SettingsPageState._aiSettingsBody` (see
+[`../../settings/views/settings_page.md`](../../settings/views/settings_page.md)); since M5 it passes
 `featuresOn: autoCategoriesEnabled || recommendationsEnabled`, so the AI switch can be turned on only
 while automatic categories or recommendations are on, and turning the last of them off also turns AI
 off. See
@@ -62,11 +66,11 @@ The `featuresOn` field carries no `/// Purpose:` comment and is not a row.
      `router.diagnostics()`), copyable: every included backend (app and platform, selection, system
      AI, the llama.cpp library and devices, each local model, the online sources), each item only
      when known.
-- **Usage:** `settings_page.dart`, the *Categories & recommendations* section
+- **Usage:** `settings_page.dart`, since 1.9.7 inside `_aiSettingsBody` on the AI settings page
   (`AiSettingsTiles(featuresOn: settings.autoCategoriesEnabled || settings.recommendationsEnabled)`); `test/ai_settings_tiles_ui_test.dart`
   (per platform with `debugDefaultTargetPlatformOverride`).
 - **Notes:** `unsupported` is worded as needing iOS 26 or macOS 26 with Apple Intelligence. It is
   what the Apple plugin reports on iOS and macOS older than 26.
 
 
-Current integration uses MyApps-AI v0.6.2, explicit platform injection, the shared source router (`createAiSourceRouter`) and the unified settings skeleton. WebDAV entry points require device-local notice acknowledgement before any network request; see [sync.md](../../../sync.md).
+Current integration uses MyApps-AI v0.6.3, explicit platform injection, the shared source router (`createAiSourceRouter`) and the unified settings skeleton. WebDAV entry points require device-local notice acknowledgement before any network request; see [sync.md](../../../sync.md).

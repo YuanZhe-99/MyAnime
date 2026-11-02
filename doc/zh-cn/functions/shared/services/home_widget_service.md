@@ -64,7 +64,7 @@
 - **返回：** 无。
 - **副作用：** 重新启动 `_scheduler`，其计时器会调用 [`refresh`](#refresh)。
 - **算法：** 在不支持的平台上为空操作。
-- **用法：** `AnimeStorage._writeData`、`AutoSyncService` 的恢复钩子与本地数据变更回调，以及 `AppSettingsNotifier.setLocale` / `setHomeCalendarTimeBasis` / `setWidgetTextScale`。
+- **用法：** `AnimeStorage._writeData`、`AutoSyncService` 的恢复钩子与本地数据变更回调，以及 `AppSettingsNotifier.setLocale` / `setHomeCalendarTimeBasis` / `setWidgetTextScale` / `setWidgetStripTextScale`。
 - **备注：** 防抖把突发变更（例如一次同步应用大量记录）合并为一次。
 
 ### `static Future<void> refresh()` <a id="refresh"></a>
@@ -73,8 +73,8 @@
 - **用途：** 重建快照并重绘小组件。
 - **输入：** 无。
 - **返回：** `Future<void>`。
-- **副作用：** 读取 `anime_data.json`（`AnimeStorage.load`）以及 `storage_config.json` 的 `homeCalendarTimeBasis`、`widgetTextScale` 和语言区域键；通过 `_bridge` 发布外层封装，由原生端保存并重绘两种尺寸的小组件。
-- **算法：** 加载 → 解析时间基准（`'local'` 或 JST）→ 解析本地化 → 以 `DateTime.now().toUtc()`、[`labelsFor`](#labelsfor) 和存储的字号缩放调用 [`buildSnapshot`](#buildsnapshot) → `WidgetEnvelope.fromJson` → `_bridge.publish`。
+- **副作用：** 读取 `anime_data.json`（`AnimeStorage.load`）以及 `storage_config.json` 的 `homeCalendarTimeBasis`、`widgetTextScale`、`widgetStripTextScale`（1.9.7）和语言区域键；通过 `_bridge` 发布外层封装，由原生端保存并重绘两种尺寸的小组件。
+- **算法：** 加载 → 解析时间基准（`'local'` 或 JST）→ 解析本地化 → 以 `DateTime.now().toUtc()`、[`labelsFor`](#labelsfor)、限定范围后的 `widgetTextScale`（作为 `textScale`）以及限定范围后的 `widgetStripTextScale ?? widgetTextScale`（作为 `stripTextScale`）调用 [`buildSnapshot`](#buildsnapshot) → `WidgetEnvelope.fromJson` → `_bridge.publish`。
 - **用法：** 经 [`notifyDataChanged`](#notifydatachanged) 和 [`init`](#init) 调用。
 - **备注：** 每个失败都被记录并吞掉；过时的小组件无害。
 
@@ -89,16 +89,16 @@
 - **用法：** [`refresh`](#refresh)。
 - **备注：** `appName` 始终为 `MyAnime`。
 
-### `static Map<String, dynamic> buildSnapshot(List<Anime> animeList, {required DateTime nowUtc, required HomeCalendarTimeBasis basis, required Map<String, String> labels, double textScale = 1.0})` <a id="buildsnapshot"></a>
+### `static Map<String, dynamic> buildSnapshot(List<Anime> animeList, {required DateTime nowUtc, required HomeCalendarTimeBasis basis, required Map<String, String> labels, double textScale = 1.0, double? stripTextScale})` <a id="buildsnapshot"></a>
 - **种类：** `HomeWidgetService` 的静态方法
 - **来源：** `lib/shared/services/home_widget_service.dart`
 - **用途：** 构建快照：外层封装第 1 版（`v`），payload 第 1 版。
-- **输入：** `animeList`；`nowUtc`；`basis` — 哪个日历日算作今天；`labels`；`textScale` — 小组件字号倍数（1.9.4）。
-- **返回：** 一个可直接序列化为 JSON 的外层封装 map：`v`、`kind`、`pv`、`generatedAt`、`textScale`（已限定范围）、`privacy`（`normal`）、`refreshAt`（空）以及 `payload`，其中包含 `timeZone`、`airedUnwatched`、`queueSize`、`episodes` 和 `labels`。
+- **输入：** `animeList`；`nowUtc`；`basis` — 哪个日历日算作今天；`labels`；`textScale` — 大号小组件的字号倍数（1.9.4；1.9.6 及之前作用于两个小组件）；`stripTextScale` — 横条的倍数（1.9.7），默认等于 `textScale`。
+- **返回：** 一个可直接序列化为 JSON 的外层封装 map：`v`、`kind`、`pv`、`generatedAt`、`textScale`（已限定范围）、`privacy`（`normal`）、`refreshAt`（空）以及 `payload`，其中包含 `timeZone`、`airedUnwatched`、`queueSize`、`episodes`、`labels`，以及自 1.9.7 起的 `stripTextScale`（`stripTextScale ?? textScale`）。
 - **副作用：** 无。
 - **算法：** 对每部动画，像首页一样遍历 `startEpisode..(endEpisode ?? startEpisode)`。对每个有播出时间的剧集，用 [`jstToUtc`](#jsttoutc) 转换；未看且已播出时计入 `airedUnwatched`；第一个这样的剧集作为该动画的队列条目；否则当它在 [`_startOfToday`](#_startoftoday) 与 `now + lookahead` 之间播出时保留。两个列表都按播出时间排序，队列条目在前，最多保留 `maxEpisodes` 个，然后把结果按播出时间排序。状态不是未看的任何剧集 `w` 都为 true。最后用 `_bridge.envelope` 包装 payload。
 - **用法：** [`refresh`](#refresh)；设置页预览（`HomeWidgetPreview`）；`test/home_widget_service_test.dart`。
-- **备注：** 原生端的重新计数（`toWatch = airedUnwatched + newly aired unwatched entries`）依赖于 `generatedAt` 之后直到前瞻窗口结束的每一集都在快照中。
+- **备注：** 原生端的重新计数（`toWatch = airedUnwatched + newly aired unwatched entries`）依赖于 `generatedAt` 之后直到前瞻窗口结束的每一集都在快照中。`stripTextScale` 是可选的增量字段，因此 `pv` 仍为 1；payload 缺少它时原生读取端回退使用 `textScale`。
 
 ### `static DateTime jstToUtc(DateTime jst)` <a id="jsttoutc"></a>
 - **种类：** `HomeWidgetService` 的静态方法

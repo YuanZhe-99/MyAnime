@@ -85,7 +85,7 @@ find lib -name "*.dart" -not -path "lib/l10n/*" | xargs grep -h '/// Purpose:' |
 | `lib/features/anime/models/anime.dart` | [features/anime/models/anime.md](features/anime/models/anime.md) | 84 | 68 |
 | `lib/features/anime/models/anime_category.dart` | [features/anime/models/anime_category.md](features/anime/models/anime_category.md) | 2 | 1 |
 | `lib/features/anime/models/metadata_update.dart` | [features/anime/models/metadata_update.md](features/anime/models/metadata_update.md) | 22 | 9 |
-| `lib/features/anime/services/anime_storage.dart` | [features/anime/services/anime_storage.md](features/anime/services/anime_storage.md) | 72 | 56 |
+| `lib/features/anime/services/anime_storage.dart` | [features/anime/services/anime_storage.md](features/anime/services/anime_storage.md) | 74 | 58 |
 | `lib/features/anime/services/manage_grouping.dart` | [features/anime/services/manage_grouping.md](features/anime/services/manage_grouping.md) | 5 | 1 |
 | `lib/features/anime/services/anime1_service.dart` | [features/anime/services/anime1_service.md](features/anime/services/anime1_service.md) | 31 | 17 |
 | `lib/features/anime/services/anime_search_service.dart` | [features/anime/services/anime_search_service.md](features/anime/services/anime_search_service.md) | 71 | 48 |
@@ -163,10 +163,11 @@ find lib -name "*.dart" -not -path "lib/l10n/*" | xargs grep -h '/// Purpose:' |
 | 源文件 | 页面 | 声明数 | Tier A 计数 |
 |---|---|---|---|
 | `lib/features/settings/views/backup_page.dart` | [features/settings/views/backup_page.md](features/settings/views/backup_page.md) | 16 | 7 |
+| `lib/features/settings/views/home_widget_settings_page.dart` | [features/settings/views/home_widget_settings_page.md](features/settings/views/home_widget_settings_page.md) | 3 | 1 |
 | `lib/features/settings/views/license_page.dart` | [features/settings/views/license_page.md](features/settings/views/license_page.md) | 2 | 0 |
 | `lib/features/settings/views/privacy_policy_page.dart` | [features/settings/views/privacy_policy_page.md](features/settings/views/privacy_policy_page.md) | 3 | 1 |
-| `lib/features/settings/views/settings_page.dart` | [features/settings/views/settings_page.md](features/settings/views/settings_page.md) | 28 | 20 |
-| `lib/features/settings/widgets/home_widget_preview.dart` | [features/settings/widgets/home_widget_preview.md](features/settings/widgets/home_widget_preview.md) | 11 | 6 |
+| `lib/features/settings/views/settings_page.dart` | [features/settings/views/settings_page.md](features/settings/views/settings_page.md) | 29 | 20 |
+| `lib/features/settings/widgets/home_widget_preview.dart` | [features/settings/widgets/home_widget_preview.md](features/settings/widgets/home_widget_preview.md) | 11 | 7 |
 
 ## l10n/
 
@@ -176,7 +177,7 @@ find lib -name "*.dart" -not -path "lib/l10n/*" | xargs grep -h '/// Purpose:' |
 
 | 源文件 | 页面 | 声明数 | Tier A 计数 |
 |---|---|---|---|
-| `lib/shared/providers/app_settings.dart` | [shared/providers/app_settings.md](shared/providers/app_settings.md) | 30 | 19 |
+| `lib/shared/providers/app_settings.dart` | [shared/providers/app_settings.md](shared/providers/app_settings.md) | 31 | 20 |
 | `lib/shared/utils/adaptive_layout.dart` | [shared/utils/adaptive_layout.md](shared/utils/adaptive_layout.md) | 13 | 13 |
 | `lib/shared/utils/calendar_preferences.dart` | [shared/utils/calendar_preferences.md](shared/utils/calendar_preferences.md) | 4 | 4 |
 | `lib/shared/utils/chinese_convert.dart` | [shared/utils/chinese_convert.md](shared/utils/chinese_convert.md) | 5 | 4 |
@@ -215,14 +216,14 @@ find lib -name "*.dart" -not -path "lib/l10n/*" | xargs grep -h '/// Purpose:' |
 | 根（`lib/`） | 1 | 1 | 1 | 0 |
 | `app/` | 5 | 33 | 25 | 8 |
 | `features/ai/` | 14 | 81 | 8 | 73 |
-| `features/anime/` | 34 | 822 | 391 | 431 |
+| `features/anime/` | 34 | 824 | 393 | 431 |
 | `features/categories/` | 2 | 18 | 11 | 7 |
 | `features/kana/` | 1 | 19 | 3 | 16 |
 | `features/profile/` | 8 | 66 | 32 | 34 |
 | `features/recommendations/` | 11 | 155 | 65 | 90 |
-| `features/settings/` | 5 | 60 | 34 | 26 |
-| `shared/`（utils、widgets、providers、services、views） | 32 | 335 | 251 | 84 |
-| **总计** | **114** | **1591** | **822** | **769** |
+| `features/settings/` | 6 | 64 | 36 | 28 |
+| `shared/`（utils、widgets、providers、services、views） | 32 | 336 | 252 | 84 |
+| **总计** | **115** | **1598** | **827** | **771** |
 
 桌面小组件变更新增了一个文件 `home_widget_service.dart`（10 个声明，7 个 Tier A、
 3 个 Tier B）；`anime_storage.dart`、`app_settings.dart`、`auto_sync_service.dart` 和 `main.dart`
@@ -239,6 +240,13 @@ find lib -name "*.dart" -not -path "lib/l10n/*" | xargs grep -h '/// Purpose:' |
 
 按放置尺寸预览的变更新增了一个 Tier A 声明：`home_widget_service.dart` +1
 （`placedSizes`）；`home_widget_preview.dart` 有改动，但没有新增声明。
+
+1.9.7 的逐个小组件字号变更新增了一个文件 `home_widget_settings_page.dart`（3 个声明，1 个 Tier A、2 个 Tier B），
+并在改动文件中新增四个声明：`anime_storage.dart` +2（`getWidgetStripTextScale`、`setWidgetStripTextScale`，均为 Tier A）、
+`app_settings.dart` +1（`setWidgetStripTextScale`，Tier A）和 `settings_page.dart` +1（`_aiSettingsBody`，Tier B）。
+`home_widget_preview.dart` 仍为 11 行：它改为 `StatelessWidget`，因此去掉了 `createState`（Tier B），新增了静态的
+`defaultSize`（Tier A），`_load` 则变为静态的 `load`。`home_widget_service.dart`、`ai_settings_tiles.dart` 以及 Android 和 iOS
+小组件代码有改动，但没有新增 Dart 声明。
 
 
 ## Anime1 分集播放（1.6.4）

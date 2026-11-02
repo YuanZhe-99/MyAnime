@@ -25,8 +25,8 @@ methods are real action handlers — reading/writing `AnimeStorage`'s JSON confi
 Since 1.5.4 it is also a list-detail layout. On a window the app-wide split rule allows, the
 first-level list stays on the left and the second-level page it leads to fills the right, the way
 a system settings app behaves; on a narrower one every row pushes full-screen exactly as before.
-The private `_SettingsDetail` enum names the five rows that participate — WebDAV sync, backup,
-duplicate check, privacy policy and license — and `_open` is the single place that decides which
+The private `_SettingsDetail` enum names the seven rows that participate — home-screen widgets and
+AI (both since 1.9.7), WebDAV sync, backup, duplicate check, privacy policy and license — and `_open` is the single place that decides which
 of the two things a tap does. Everything else on the page is an inline control or a dialog, and
 neither is a page. See [`../../../../adaptive-layout.md`](../../../../adaptive-layout.md). See
 [`../../../platform-notes.md`](../../../../platform-notes.md) for the desktop-only API server/tray
@@ -46,6 +46,7 @@ lead to (`../../../shared/views/webdav_config_page.md`, `backup_page.md` in this
 | `_refreshSyncStatus` | method (widget helper) | B | Rebuild the page when background sync status changes. |
 | [`_loadVersion`](#loadversion) | method (`_SettingsPageState`) | A | Load and store the app's version/build-number string. |
 | [`_detailPage`](#detailpage) | method (widget helper) | A | Build the second-level page a settings row leads to. |
+| `_aiSettingsBody` | method (widget helper) | B | Build the body of the AI settings page (1.9.7): a `Consumer` returning `AiSettingsTiles` with `featuresOn` from the two feature switches. |
 | [`_open`](#open) | method (`_SettingsPageState`) | A | Open a second-level page the way the current layout calls for. |
 | [`_buildDetailPane`](#builddetailpane) | method (widget helper) | A | Build the right-hand pane of the two-pane settings layout. |
 | [`_buildSettingsList`](#buildsettingslist) | method (widget helper) | A | Build the first-level settings list. |
@@ -78,11 +79,13 @@ lead to (`../../../shared/views/webdav_config_page.md`, `backup_page.md` in this
 - **Kind:** method of `_SettingsPageState` (widget helper)
 - **Source:** `lib/features/settings/views/settings_page.dart` (approx. line 140)
 - **Purpose:** Build the second-level page a settings row leads to.
-- **Inputs:** `detail` — which of the five.
+- **Inputs:** `detail` — which of the seven.
 - **Returns:** `Widget` — the page, itself a `Scaffold` with its own app bar.
 - **Side effects:** None beyond building widgets.
-- **Algorithm:** A `switch` from the enum to `WebDAVConfigPage`, `BackupPage`,
-  `DuplicateCheckPage`, `PrivacyPolicyPage` or `app_license.LicensePage`.
+- **Algorithm:** A `switch` from the enum to `HomeWidgetSettingsPage` (1.9.7; see
+  [`home_widget_settings_page.md`](home_widget_settings_page.md)), `MyAppsAiSettingsPage` (1.9.7,
+  MyApps-AI v0.6.3; titled `aiUseOnDevice`, hosting `_aiSettingsBody()`), `WebDAVConfigPage`,
+  `BackupPage`, `DuplicateCheckPage`, `PrivacyPolicyPage` or `app_license.LicensePage`.
 - **Usage:**
   ```dart
   Navigator.of(context, rootNavigator: true)
@@ -90,7 +93,7 @@ lead to (`../../../shared/views/webdav_config_page.md`, `backup_page.md` in this
   ```
   (from `_open`, same file)
 - **Notes:** The same widget serves both modes — pushed full-screen on a narrow window, hosted in
-  the detail pane on a wide one. **None of the five pages needed a change to become embeddable**,
+  the detail pane on a wide one. **None of the pages needed a change to become embeddable**,
   because the pane wraps them in a nested `Navigator` holding a single route, which reports
   `canPop == false`, so their app bars grow no back arrow.
 
@@ -113,7 +116,7 @@ lead to (`../../../shared/views/webdav_config_page.md`, `backup_page.md` in this
   onTap: () => _open(_SettingsDetail.webdav),
   ```
   (from `_buildSettingsList`, same file)
-- **Notes:** All five rows go through here, so the two modes cannot drift apart. `_twoPane` is
+- **Notes:** All seven rows go through here, so the two modes cannot drift apart. `_twoPane` is
   cached during `build` rather than recomputed here, so what a tap does always matches what was on
   screen when it happened.
 
@@ -154,19 +157,23 @@ lead to (`../../../shared/views/webdav_config_page.md`, `backup_page.md` in this
   `SwitchListTile`, bound to `settings.kanaTabEnabled` and `notifier.setKanaTabEnabled`; its
   description names MyNihongo!!!!! without a store link.
   Since 1.9.4, on Android and iOS only (`HomeWidgetService.isSupported`), a *Home-screen widgets*
-  section (`settingsWidgets`) sits between General and *Categories & recommendations*: since 1.9.5
-  the shared `WidgetTextScaleControl` from `myapps_widget_ui` (*Widget text size* with its
-  description, the current percentage, and a 6-division slider over `WidgetTextScale`) bound to
-  `settings.widgetTextScale` / `notifier.setWidgetTextScale`, and a `HomeWidgetPreview` (see
-  [`../widgets/home_widget_preview.md`](../widgets/home_widget_preview.md)).
+  section (`settingsWidgets`) sits between General and *Categories & recommendations*. Since 1.9.7 it
+  holds one `ListTile` (`widgets_outlined`, title `settingsWidgetTextSize`, subtitle
+  `settingsWidgetsDesc`, a chevron, `selected` while its page is in the detail pane) that calls
+  `_open(_SettingsDetail.widgets)`; the sliders and previews moved to
+  [`HomeWidgetSettingsPage`](home_widget_settings_page.md). From 1.9.4 to 1.9.6 the section held the
+  shared `WidgetTextScaleControl` bound to `settings.widgetTextScale` and a `HomeWidgetPreview` of both
+  widgets inline.
   Since 1.6.0 (M4) a *Categories & recommendations* section (`aiSectionTitle`) follows General: the
   *Automatic categories* `SwitchListTile` (`settings.autoCategoriesEnabled` /
   `notifier.setAutoCategoriesEnabled`), then — since 1.6.0 (M5) — the *Recommendations*
   `SwitchListTile` (`settings.recommendationsEnabled` / `notifier.setRecommendationsEnabled`), then
-  [`AiSettingsTiles`](../../ai/widgets/ai_settings_tiles.md) with
-  `featuresOn: autoCategoriesEnabled || recommendationsEnabled`, then — only while automatic
-  categories are on — [`CategorizeNowTile`](../../categories/widgets/categorize_now_tile.md). On
-  Windows the section holds only the two switches, because both AI widgets render nothing there.
+  — since 1.9.7 — a `MyAppsAiSettingsEntry` row (MyApps-AI v0.6.3; title `aiUseOnDevice`, subtitle
+  `aiSettingsEntryDesc`, `builder` `_aiSettingsBody()`, `selected` while its page is in the detail
+  pane, `onTap` `_open(_SettingsDetail.ai)`), then — only while automatic categories are on —
+  [`CategorizeNowTile`](../../categories/widgets/categorize_now_tile.md). Until 1.9.6 the entry's
+  place held [`AiSettingsTiles`](../../ai/widgets/ai_settings_tiles.md) inline; it is now the body of
+  the AI settings page.
 - **Usage:**
   ```dart
   final list = _buildSettingsList(l10n, settings, notifier, usesJapaneseCalendar);
@@ -174,7 +181,7 @@ lead to (`../../../shared/views/webdav_config_page.md`, `backup_page.md` in this
   ```
   (from `_SettingsPageState.build`, same file)
 - **Notes:** Extracted in 1.5.4 so one list can be the whole body on a narrow window and the left
-  pane on a wide one, rather than being written twice. The five `›` rows carry
+  pane on a wide one, rather than being written twice. The seven `›` rows carry
   `selected: _twoPane && _detail == ...` so the current pane is highlighted, as a system settings
   app does.
 
@@ -599,4 +606,4 @@ lead to (`../../../shared/views/webdav_config_page.md`, `backup_page.md` in this
 The API dialog save, the reminder switch and time picker, and the API-enabled switch write through `AnimeStorage.updateConfig`, so several settings changed in quick succession all persist (each used to read the whole config, change a key and write it back). The API dialog save, the auto-start switch and the API-enabled switch check `mounted` after their awaited work before calling `setState`.
 
 
-Current integration uses MyApps-AI v0.6.2, explicit platform injection, the shared source router (`createAiSourceRouter`) and the unified settings skeleton. WebDAV entry points require device-local notice acknowledgement before any network request; see [sync.md](../../../sync.md).
+Current integration uses MyApps-AI v0.6.3, explicit platform injection, the shared source router (`createAiSourceRouter`) and the unified settings skeleton. WebDAV entry points require device-local notice acknowledgement before any network request; see [sync.md](../../../sync.md).

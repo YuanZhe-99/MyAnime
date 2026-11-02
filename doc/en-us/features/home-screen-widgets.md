@@ -39,23 +39,33 @@ Tapping either widget opens the app.
 
 ### Text size
 
-**Settings › Home-screen widgets › Widget text size** (1.9.4, Android and iOS only) scales every
-text in both widgets from 90% to 150% in 10% steps; the default is 100%. A live preview of the 2×2
-widget and the 2×1 strip, drawn from the real library by `HomeWidgetPreview`
-(`lib/features/settings/widgets/home_widget_preview.dart`), sits under the slider and redraws as it
-moves; the placed widgets follow through the usual debounced refresh. On Android each preview card
-lays out at the size the launcher reports for the first placed instance of that widget
-(`AppWidgetManager` size options, read through `HomeWidgetService.placedSizes`) and shrinks as a
-whole to fit the page, so it truncates and picks queue rows like the real widget; with none placed,
-and on iOS, it uses fixed 2×2 and 2×1 sizes. The preview approximates the native widgets in the
-app's colors rather than copying either platform pixel for pixel. Some launchers also draw the whole
+**Settings › Home-screen widgets** (1.9.4, Android and iOS only) is a single row, *Widget text
+size*, that opens the widget settings page (`HomeWidgetSettingsPage`,
+`lib/features/settings/views/home_widget_settings_page.dart`; 1.9.7). The page has one section per
+widget — *Large widget* (2×2) and *Strip widget* (2×1) — and each section has its own slider, which
+scales every text in that widget from 90% to 150% in 10% steps (default 100%), and a live preview
+of that one widget. Until 1.9.6 a single slider on the first Settings level scaled both widgets.
+
+Each preview is a `HomeWidgetPreview` (`lib/features/settings/widgets/home_widget_preview.dart`),
+drawn from the real library; it redraws as its slider moves, and the placed widgets follow through
+the usual debounced refresh. The page loads the library and the placed sizes once per visit and
+shares them between both previews. On Android a preview card lays out at the size the launcher
+reports for the first placed instance of that widget (`AppWidgetManager` size options, read through
+`HomeWidgetService.placedSizes`), so it truncates and picks queue rows like the real widget; with
+none placed, and on iOS, it uses a default of 3×2 cells for the large widget and 3×1 for the strip
+(86 dp cells; the strip keeps a 76 dp height). The card is drawn at 75% (`displayScale`) and
+shrinks further only to fit the page. The preview approximates the native widgets in the app's
+colors rather than copying either platform pixel for pixel. Some launchers also draw the whole
 widget scaled down, which the app cannot observe, so text there can look smaller than in the preview.
 
 To keep larger text inside a fixed cell, Android needs `150 dp × scale` of height before it shows a
-second queue row, and the iOS 2×2 widget drops to one row above 120%. The iOS lock-screen
-rectangle scales too, with `minimumScaleFactor` letting its first line shrink back to fit. The value
-is the device-local `widgetTextScale` key in `storage_config.json` (see
-[`../data-formats.md`](../data-formats.md)).
+second queue row, and the iOS 2×2 widget drops to one row above 120%. The preview's large card
+applies the Android rule to the placed instance's minimum height, or to the default height when none
+is placed. The iOS lock-screen rectangle uses the strip's scale, with `minimumScaleFactor` letting
+its first line shrink back to fit. The large widget's value is the device-local `widgetTextScale` key
+in `storage_config.json`, and the strip's is `widgetStripTextScale` (1.9.7). While
+`widgetStripTextScale` is absent the strip follows `widgetTextScale`, so an install upgraded from
+1.9.4–1.9.6 keeps its one shared size (see [`../data-formats.md`](../data-formats.md)).
 
 "Today" uses the Home calendar's time basis: Japan time by default, the device's local day when
 **Settings › Home Calendar Time › Local Time** is chosen. Displayed air times use the same zone.
@@ -80,7 +90,8 @@ The widgets never read the library. The app computes a small snapshot and hands 
 side, which stores it and redraws:
 
 1. `HomeWidgetService.refresh()` (`lib/shared/services/home_widget_service.dart`) loads
-   `anime_data.json`, the calendar time basis and the UI language, and builds the snapshot.
+   `anime_data.json`, the calendar time basis, the UI language and both widget text sizes, and
+   builds the snapshot.
 2. Since 1.9.5 it publishes the snapshot as a MyApps-Widget envelope of kind `myanime.upNext`
    through the shared `myapps_widget` plugin (see [`../shared-widget.md`](../shared-widget.md)).
 3. Android: the plugin stores it under `envelope.myanime.upNext` in the private `myapps_widget`
@@ -94,7 +105,7 @@ side, which stores it and redraws:
 - any library save (`AnimeStorage._writeData`),
 - a sync download or backup restore (the `AutoSyncService` local-data-changed callback),
 - the app resuming,
-- a change of UI language, calendar time basis or widget text size.
+- a change of UI language, calendar time basis or either widget text size.
 
 ### Staying correct while the app is closed
 
@@ -137,7 +148,8 @@ their reading rules belong to MyApps-Widget; MyAnime's own fields sit under `pay
     "labels": {
       "appName": "MyAnime", "toWatch": "…", "today": "…", "caughtUp": "…",
       "noUpdates": "…", "next": "…", "episode": "EP {n}", "series": "{n} series"
-    }
+    },
+    "stripTextScale": 1.0
   }
 }
 ```
@@ -148,9 +160,14 @@ their reading rules belong to MyApps-Widget; MyAnime's own fields sit under `pay
 - `episodes` — per anime its earliest unwatched aired episode (the queue entry), plus every episode
   from the start of today to 8 days ahead; at most 80 entries, queue entries first. `w` is true for
   watched or skipped episodes.
-- `textScale` — the widget text size multiplier, 0.9–1.5 (1.9.4), now an envelope field that the
-  shared readers clamp to the same range. `refreshAt` is left empty: both platforms already recount
-  from `episodes`.
+- `textScale` — the large widget's text size multiplier, 0.9–1.5 (1.9.4), now an envelope field
+  that the shared readers clamp to the same range. Until 1.9.6 it scaled both widgets. `refreshAt`
+  is left empty: both platforms already recount from `episodes`.
+- `stripTextScale` — the strip's own text size multiplier (1.9.7), 0.9–1.5, clamped by both native
+  readers: `UpNextState.stripTextScale` on Android (used by `UpNextStripWidgetProvider`) and
+  `WidgetSnapshot.stripTextScale` → `UpNextEntry.stripTextScale` on iOS, applied to the
+  `accessoryRectangular` family through `UpNextEntry.forStrip`. A payload without it (written by
+  1.9.5–1.9.6) falls back to `textScale`. The field is optional and additive, so `pv` stays 1.
 - `labels` — the widget wording, resolved from the ARB files in the app's language; `{n}` is
   replaced natively. Only the widget-picker name and description live in native resources
   (`res/values*/widget_strings.xml` on Android, `galleryText` in the Swift file on iOS).

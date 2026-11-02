@@ -896,5 +896,13 @@
   "settingsWidgets": "Home-screen widgets",
   "settingsWidgetTextSize": "Widget text size",
   "@settingsWidgetTextSize": { "description": "Settings: slider that scales the text of the home-screen widgets." },
-  "settingsWidgetTextSizeDesc": "Preview below; widgets on your home screen update within a few seconds."
+  "settingsWidgetTextSizeDesc": "Preview below; widgets on your home screen update within a few seconds.",
+  "settingsWidgetsDesc": "Text size of each widget, with a preview",
+  "@settingsWidgetsDesc": { "description": "Settings: subtitle of the row that opens the home-screen widget page." },
+  "settingsWidgetLarge": "Large widget",
+  "@settingsWidgetLarge": { "description": "Widget settings page: section for the 2×2 Up next widget." },
+  "settingsWidgetStrip": "Strip widget",
+  "@settingsWidgetStrip": { "description": "Widget settings page: section for the 2×1 strip widget." },
+  "aiSettingsEntryDesc": "AI source, models and technical details",
+  "@aiSettingsEntryDesc": { "description": "Settings: subtitle of the row that opens the AI settings page." }
 }

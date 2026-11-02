@@ -59,7 +59,7 @@ Both flavors ship the feature: it makes no network call of its own.
 | `lib/features/ai/services/output_validation.dart` | Parsing a choice reply, stripping Markdown, the script check, cleaning one sentence |
 | `lib/features/ai/services/prompt_templates.dart` | The versioned classification instructions and prompt (1.6.0 M4) |
 | `lib/features/ai/services/ai_insights_cache.dart` | `AiInsightsCache`: `ai_insights.json`, the per-device cache of generated results (1.6.0 M4) |
-| `lib/features/ai/widgets/ai_settings_tiles.dart` | `AiSettingsTiles`: the switch, the status row, the size preference, the notes and the complete, copyable technical details (1.9.0) |
+| `lib/features/ai/widgets/ai_settings_tiles.dart` | `AiSettingsTiles`: the switch, the status row, the size preference, the notes and the complete, copyable technical details (1.9.0); since 1.9.7 the body of the AI settings page |
 | `lib/features/categories/services/category_service.dart` | `CategoryClassifier`: the per-session trickle (at most 20 records) and *Categorise now* (1.6.0 M4) |
 | `lib/features/recommendations/services/ai_reason_service.dart` | Recommendation reasons: the top eight candidates, their trait facts (`reasonTraitFacts`, 1.9.1), the reply parser with quoted terms, the request language and Chinese variant conversion (1.6.0 M5); the prompt is in `reason_prompt.dart` |
 | `lib/features/ai/services/insight_prompts.dart`, `insight_language.dart`, `insight_service.dart`, `ai_insight_cards_cache.dart` | The Statistics insight cards (1.9.1): modules, facts, versioned instructions and prompt, the reply parser, the request language, `AiInsightStore` over the shared `AiInsightCoordinator`, and the `ai_insight_cards.json` cache |
@@ -70,7 +70,11 @@ Both flavors ship the feature: it makes no network call of its own.
 
 Since 1.6.0 (M4) the Settings rows are shown in the *Categories & recommendations* section after
 General: the *Automatic categories* switch, then `AiSettingsTiles`, then *Categorise now* while
-automatic categories are on; since M5 the *Recommendations* switch sits between the first two. The AI
+automatic categories are on; since M5 the *Recommendations* switch sits between the first two. Since
+1.9.7 the AI rows are no longer inline: the section holds the two feature switches, a
+`MyAppsAiSettingsEntry` row (MyApps-AI v0.6.3; *Use AI features*, subtitle `aiSettingsEntryDesc`)
+and *Categorise now*, and the entry opens a `MyAppsAiSettingsPage` that hosts `AiSettingsTiles`. On a
+wide window that page opens in the Settings detail pane. The AI
 switch can be turned on only while automatic categories or recommendations are on, and turning the
 last of them off turns it off too. The AI switches are stored as
 `onDeviceAiEnabled` and `onDeviceAiPreferFast` in `storage_config.json` (see

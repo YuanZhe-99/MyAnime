@@ -25,7 +25,8 @@ management conventions (Riverpod, no Provider/Bloc) and
 | [`AppSettingsNotifier.setWeekStartDay`](#appsettingsnotifier-setweekstartday) | method (`AppSettingsNotifier`) | A | Update the app-wide calendar week start day and persist it. |
 | [`AppSettingsNotifier.setHomeCalendarLayout`](#appsettingsnotifier-sethomecalendarlayout) | method (`AppSettingsNotifier`) | A | Update the home calendar day-name layout and persist it. |
 | [`AppSettingsNotifier.setHomeCalendarTimeBasis`](#appsettingsnotifier-sethomecalendartimebasis) | method (`AppSettingsNotifier`) | A | Update whether the home calendar date grid uses JST or local dates, and persist it. |
-| [`AppSettingsNotifier.setWidgetTextScale`](#appsettingsnotifier-setwidgettextscale) | method (`AppSettingsNotifier`) | A | Change the home-screen widget text size and refresh the widgets (1.9.4). |
+| [`AppSettingsNotifier.setWidgetTextScale`](#appsettingsnotifier-setwidgettextscale) | method (`AppSettingsNotifier`) | A | Change the large (2×2) home-screen widget's text size and refresh the widgets (1.9.4). |
+| [`AppSettingsNotifier.setWidgetStripTextScale`](#appsettingsnotifier-setwidgetstriptextscale) | method (`AppSettingsNotifier`) | A | Change the strip widget's own text size and refresh the widgets (1.9.7). |
 | [`AppSettingsNotifier.setHomeCalendarFormat`](#appsettingsnotifier-sethomecalendarformat) | method (`AppSettingsNotifier`) | A | Update the remembered home calendar view format and persist it. |
 | `AppSettingsNotifier.setHomeListColumns` | method (`AppSettingsNotifier`) | B | Update the remembered home list column preference and persist it. |
 | `AppSettingsNotifier.setManageListColumns` | method (`AppSettingsNotifier`) | B | Update the remembered management list column preference and persist it. |
@@ -280,17 +281,35 @@ separate rows.
 ### `void setWidgetTextScale(double scale)` <a id="appsettingsnotifier-setwidgettextscale"></a>
 - **Kind:** method of `AppSettingsNotifier`
 - **Source:** `lib/shared/providers/app_settings.dart`
-- **Purpose:** Change the text size of the home-screen widgets (1.9.4).
+- **Purpose:** Change the text size of the large (2×2) home-screen widget (1.9.4; both widgets until
+  1.9.6).
 - **Inputs:** `scale` — a multiplier; clamped by `HomeWidgetService.clampTextScale` to 0.9–1.5 in
   0.1 steps.
 - **Returns:** None.
 - **Side effects:** Updates `state.widgetTextScale`; calls `AnimeStorage.setWidgetTextScale`; schedules
   a home-widget refresh so the placed widgets follow.
 - **Algorithm:** Clamp → `copyWith` → persist (fire-and-forget) → `HomeWidgetService.notifyDataChanged()`.
-- **Usage:** The *Widget text size* slider in Settings › Home-screen widgets (Android and iOS only),
-  whose `HomeWidgetPreview` redraws from `state` immediately.
+- **Usage:** The *Large widget* section's *Widget text size* slider on `HomeWidgetSettingsPage`
+  (Settings › Home-screen widgets, Android and iOS only), whose `HomeWidgetPreview` redraws from
+  `state` immediately.
 - **Notes:** `_loadPersisted` reads the stored value through the same clamp; the field defaults to
-  `1.0`.
+  `1.0`. Since 1.9.7 the strip has its own scale
+  ([`setWidgetStripTextScale`](#appsettingsnotifier-setwidgetstriptextscale)).
+
+### `void setWidgetStripTextScale(double scale)` <a id="appsettingsnotifier-setwidgetstriptextscale"></a>
+- **Kind:** method of `AppSettingsNotifier`
+- **Source:** `lib/shared/providers/app_settings.dart`
+- **Purpose:** Change the text size of the 2×1 strip widget (1.9.7).
+- **Inputs:** `scale` — a multiplier; clamped by `HomeWidgetService.clampTextScale` to 0.9–1.5 in
+  0.1 steps.
+- **Returns:** None.
+- **Side effects:** Updates `state.widgetStripTextScale`; calls `AnimeStorage.setWidgetStripTextScale`;
+  schedules a home-widget refresh so the placed strips follow.
+- **Algorithm:** Clamp → `copyWith` → persist (fire-and-forget) → `HomeWidgetService.notifyDataChanged()`.
+- **Usage:** The *Strip widget* section's *Widget text size* slider on `HomeWidgetSettingsPage`.
+- **Notes:** Independent of [`setWidgetTextScale`](#appsettingsnotifier-setwidgettextscale).
+  `_loadPersisted` reads `AnimeStorage.getWidgetStripTextScale() ?? widgetTextScale` through the same
+  clamp, so an install that never set it shows the large widget's size.
 
 ### `void setHomeCalendarFormat(CalendarFormat format)` <a id="appsettingsnotifier-sethomecalendarformat"></a>
 - **Kind:** method of `AppSettingsNotifier`
@@ -523,8 +542,8 @@ loaded in `_loadPersisted` through `AnimeStorage.getOnDeviceAiEnabled()` and
 `getOnDeviceAiPreferFast()` and written by `setOnDeviceAiEnabled` and `setOnDeviceAiPreferFast`.
 Each writer also tells `OnDeviceAiService.instance`, which keeps no preference of its own; the
 constructor and `copyWith` take both fields. The only UI is
-[`AiSettingsTiles`](../../features/ai/widgets/ai_settings_tiles.md), in the *Categories &
-recommendations* section of Settings. See [`../../../on-device-ai.md`](../../../on-device-ai.md).
+[`AiSettingsTiles`](../../features/ai/widgets/ai_settings_tiles.md), on the AI settings page that opens from the *Categories &
+recommendations* section of Settings (since 1.9.7; inline in that section before). See [`../../../on-device-ai.md`](../../../on-device-ai.md).
 
 ## Automatic categories preference
 
@@ -557,4 +576,8 @@ settings-page control — the Manage app bar's view toggle and sort menu are the
 
 1.9.4 adds `widgetTextScale`, a `double` defaulting to `1.0`: loaded in `_loadPersisted` through
 `HomeWidgetService.clampTextScale`, stored as `widgetTextScale` in `storage_config.json` only when it
-is not `1.0`, and changed by [`setWidgetTextScale`](#appsettingsnotifier-setwidgettextscale).
+is not `1.0`, and changed by [`setWidgetTextScale`](#appsettingsnotifier-setwidgettextscale). Since 1.9.7
+it is the large (2×2) widget's scale only, and `widgetStripTextScale` (a `double`, 1.0 by default) is
+the strip's: loaded in `_loadPersisted` as the stored `widgetStripTextScale` or, when absent,
+`widgetTextScale`, clamped the same way, always stored once set, and changed by
+[`setWidgetStripTextScale`](#appsettingsnotifier-setwidgetstriptextscale).

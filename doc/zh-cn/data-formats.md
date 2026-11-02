@@ -328,7 +328,8 @@ enum AnimeType {
 | 端侧 AI 开关与模型尺寸偏好 | `storage_config.json` | 否 | 设备特有的 `onDeviceAiEnabled` 与 `onDeviceAiPreferFast`（Android）；缺省表示关闭（1.6.0） |
 | 自动分类 | `storage_config.json` | 否 | 设备特有的 `autoCategoriesEnabled`；缺省表示关闭（1.6.0） |
 | 推荐 | `storage_config.json` | 否 | 设备特有的 `recommendationsEnabled`；缺省表示关闭（1.6.0） |
-| 桌面小组件字号 | `storage_config.json` | 否 | 设备特有的 `widgetTextScale`（1.9.4）：0.9 到 1.5 之间的数值；缺省表示 1.0。会以 `textScale` 写入小组件快照 |
+| 桌面小组件字号 | `storage_config.json` | 否 | 设备特有的 `widgetTextScale`（1.9.4）：0.9 到 1.5 之间的数值；缺省表示 1.0。自 1.9.7 起只作用于大号（2×2）小组件。会以 `textScale` 写入小组件快照 |
+| 横条小组件字号 | `storage_config.json` | 否 | 设备特有的 `widgetStripTextScale`（1.9.7）：2×1 横条的 0.9 到 1.5 之间的数值；缺省表示「与 `widgetTextScale` 相同」，因此一旦设置便始终写入，包括 1.0。会以 `stripTextScale` 写入小组件 payload |
 | WebDAV 配置 | `webdav_config.json` | 否 | 仅本地秘密/配置 |
 | 同步基线快照 | `.sync_base/anime_data.json`, `.sync_base/recommendations.json`, `.sync_base/playback_progress.json`, `.sync_base/profile.json` | 否 | 本地合并跟踪，每个模块一份 |
 | 本地备份 | `backups/backup_*.json` | 否 | 本地恢复；v2 捆绑引用去重后的图像 blob |
@@ -440,7 +441,7 @@ WebDAV 连接详情和同步偏好（服务器 URL、凭据、自动同步开关
 
 ## AI 来源与 WebDAV 隐私
 
-MyApps-AI v0.6.2 显式拆分运行时、平台、模型、本地 UI 和 llama.cpp 包。设置使用统一分区骨架。全局来源选择保存在设备本地（`aiSourceSelection`），默认系统 AI，不会自动回退到在线来源。Qwen3.5 0.8B/2B Q4_K_M 与 Gemma 4 E2B Q4_0 默认在 CPU 上运行；仅当在来源分区中开启且设备经验证时才使用 GPU，GPU 失败会记录在本设备。可在强制警告后从 Hugging Face 仓库添加自定义 GGUF 模型，也可重命名模型。设备本地键 `aiComputePreference`、`aiGpuFailures`、`aiCustomModels` 与 `aiModelAliases` 不同步，也不进入备份。下载仅由明确操作触发，使用固定地址与 SHA-256，保存在 `ai_models/`，不进入数据模块、同步、备份或 ZIP。模型租约避免使用中移除文件。切换来源取消旧任务并释放模型资源。MyNihongo 的系统校对保持独立。
+MyApps-AI v0.6.3 显式拆分运行时、平台、模型、本地 UI 和 llama.cpp 包。设置使用统一分区骨架。全局来源选择保存在设备本地（`aiSourceSelection`），默认系统 AI，不会自动回退到在线来源。Qwen3.5 0.8B/2B Q4_K_M 与 Gemma 4 E2B Q4_0 默认在 CPU 上运行；仅当在来源分区中开启且设备经验证时才使用 GPU，GPU 失败会记录在本设备。可在强制警告后从 Hugging Face 仓库添加自定义 GGUF 模型，也可重命名模型。设备本地键 `aiComputePreference`、`aiGpuFailures`、`aiCustomModels` 与 `aiModelAliases` 不同步，也不进入备份。下载仅由明确操作触发，使用固定地址与 SHA-256，保存在 `ai_models/`，不进入数据模块、同步、备份或 ZIP。模型租约避免使用中移除文件。切换来源取消旧任务并释放模型资源。MyNihongo 的系统校对保持独立。
 
 WebDAV 第 1 版提醒必须在每个设备上确认后，才能测试连接、手动/强制同步或后台同步。记录保存在设备本地 storage_config.json。已有配置保持不变，同步暂停时 WebDAV 页面显示查看提醒横幅。拒绝不保存配置、不发出请求。JSON/图片没有应用层加密；HTTPS 加密传输，HTTP 不加密。线格式、锁和冲突策略保持不变。
 

@@ -13,7 +13,7 @@ shared_l10n_test 验证公共 ARB 值，见 [../../../../shared-ui.md](../../../
 
 自 1.5.4 起它同时也是一个列表-详情布局。在全应用拆分规则允许的窗口上，一级列表留在左边，它所通向的二级
 页面填满右边，与系统设置应用的行为一致；在更窄的窗口上，每一行仍与从前完全一样全屏推入。私有的
-`_SettingsDetail` 枚举点名了参与其中的五行——WebDAV 同步、备份、查重、隐私政策与许可证——而 `_open` 是
+`_SettingsDetail` 枚举点名了参与其中的七行——桌面小组件与 AI（均自 1.9.7 起）、WebDAV 同步、备份、查重、隐私政策与许可证——而 `_open` 是
 决定一次点击做这两件事中哪一件的唯一去处。页面上其余的东西要么是内联控件、要么是对话框，两者都不是页面。
 见 [`../../../../adaptive-layout.md`](../../../../adaptive-layout.md)。这些处理器配置的纯桌面 API 服务器/托盘行为见 [`../../../platform-notes.md`](../../../../platform-notes.md)，WebDAV/备份入口通向哪里（`../../../shared/views/webdav_config_page.md`、同目录的 `backup_page.md`）见 [`../../../sync.md`](../../../../sync.md) / [`../../../backup-restore.md`](../../../../backup-restore.md)。
 
@@ -28,6 +28,7 @@ shared_l10n_test 验证公共 ARB 值，见 [../../../../shared-ui.md](../../../
 | `_refreshSyncStatus` | 方法（组件辅助） | B | 后台同步状态变化时重建页面。 |
 | [`_loadVersion`](#loadversion) | 方法（`_SettingsPageState`） | A | 加载并存储应用的版本/构建号字符串。 |
 | [`_detailPage`](#detailpage) | 方法（组件辅助） | A | 构建某个设置行所通向的二级页面。 |
+| `_aiSettingsBody` | 方法（组件辅助） | B | 构建 AI 设置页的内容（1.9.7）：一个返回 `AiSettingsTiles` 的 `Consumer`，`featuresOn` 取自两个功能开关。 |
 | [`_open`](#open) | 方法（`_SettingsPageState`） | A | 按当前布局所要求的方式打开一个二级页面。 |
 | [`_buildDetailPane`](#builddetailpane) | 方法（组件辅助） | A | 构建两栏设置布局的右栏。 |
 | [`_buildSettingsList`](#buildsettingslist) | 方法（组件辅助） | A | 构建一级设置列表。 |
@@ -60,18 +61,20 @@ shared_l10n_test 验证公共 ARB 值，见 [../../../../shared-ui.md](../../../
 - **种类：** `_SettingsPageState` 的方法（组件辅助）
 - **来源：** `lib/features/settings/views/settings_page.dart`（约第 140 行）
 - **用途：** 构建某个设置行所通向的二级页面。
-- **输入：** `detail`——五者之一。
+- **输入：** `detail`——七者之一。
 - **返回：** `Widget`——该页面，其本身是一个带自己应用栏的 `Scaffold`。
 - **副作用：** 除构建控件外无。
-- **算法：** 从枚举到 `WebDAVConfigPage`、`BackupPage`、`DuplicateCheckPage`、`PrivacyPolicyPage` 或
-  `app_license.LicensePage` 的一个 `switch`。
+- **算法：** 从枚举到 `HomeWidgetSettingsPage`（1.9.7；见
+  [`home_widget_settings_page.md`](home_widget_settings_page.md)）、`MyAppsAiSettingsPage`（1.9.7，
+  MyApps-AI v0.6.3；标题为 `aiUseOnDevice`，承载 `_aiSettingsBody()`）、`WebDAVConfigPage`、
+  `BackupPage`、`DuplicateCheckPage`、`PrivacyPolicyPage` 或 `app_license.LicensePage` 的一个 `switch`。
 - **用法：**
   ```dart
   Navigator.of(context, rootNavigator: true)
       .push(MaterialPageRoute(builder: (_) => _detailPage(detail)));
   ```
   （出自同一文件的 `_open`）
-- **备注：** 同一个控件服务于两种模式——窄窗口上全屏推入，宽窗口上寄宿于详情栏。**这五个页面没有一个需要改动
+- **备注：** 同一个控件服务于两种模式——窄窗口上全屏推入，宽窗口上寄宿于详情栏。**这些页面没有一个需要改动
   才能被嵌入**，因为详情栏把它们包进了一个只持有单条路由的嵌套 `Navigator`，它报告 `canPop == false`，于是
   它们的应用栏不会长出返回箭头。
 
@@ -92,7 +95,7 @@ shared_l10n_test 验证公共 ARB 值，见 [../../../../shared-ui.md](../../../
   onTap: () => _open(_SettingsDetail.webdav),
   ```
   （出自同一文件的 `_buildSettingsList`）
-- **备注：** 五行全部经由此处，因此两种模式不可能彼此走样。`_twoPane` 是在 `build` 期间缓存的而非在此重新
+- **备注：** 七行全部经由此处，因此两种模式不可能彼此走样。`_twoPane` 是在 `build` 期间缓存的而非在此重新
   计算，这样一次点击所做的事情永远与它发生时屏幕上的样子相符。
 
 ### `Widget _buildDetailPane(AppLocalizations l10n)` <a id="builddetailpane"></a>
@@ -126,14 +129,17 @@ shared_l10n_test 验证公共 ARB 值，见 [../../../../shared-ui.md](../../../
 - **副作用：** 除构建控件外无；各行自身的回调有其各自的副作用。
 - **算法：** 与 `build` 从前直接返回的内容一致：`ProfileHeader`（自 1.7.0 起，始终是第一个子项，因此在单窗格和双窗格布局中都会显示；见 [`../../profile/views/profile_header.md`](../../profile/views/profile_header.md)），然后是通用、数据、Debug、桌面与关于各小节。自 1.7.1 起通用小节在主题 `SegmentedButton` 之后紧接着是*界面风格*选择器，取代 1.7.0 的*悬浮导航栏* `SwitchListTile`：一个 `ListTile`（`auto_awesome_outlined` 图标，标题*界面风格*，副标题描述两种风格），后面是带有 *Material 3* 与 *Expressive* 两个分段的 `SegmentedButton<AppUiStyle>`，内边距与主题选择器一致（`settings.uiStyle` / `notifier.setUiStyle`）。Expressive（默认）同时显示紧凑悬浮栏；Material 3 使用经典底栏。自 1.7.2 起，紧随其后是一个“导航栏位置”`ListTile`（`view_sidebar_outlined`，`settingsNavPlacement` 及其说明），配一个 `SegmentedButton<NavPlacement>`，选项为“全部底部”（默认）、“宽屏侧边”和“全部侧边”（`settings.navPlacement` / `notifier.setNavPlacement`；两种风格都显示）；仅当位置不是“全部底部”时，还有一个“侧边导航栏位置”`ListTile`（`swap_horiz`），配一个 `SegmentedButton<bool>`，选项为“左侧”和“右侧”（`settings.navRailOnRight` / `notifier.setNavRailOnRight`）。自 1.6.0 起通用小节以*五十音速查* `SwitchListTile`
   结尾，绑定 `settings.kanaTabEnabled` 与 `notifier.setKanaTabEnabled`；其说明提到 MyNihongo!!!!!，但不附商店链接。
-  自 1.9.4 起，仅在 Android 与 iOS（`HomeWidgetService.isSupported`）上，通用与「分类与推荐」之间有一个「桌面小组件」分区（`settingsWidgets`）：自 1.9.5 起为 `myapps_widget_ui` 的共享 `WidgetTextScaleControl`（「小组件字号」及其说明、当前百分比，以及基于 `WidgetTextScale` 分 6 档的滑块，绑定 `settings.widgetTextScale` / `notifier.setWidgetTextScale`），以及一个 `HomeWidgetPreview`（见 [`../widgets/home_widget_preview.md`](../widgets/home_widget_preview.md)）。
+  自 1.9.4 起，仅在 Android 与 iOS（`HomeWidgetService.isSupported`）上，通用与「分类与推荐」之间有一个「桌面小组件」分区（`settingsWidgets`）。自 1.9.7 起它只有一个 `ListTile`（`widgets_outlined`，标题 `settingsWidgetTextSize`，副标题
+  `settingsWidgetsDesc`，带箭头，其页面位于详情栏时为 `selected`），点击调用 `_open(_SettingsDetail.widgets)`；滑块和预览移到了
+  [`HomeWidgetSettingsPage`](home_widget_settings_page.md)。1.9.4 到 1.9.6 期间，该分区直接内嵌绑定 `settings.widgetTextScale` 的共享
+  `WidgetTextScaleControl`，以及同时显示两个小组件的 `HomeWidgetPreview`。
   自 1.6.0（M4）起，通用之后是「分类与推荐」分区（`aiSectionTitle`）：先是*自动分类* `SwitchListTile`
   （`settings.autoCategoriesEnabled` / `notifier.setAutoCategoriesEnabled`），然后——自 1.6.0（M5）起——是*推荐*
-  `SwitchListTile`（`settings.recommendationsEnabled` / `notifier.setRecommendationsEnabled`），然后是以
-  `featuresOn: autoCategoriesEnabled || recommendationsEnabled` 构建的
-  [`AiSettingsTiles`](../../ai/widgets/ai_settings_tiles.md)，最后——仅在自动分类开启时——是
-  [`CategorizeNowTile`](../../categories/widgets/categorize_now_tile.md)。在 Windows 上该分区只有这两个开关，因为两个
-  AI 组件在那里什么也不渲染。
+  `SwitchListTile`（`settings.recommendationsEnabled` / `notifier.setRecommendationsEnabled`），然后——自 1.9.7 起——是
+  `MyAppsAiSettingsEntry` 入口行（MyApps-AI v0.6.3；标题 `aiUseOnDevice`，副标题 `aiSettingsEntryDesc`，`builder` 为
+  `_aiSettingsBody()`，其页面位于详情栏时为 `selected`，`onTap` 为 `_open(_SettingsDetail.ai)`），最后——仅在自动分类开启时——是
+  [`CategorizeNowTile`](../../categories/widgets/categorize_now_tile.md)。1.9.6 及之前，入口所在的位置直接内嵌
+  [`AiSettingsTiles`](../../ai/widgets/ai_settings_tiles.md)；现在它是 AI 设置页的内容。
 - **用法：**
   ```dart
   final list = _buildSettingsList(l10n, settings, notifier, usesJapaneseCalendar);
@@ -141,7 +147,7 @@ shared_l10n_test 验证公共 ARB 值，见 [../../../../shared-ui.md](../../../
   ```
   （出自同一文件的 `_SettingsPageState.build`）
 - **备注：** 1.5.4 中抽出，好让同一份列表既能在窄窗口上充当整个页身、又能在宽窗口上充当左栏，而不必写两遍。
-  那五个带 `›` 的行带有 `selected: _twoPane && _detail == ...`，因此当前所在的那一栏会被高亮，与系统设置应用
+  那七个带 `›` 的行带有 `selected: _twoPane && _detail == ...`，因此当前所在的那一栏会被高亮，与系统设置应用
   的做法一致。
 
   它那些尾部的 `DropdownButton` 以及它们的选项都设置了 `alignment: AlignmentDirectional.centerEnd`。两半都
@@ -481,4 +487,4 @@ shared_l10n_test 验证公共 ARB 值，见 [../../../../shared-ui.md](../../../
 API 对话框保存、提醒开关与时间选择器、API 启用开关都经 `AnimeStorage.updateConfig` 写入，因此短时间内连续更改的多个设置都会保存下来（此前每个都读取整个配置、改一个键再写回）。API 对话框保存、开机自启开关和 API 启用开关在 await 之后、调用 `setState` 之前检查 `mounted`。
 
 
-当前接入 MyApps-AI v0.6.2，显式注入平台后端，使用共享来源路由（`createAiSourceRouter`）与统一设置骨架。WebDAV 入口在任何网络请求前要求设备本地提醒确认；具体见同步概念文档。
+当前接入 MyApps-AI v0.6.3，显式注入平台后端，使用共享来源路由（`createAiSourceRouter`）与统一设置骨架。WebDAV 入口在任何网络请求前要求设备本地提醒确认；具体见同步概念文档。

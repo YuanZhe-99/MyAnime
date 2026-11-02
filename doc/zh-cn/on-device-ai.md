@@ -45,7 +45,7 @@ Apple Intelligence 的模型——为自动分类补缺，并为推荐写简短�
 | `lib/features/ai/services/output_validation.dart` | 解析选择应答、去除 Markdown、文字系统检查、清理单句 |
 | `lib/features/ai/services/prompt_templates.dart` | 带版本的分类指令与提示词（1.6.0 M4） |
 | `lib/features/ai/services/ai_insights_cache.dart` | `AiInsightsCache`：`ai_insights.json`，本设备的生成结果缓存（1.6.0 M4） |
-| `lib/features/ai/widgets/ai_settings_tiles.dart` | `AiSettingsTiles`：开关、状态行、尺寸偏好、说明和完整、可复制的技术详情（1.9.0） |
+| `lib/features/ai/widgets/ai_settings_tiles.dart` | `AiSettingsTiles`：开关、状态行、尺寸偏好、说明和完整、可复制的技术详情（1.9.0）；自 1.9.7 起为 AI 设置页的内容 |
 | `lib/features/categories/services/category_service.dart` | `CategoryClassifier`：每次会话的细流（至多 20 条记录）与*立即分类*（1.6.0 M4） |
 | `lib/features/recommendations/services/ai_reason_service.dart` | 推荐理由：排名前八的候选、回复解析、请求语言与中文变体转换（1.6.0 M5）；提示词在 `reason_prompt.dart` 中；候选项的特征事实（`reasonTraitFacts`，1.9.1）和带引用词的回复解析 |
 | `lib/features/ai/services/insight_prompts.dart`、`insight_language.dart`、`insight_service.dart`、`ai_insight_cards_cache.dart` | 统计页洞察卡片（1.9.1）：模块、事实、带版本的指令和提示词、回复解析器、请求语言、基于共享 `AiInsightCoordinator` 的 `AiInsightStore`，以及 `ai_insight_cards.json` 缓存 |
@@ -55,7 +55,9 @@ Apple Intelligence 的模型——为自动分类补缺，并为推荐写简短�
 | `packages/myapps_ai/packages/myapps_ai_platform/` | 一个本地 Flutter 插件，iOS 和 macOS 共用一份 Darwin 源码 |
 
 自 1.6.0（M4）起，设置中的各行显示在通用之后的「分类与推荐」分区中：先是*自动分类*开关，然后是 `AiSettingsTiles`，
-自动分类开启时再加上*立即分类*；自 M5 起*推荐*开关位于前两者之间。只有自动分类或推荐开启时才能打开 AI 开关，关闭其中最后一个开着的功能也会关闭它。这两个 AI 开关以 `onDeviceAiEnabled` 和
+自动分类开启时再加上*立即分类*；自 M5 起*推荐*开关位于前两者之间。自 1.9.7 起 AI 各行不再直接内嵌：
+该分区包含两个功能开关、一个 `MyAppsAiSettingsEntry` 入口行（MyApps-AI v0.6.3；*使用 AI 功能*，副标题 `aiSettingsEntryDesc`）
+和*立即分类*，入口打开一个承载 `AiSettingsTiles` 的 `MyAppsAiSettingsPage`。宽窗口下该页面在设置的详情栏中打开。只有自动分类或推荐开启时才能打开 AI 开关，关闭其中最后一个开着的功能也会关闭它。这两个 AI 开关以 `onDeviceAiEnabled` 和
 `onDeviceAiPreferFast` 存放在 `storage_config.json` 中（见 [`data-formats.md`](data-formats.md)）。
 
 三个平台上的通道都是 `com.yuanzhe.myapps_ai/genai`。它的方法有 `status`（`force`、`preferFast`）、`info`

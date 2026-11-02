@@ -14,11 +14,13 @@ MyAnime 保留：
 
 - 门面 `HomeWidgetService`，公开成员不变：`isSupported`、`init`、`notifyDataChanged`、`refresh`、`labelsFor`、
   `buildSnapshot`、`jstToUtc`、`clampTextScale` 以及各常量。新增 `kind`（`myanime.upNext`）和 `appGroupId`。
-- payload（`timeZone`、`airedUnwatched`、`queueSize`、`episodes`、`labels`）及其版本 `pv`
+- payload（`timeZone`、`airedUnwatched`、`queueSize`、`episodes`、`labels`，自 1.9.7 起还有
+  `stripTextScale`）及其版本 `pv`
   （`HomeWidgetService.formatVersion`）。
 - 原生渲染：`UpNextWidgetProvider` 和 `UpNextStripWidgetProvider`（继承共享的 `EnvelopeWidgetProvider`）、
   `UpNextState`、XML 布局和颜色，以及 `UpNextWidget` 扩展（`UpNextWidget.swift`）。
-- 文案、`widgetTextScale` 设置项和设置页预览 `HomeWidgetPreview`。
+- 文案、`widgetTextScale` 与 `widgetStripTextScale` 设置项、小组件设置页 `HomeWidgetSettingsPage`
+  及其逐个小组件的预览 `HomeWidgetPreview`（1.9.7）。
 
 许可页面列出了 MyApps-Widget 及其 GPL v3 源码。
 

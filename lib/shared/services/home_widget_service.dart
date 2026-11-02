@@ -139,12 +139,16 @@ class HomeWidgetService {
           ? HomeCalendarTimeBasis.local
           : HomeCalendarTimeBasis.jst;
       final l10n = await _l10n();
+      final textScale = clampTextScale(await AnimeStorage.getWidgetTextScale());
       final snapshot = buildSnapshot(
         data.animeList,
         nowUtc: DateTime.now().toUtc(),
         basis: basis,
         labels: labelsFor(l10n),
-        textScale: clampTextScale(await AnimeStorage.getWidgetTextScale()),
+        textScale: textScale,
+        stripTextScale: clampTextScale(
+          await AnimeStorage.getWidgetStripTextScale() ?? textScale,
+        ),
       );
       await _bridge.publish(WidgetEnvelope.fromJson(snapshot));
     } catch (e) {
@@ -171,8 +175,10 @@ class HomeWidgetService {
 
   /// Purpose: Build the widget snapshot for a library at a given instant.
   /// Inputs: `animeList`; `nowUtc`; `basis` — which calendar day counts as
-  /// "today"; `labels` from [labelsFor]; `textScale` — the widget text size
-  /// multiplier, written as the envelope's `textScale`.
+  /// "today"; `labels` from [labelsFor]; `textScale` — the large widget's
+  /// text size multiplier, written as the envelope's `textScale`;
+  /// `stripTextScale` — the strip's (1.9.7), written as the payload's
+  /// `stripTextScale` and defaulting to `textScale`.
   /// Returns: The JSON-ready envelope map (envelope `v` 1, kind [kind],
   /// `pv` [formatVersion]) with MyAnime's fields under `payload`.
   /// Side effects: None.
@@ -187,6 +193,7 @@ class HomeWidgetService {
     required HomeCalendarTimeBasis basis,
     required Map<String, String> labels,
     double textScale = 1.0,
+    double? stripTextScale,
   }) {
     final now = nowUtc.toUtc();
     final windowStart = _startOfToday(now, basis);
@@ -238,6 +245,7 @@ class HomeWidgetService {
             'queueSize': queue.length,
             'episodes': episodes,
             'labels': labels,
+            'stripTextScale': stripTextScale ?? textScale,
           },
           generatedAt: now,
           textScale: textScale,

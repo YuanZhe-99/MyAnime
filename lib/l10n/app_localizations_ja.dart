@@ -2565,4 +2565,16 @@ class AppLocalizationsJa extends AppLocalizations {
   @override
   String get settingsWidgetTextSizeDesc =>
       '下にプレビューを表示します。ホーム画面のウィジェットは数秒で更新されます。';
+
+  @override
+  String get settingsWidgetsDesc => 'ウィジェットごとの文字サイズとプレビュー';
+
+  @override
+  String get settingsWidgetLarge => '大きいウィジェット';
+
+  @override
+  String get settingsWidgetStrip => '横長ウィジェット';
+
+  @override
+  String get aiSettingsEntryDesc => 'AIソース・モデル・技術情報';
 }

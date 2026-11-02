@@ -4708,6 +4708,30 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Preview below; widgets on your home screen update within a few seconds.'**
   String get settingsWidgetTextSizeDesc;
+
+  /// Settings: subtitle of the row that opens the home-screen widget page.
+  ///
+  /// In en, this message translates to:
+  /// **'Text size of each widget, with a preview'**
+  String get settingsWidgetsDesc;
+
+  /// Widget settings page: section for the 2×2 Up next widget.
+  ///
+  /// In en, this message translates to:
+  /// **'Large widget'**
+  String get settingsWidgetLarge;
+
+  /// Widget settings page: section for the 2×1 strip widget.
+  ///
+  /// In en, this message translates to:
+  /// **'Strip widget'**
+  String get settingsWidgetStrip;
+
+  /// Settings: subtitle of the row that opens the AI settings page.
+  ///
+  /// In en, this message translates to:
+  /// **'AI source, models and technical details'**
+  String get aiSettingsEntryDesc;
 }
 
 class _AppLocalizationsDelegate

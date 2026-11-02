@@ -34,17 +34,24 @@ iOS 没有 2×1 的主屏尺寸，因此紧凑横条对应矩形锁屏小组件�
 
 ### 字号
 
-**设置 › 桌面小组件 › 小组件字号**（1.9.4，仅 Android 与 iOS）把两个小组件中的所有文字按 90% 到 150% 缩放，步长
-10%，默认 100%。滑块下方是 2×2 小组件和 2×1 横条的实时预览，由 `HomeWidgetPreview`
-（`lib/features/settings/widgets/home_widget_preview.dart`）依据真实片库绘制，拖动时随即重绘；桌面上已放置的小组件
-经由常规的防抖刷新跟着更新。在 Android 上，每张预览卡片按启动器为该小组件第一个已放置实例报告的尺寸排版
-（`AppWidgetManager` 尺寸选项，经由 `HomeWidgetService.placedSizes` 读取），再整体缩小以适应页面，因此截断和队列行数
-与实际小组件一致；未放置时以及在 iOS 上，使用固定的 2×2 和 2×1 尺寸。预览以应用配色近似原生小组件，并非逐像素复刻任一平台。
+**设置 › 桌面小组件**（1.9.4，仅 Android 与 iOS）只有一行*小组件字号*，点击打开小组件设置页
+（`HomeWidgetSettingsPage`，`lib/features/settings/views/home_widget_settings_page.dart`；1.9.7）。该页每个小组件一个分区——
+*大号小组件*（2×2）和*横条小组件*（2×1）——每个分区都有自己的滑块，把该小组件中的所有文字按 90% 到 150% 缩放，步长
+10%，默认 100%，并附上该小组件的实时预览。1.9.6 及之前，设置第一层的同一个滑块同时缩放两个小组件。
+
+每个预览都是一个 `HomeWidgetPreview`（`lib/features/settings/widgets/home_widget_preview.dart`），依据真实片库绘制；
+拖动其滑块时随即重绘，桌面上已放置的小组件经由常规的防抖刷新跟着更新。该页每次访问只加载一次片库和已放置尺寸，
+由两个预览共用。在 Android 上，预览卡片按启动器为该小组件第一个已放置实例报告的尺寸排版（`AppWidgetManager` 尺寸选项，
+经由 `HomeWidgetService.placedSizes` 读取），因此截断和队列行数与实际小组件一致；未放置时以及在 iOS 上，大号小组件默认
+使用 3×2 格、横条使用 3×1 格（每格 86 dp；横条保持 76 dp 高度）。卡片按 75%（`displayScale`）绘制，只在放不下时才进一步
+缩小以适应页面。预览以应用配色近似原生小组件，并非逐像素复刻任一平台。
 有些启动器还会把整个小组件缩小绘制，应用无法得知，因此桌面上的文字可能比预览中显得小。
 
 为了让更大的文字放得进固定的格子，Android 需要 `150 dp × 倍数` 的高度才显示第二行队列，iOS 2×2 小组件在 120%
-以上只显示一行。iOS 锁屏矩形小组件同样缩放，并用 `minimumScaleFactor` 让第一行在放不下时缩回。该值存为
-`storage_config.json` 中设备本地的 `widgetTextScale` 键（见 [`../data-formats.md`](../data-formats.md)）。
+以上只显示一行。预览中的大号卡片把 Android 的规则应用到已放置实例的最小高度上，未放置时应用到默认高度上。iOS 锁屏矩形
+小组件使用横条的倍数，并用 `minimumScaleFactor` 让第一行在放不下时缩回。大号小组件的值存为 `storage_config.json` 中
+设备本地的 `widgetTextScale` 键，横条的值存为 `widgetStripTextScale`（1.9.7）。`widgetStripTextScale` 不存在时横条跟随
+`widgetTextScale`，因此从 1.9.4–1.9.6 升级的安装保留原来共用的字号（见 [`../data-formats.md`](../data-formats.md)）。
 
 「今天」使用首页日历的时间基准：默认日本时间；选择**设置 › 首页日历时间 › 本地时间**时使用设备的本地日期。
 显示的播出时间使用同一时区。
@@ -66,7 +73,7 @@ iOS 没有 2×1 的主屏尺寸，因此紧凑横条对应矩形锁屏小组件�
 小组件从不读取资料库。应用计算一份小快照交给原生端，由原生端保存并重绘：
 
 1. `HomeWidgetService.refresh()`（`lib/shared/services/home_widget_service.dart`）加载
-   `anime_data.json`、日历时间基准和界面语言，并构建快照。
+   `anime_data.json`、日历时间基准、界面语言和两个小组件的字号，并构建快照。
 2. 自 1.9.5 起，它通过共享的 `myapps_widget` 插件，把快照作为 kind 为 `myanime.upNext` 的
    MyApps-Widget 外层封装发布（见 [`../shared-widget.md`](../shared-widget.md)）。
 3. Android：插件把它存进私有的 `myapps_widget` shared preferences，键为 `envelope.myanime.upNext`，
@@ -79,7 +86,7 @@ iOS 没有 2×1 的主屏尺寸，因此紧凑横条对应矩形锁屏小组件�
 - 任何资料库保存（`AnimeStorage._writeData`），
 - 同步下载或备份恢复（`AutoSyncService` 的本地数据变更回调），
 - 应用恢复到前台，
-- 界面语言、日历时间基准或小组件字号变更。
+- 界面语言、日历时间基准或任一小组件字号变更。
 
 ### 应用关闭时保持正确
 
@@ -120,7 +127,8 @@ MyApps-Widget 所有；MyAnime 自己的字段位于 `payload` 下。
     "labels": {
       "appName": "MyAnime", "toWatch": "…", "today": "…", "caughtUp": "…",
       "noUpdates": "…", "next": "…", "episode": "EP {n}", "series": "{n} series"
-    }
+    },
+    "stripTextScale": 1.0
   }
 }
 ```
@@ -130,8 +138,12 @@ MyApps-Widget 所有；MyAnime 自己的字段位于 `payload` 下。
 - `airedUnwatched` —— `generatedAt` 时刻的待看计数。
 - `episodes` —— 每部动画最早的已播出未看剧集（队列条目），加上从今天开始到 8 天后的每一集；
   最多 80 个条目，队列条目在前。已看或已跳过的剧集 `w` 为 true。
-- `textScale` —— 小组件字号倍数，0.9–1.5（1.9.4），现为外层封装字段，由共享读取端限定在同一范围内。
-  `refreshAt` 留空：两个平台都已依据 `episodes` 重新计数。
+- `textScale` —— 大号小组件的字号倍数，0.9–1.5（1.9.4），现为外层封装字段，由共享读取端限定在同一范围内。
+  1.9.6 及之前它同时缩放两个小组件。`refreshAt` 留空：两个平台都已依据 `episodes` 重新计数。
+- `stripTextScale` —— 横条自己的字号倍数（1.9.7），0.9–1.5，由两个原生读取端限定范围：Android 上为
+  `UpNextState.stripTextScale`（供 `UpNextStripWidgetProvider` 使用），iOS 上为 `WidgetSnapshot.stripTextScale` →
+  `UpNextEntry.stripTextScale`，经由 `UpNextEntry.forStrip` 应用到 `accessoryRectangular` 系列。没有该字段的 payload
+  （由 1.9.5–1.9.6 写入）回退使用 `textScale`。该字段是可选的增量字段，因此 `pv` 仍为 1。
 - `labels` —— 小组件文案，按应用语言从 ARB 文件解析；`{n}` 由原生端替换。只有小组件选择器中的名称和描述
   放在原生资源里（Android 上为 `res/values*/widget_strings.xml`，iOS 上为 Swift 文件中的 `galleryText`）。
 

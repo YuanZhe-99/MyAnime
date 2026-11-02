@@ -2654,4 +2654,16 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get settingsWidgetTextSizeDesc =>
       'Preview below; widgets on your home screen update within a few seconds.';
+
+  @override
+  String get settingsWidgetsDesc => 'Text size of each widget, with a preview';
+
+  @override
+  String get settingsWidgetLarge => 'Large widget';
+
+  @override
+  String get settingsWidgetStrip => 'Strip widget';
+
+  @override
+  String get aiSettingsEntryDesc => 'AI source, models and technical details';
 }

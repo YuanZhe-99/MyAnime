@@ -29,15 +29,15 @@ class UpNextStripWidgetProvider : EnvelopeWidgetProvider() {
          * Side effects: None.
          * Notes: Line 1 is the first queued title (or "caught up"); line 2 is
          * its episode plus today's update count, or the next airing episode.
-         * Text sizes are the layout's, times the snapshot's text scale.
+         * Text sizes are the layout's, times the strip's own text scale (1.9.7).
          */
         fun render(context: Context, state: UpNextState): RemoteViews {
             val now = System.currentTimeMillis()
             val views = RemoteViews(context.packageName, R.layout.widget_up_next_strip)
             views.setOnClickPendingIntent(R.id.widget_root, WidgetLaunch.pendingIntent(context))
-            views.setScaledTextSize(R.id.count, 18f, state.textScale)
-            views.setScaledTextSize(R.id.line1, 14f, state.textScale)
-            views.setScaledTextSize(R.id.line2, 12f, state.textScale)
+            views.setScaledTextSize(R.id.count, 18f, state.stripTextScale)
+            views.setScaledTextSize(R.id.line1, 14f, state.stripTextScale)
+            views.setScaledTextSize(R.id.line2, 12f, state.stripTextScale)
             views.setTextViewText(R.id.count, if (state.toWatch > 0) state.toWatch.toString() else "✓")
             val today = "${state.label("today")} ${state.todayCount}"
             val first = state.queue.firstOrNull()

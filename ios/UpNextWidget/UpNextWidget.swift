@@ -56,6 +56,9 @@ struct WidgetSnapshot: Decodable {
   let labels: [String: String]
   /// From the envelope; top-level (or absent) in a pre-1.9.5 snapshot.
   var textScale: Double?
+  /// The strip's own text scale, in the payload since 1.9.7; absent means
+  /// the same as `textScale`.
+  var stripTextScale: Double?
 
   /// Purpose: Read and decode the stored envelope.
   /// Inputs: None.
@@ -106,6 +109,19 @@ struct UpNextEntry: TimelineEntry {
   let labels: [String: String]
   let zone: TimeZone
   var textScale: CGFloat = 1
+  /// The rectangular (strip) family's text scale (1.9.7).
+  var stripTextScale: CGFloat = 1
+
+  /// Purpose: Return this entry as the strip draws it.
+  /// Inputs: None.
+  /// Returns: A copy whose `textScale` is `stripTextScale`.
+  /// Side effects: None.
+  /// Notes: Lets `UpNextRectangularView` keep using [pt] (1.9.7).
+  var forStrip: UpNextEntry {
+    var copy = self
+    copy.textScale = stripTextScale
+    return copy
+  }
 
   /// Purpose: Scale a font size by the user's widget text size.
   /// Inputs: `size` — points at 100%.
@@ -181,7 +197,9 @@ struct UpNextEntry: TimelineEntry {
       nextUp: episodes.first { !$0.w && $0.at > now },
       labels: snapshot.labels,
       zone: snapshot.zone,
-      textScale: CGFloat(WidgetTextScale.clamp(snapshot.textScale ?? 1)))
+      textScale: CGFloat(WidgetTextScale.clamp(snapshot.textScale ?? 1)),
+      stripTextScale: CGFloat(
+        WidgetTextScale.clamp(snapshot.stripTextScale ?? snapshot.textScale ?? 1)))
   }
 
   /// Sample state for the widget gallery and placeholders.
@@ -390,7 +408,7 @@ struct UpNextEntryView: View {
   var body: some View {
     if #available(iOSApplicationExtension 16.0, *) {
       if family == .accessoryRectangular {
-        UpNextRectangularView(entry: entry).widgetBackground(Color.clear, padded: false)
+        UpNextRectangularView(entry: entry.forStrip).widgetBackground(Color.clear, padded: false)
       } else {
         small
       }

@@ -17,7 +17,8 @@
 | [`AppSettingsNotifier.setWeekStartDay`](#appsettingsnotifier-setweekstartday) | 方法（`AppSettingsNotifier`） | A | 更新应用级日历周起始日并持久化它。 |
 | [`AppSettingsNotifier.setHomeCalendarLayout`](#appsettingsnotifier-sethomecalendarlayout) | 方法（`AppSettingsNotifier`） | A | 更新主页日历日名布局并持久化它。 |
 | [`AppSettingsNotifier.setHomeCalendarTimeBasis`](#appsettingsnotifier-sethomecalendartimebasis) | 方法（`AppSettingsNotifier`） | A | 更新主页日历日期网格使用 JST 还是本地日期，并持久化它。 |
-| [`AppSettingsNotifier.setWidgetTextScale`](#appsettingsnotifier-setwidgettextscale) | 方法（`AppSettingsNotifier`） | A | 调整桌面小组件字号并刷新小组件（1.9.4）。 |
+| [`AppSettingsNotifier.setWidgetTextScale`](#appsettingsnotifier-setwidgettextscale) | 方法（`AppSettingsNotifier`） | A | 调整大号（2×2）桌面小组件的字号并刷新小组件（1.9.4）。 |
+| [`AppSettingsNotifier.setWidgetStripTextScale`](#appsettingsnotifier-setwidgetstriptextscale) | 方法（`AppSettingsNotifier`） | A | 调整横条小组件自己的字号并刷新小组件（1.9.7）。 |
 | [`AppSettingsNotifier.setHomeCalendarFormat`](#appsettingsnotifier-sethomecalendarformat) | 方法（`AppSettingsNotifier`） | A | 更新记住的主页日历视图格式并持久化它。 |
 | `AppSettingsNotifier.setHomeListColumns` | 方法（`AppSettingsNotifier`） | B | 更新并持久化记住的首页列表列数偏好。 |
 | `AppSettingsNotifier.setManageListColumns` | 方法（`AppSettingsNotifier`） | B | 更新并持久化记住的管理列表列数偏好。 |
@@ -212,13 +213,26 @@
 ### `void setWidgetTextScale(double scale)` <a id="appsettingsnotifier-setwidgettextscale"></a>
 - **种类：** `AppSettingsNotifier` 的方法
 - **来源：** `lib/shared/providers/app_settings.dart`
-- **用途：** 调整桌面小组件的字号（1.9.4）。
+- **用途：** 调整大号（2×2）桌面小组件的字号（1.9.4；1.9.6 及之前同时作用于两个小组件）。
 - **输入：** `scale` —— 缩放倍数；由 `HomeWidgetService.clampTextScale` 限定为 0.9–1.5、步长 0.1。
 - **返回：** 无。
 - **副作用：** 更新 `state.widgetTextScale`；调用 `AnimeStorage.setWidgetTextScale`；安排一次小组件刷新，让桌面上的小组件跟着变。
 - **算法：** 限定范围 → `copyWith` → 持久化（发后不理）→ `HomeWidgetService.notifyDataChanged()`。
-- **用法：** 设置 › 桌面小组件里的「小组件字号」滑块（仅 Android 与 iOS），其 `HomeWidgetPreview` 直接按 `state` 立即重绘。
-- **备注：** `_loadPersisted` 读取存储值时同样经过该限定；字段默认 `1.0`。
+- **用法：** `HomeWidgetSettingsPage`（设置 › 桌面小组件，仅 Android 与 iOS）中*大号小组件*分区的「小组件字号」滑块，其 `HomeWidgetPreview` 直接按 `state` 立即重绘。
+- **备注：** `_loadPersisted` 读取存储值时同样经过该限定；字段默认 `1.0`。自 1.9.7 起横条有自己的倍数
+  （[`setWidgetStripTextScale`](#appsettingsnotifier-setwidgetstriptextscale)）。
+
+### `void setWidgetStripTextScale(double scale)` <a id="appsettingsnotifier-setwidgetstriptextscale"></a>
+- **种类：** `AppSettingsNotifier` 的方法
+- **来源：** `lib/shared/providers/app_settings.dart`
+- **用途：** 调整 2×1 横条小组件的字号（1.9.7）。
+- **输入：** `scale` —— 缩放倍数；由 `HomeWidgetService.clampTextScale` 限定为 0.9–1.5、步长 0.1。
+- **返回：** 无。
+- **副作用：** 更新 `state.widgetStripTextScale`；调用 `AnimeStorage.setWidgetStripTextScale`；安排一次小组件刷新，让桌面上的横条跟着变。
+- **算法：** 限定范围 → `copyWith` → 持久化（发后不理）→ `HomeWidgetService.notifyDataChanged()`。
+- **用法：** `HomeWidgetSettingsPage` 中*横条小组件*分区的「小组件字号」滑块。
+- **备注：** 与 [`setWidgetTextScale`](#appsettingsnotifier-setwidgettextscale) 相互独立。
+  `_loadPersisted` 经同一限定读取 `AnimeStorage.getWidgetStripTextScale() ?? widgetTextScale`，因此从未设置过的安装显示大号小组件的字号。
 
 ### `void setHomeCalendarFormat(CalendarFormat format)` <a id="appsettingsnotifier-sethomecalendarformat"></a>
 - **种类：** `AppSettingsNotifier` 的方法
@@ -399,7 +413,7 @@
 `_loadPersisted` 中通过 `AnimeStorage.getOnDeviceAiEnabled()` 和 `getOnDeviceAiPreferFast()` 加载，由
 `setOnDeviceAiEnabled` 和 `setOnDeviceAiPreferFast` 写入。每个写入方法同时告知 `OnDeviceAiService.instance`，
 该服务自身不保存任何偏好；构造函数和 `copyWith` 都接受这两个字段。唯一的界面是
-[`AiSettingsTiles`](../../features/ai/widgets/ai_settings_tiles.md)，位于设置的「分类与推荐」分区。见
+[`AiSettingsTiles`](../../features/ai/widgets/ai_settings_tiles.md)，位于从设置的「分类与推荐」分区打开的 AI 设置页上（自 1.9.7 起；此前直接内嵌在该分区中）。见
 [`../../../on-device-ai.md`](../../../on-device-ai.md)。
 
 ## 自动分类偏好
@@ -429,4 +443,7 @@
 
 1.9.4 新增 `widgetTextScale`，一个默认 `1.0` 的 `double`：在 `_loadPersisted` 中经
 `HomeWidgetService.clampTextScale` 加载，仅在不等于 `1.0` 时以 `widgetTextScale` 存入 `storage_config.json`，
-由 [`setWidgetTextScale`](#appsettingsnotifier-setwidgettextscale) 修改。
+由 [`setWidgetTextScale`](#appsettingsnotifier-setwidgettextscale) 修改。自 1.9.7 起它只是大号（2×2）
+小组件的倍数，横条使用 `widgetStripTextScale`（一个默认 1.0 的 `double`）：在 `_loadPersisted` 中读取存储的
+`widgetStripTextScale`，缺失时取 `widgetTextScale`，同样限定范围；一旦设置便始终存储，由
+[`setWidgetStripTextScale`](#appsettingsnotifier-setwidgetstriptextscale) 修改。

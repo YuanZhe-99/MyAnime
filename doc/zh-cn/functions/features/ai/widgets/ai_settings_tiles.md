@@ -4,7 +4,9 @@
 
 `AiSettingsTiles` 于 1.6.0（M3）新增，构建「分类与推荐」设置分区里的端侧 AI 行：「使用 AI 功能」开关（1.8.12 前名为「使用端侧 AI」）、
 带操作的模型状态行、「使用更快的模型」（Android，仅当两种尺寸都有提供时）、关于模型归属的说明，以及一个折叠的
-「技术详情」。在 Windows、Linux 和 Web 上它什么也不渲染。自 1.6.0（M4）起，`settings_page.dart` 把它放在功能开关之后；自 M5 起传入
+「技术详情」。它在所有平台上都会渲染：没有端侧模型的平台上，来源选择仍提供本地和在线模型。自 1.6.0（M4）起，`settings_page.dart` 曾把它放在功能开关之后；自 1.9.7 起它改为 AI 设置页的内容，即由分区中取代它位置的
+`MyAppsAiSettingsEntry` 入口行打开、由 `_SettingsPageState._aiSettingsBody` 构建的 `MyAppsAiSettingsPage`（MyApps-AI v0.6.3；见
+[`../../settings/views/settings_page.md`](../../settings/views/settings_page.md)）；自 M5 起传入
 `featuresOn: autoCategoriesEnabled || recommendationsEnabled`，因此只有在自动分类或推荐开启时才能打开 AI 开关，关闭其中最后一个开着的功能也会关闭 AI。见 [`../services/on_device_ai_service.md`](../services/on_device_ai_service.md)
 和 [`../../../../on-device-ai.md`](../../../../on-device-ai.md)。
 
@@ -52,10 +54,10 @@
   4. 说明：在 Android 上说明谁下载模型、为何不能在这里删除；在 Apple 上说明由系统管理。
   5. 一个折叠的「技术详情」（自 1.9.0 起为基于 `router.diagnostics()` 的 `MyAppsAiDiagnosticsView`），可复制：
      包含每个后端（应用与平台、选择、系统 AI、llama.cpp 库与设备、每个本地模型、在线来源），各项只在已知时显示。
-- **用法：** `settings_page.dart` 的「分类与推荐」分区（`AiSettingsTiles(featuresOn: settings.autoCategoriesEnabled || settings.recommendationsEnabled)`）；
+- **用法：** `settings_page.dart`，自 1.9.7 起位于 AI 设置页的 `_aiSettingsBody` 中（`AiSettingsTiles(featuresOn: settings.autoCategoriesEnabled || settings.recommendationsEnabled)`）；
   `test/ai_settings_tiles_ui_test.dart`（用 `debugDefaultTargetPlatformOverride` 按平台测试）。
 - **备注：** `unsupported` 表述为需要支持 Apple Intelligence 的 iOS 26 或 macOS 26。这正是 Apple 插件在
   26 之前的 iOS 和 macOS 上报告的状态。
 
 
-当前接入 MyApps-AI v0.6.2，显式注入平台后端，使用共享来源路由（`createAiSourceRouter`）与统一设置骨架。WebDAV 入口在任何网络请求前要求设备本地提醒确认；具体见同步概念文档。
+当前接入 MyApps-AI v0.6.3，显式注入平台后端，使用共享来源路由（`createAiSourceRouter`）与统一设置骨架。WebDAV 入口在任何网络请求前要求设备本地提醒确认；具体见同步概念文档。
