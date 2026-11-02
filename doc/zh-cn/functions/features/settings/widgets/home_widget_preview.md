@@ -2,7 +2,7 @@
 
 `HomeWidgetPreview` 在设置 › 桌面小组件中绘制两个桌面小组件（1.9.4，仅 Android 与 iOS），这样不用回到桌面就能判断「小组件字号」滑块的效果。它用
 [`HomeWidgetService.buildSnapshot`](../../../shared/services/home_widget_service.md#buildsnapshot)
-为真实片库构建快照，按原生小组件的方式求值，并以 Android 布局字号乘以所选倍数、用应用配色在 `myapps_widget_ui` 的共享 `WidgetPreviewSurface` 上（1.9.5）绘制一张 2×2 卡片和一条 2×1 横条。它只是近似原生小组件，并非任一平台的像素级复刻。见
+为真实片库构建快照，按原生小组件的方式求值，并以 Android 布局字号乘以所选倍数、用应用配色在 `myapps_widget_ui` 的共享 `WidgetPreviewSurface` 上（1.9.5）绘制一张 2×2 卡片和一条 2×1 横条。在 Android 上，每张卡片按桌面启动器给该小组件第一个已放置实例的尺寸排版（[`HomeWidgetService.placedSizes`](../../../shared/services/home_widget_service.md#placedsizes)），再整体缩小以适应页面；未放置时以及在 iOS 上，使用默认的 172 × 172 和 172 × 76。它只是近似原生小组件，并非任一平台的像素级复刻；若启动器缩放绘制小组件（有些会把整个小组件缩小），桌面上看起来仍会更小。见
 [`../../../../features/home-screen-widgets.md`](../../../../features/home-screen-widgets.md)。
 
 ## 声明
@@ -11,27 +11,27 @@
 |---|---|---|---|
 | `HomeWidgetPreview({super.key, required this.textScale})` | 构造函数（`HomeWidgetPreview`） | B | 为某个字号倍数创建预览。 |
 | `createState` | 方法（`HomeWidgetPreview`） | B | 创建状态对象。 |
-| [`_load`](#_load) | 方法（`_HomeWidgetPreviewState`） | A | 从已存储的片库一次性构建预览状态。 |
+| [`_load`](#_load) | 方法（`_HomeWidgetPreviewState`） | A | 一次性构建预览状态并读取已放置的尺寸。 |
 | [`build`](#build) | 方法（`_HomeWidgetPreviewState`） | A | 排布两张预览卡片。 |
 | `HomeWidgetPreviewState(...)` | 构造函数（`HomeWidgetPreviewState`） | B | 保存一次求值后的小组件状态。 |
 | [`HomeWidgetPreviewState.evaluate`](#evaluate) | 工厂构造函数（`HomeWidgetPreviewState`） | A | 像原生小组件一样对新快照求值。 |
 | [`_airTime`](#_airtime) | 顶层函数 | A | 像原生小组件一样格式化播出时间。 |
-| `_SmallWidgetCard(...)` | 构造函数（`_SmallWidgetCard`） | B | 创建 2×2 预览。 |
+| `_SmallWidgetCard(...)` | 构造函数（`_SmallWidgetCard`） | B | 按给定尺寸和已放置的最小高度创建 2×2 预览。 |
 | [`_SmallWidgetCard.build`](#_smallwidgetcard-build) | 方法（`_SmallWidgetCard`） | A | 绘制 2×2 小组件。 |
-| `_StripWidgetCard(...)` | 构造函数（`_StripWidgetCard`） | B | 创建 2×1 预览。 |
+| `_StripWidgetCard(...)` | 构造函数（`_StripWidgetCard`） | B | 按给定尺寸创建 2×1 预览。 |
 | [`_StripWidgetCard.build`](#_stripwidgetcard-build) | 方法（`_StripWidgetCard`） | A | 绘制 2×1 横条。 |
 
 ## 文档
 
-### `Future<HomeWidgetPreviewState> _load()` <a id="_load"></a>
+### `Future<(HomeWidgetPreviewState, List<PlacedWidgetSize>)> _load()` <a id="_load"></a>
 - **种类：** `_HomeWidgetPreviewState` 的方法
-- **用途：** 一次性读取片库和日历时间基准，并对当前时刻构建的快照求值。
+- **用途：** 一次性读取片库和日历时间基准，对当前时刻构建的快照求值，并读取已放置小组件的尺寸。
 - **输入：** 无。
-- **返回：** `Future<HomeWidgetPreviewState>`。
-- **副作用：** 读取 `anime_data.json` 和 `storage_config.json`。
-- **算法：** `AnimeStorage.load` → 时间基准 → 以空 labels 调用 `buildSnapshot` → [`evaluate`](#evaluate)。
+- **返回：** 求值后的状态，以及每个已放置实例的 `PlacedWidgetSize`。
+- **副作用：** 读取 `anime_data.json` 和 `storage_config.json`；在 Android 上向启动器查询已放置小组件的尺寸。
+- **算法：** `AnimeStorage.load` → 时间基准 → 以空 labels 调用 `buildSnapshot` → [`evaluate`](#evaluate)；然后 `HomeWidgetService.placedSizes`。
 - **用法：** 保存在 `late final` future 中，因此拖动滑块不会重新加载片库。
-- **备注：** 文案改由组件树自身的 `AppLocalizations` 提供。
+- **备注：** 文案改由组件树自身的 `AppLocalizations` 提供。尺寸每次进入设置页读取一次，期间调整过大小的小组件需重新打开设置页才会反映。
 
 ### `Widget build(BuildContext context)` <a id="build"></a>
 - **种类：** `_HomeWidgetPreviewState` 的方法
@@ -39,9 +39,9 @@
 - **输入：** `context`。
 - **返回：** 两张卡片；`_load` 完成前为 `WidgetPreviewSurface.smallSide`（172 像素）高的占位。
 - **副作用：** 无。
-- **算法：** 对 `_load` 使用 `FutureBuilder`；把 `widget.textScale` 传给两张卡片。
+- **算法：** 对 `_load` 使用 `FutureBuilder`；每张卡片的尺寸取其 Provider 第一个已放置实例（按当前方向取 `portrait` 或 `landscape`），否则用默认尺寸；每张卡片放在 `FittedBox(scaleDown)` 中，并传入 `widget.textScale`。
 - **用法：** 设置页，滑块下方。
-- **备注：** 窗口较窄时卡片会换成两行。
+- **备注：** 窗口较窄时卡片会换成两行；比页面更宽的卡片会整体缩小，排版保持不变。
 
 ### `factory HomeWidgetPreviewState.evaluate(Map<String, dynamic> snapshot, DateTime nowUtc)` <a id="evaluate"></a>
 - **种类：** `HomeWidgetPreviewState` 的工厂构造函数
@@ -67,9 +67,9 @@
 - **种类：** `_SmallWidgetCard` 的方法
 - **用途：** 绘制 2×2 小组件：带今日胶囊的标题行、数字或「已全部看完」、说明文字和条目行。
 - **输入：** `context`。
-- **返回：** 172 × 172 的 `WidgetPreviewSurface`。
+- **返回：** 给定尺寸的 `WidgetPreviewSurface`。
 - **副作用：** 无。
-- **算法：** 字号取自 `widget_up_next.xml`（12/11/36 或 20/12/13/12 sp）乘以倍数；120% 及以下显示两行队列，以上显示一行；队列为空时显示下一集播出。
+- **算法：** 字号取自 `widget_up_next.xml`（12/11/36 或 20/12/13/12 sp）乘以倍数。队列行数：有已放置实例时，其最小高度为 0 或不小于 150 dp × 倍数则两行，否则一行（同 `UpNextWidgetProvider.render`）；没有时，120% 及以下两行，以上一行。队列为空时显示下一集播出。
 - **用法：** [`build`](#build)。
 - **备注：** 内容取舍与 `UpNextWidgetProvider.render` 相同。
 
@@ -77,7 +77,7 @@
 - **种类：** `_StripWidgetCard` 的方法
 - **用途：** 绘制 2×1 横条：数字方块和两行文字。
 - **输入：** `context`。
-- **返回：** 172 × 76 的 `WidgetPreviewSurface`。
+- **返回：** 给定尺寸的 `WidgetPreviewSurface`。
 - **副作用：** 无。
 - **算法：** 字号取自 `widget_up_next_strip.xml`（18/14/12 sp）乘以倍数；两行内容同 `UpNextStripWidgetProvider.render`。
 - **用法：** [`build`](#build)。

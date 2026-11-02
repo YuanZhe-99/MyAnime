@@ -2,7 +2,7 @@
 
 ## Ownership
 
-MyApps-Widget v0.1.0 is embedded at `packages/myapps_widget` using the relative sibling URL
+MyApps-Widget v0.1.1 is embedded at `packages/myapps_widget` using the relative sibling URL
 `../MyApps-Widget.git` (1.9.5). The app depends on
 `packages/myapps_widget/packages/myapps_widget` (bridge, Android and iOS plugin) and
 `packages/myapps_widget/packages/myapps_widget_ui` (preview surface, text-size control); both pull

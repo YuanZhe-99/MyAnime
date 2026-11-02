@@ -282,7 +282,7 @@ the 771 hand-documented declarations above).
 | `lib/shared/services/duplicate_service.dart` | [shared/services/duplicate_service.md](shared/services/duplicate_service.md) | 17 | 12 |
 | `lib/shared/services/file_open_service.dart` | [shared/services/file_open_service.md](shared/services/file_open_service.md) | 21 | 17 |
 | `lib/shared/services/reminder_service.dart` | [shared/services/reminder_service.md](shared/services/reminder_service.md) | 9 | 8 |
-| `lib/shared/services/home_widget_service.dart` | [shared/services/home_widget_service.md](shared/services/home_widget_service.md) | 11 | 8 |
+| `lib/shared/services/home_widget_service.dart` | [shared/services/home_widget_service.md](shared/services/home_widget_service.md) | 12 | 9 |
 | `lib/shared/services/import_export_service.dart` | [shared/services/import_export_service.md](shared/services/import_export_service.md) | 6 | 4 |
 | `lib/shared/services/tray_service.dart` | [shared/services/tray_service.md](shared/services/tray_service.md) | 16 | 8 |
 | `lib/shared/services/image_service.dart` | [shared/services/image_service.md](shared/services/image_service.md) | 6 | 6 |
@@ -302,8 +302,8 @@ the 771 hand-documented declarations above).
 | `features/profile/` | 8 | 66 | 32 | 34 |
 | `features/recommendations/` | 11 | 155 | 65 | 90 |
 | `features/settings/` | 5 | 60 | 34 | 26 |
-| `shared/` (utils, widgets, providers, services, views) | 32 | 334 | 250 | 84 |
-| **Total** | **114** | **1590** | **821** | **769** |
+| `shared/` (utils, widgets, providers, services, views) | 32 | 335 | 251 | 84 |
+| **Total** | **114** | **1591** | **822** | **769** |
 
 The home-screen widget change added one file, `home_widget_service.dart` (10 declarations, 7 Tier A,
 3 Tier B); `anime_storage.dart`, `app_settings.dart`, `auto_sync_service.dart` and `main.dart`
@@ -319,6 +319,9 @@ The 1.9.5 move onto MyApps-Widget removed two Tier B declarations from `home_wid
 (`_WidgetSurface` and its `build`, replaced by the shared `WidgetPreviewSurface`);
 `home_widget_service.dart`, `settings_page.dart` and the Android and iOS widget code changed without a
 new Dart declaration.
+
+The placed-size preview change added one Tier A declaration, `home_widget_service.dart` +1
+(`placedSizes`); `home_widget_preview.dart` changed without a new declaration.
 
 
 ## Anime1 episode playback (1.6.4)

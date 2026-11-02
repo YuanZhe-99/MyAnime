@@ -1,5 +1,15 @@
 # Version history
 
+## 1.9.6 — Widget preview at the placed size (2026-11-02)
+
+The widget preview under **Settings › Home-screen widgets › Widget text size** was always a fixed
+2×2 square, so on a wider placement (for example 2×3) it truncated text the real widget showed in
+full and picked a different number of queue rows. On Android each preview card now lays out at the
+size the launcher gives the first placed instance of that widget and shrinks to fit the page,
+using the new `placedSizes` query in MyApps-Widget v0.1.1; with none placed, and on iOS, the fixed
+sizes remain. Some launchers also draw the whole widget scaled down, which the app cannot observe.
+See [`features/home-screen-widgets.md`](features/home-screen-widgets.md#text-size).
+
 ## 1.9.5 — Widgets on MyApps-Widget (2026-10-28)
 
 The home-screen widgets now run on the new shared MyApps-Widget package (v0.1.0, submodule

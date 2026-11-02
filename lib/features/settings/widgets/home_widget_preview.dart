@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:myapps_widget/myapps_widget.dart' show PlacedWidgetSize;
 import 'package:myapps_widget_ui/myapps_widget_ui.dart';
 
 import '../../../l10n/app_localizations.dart';
@@ -11,8 +12,13 @@ import '../../anime/services/anime_storage.dart';
 ///
 /// It draws the 2×2 "Up next" widget and the 2×1 strip from a snapshot of the
 /// real library, built by [HomeWidgetService.buildSnapshot], with the same text
-/// sizes as the Android layouts times [textScale]. It approximates the native
-/// widgets in app colors; it is not a pixel copy of either platform.
+/// sizes as the Android layouts times [textScale]. On Android each card lays
+/// out at the size the launcher gives the first placed instance of that widget
+/// ([HomeWidgetService.placedSizes]), then scales down to fit the page; with
+/// none placed, and on iOS, it uses the fixed `WidgetPreviewSurface` sizes. It
+/// approximates the native widgets in app colors; it is not a pixel copy of
+/// either platform, and a launcher that draws widgets scaled still looks
+/// smaller on the home screen.
 class HomeWidgetPreview extends StatefulWidget {
   /// Purpose: Create a home widget preview.
   /// Inputs: `textScale` — the widget text size multiplier to draw at.
@@ -33,14 +39,18 @@ class HomeWidgetPreview extends StatefulWidget {
 }
 
 class _HomeWidgetPreviewState extends State<HomeWidgetPreview> {
-  late final Future<HomeWidgetPreviewState> _state = _load();
+  late final Future<(HomeWidgetPreviewState, List<PlacedWidgetSize>)> _state =
+      _load();
 
-  /// Purpose: Build the preview state from the stored library once.
+  /// Purpose: Build the preview state from the stored library once, with
+  /// the placed widgets' sizes.
   /// Inputs: None.
-  /// Returns: `Future<HomeWidgetPreviewState>`.
-  /// Side effects: Reads `anime_data.json` and `storage_config.json`.
+  /// Returns: The evaluated state and every placed instance's size.
+  /// Side effects: Reads `anime_data.json` and `storage_config.json`, and
+  /// asks the launcher for placed widget sizes on Android.
   /// Notes: Labels are resolved later from the widget's own localizations.
-  Future<HomeWidgetPreviewState> _load() async {
+  /// Sizes are read once per Settings visit.
+  Future<(HomeWidgetPreviewState, List<PlacedWidgetSize>)> _load() async {
     final data = await AnimeStorage.load();
     final basis = await AnimeStorage.getHomeCalendarTimeBasis() == 'local'
         ? HomeCalendarTimeBasis.local
@@ -52,31 +62,70 @@ class _HomeWidgetPreviewState extends State<HomeWidgetPreview> {
       basis: basis,
       labels: const {},
     );
-    return HomeWidgetPreviewState.evaluate(snapshot, now);
+    return (
+      HomeWidgetPreviewState.evaluate(snapshot, now),
+      await HomeWidgetService.placedSizes(),
+    );
   }
 
   /// Purpose: Build the widget subtree for the current state.
   /// Inputs: `context`.
-  /// Returns: The two preview cards side by side, wrapping on narrow widths.
+  /// Returns: The two preview cards side by side, wrapping on narrow widths;
+  /// each at its placed size (portrait or landscape by the current
+  /// orientation) or the default size, scaled down to fit the page width.
   /// Side effects: None.
-  /// Notes: Shows nothing until the library has loaded.
+  /// Notes: Shows nothing until the library has loaded. With several placed
+  /// instances of one widget, the first one is shown.
   @override
   Widget build(BuildContext context) {
-    return FutureBuilder<HomeWidgetPreviewState>(
+    return FutureBuilder<(HomeWidgetPreviewState, List<PlacedWidgetSize>)>(
       future: _state,
       builder: (context, snapshot) {
-        final state = snapshot.data;
-        if (state == null) {
+        final data = snapshot.data;
+        if (data == null) {
           return const SizedBox(height: WidgetPreviewSurface.smallSide);
         }
+        final (state, placed) = data;
+        final landscape =
+            MediaQuery.orientationOf(context) == Orientation.landscape;
+        PlacedWidgetSize? first(String provider) =>
+            placed.where((s) => s.provider == provider).firstOrNull;
+        Size sizeOf(PlacedWidgetSize? s, Size fallback) =>
+            s == null ? fallback : (landscape ? s.landscape : s.portrait);
+        final small = first(HomeWidgetService.smallProvider);
+        final strip = first(HomeWidgetService.stripProvider);
         return Wrap(
           spacing: 16,
           runSpacing: 16,
           alignment: WrapAlignment.center,
           crossAxisAlignment: WrapCrossAlignment.center,
           children: [
-            _SmallWidgetCard(state: state, scale: widget.textScale),
-            _StripWidgetCard(state: state, scale: widget.textScale),
+            FittedBox(
+              fit: BoxFit.scaleDown,
+              child: _SmallWidgetCard(
+                state: state,
+                scale: widget.textScale,
+                size: sizeOf(
+                  small,
+                  const Size.square(WidgetPreviewSurface.smallSide),
+                ),
+                placedMinHeight: small?.minHeight,
+              ),
+            ),
+            FittedBox(
+              fit: BoxFit.scaleDown,
+              child: _StripWidgetCard(
+                state: state,
+                scale: widget.textScale,
+                size: sizeOf(
+                  strip,
+                  const Size(
+                    WidgetPreviewSurface.smallSide,
+                    WidgetPreviewSurface.stripHeight,
+                  ),
+                ),
+              ),
+            ),
           ],
         );
       },
@@ -169,30 +218,48 @@ String _airTime(BuildContext context, int ms) {
 /// Preview of the 2×2 "Up next" widget.
 class _SmallWidgetCard extends StatelessWidget {
   /// Purpose: Create the 2×2 preview.
-  /// Inputs: `state`, `scale`.
+  /// Inputs: `state`, `scale`; `size` — the card size in dp;
+  /// `placedMinHeight` — the placed instance's `OPTION_APPWIDGET_MIN_HEIGHT`,
+  /// or null when none is placed.
   /// Returns: A new `_SmallWidgetCard`.
   /// Side effects: None.
   /// Notes: None.
-  const _SmallWidgetCard({required this.state, required this.scale});
+  const _SmallWidgetCard({
+    required this.state,
+    required this.scale,
+    required this.size,
+    this.placedMinHeight,
+  });
+
+  /// Mirrors `UpNextWidgetProvider.TWO_ROW_MIN_HEIGHT_DP`.
+  static const _twoRowMinHeight = 150.0;
 
   final HomeWidgetPreviewState state;
   final double scale;
+  final Size size;
+  final double? placedMinHeight;
 
   /// Purpose: Build the widget subtree for the current state.
   /// Inputs: `context`.
   /// Returns: Header, count block and queue rows, sized like
   /// `widget_up_next.xml` times [scale].
   /// Side effects: None.
-  /// Notes: Two rows at 100–120% text, one above, like a 2×2 cell on most
-  /// launchers.
+  /// Notes: With a placed Android instance, the row count follows
+  /// `UpNextWidgetProvider.render` (two rows when its minimum height reaches
+  /// 150 dp × [scale]); otherwise two rows at 100–120% text and one above,
+  /// like a 2×2 cell on most launchers.
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
     final scheme = Theme.of(context).colorScheme;
     double sp(double base) => base * scale;
+    final rowCount = switch (placedMinHeight) {
+      null => scale > 1.2 ? 1 : 2,
+      final h => h == 0 || h >= _twoRowMinHeight * scale ? 2 : 1,
+    };
     final rows = state.queue.isNotEmpty
         ? [
-            for (final e in state.queue.take(scale > 1.2 ? 1 : 2))
+            for (final e in state.queue.take(rowCount))
               (e['t'] as String, l10n.widgetEpisode('${e['e']}')),
           ]
         : [
@@ -206,8 +273,8 @@ class _SmallWidgetCard extends StatelessWidget {
     final caughtUp = state.toWatch == 0;
 
     return WidgetPreviewSurface(
-      width: WidgetPreviewSurface.smallSide,
-      height: WidgetPreviewSurface.smallSide,
+      width: size.width,
+      height: size.height,
       padding: const EdgeInsets.all(16),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -309,14 +376,19 @@ class _SmallWidgetCard extends StatelessWidget {
 /// Preview of the 2×1 strip widget.
 class _StripWidgetCard extends StatelessWidget {
   /// Purpose: Create the strip preview.
-  /// Inputs: `state`, `scale`.
+  /// Inputs: `state`, `scale`; `size` — the card size in dp.
   /// Returns: A new `_StripWidgetCard`.
   /// Side effects: None.
   /// Notes: None.
-  const _StripWidgetCard({required this.state, required this.scale});
+  const _StripWidgetCard({
+    required this.state,
+    required this.scale,
+    required this.size,
+  });
 
   final HomeWidgetPreviewState state;
   final double scale;
+  final Size size;
 
   /// Purpose: Build the widget subtree for the current state.
   /// Inputs: `context`.
@@ -346,8 +418,8 @@ class _StripWidgetCard extends StatelessWidget {
         : (l10n.widgetCaughtUp, l10n.widgetNoUpdatesToday);
 
     return WidgetPreviewSurface(
-      width: WidgetPreviewSurface.smallSide,
-      height: WidgetPreviewSurface.stripHeight,
+      width: size.width,
+      height: size.height,
       padding: const EdgeInsets.fromLTRB(10, 8, 14, 8),
       child: Row(
         children: [

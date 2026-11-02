@@ -2,7 +2,7 @@
 
 ## 归属
 
-MyApps-Widget v0.1.0 以相对同级 URL `../MyApps-Widget.git` 嵌入在 `packages/myapps_widget`（1.9.5）。应用依赖
+MyApps-Widget v0.1.1 以相对同级 URL `../MyApps-Widget.git` 嵌入在 `packages/myapps_widget`（1.9.5）。应用依赖
 `packages/myapps_widget/packages/myapps_widget`（桥接层，以及 Android 和 iOS 插件）和
 `packages/myapps_widget/packages/myapps_widget_ui`（预览外壳、字号控件）；两者都会引入 `myapps_widget_core`。全新检出时，
 先运行 `git submodule update --init --recursive` 再运行 `flutter pub get`。该子模块不参与应用的 `flutter analyze`，它有自己的 CI。

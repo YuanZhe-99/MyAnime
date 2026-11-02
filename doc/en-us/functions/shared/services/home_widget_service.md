@@ -14,6 +14,7 @@ widgets, the snapshot format and the native readers — this page covers the Dar
 | [`HomeWidgetService._`](#homewidgetservice-_) | constructor (`HomeWidgetService`) | B | Prevent instantiation; the class is static-only. |
 | [`isSupported`](#issupported) | getter (`HomeWidgetService`) | B | Whether the platform has home-screen widgets (Android, iOS). |
 | [`clampTextScale`](#clamptextscale) | method (`HomeWidgetService`) | A | Clamp a widget text scale to the supported range (1.9.4). |
+| [`placedSizes`](#placedsizes) | method (`HomeWidgetService`) | A | Report the launcher-given size of every placed Android widget. |
 | [`init`](#init) | method (`HomeWidgetService`) | A | Subscribe to sync/restore reloads and push the first snapshot. |
 | [`notifyDataChanged`](#notifydatachanged) | method (`HomeWidgetService`) | A | Debounce a refresh after data or settings change. |
 | [`refresh`](#refresh) | method (`HomeWidgetService`) | A | Rebuild the snapshot from storage and send it to the native widgets. |
@@ -23,7 +24,8 @@ widgets, the snapshot format and the native readers — this page covers the Dar
 | [`_startOfToday`](#_startoftoday) | method (`HomeWidgetService`) | A | The UTC instant at which "today" starts for a calendar time basis. |
 | [`_l10n`](#_l10n) | method (`HomeWidgetService`) | B | Resolve localizations from the saved locale or the platform default. |
 
-Constants: `kind` (`myanime.upNext`), `appGroupId` (`group.com.yuanzhe.myAnime`), `formatVersion`
+Constants: `kind` (`myanime.upNext`), `appGroupId` (`group.com.yuanzhe.myAnime`), `smallProvider`
+and `stripProvider` (the two Android provider class names), `formatVersion`
 (1, the payload `pv`), `lookahead` (8 days), `maxEpisodes` (80), `minTextScale` (0.9) and
 `maxTextScale` (1.5), both aliases of `WidgetTextScale`. Private fields: `_bridge` (the
 `MyAppsWidgetBridge` with one `WidgetKindDescriptor` naming both Android providers and the
@@ -43,6 +45,20 @@ logs failures).
 - **Usage:** `AppSettingsNotifier` (load and setter), [`refresh`](#refresh), [`buildSnapshot`](#buildsnapshot).
 - **Notes:** Added in 1.9.4. Rounding keeps the slider's 0.1 steps exact. The native readers clamp
   to the same range again.
+
+### `static Future<List<PlacedWidgetSize>> placedSizes()` <a id="placedsizes"></a>
+- **Kind:** static method of `HomeWidgetService`
+- **Source:** `lib/shared/services/home_widget_service.dart`
+- **Purpose:** Report the size the launcher gives every placed instance of `smallProvider` or
+  `stripProvider`.
+- **Inputs:** None.
+- **Returns:** One `PlacedWidgetSize` (dp bounds from `getAppWidgetOptions`) per placed instance;
+  empty when none is placed, on iOS, or on unsupported platforms.
+- **Side effects:** None.
+- **Algorithm:** Delegates to `MyAppsWidgetBridge.placedSizes(kind)`.
+- **Usage:** The settings preview (`HomeWidgetPreview`), so it lays out at the placed size.
+- **Notes:** Added after 1.9.5. Channel errors read as empty, so the preview falls back to its
+  default size.
 
 ### `static Future<void> init()` <a id="init"></a>
 - **Kind:** static method of `HomeWidgetService`

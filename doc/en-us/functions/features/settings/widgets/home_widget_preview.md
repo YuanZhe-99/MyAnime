@@ -6,8 +6,12 @@ screen. It builds a snapshot of the real library with
 [`HomeWidgetService.buildSnapshot`](../../../shared/services/home_widget_service.md#buildsnapshot),
 evaluates it the way the native widgets do, and draws a 2×2 card and a 2×1 strip with the Android
 layout text sizes times the chosen scale, in the app's color scheme, on the shared
-`WidgetPreviewSurface` from `myapps_widget_ui` (1.9.5). It approximates the native widgets; it is
-not a pixel copy of either platform. See
+`WidgetPreviewSurface` from `myapps_widget_ui` (1.9.5). On Android each card lays out at the size the
+launcher gives the first placed instance of that widget
+([`HomeWidgetService.placedSizes`](../../../shared/services/home_widget_service.md#placedsizes)) and
+scales down to fit the page; with none placed, and on iOS, it uses the default 172 × 172 and
+172 × 76 sizes. It approximates the native widgets; it is not a pixel copy of either platform, and a
+launcher that draws widgets scaled (some shrink the whole widget) still shows them smaller. See
 [`../../../../features/home-screen-widgets.md`](../../../../features/home-screen-widgets.md).
 
 ## Declarations
@@ -16,28 +20,31 @@ not a pixel copy of either platform. See
 |---|---|---|---|
 | `HomeWidgetPreview({super.key, required this.textScale})` | constructor (`HomeWidgetPreview`) | B | Create the preview for a text scale. |
 | `createState` | method (`HomeWidgetPreview`) | B | Create the state object. |
-| [`_load`](#_load) | method (`_HomeWidgetPreviewState`) | A | Build the preview state from the stored library once. |
+| [`_load`](#_load) | method (`_HomeWidgetPreviewState`) | A | Build the preview state and read the placed sizes once. |
 | [`build`](#build) | method (`_HomeWidgetPreviewState`) | A | Lay out the two preview cards. |
 | `HomeWidgetPreviewState(...)` | constructor (`HomeWidgetPreviewState`) | B | Hold one evaluated widget state. |
 | [`HomeWidgetPreviewState.evaluate`](#evaluate) | factory constructor (`HomeWidgetPreviewState`) | A | Evaluate a fresh snapshot like the native widgets. |
 | [`_airTime`](#_airtime) | top-level function | A | Format an air time like the native widgets. |
-| `_SmallWidgetCard(...)` | constructor (`_SmallWidgetCard`) | B | Create the 2×2 preview. |
+| `_SmallWidgetCard(...)` | constructor (`_SmallWidgetCard`) | B | Create the 2×2 preview at a size, with the placed minimum height. |
 | [`_SmallWidgetCard.build`](#_smallwidgetcard-build) | method (`_SmallWidgetCard`) | A | Draw the 2×2 widget. |
-| `_StripWidgetCard(...)` | constructor (`_StripWidgetCard`) | B | Create the 2×1 preview. |
+| `_StripWidgetCard(...)` | constructor (`_StripWidgetCard`) | B | Create the 2×1 preview at a size. |
 | [`_StripWidgetCard.build`](#_stripwidgetcard-build) | method (`_StripWidgetCard`) | A | Draw the 2×1 strip. |
 
 ## Documentation
 
-### `Future<HomeWidgetPreviewState> _load()` <a id="_load"></a>
+### `Future<(HomeWidgetPreviewState, List<PlacedWidgetSize>)> _load()` <a id="_load"></a>
 - **Kind:** method of `_HomeWidgetPreviewState`
-- **Purpose:** Read the library and calendar time basis once and evaluate a snapshot built now.
+- **Purpose:** Read the library and calendar time basis once, evaluate a snapshot built now, and
+  read the placed widget sizes.
 - **Inputs:** None.
-- **Returns:** `Future<HomeWidgetPreviewState>`.
-- **Side effects:** Reads `anime_data.json` and `storage_config.json`.
+- **Returns:** The evaluated state and every placed instance's `PlacedWidgetSize`.
+- **Side effects:** Reads `anime_data.json` and `storage_config.json`; on Android asks the launcher
+  for placed widget sizes.
 - **Algorithm:** `AnimeStorage.load` → time basis → `buildSnapshot` with empty labels →
-  [`evaluate`](#evaluate).
+  [`evaluate`](#evaluate); then `HomeWidgetService.placedSizes`.
 - **Usage:** Stored in a `late final` future, so moving the slider never reloads the library.
-- **Notes:** Labels come from the widget tree's own `AppLocalizations` instead.
+- **Notes:** Labels come from the widget tree's own `AppLocalizations` instead. Sizes are read once
+  per Settings visit, so a widget resized meanwhile shows after reopening Settings.
 
 ### `Widget build(BuildContext context)` <a id="build"></a>
 - **Kind:** method of `_HomeWidgetPreviewState`
@@ -46,9 +53,12 @@ not a pixel copy of either platform. See
 - **Returns:** The cards, or a `WidgetPreviewSurface.smallSide` (172-pixel) placeholder until
   `_load` completes.
 - **Side effects:** None.
-- **Algorithm:** `FutureBuilder` over `_load`; passes `widget.textScale` to both cards.
+- **Algorithm:** `FutureBuilder` over `_load`; for each card, the first placed instance of its
+  provider gives the size (`portrait` or `landscape` by the current orientation), otherwise the
+  default; each card sits in a `FittedBox(scaleDown)` and gets `widget.textScale`.
 - **Usage:** Settings page, below the slider.
-- **Notes:** The cards wrap onto two rows on a narrow window.
+- **Notes:** The cards wrap onto two rows on a narrow window; a card wider than the page shrinks as
+  a whole, keeping its layout.
 
 ### `factory HomeWidgetPreviewState.evaluate(Map<String, dynamic> snapshot, DateTime nowUtc)` <a id="evaluate"></a>
 - **Kind:** factory constructor of `HomeWidgetPreviewState`
@@ -77,10 +87,12 @@ not a pixel copy of either platform. See
 - **Kind:** method of `_SmallWidgetCard`
 - **Purpose:** Draw the 2×2 widget: header with today pill, count or *All caught up*, label, rows.
 - **Inputs:** `context`.
-- **Returns:** A 172 × 172 `WidgetPreviewSurface`.
+- **Returns:** A `WidgetPreviewSurface` of the given size.
 - **Side effects:** None.
-- **Algorithm:** Sizes from `widget_up_next.xml` (12/11/36 or 20/12/13/12 sp) times the scale; two
-  queue rows up to 120%, one above; with an empty queue, the next airing episode.
+- **Algorithm:** Sizes from `widget_up_next.xml` (12/11/36 or 20/12/13/12 sp) times the scale.
+  Queue rows: with a placed instance, two when its minimum height is 0 or at least 150 dp × scale,
+  else one (as `UpNextWidgetProvider.render`); without one, two up to 120% and one above. With an
+  empty queue, the next airing episode.
 - **Usage:** [`build`](#build).
 - **Notes:** Same content choices as `UpNextWidgetProvider.render`.
 
@@ -88,7 +100,7 @@ not a pixel copy of either platform. See
 - **Kind:** method of `_StripWidgetCard`
 - **Purpose:** Draw the 2×1 strip: count tile and two lines.
 - **Inputs:** `context`.
-- **Returns:** A 172 × 76 `WidgetPreviewSurface`.
+- **Returns:** A `WidgetPreviewSurface` of the given size.
 - **Side effects:** None.
 - **Algorithm:** Sizes from `widget_up_next_strip.xml` (18/14/12 sp) times the scale; lines as in
   `UpNextStripWidgetProvider.render`.

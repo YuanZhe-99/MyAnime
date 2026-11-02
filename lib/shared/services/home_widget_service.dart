@@ -37,16 +37,21 @@ class HomeWidgetService {
   /// matching native change.
   static const formatVersion = 1;
 
+  /// Android provider of the 2×2 "Up next" widget.
+  static const smallProvider =
+      'com.yuanzhe.my_anime.widget.UpNextWidgetProvider';
+
+  /// Android provider of the 2×1 strip widget.
+  static const stripProvider =
+      'com.yuanzhe.my_anime.widget.UpNextStripWidgetProvider';
+
   /// The shared bridge, registered with the one kind both widget sizes render.
   static final _bridge = MyAppsWidgetBridge(
     appGroupId: appGroupId,
     kinds: [
       WidgetKindDescriptor(
         id: kind,
-        androidProviders: const [
-          'com.yuanzhe.my_anime.widget.UpNextWidgetProvider',
-          'com.yuanzhe.my_anime.widget.UpNextStripWidgetProvider',
-        ],
+        androidProviders: const [smallProvider, stripProvider],
         iosKinds: const ['MyAnimeUpNextWidget'],
         payloadVersion: formatVersion,
       ),
@@ -86,6 +91,15 @@ class HomeWidgetService {
   /// Side effects: None.
   /// Notes: Android and iOS only; every public entry point no-ops elsewhere.
   static bool get isSupported => _bridge.isSupported;
+
+  /// Purpose: Report the launcher-given size of every placed Android widget.
+  /// Inputs: None.
+  /// Returns: One `PlacedWidgetSize` per placed instance of [smallProvider]
+  /// or [stripProvider]; empty when none is placed, on iOS, or elsewhere.
+  /// Side effects: None.
+  /// Notes: Used by the settings preview so it lays out at the placed size.
+  static Future<List<PlacedWidgetSize>> placedSizes() =>
+      _bridge.placedSizes(kind);
 
   /// Purpose: Configure the widget store and push the first snapshot.
   /// Inputs: None.

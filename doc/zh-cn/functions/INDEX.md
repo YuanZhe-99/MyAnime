@@ -201,7 +201,7 @@ find lib -name "*.dart" -not -path "lib/l10n/*" | xargs grep -h '/// Purpose:' |
 | `lib/shared/services/duplicate_service.dart` | [shared/services/duplicate_service.md](shared/services/duplicate_service.md) | 17 | 12 |
 | `lib/shared/services/file_open_service.dart` | [shared/services/file_open_service.md](shared/services/file_open_service.md) | 21 | 17 |
 | `lib/shared/services/reminder_service.dart` | [shared/services/reminder_service.md](shared/services/reminder_service.md) | 9 | 8 |
-| `lib/shared/services/home_widget_service.dart` | [shared/services/home_widget_service.md](shared/services/home_widget_service.md) | 11 | 8 |
+| `lib/shared/services/home_widget_service.dart` | [shared/services/home_widget_service.md](shared/services/home_widget_service.md) | 12 | 9 |
 | `lib/shared/services/import_export_service.dart` | [shared/services/import_export_service.md](shared/services/import_export_service.md) | 6 | 4 |
 | `lib/shared/services/tray_service.dart` | [shared/services/tray_service.md](shared/services/tray_service.md) | 16 | 8 |
 | `lib/shared/services/image_service.dart` | [shared/services/image_service.md](shared/services/image_service.md) | 6 | 6 |
@@ -221,8 +221,8 @@ find lib -name "*.dart" -not -path "lib/l10n/*" | xargs grep -h '/// Purpose:' |
 | `features/profile/` | 8 | 66 | 32 | 34 |
 | `features/recommendations/` | 11 | 155 | 65 | 90 |
 | `features/settings/` | 5 | 60 | 34 | 26 |
-| `shared/`（utils、widgets、providers、services、views） | 32 | 334 | 250 | 84 |
-| **总计** | **114** | **1590** | **821** | **769** |
+| `shared/`（utils、widgets、providers、services、views） | 32 | 335 | 251 | 84 |
+| **总计** | **114** | **1591** | **822** | **769** |
 
 桌面小组件变更新增了一个文件 `home_widget_service.dart`（10 个声明，7 个 Tier A、
 3 个 Tier B）；`anime_storage.dart`、`app_settings.dart`、`auto_sync_service.dart` 和 `main.dart`
@@ -236,6 +236,9 @@ find lib -name "*.dart" -not -path "lib/l10n/*" | xargs grep -h '/// Purpose:' |
 1.9.5 改用 MyApps-Widget 后，`home_widget_preview.dart` 移除了两个 Tier B 声明（`_WidgetSurface` 及其 `build`，
 由共享的 `WidgetPreviewSurface` 取代）；`home_widget_service.dart`、`settings_page.dart` 以及 Android 和 iOS
 小组件代码有改动，但没有新增 Dart 声明。
+
+按放置尺寸预览的变更新增了一个 Tier A 声明：`home_widget_service.dart` +1
+（`placedSizes`）；`home_widget_preview.dart` 有改动，但没有新增声明。
 
 
 ## Anime1 分集播放（1.6.4）

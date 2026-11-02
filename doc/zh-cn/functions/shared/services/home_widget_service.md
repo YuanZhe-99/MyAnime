@@ -9,6 +9,7 @@
 | [`HomeWidgetService._`](#homewidgetservice-_) | 构造函数（`HomeWidgetService`） | B | 阻止实例化；该类纯静态。 |
 | [`isSupported`](#issupported) | getter（`HomeWidgetService`） | B | 平台是否有桌面小组件（Android、iOS）。 |
 | [`clampTextScale`](#clamptextscale) | 方法（`HomeWidgetService`） | A | 把小组件字号缩放限定在支持范围内（1.9.4）。 |
+| [`placedSizes`](#placedsizes) | 方法（`HomeWidgetService`） | A | 报告桌面启动器给每个已放置 Android 小组件的尺寸。 |
 | [`init`](#init) | 方法（`HomeWidgetService`） | A | 订阅同步/恢复重载并推送第一份快照。 |
 | [`notifyDataChanged`](#notifydatachanged) | 方法（`HomeWidgetService`） | A | 数据或设置变更后防抖地安排刷新。 |
 | [`refresh`](#refresh) | 方法（`HomeWidgetService`） | A | 从存储重建快照并发送给原生小组件。 |
@@ -18,7 +19,7 @@
 | [`_startOfToday`](#_startoftoday) | 方法（`HomeWidgetService`） | A | 给定日历时间基准下「今天」开始的 UTC 时刻。 |
 | [`_l10n`](#_l10n) | 方法（`HomeWidgetService`） | B | 从保存的语言区域或平台默认值解析本地化。 |
 
-常量：`kind`（`myanime.upNext`）、`appGroupId`（`group.com.yuanzhe.myAnime`）、`formatVersion`（1，即 payload 的 `pv`）、`lookahead`（8 天）、`maxEpisodes`（80）、`minTextScale`（0.9）和 `maxTextScale`（1.5），后两者是 `WidgetTextScale` 的别名。私有字段：`_bridge`（`MyAppsWidgetBridge`，含一个列出两个 Android Provider 和 WidgetKit kind `MyAnimeUpNextWidget` 的 `WidgetKindDescriptor`）和 `_scheduler`（记录失败的 2 秒 `WidgetRefreshScheduler`）。
+常量：`kind`（`myanime.upNext`）、`appGroupId`（`group.com.yuanzhe.myAnime`）、`smallProvider` 和 `stripProvider`（两个 Android Provider 类名）、`formatVersion`（1，即 payload 的 `pv`）、`lookahead`（8 天）、`maxEpisodes`（80）、`minTextScale`（0.9）和 `maxTextScale`（1.5），后两者是 `WidgetTextScale` 的别名。私有字段：`_bridge`（`MyAppsWidgetBridge`，含一个列出两个 Android Provider 和 WidgetKit kind `MyAnimeUpNextWidget` 的 `WidgetKindDescriptor`）和 `_scheduler`（记录失败的 2 秒 `WidgetRefreshScheduler`）。
 
 ## 文档
 
@@ -32,6 +33,17 @@
 - **算法：** 委托给 `WidgetTextScale.clamp`：`clamp`，然后 `round(scale * 10) / 10`。
 - **用法：** `AppSettingsNotifier`（加载与 setter）、[`refresh`](#refresh)、[`buildSnapshot`](#buildsnapshot)。
 - **备注：** 1.9.4 新增。四舍五入让滑块的 0.1 步长保持精确。原生读取方会再按同一范围限定一次。
+
+### `static Future<List<PlacedWidgetSize>> placedSizes()` <a id="placedsizes"></a>
+- **种类：** `HomeWidgetService` 的静态方法
+- **来源：** `lib/shared/services/home_widget_service.dart`
+- **用途：** 报告桌面启动器给 `smallProvider` 或 `stripProvider` 每个已放置实例的尺寸。
+- **输入：** 无。
+- **返回：** 每个已放置实例一个 `PlacedWidgetSize`（来自 `getAppWidgetOptions` 的 dp 边界）；未放置、在 iOS 或不支持的平台上为空。
+- **副作用：** 无。
+- **算法：** 委托给 `MyAppsWidgetBridge.placedSizes(kind)`。
+- **用法：** 设置页预览（`HomeWidgetPreview`），使其按已放置的尺寸排版。
+- **备注：** 1.9.5 之后新增。通道错误按空处理，预览因此退回默认尺寸。
 
 ### `static Future<void> init()` <a id="init"></a>
 - **种类：** `HomeWidgetService` 的静态方法

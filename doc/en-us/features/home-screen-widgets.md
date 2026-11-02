@@ -43,8 +43,13 @@ Tapping either widget opens the app.
 text in both widgets from 90% to 150% in 10% steps; the default is 100%. A live preview of the 2×2
 widget and the 2×1 strip, drawn from the real library by `HomeWidgetPreview`
 (`lib/features/settings/widgets/home_widget_preview.dart`), sits under the slider and redraws as it
-moves; the placed widgets follow through the usual debounced refresh. The preview approximates the
-native widgets in the app's colors rather than copying either platform pixel for pixel.
+moves; the placed widgets follow through the usual debounced refresh. On Android each preview card
+lays out at the size the launcher reports for the first placed instance of that widget
+(`AppWidgetManager` size options, read through `HomeWidgetService.placedSizes`) and shrinks as a
+whole to fit the page, so it truncates and picks queue rows like the real widget; with none placed,
+and on iOS, it uses fixed 2×2 and 2×1 sizes. The preview approximates the native widgets in the
+app's colors rather than copying either platform pixel for pixel. Some launchers also draw the whole
+widget scaled down, which the app cannot observe, so text there can look smaller than in the preview.
 
 To keep larger text inside a fixed cell, Android needs `150 dp × scale` of height before it shows a
 second queue row, and the iOS 2×2 widget drops to one row above 120%. The iOS lock-screen
