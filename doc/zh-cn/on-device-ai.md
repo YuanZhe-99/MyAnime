@@ -57,7 +57,7 @@ Apple Intelligence 的模型——为自动分类补缺，并为推荐写简短�
 自 1.6.0（M4）起，设置中的各行显示在通用之后的「分类与推荐」分区中：先是*自动分类*开关，然后是 `AiSettingsTiles`，
 自动分类开启时再加上*立即分类*；自 M5 起*推荐*开关位于前两者之间。自 1.9.7 起 AI 各行不再直接内嵌：
 该分区包含两个功能开关、一个 `MyAppsAiSettingsEntry` 入口行（MyApps-AI v0.6.3；*使用 AI 功能*，副标题 `aiSettingsEntryDesc`）
-和*立即分类*，入口打开一个承载 `AiSettingsTiles` 的 `MyAppsAiSettingsPage`。宽窗口下该页面在设置的详情栏中打开。只有自动分类或推荐开启时才能打开 AI 开关，关闭其中最后一个开着的功能也会关闭它。这两个 AI 开关以 `onDeviceAiEnabled` 和
+和*立即分类*，入口打开一个承载 `AiSettingsTiles` 的 `MyAppsAiSettingsPage`。宽窗口下该页面在设置的详情栏中打开，由它进入的线上来源页在那里按自身宽度布局，因此保持单栏（MyApps-AI v0.6.4）。只有自动分类或推荐开启时才能打开 AI 开关，关闭其中最后一个开着的功能也会关闭它。这两个 AI 开关以 `onDeviceAiEnabled` 和
 `onDeviceAiPreferFast` 存放在 `storage_config.json` 中（见 [`data-formats.md`](data-formats.md)）。
 
 三个平台上的通道都是 `com.yuanzhe.myapps_ai/genai`。它的方法有 `status`（`force`、`preferFast`）、`info`

@@ -1,5 +1,15 @@
 # Version history
 
+## 1.9.8 — Online sources page in the Settings pane (2026-11-02)
+
+On a wide window, **Settings › Use AI features › Online AI sources** opened inside the Settings
+detail pane, but the shared sources page decided its own split from the whole window. It put its
+editor beside the list in a strip a few dozen pixels wide, where text ran one letter per line.
+MyApps-AI v0.6.4 makes the page measure its own width, so in the pane it is one list and opening a
+source pushes the editor there. A check of every page reachable from the Settings pane, in `lib/`
+and the embedded packages, found no other one that reads the window size; the rule is now written
+down in [`adaptive-layout.md`](adaptive-layout.md#measure-the-screen-for-the-gate-the-content-for-the-capacity).
+
 ## 1.9.7 — Widget and AI settings pages (2026-11-02)
 
 Settings had grown long on its first level, so two groups moved to pages of their own. **Settings ›

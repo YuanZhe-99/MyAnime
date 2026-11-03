@@ -218,6 +218,12 @@ bool useNavigationRail(double screenWidth) => screenWidth >= navRailMinWidth; //
   `0.755`，在阈值之下几乎不留余量。
 - 门控问的是窗口的*形状*，而侧边导航栏并不改变形状。容量问的是还剩多少空间，而侧边导航栏对此影响甚大。
 
+**能放进设置详情栏的页面是内容，而不是屏幕。** 详情栏原样传递窗口的 `MediaQuery`（MyApps-UI 只在折痕把栏
+分开时改写其尺寸），因此这类页面不能读取 `MediaQuery.sizeOf` 来决定自己的分栏——它会看到整个窗口，实际却
+只画在一半里。它要用 `LayoutBuilder` 量自己的区域。1.9.8 在 MyApps-AI 的线上来源页发现了这个问题：它按窗口
+宽度 840 分栏，把编辑器挤成列表旁的一条窄带；MyApps-AI v0.6.4 改为量页面本身。对 `lib/` 和内嵌包的检索
+没有发现其他可从详情栏到达、却读取窗口尺寸的页面。
+
 ## 折叠与展开
 
 `android/app/src/main/AndroidManifest.xml` 在其 activity 的 `configChanges` 中声明了
@@ -242,6 +248,7 @@ bool useNavigationRail(double screenWidth) => screenWidth >= navRailMinWidth; //
 | `series_widgets.dart`（管理面板） | 是 | `showSeriesManageSheet`（1.6.0）在 `canSplitLayout` 成立时打开上限 560 × 640 的 `Dialog`，否则打开模态底部面板——没有新的断点。系列卡片本身不需要规则：它位于 `_buildDetailChildren` 中，因此由详情页自己的分栏把它放进右栏。 |
 | `category_widgets.dart`（分类编辑器） | 是 | `showCategoryEditor`（1.6.0）在 `canSplitLayout` 成立时打开宽度上限 560 的 `Dialog`，否则打开模态底部面板——与系列管理面板的做法相同。分类标签本身位于 `_buildHeaderChildren` 中，因此在详情页的双栏布局中留在左栏。 |
 | `shell_scaffold.dart` | 否——`useNavigationRail` | 只看宽度；见上文。 |
+| `MyAppsOnlineSourcesPage`（MyApps-AI） | 否——看自身宽度 | 页面自身区域达到 840 时编辑器在列表旁（MyApps-AI v0.6.4）；从设置详情栏进入。 |
 
 **1.5.3 在此记录的那条 `kana_page.dart` 例外已经解除。** 它曾为规则卡的双列 `Wrap` 带着自己内联的
 `constraints.maxWidth >= 720`，当时被刻意放过，因为改动它会改变没有人问起过的平板竖持行为。而 1.5.4 把它接入

@@ -276,6 +276,15 @@ two separate reasons:
 - The gate asks about the window's *shape*, which the rail does not change. The capacity asks how
   much room is left, which the rail very much does.
 
+**A page that can be hosted in the Settings detail pane is content, not a screen.** The pane passes
+the window's `MediaQuery` through unchanged (MyApps-UI rewrites its size only when a fold splits
+the pane), so such a page must not read `MediaQuery.sizeOf` to choose its own panes — it would see
+the whole window while drawing in half of it. It measures its own box with `LayoutBuilder`. In
+1.9.8 this was found in MyApps-AI's online sources page, which split itself at a window width of
+840 and squeezed its editor into a strip beside the list; MyApps-AI v0.6.4 measures the page. A
+search of `lib/` and the embedded packages found no other page reachable from the pane that reads
+the window size.
+
 ## Folding and unfolding
 
 `android/app/src/main/AndroidManifest.xml` declares
@@ -301,6 +310,7 @@ when the device unfolds" needs — no lifecycle work, and no state to save and r
 | `series_widgets.dart` (manage sheet) | Yes | `showSeriesManageSheet` (1.6.0) opens a `Dialog` capped at 560 × 640 when `canSplitLayout` holds and a modal bottom sheet otherwise — no new breakpoint. The series card itself needs no rule: it lives in `_buildDetailChildren`, so the detail page's own split puts it in the right pane. |
 | `category_widgets.dart` (category editor) | Yes | `showCategoryEditor` (1.6.0) opens a `Dialog` capped at 560 wide when `canSplitLayout` holds and a modal bottom sheet otherwise — the same pattern as the series manage sheet. The chips themselves live in `_buildHeaderChildren`, so in the detail page's two-pane layout they stay in the left pane. |
 | `shell_scaffold.dart` | No — `useNavigationRail` | Width only; see above. |
+| `MyAppsOnlineSourcesPage` (MyApps-AI) | No — own width | Editor beside the list when the page's own box is 840 or wider (MyApps-AI v0.6.4); reached from the Settings detail pane. |
 
 **The `kana_page.dart` exception recorded here in 1.5.3 is resolved.** It used to carry its own
 inline `constraints.maxWidth >= 720` for the rule cards' two-column `Wrap`, and was left alone

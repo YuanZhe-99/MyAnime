@@ -74,7 +74,8 @@ automatic categories are on; since M5 the *Recommendations* switch sits between 
 1.9.7 the AI rows are no longer inline: the section holds the two feature switches, a
 `MyAppsAiSettingsEntry` row (MyApps-AI v0.6.3; *Use AI features*, subtitle `aiSettingsEntryDesc`)
 and *Categorise now*, and the entry opens a `MyAppsAiSettingsPage` that hosts `AiSettingsTiles`. On a
-wide window that page opens in the Settings detail pane. The AI
+wide window that page opens in the Settings detail pane, and the online sources page it leads to
+measures its own width there, so it stays one pane (MyApps-AI v0.6.4). The AI
 switch can be turned on only while automatic categories or recommendations are on, and turning the
 last of them off turns it off too. The AI switches are stored as
 `onDeviceAiEnabled` and `onDeviceAiPreferFast` in `storage_config.json` (see
